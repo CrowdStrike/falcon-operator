@@ -1,3 +1,3 @@
 /*
-Copyright 2021 CrowdStrike.
+Copyright 2021 CrowdStrike
 */

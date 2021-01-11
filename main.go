@@ -1,5 +1,5 @@
 /*
-Copyright 2021 CrowdStrike.
+Copyright 2021 CrowdStrike
 */
 
 package main
@@ -55,7 +55,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "70435a7a.example.com",
+		LeaderElectionID:       "70435a7a.crowdstrike.com",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
