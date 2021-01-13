@@ -1,4 +1,4 @@
-domain: example.com
+domain: crowdstrike.com
 layout: go.kubebuilder.io/v3
 projectName: falcon-operator
 repo: github.com/crowdstrike/falcon-operator
