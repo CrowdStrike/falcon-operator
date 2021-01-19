@@ -26,6 +26,7 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var cfg *rest.Config
+var _ = cfg
 var k8sClient client.Client
 var testEnv *envtest.Environment
 
