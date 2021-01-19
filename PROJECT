@@ -1,5 +1,6 @@
 domain: crowdstrike.com
 layout: go.kubebuilder.io/v3
+multigroup: true
 projectName: falcon-operator
 repo: github.com/crowdstrike/falcon-operator
 version: 3-alpha
