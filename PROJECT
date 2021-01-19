@@ -3,6 +3,11 @@ layout: go.kubebuilder.io/v3
 multigroup: true
 projectName: falcon-operator
 repo: github.com/crowdstrike/falcon-operator
+resources:
+- crdVersion: v1
+  group: falcon
+  kind: FalconConfig
+  version: v1alpha1
 version: 3-alpha
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
