@@ -1,0 +1,22 @@
+name: Container Build
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build image
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Buildah Action
+      uses: redhat-actions/buildah-build@v1
+      with:
+        image: falcon-operator-image
+        tag: v1alpha1
+        dockerfiles: |
+          ./Dockerfile
