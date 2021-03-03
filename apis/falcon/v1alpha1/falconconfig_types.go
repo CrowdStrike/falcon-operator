@@ -1,7 +1,3 @@
-/*
-Copyright 2021 CrowdStrike
-*/
-
 package v1alpha1
 
 import (
