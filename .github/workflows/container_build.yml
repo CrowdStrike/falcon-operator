@@ -13,10 +13,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Buildah Action
-      uses: redhat-actions/buildah-build@v1
-      with:
-        image: falcon-operator-image
-        tag: v1alpha1
-        dockerfiles: |
-          ./Dockerfile
+    - name: Container build
+      run: |
+        docker build .
