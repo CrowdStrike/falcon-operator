@@ -7,13 +7,23 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
+type FalconAPI struct {
+	// CloudRegion defines CrowdStrike Falcon Cloud Region to which the operator will connect to
+	CloudRegion string `json:"cloud_region"`
+	// Falcon OAuth2 API Client ID
+	ClientId string `json:"client_id"`
+	// Falcon OAuth2 API Client Secret
+	ClientSecret string `json:"client_secret"`
+}
+
 // FalconConfigSpec defines the desired state of FalconConfig
 type FalconConfigSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of FalconConfig. Edit FalconConfig_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
+	FalconAPI FalconAPI `json:"falcon_api"`
 }
 
 // FalconConfigStatus defines the observed state of FalconConfig
