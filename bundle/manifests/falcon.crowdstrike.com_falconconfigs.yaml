@@ -47,8 +47,25 @@ spec:
                 - client_secret
                 - cloud_region
                 type: object
+              workload_protection:
+                description: WorkloadProtectionSpec configures workload protection on the cluster
+                properties:
+                  linux_container:
+                    description: LinuxContainerSpec configures Falcon Container Sensor product installation on your cluster
+                    properties:
+                      enabled:
+                        type: boolean
+                      registry:
+                        description: Container Registry to which falcon-operator will push falcon-container sensor and from which falcon-container sensor will be consumed by pods
+                        type: string
+                    required:
+                    - enabled
+                    - registry
+                    type: object
+                type: object
             required:
             - falcon_api
+            - workload_protection
             type: object
           status:
             description: FalconConfigStatus defines the observed state of FalconConfig

@@ -13,6 +13,11 @@ metadata:
           "spec": {
             "falcon_api": {
               "cloud_region": "us-1"
+            },
+            "workload_protection": {
+              "linux_container": {
+                "enabled": true
+              }
             }
           }
         }
