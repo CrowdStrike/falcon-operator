@@ -8,11 +8,13 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/gofalcon/pkg/falcon_util"
 )
 
 // FalconConfigReconciler reconciles a FalconConfig object
@@ -36,9 +38,29 @@ type FalconConfigReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
 func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("falconconfig", req.NamespacedName)
+	logger := r.Log.WithValues("falconconfig", req.NamespacedName)
+	logger.Info("Reconciling FalconConfig")
 
 	// your logic here
+	falconConfig := &falconv1alpha1.FalconConfig{}
+	err := r.Client.Get(context.TODO(), req.NamespacedName, falconConfig)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			return ctrl.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		logger.Error(err, "Cannot get the Falcon Config")
+		return ctrl.Result{}, err
+	}
+	json, err := falcon_util.PrettyJson(falconConfig)
+	if err != nil {
+		logger.Error(err, "error")
+	} else {
+		logger.Info(json)
+	}
 
 	return ctrl.Result{}, nil
 }
