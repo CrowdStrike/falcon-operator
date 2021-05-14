@@ -3,5 +3,5 @@ kind: FalconConfig
 metadata:
   name: falconconfig-sample
 spec:
-  # Add fields here
-  foo: bar
+  falcon_api:
+    cloud_region: us-1

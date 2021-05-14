@@ -36,10 +36,27 @@ spec:
           spec:
             description: FalconConfigSpec defines the desired state of FalconConfig
             properties:
-              foo:
-                description: Foo is an example field of FalconConfig. Edit FalconConfig_types.go
-                  to remove/update
-                type: string
+              falcon_api:
+                description: FalconAPI configures connection from your local Falcon
+                  operator to CrowdStrike Falcon platform.
+                properties:
+                  client_id:
+                    description: Falcon OAuth2 API Client ID
+                    type: string
+                  client_secret:
+                    description: Falcon OAuth2 API Client Secret
+                    type: string
+                  cloud_region:
+                    description: CloudRegion defines CrowdStrike Falcon Cloud Region
+                      to which the operator will connect to
+                    type: string
+                required:
+                - client_id
+                - client_secret
+                - cloud_region
+                type: object
+            required:
+            - falcon_api
             type: object
           status:
             description: FalconConfigStatus defines the observed state of FalconConfig
