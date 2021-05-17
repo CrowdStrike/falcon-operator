@@ -59,7 +59,7 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if err != nil {
 		logger.Error(err, "error")
 	} else {
-		logger.Info(json)
+		_ = json
 	}
 
 	return ctrl.Result{}, nil
