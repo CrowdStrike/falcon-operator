@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/DataDog/zstd v1.4.0 // indirect
 	github.com/containers/image/v5 v5.10.1 // indirect
+	github.com/containers/storage v1.24.5 // indirect
 	github.com/crowdstrike/gofalcon v0.2.1 // indirect
 	github.com/etcd-io/bbolt v1.3.3 // indirect
 	github.com/go-logr/logr v0.3.0
