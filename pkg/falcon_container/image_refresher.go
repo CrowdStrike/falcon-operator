@@ -38,7 +38,6 @@ func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falco
 
 func (r *ImageRefresher) Refresh(imageDestination string) error {
 	stdout := os.Stdout // TODO: remove
-	fmt.Println("image.Refresh()")
 
 	policy := &signature.Policy{Default: []signature.PolicyRequirement{signature.NewPRInsecureAcceptAnything()}}
 	policyContext, err := signature.NewPolicyContext(policy)

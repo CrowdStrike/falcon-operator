@@ -6,6 +6,7 @@ package falcon
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -14,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
 	"github.com/crowdstrike/gofalcon/pkg/falcon_util"
 )
 
@@ -55,6 +57,19 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		logger.Error(err, "Cannot get the Falcon Config")
 		return ctrl.Result{}, err
 	}
+
+	refreshImage, err := r.reconcileContainerImage(falconConfig)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("Error when reconciling Falcon Container Image: %w", err)
+	}
+	if refreshImage {
+		err = r.refreshContainerImage(falconConfig)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("Error when reconciling Falcon Container Image: %w", err)
+		}
+		// TODO: write status
+	}
+
 	json, err := falcon_util.PrettyJson(falconConfig)
 	if err != nil {
 		logger.Error(err, "error")
@@ -70,4 +85,16 @@ func (r *FalconConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&falconv1alpha1.FalconConfig{}).
 		Complete(r)
+}
+
+func (r *FalconConfigReconciler) refreshContainerImage(falconConfig *falconv1alpha1.FalconConfig) error {
+	image := falcon_container.NewImageRefresher(context.Background(), r.Log, falconConfig.Spec.FalconAPI.ApiConfig())
+	return image.Refresh(falconConfig.Spec.WorkloadProtectionSpec.LinuxContainerSpec.Registry)
+}
+
+func (r *FalconConfigReconciler) reconcileContainerImage(falconConfig *falconv1alpha1.FalconConfig) (bool, error) {
+	if falconConfig.Status.WorkloadProtectionStatus == nil {
+		return true, nil
+	}
+	return false, nil
 }
