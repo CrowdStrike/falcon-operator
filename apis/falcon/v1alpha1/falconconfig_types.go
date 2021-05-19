@@ -10,6 +10,7 @@ import (
 // FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 type FalconAPI struct {
 	// CloudRegion defines CrowdStrike Falcon Cloud Region to which the operator will connect to
+	// +kubebuilder:validation:Enum=us-1;us-2;eu-1;us-gov-1
 	CloudRegion string `json:"cloud_region"`
 	// Falcon OAuth2 API Client ID
 	ClientId string `json:"client_id"`

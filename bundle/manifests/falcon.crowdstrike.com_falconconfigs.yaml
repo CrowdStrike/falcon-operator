@@ -41,6 +41,11 @@ spec:
                     type: string
                   cloud_region:
                     description: CloudRegion defines CrowdStrike Falcon Cloud Region to which the operator will connect to
+                    enum:
+                    - us-1
+                    - us-2
+                    - eu-1
+                    - us-gov-1
                     type: string
                 required:
                 - client_id
