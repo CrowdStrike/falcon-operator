@@ -18,6 +18,19 @@ type FalconAPI struct {
 	ClientSecret string `json:"client_secret"`
 }
 
+// LinuxContainerSpec configures Falcon Container Sensor product installation on your cluster
+type LinuxContainerSpec struct {
+	Enabled bool `json:"enabled"`
+	// Container Registry to which falcon-operator will push falcon-container sensor and from which falcon-container sensor will be consumed by pods
+	Registry string `json:"registry"`
+}
+
+// WorkloadProtectionSpec configures workload protection on the cluster
+type WorkloadProtectionSpec struct {
+	// LinuxContainerSpec configures Falcon Container Sensor product installation on your cluster
+	LinuxContainerSpec *LinuxContainerSpec `json:"linux_container,omitempty"`
+}
+
 // FalconConfigSpec defines the desired state of FalconConfig
 type FalconConfigSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -25,6 +38,8 @@ type FalconConfigSpec struct {
 
 	// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 	FalconAPI FalconAPI `json:"falcon_api"`
+	// WorkloadProtectionSpec configures workload protection on the cluster
+	WorkloadProtectionSpec WorkloadProtectionSpec `json:"workload_protection"`
 }
 
 // FalconConfigStatus defines the observed state of FalconConfig
