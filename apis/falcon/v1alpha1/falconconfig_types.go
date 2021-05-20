@@ -25,10 +25,31 @@ type LinuxContainerSpec struct {
 	Registry string `json:"registry"`
 }
 
+type ContainerItem struct {
+	Image   string      `json:"image"`
+	Created metav1.Time `json:"created"`
+	Tag     string      `json:"tag"`
+}
+
+type RegistryStatus struct {
+	Location string          `json:"location"`
+	Items    []ContainerItem `json:"items"`
+}
+
+// LinuxContainerStatus defines observed state of FalconConfig
+type LinuxContainerStatus struct {
+	Registry *RegistryStatus `json:"registry"`
+}
+
 // WorkloadProtectionSpec configures workload protection on the cluster
 type WorkloadProtectionSpec struct {
 	// LinuxContainerSpec configures Falcon Container Sensor product installation on your cluster
 	LinuxContainerSpec *LinuxContainerSpec `json:"linux_container,omitempty"`
+}
+
+// WorkloadProtectionStatus defines observed state of workload protection on the cluster
+type WorkloadProtectionStatus struct {
+	LinuxContainerStatus *LinuxContainerStatus `json:"linux_container,omitempty"`
 }
 
 // FalconConfigSpec defines the desired state of FalconConfig
@@ -46,6 +67,8 @@ type FalconConfigSpec struct {
 type FalconConfigStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	WorkloadProtectionStatus *WorkloadProtectionStatus `json:"workload_protection"`
 }
 
 // +kubebuilder:object:root=true
