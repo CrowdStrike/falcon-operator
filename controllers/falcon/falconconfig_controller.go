@@ -46,7 +46,7 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// your logic here
 	falconConfig := &falconv1alpha1.FalconConfig{}
-	err := r.Client.Get(context.TODO(), req.NamespacedName, falconConfig)
+	err := r.Client.Get(ctx, req.NamespacedName, falconConfig)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
