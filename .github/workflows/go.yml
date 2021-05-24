@@ -32,6 +32,11 @@ jobs:
       run: |
         make all
 
+    - name: Install dependencies
+      uses: mstksg/get-package@master
+      with:
+        apt-get: libgpgme-dev libbtrfs-dev libdevmapper-dev
+
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v2
       with:
