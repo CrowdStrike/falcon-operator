@@ -72,6 +72,15 @@ spec:
           - patch
           - update
         - apiGroups:
+          - image.openshift.io
+          resources:
+          - imagestreams
+          verbs:
+          - create
+          - delete
+          - get
+          - update
+        - apiGroups:
           - authentication.k8s.io
           resources:
           - tokenreviews
