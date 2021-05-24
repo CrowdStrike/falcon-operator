@@ -32,9 +32,11 @@ test: generate fmt vet manifests
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.7.0/hack/setup-envtest.sh
 	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
 
+TAGS=-tags 'exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp' \
+
 # Build manager binary
 manager: generate fmt vet
-	go build -o bin/manager main.go
+	go build -a $(TAGS) -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet manifests
@@ -67,7 +69,7 @@ fmt:
 
 # Run go vet against code
 vet:
-	go vet ./...
+	go vet $(TAGS) ./...
 
 # Generate code
 generate: controller-gen
