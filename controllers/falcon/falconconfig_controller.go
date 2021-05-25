@@ -63,6 +63,17 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
+	instanceToBeUpdated := falconConfig.DeepCopy()
+
+	if instanceToBeUpdated.Status.Phase == "" {
+		instanceToBeUpdated.Status.Phase = falconv1alpha1.PhasePending
+	}
+
+	switch instanceToBeUpdated.Status.Phase {
+	case falconv1alpha1.PhasePending:
+		return r.phasePendingReconcile(ctx, instanceToBeUpdated, logger)
+	}
+
 	imageStream := imagev1.ImageStream{}
 	err = r.Client.Get(ctx, types.NamespacedName{Name: "falcon-container", Namespace: req.NamespacedName.Namespace}, &imageStream)
 	if err != nil && errors.IsNotFound(err) {
