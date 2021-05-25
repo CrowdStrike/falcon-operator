@@ -10,9 +10,13 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	imagev1 "github.com/openshift/api/image/v1"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
@@ -56,6 +60,27 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 		// Error reading the object - requeue the request.
 		logger.Error(err, "Cannot get the Falcon Config")
+		return ctrl.Result{}, err
+	}
+
+	imageStream := imagev1.ImageStream{}
+	err = r.Get(ctx, types.NamespacedName{Name: "falcon-container", Namespace: req.NamespacedName.Namespace}, &imageStream)
+	if err != nil && errors.IsNotFound(err) {
+		imageStream := &imagev1.ImageStream{
+			TypeMeta:   metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
+			ObjectMeta: metav1.ObjectMeta{Name: "falcon-container", Namespace: req.NamespacedName.Namespace},
+			Spec:       imagev1.ImageStreamSpec{},
+		}
+		logger.Info("Creating a new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
+		err = r.Create(ctx, imageStream)
+		if err != nil {
+			logger.Error(err, "Failed to create new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
+
+	} else if err != nil {
+		logger.Error(err, "Failed to get ImageStream")
 		return ctrl.Result{}, err
 	}
 
