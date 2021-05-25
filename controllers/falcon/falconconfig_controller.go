@@ -74,8 +74,10 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		logger.Info("Creating a new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
 		err = r.Create(ctx, imageStream)
 		if err != nil {
-			logger.Error(err, "Failed to create new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
-			return ctrl.Result{}, err
+			if !errors.IsAlreadyExists(err) {
+				logger.Error(err, "Failed to create new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
+				return ctrl.Result{}, err
+			}
 		}
 		return ctrl.Result{Requeue: true}, nil
 
