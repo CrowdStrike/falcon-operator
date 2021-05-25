@@ -87,6 +87,9 @@ spec:
           status:
             description: FalconConfigStatus defines the observed state of FalconConfig
             properties:
+              phase:
+                description: Phase or the status of the deployment
+                type: string
               workload_protection:
                 description: WorkloadProtectionStatus defines observed state of workload
                   protection on the cluster
