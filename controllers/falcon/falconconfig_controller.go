@@ -16,7 +16,6 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
-	"github.com/crowdstrike/gofalcon/pkg/falcon_util"
 )
 
 // FalconConfigReconciler reconciles a FalconConfig object
@@ -80,13 +79,6 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, fmt.Errorf("Error when reconciling Falcon Container Image: %w", err)
 		}
 		// TODO: write status
-	}
-
-	json, err := falcon_util.PrettyJson(falconConfig)
-	if err != nil {
-		logger.Error(err, "error")
-	} else {
-		_ = json
 	}
 
 	return ctrl.Result{}, nil
