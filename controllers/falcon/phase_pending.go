@@ -15,6 +15,8 @@ import (
 )
 
 func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, instance *falconv1alpha1.FalconConfig, logger logr.Logger) (ctrl.Result, error) {
+	logger.Info("Phase: Pending")
+
 	imageStream := imagev1.ImageStream{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: "falcon-container", Namespace: instance.ObjectMeta.Namespace}, &imageStream)
 	if err != nil && errors.IsNotFound(err) {
@@ -37,5 +39,9 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 		logger.Error(err, "Failed to get ImageStream")
 		return ctrl.Result{}, err
 	}
-	return ctrl.Result{}, nil
+
+	instance.Status.Phase = falconv1alpha1.PhaseBuilding
+
+	err = r.Client.Status().Update(ctx, instance)
+	return ctrl.Result{}, err
 }

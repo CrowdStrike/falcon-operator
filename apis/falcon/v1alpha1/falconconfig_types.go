@@ -69,6 +69,8 @@ type FalconConfigStatusPhase string
 const (
 	// PhasePending represents the deployment to be started
 	PhasePending FalconConfigStatusPhase = "PENDING"
+	// PhaseBuilding represents the deployment before the falcon image is successfully fetched
+	PhaseBuilding FalconConfigStatusPhase = "BUILDING"
 	// PhaseDone represents the Falcon Protection being successfully installed
 	PhaseDone FalconConfigStatusPhase = "DONE"
 )
