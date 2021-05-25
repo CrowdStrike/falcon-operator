@@ -19,6 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	imagev1 "github.com/openshift/api/image/v1"
+
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	falconcontrollers "github.com/crowdstrike/falcon-operator/controllers/falcon"
 	// +kubebuilder:scaffold:imports
@@ -31,6 +33,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(imagev1.AddToScheme(scheme))
 
 	utilruntime.Must(falconv1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
