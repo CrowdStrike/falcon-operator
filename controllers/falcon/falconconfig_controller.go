@@ -64,7 +64,7 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	imageStream := imagev1.ImageStream{}
-	err = r.Get(ctx, types.NamespacedName{Name: "falcon-container", Namespace: req.NamespacedName.Namespace}, &imageStream)
+	err = r.Client.Get(ctx, types.NamespacedName{Name: "falcon-container", Namespace: req.NamespacedName.Namespace}, &imageStream)
 	if err != nil && errors.IsNotFound(err) {
 		imageStream := &imagev1.ImageStream{
 			TypeMeta:   metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
@@ -72,7 +72,7 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			Spec:       imagev1.ImageStreamSpec{},
 		}
 		logger.Info("Creating a new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
-		err = r.Create(ctx, imageStream)
+		err = r.Client.Create(ctx, imageStream)
 		if err != nil {
 			if !errors.IsAlreadyExists(err) {
 				logger.Error(err, "Failed to create new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
