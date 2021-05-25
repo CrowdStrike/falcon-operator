@@ -81,6 +81,7 @@ spec:
           - get
           - list
           - update
+          - watch
         - apiGroups:
           - authentication.k8s.io
           resources:
