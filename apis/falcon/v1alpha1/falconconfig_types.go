@@ -83,7 +83,7 @@ type FalconConfigStatus struct {
 	// Phase or the status of the deployment
 	Phase FalconConfigStatusPhase `json:"phase,omitempty"`
 
-	WorkloadProtectionStatus *WorkloadProtectionStatus `json:"workload_protection"`
+	WorkloadProtectionStatus *WorkloadProtectionStatus `json:"workload_protection,omitempty"`
 }
 
 // +kubebuilder:object:root=true

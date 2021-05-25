@@ -112,8 +112,6 @@ spec:
                     - registry
                     type: object
                 type: object
-            required:
-            - workload_protection
             type: object
         type: object
     served: true
