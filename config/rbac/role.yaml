@@ -40,4 +40,5 @@ rules:
   - create
   - delete
   - get
+  - list
   - update

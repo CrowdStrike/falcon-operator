@@ -79,6 +79,7 @@ spec:
           - create
           - delete
           - get
+          - list
           - update
         - apiGroups:
           - authentication.k8s.io
