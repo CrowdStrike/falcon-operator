@@ -63,12 +63,27 @@ type FalconConfigSpec struct {
 	WorkloadProtectionSpec WorkloadProtectionSpec `json:"workload_protection"`
 }
 
+// Represents the status of Falcon deployment
+type FalconConfigStatusPhase string
+
+const (
+	// PhasePending represents the deployment to be started
+	PhasePending FalconConfigStatusPhase = "PENDING"
+	// PhaseBuilding represents the deployment before the falcon image is successfully fetched
+	PhaseBuilding FalconConfigStatusPhase = "BUILDING"
+	// PhaseDone represents the Falcon Protection being successfully installed
+	PhaseDone FalconConfigStatusPhase = "DONE"
+)
+
 // FalconConfigStatus defines the observed state of FalconConfig
 type FalconConfigStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	WorkloadProtectionStatus *WorkloadProtectionStatus `json:"workload_protection"`
+	// Phase or the status of the deployment
+	Phase FalconConfigStatusPhase `json:"phase,omitempty"`
+
+	WorkloadProtectionStatus *WorkloadProtectionStatus `json:"workload_protection,omitempty"`
 }
 
 // +kubebuilder:object:root=true

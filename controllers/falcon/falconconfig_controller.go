@@ -29,7 +29,7 @@ type FalconConfigReconciler struct {
 // +kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconconfigs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconconfigs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconconfigs/finalizers,verbs=update
-// +kubebuilder:rbac:groups=image.openshift.io,resources=imagestreams,verbs=get;create;update;delete
+// +kubebuilder:rbac:groups=image.openshift.io,resources=imagestreams,verbs=get;list;watch;create;update;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -46,7 +46,7 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// your logic here
 	falconConfig := &falconv1alpha1.FalconConfig{}
-	err := r.Client.Get(context.TODO(), req.NamespacedName, falconConfig)
+	err := r.Client.Get(ctx, req.NamespacedName, falconConfig)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -57,6 +57,17 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		// Error reading the object - requeue the request.
 		logger.Error(err, "Cannot get the Falcon Config")
 		return ctrl.Result{}, err
+	}
+
+	instanceToBeUpdated := falconConfig.DeepCopy()
+
+	if instanceToBeUpdated.Status.Phase == "" {
+		instanceToBeUpdated.Status.Phase = falconv1alpha1.PhasePending
+	}
+
+	switch instanceToBeUpdated.Status.Phase {
+	case falconv1alpha1.PhasePending:
+		return r.phasePendingReconcile(ctx, instanceToBeUpdated, logger)
 	}
 
 	refreshImage, err := r.reconcileContainerImage(falconConfig)
