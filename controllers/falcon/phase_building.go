@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
@@ -14,16 +16,14 @@ import (
 func (r *FalconConfigReconciler) phaseBuildingReconcile(ctx context.Context, instance *falconv1alpha1.FalconConfig, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Phase: Building")
 
-	refreshImage, err := r.reconcileContainerImage(instance)
+	_, err := r.getDockercfg(ctx, instance.ObjectMeta.Namespace)
+	if err != nil {
+		return r.error(ctx, instance, "Cannot find dockercfg secret from the current namespace", err)
+	}
+
+	err = r.refreshContainerImage(ctx, instance)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("Error when reconciling Falcon Container Image: %w", err)
-	}
-	if refreshImage {
-		err = r.refreshContainerImage(ctx, instance)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("Error when reconciling Falcon Container Image: %w", err)
-		}
-		// TODO: write status
 	}
 
 	instance.Status.Phase = falconv1alpha1.PhaseDone
@@ -37,9 +37,38 @@ func (r *FalconConfigReconciler) refreshContainerImage(ctx context.Context, falc
 	return image.Refresh(falconConfig.Spec.WorkloadProtectionSpec.LinuxContainerSpec.Registry)
 }
 
-func (r *FalconConfigReconciler) reconcileContainerImage(falconConfig *falconv1alpha1.FalconConfig) (bool, error) {
-	if falconConfig.Status.WorkloadProtectionStatus == nil {
-		return true, nil
+func (r *FalconConfigReconciler) getDockercfg(ctx context.Context, namespace string) ([]byte, error) {
+	secrets := &corev1.SecretList{}
+	err := r.Client.List(ctx, secrets, client.InNamespace(namespace))
+	if err != nil {
+		return []byte{}, err
 	}
-	return false, nil
+
+	for _, secret := range secrets.Items {
+		if secret.Data == nil {
+			continue
+		}
+		if secret.Type != "kubernetes.io/dockercfg" {
+			continue
+		}
+
+		if secret.ObjectMeta.Annotations == nil || secret.ObjectMeta.Annotations["kubernetes.io/service-account.name"] != "builder" {
+			continue
+		}
+
+		value, ok := secret.Data[".dockercfg"]
+		if !ok {
+			continue
+		}
+		return value, nil
+	}
+
+	return []byte{}, fmt.Errorf("Cannot find suitable secret in namespace %s to push falcon-image to the registry", namespace)
+}
+
+func (r *FalconConfigReconciler) error(ctx context.Context, instance *falconv1alpha1.FalconConfig, message string, err error) (ctrl.Result, error) {
+	userError := fmt.Errorf("%s %w", message, err)
+
+	return ctrl.Result{}, userError
+
 }
