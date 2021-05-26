@@ -21,8 +21,7 @@ const (
 func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, instance *falconv1alpha1.FalconConfig, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Phase: Pending")
 
-	imageStream := imagev1.ImageStream{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: IMAGE_STREAM_NAME, Namespace: instance.ObjectMeta.Namespace}, &imageStream)
+	_, err := r.imageStream(ctx, instance.ObjectMeta.Namespace)
 	if err != nil && errors.IsNotFound(err) {
 		imageStream := &imagev1.ImageStream{
 			TypeMeta:   metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
@@ -48,4 +47,9 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 
 	err = r.Client.Status().Update(ctx, instance)
 	return ctrl.Result{}, err
+}
+
+func (r *FalconConfigReconciler) imageStream(ctx context.Context, namespace string) (stream imagev1.ImageStream, err error) {
+	err = r.Client.Get(ctx, types.NamespacedName{Name: IMAGE_STREAM_NAME, Namespace: namespace}, &stream)
+	return
 }
