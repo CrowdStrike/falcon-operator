@@ -25,7 +25,6 @@ func (r *FalconConfigReconciler) phaseBuildingReconcile(ctx context.Context, ins
 	if err != nil {
 		return r.error(ctx, instance, "Cannot access image stream", err)
 	}
-	logger.Info(imageStream.Status.DockerImageRepository)
 
 	err = r.refreshContainerImage(ctx, instance, imageStream.Status.DockerImageRepository)
 	if err != nil {
