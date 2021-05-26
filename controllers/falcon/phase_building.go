@@ -31,6 +31,7 @@ func (r *FalconConfigReconciler) phaseBuildingReconcile(ctx context.Context, ins
 	if err != nil {
 		return r.error(ctx, instance, "Cannot refresh Falcon Container Image", err)
 	}
+	logger.Info("Falcon Container Image pushed successfully")
 
 	instance.Status.ErrorMessage = ""
 	instance.Status.Phase = falconv1alpha1.PhaseDone
