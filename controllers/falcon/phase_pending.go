@@ -28,7 +28,6 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 			ObjectMeta: metav1.ObjectMeta{Name: IMAGE_STREAM_NAME, Namespace: instance.ObjectMeta.Namespace},
 			Spec:       imagev1.ImageStreamSpec{},
 		}
-		logger.Info("Creating a new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
 		err = r.Client.Create(ctx, imageStream)
 		if err != nil {
 			if !errors.IsAlreadyExists(err) {
@@ -36,6 +35,7 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 				return ctrl.Result{}, err
 			}
 		}
+		logger.Info("Created a new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
 		return ctrl.Result{Requeue: true}, nil
 
 	} else if err != nil {
