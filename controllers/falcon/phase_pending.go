@@ -2,6 +2,7 @@ package falcon
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -36,7 +37,8 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 			}
 		}
 		logger.Info("Created a new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
-		return ctrl.Result{Requeue: true}, nil
+		// It takes few moment for the ImageStream to be ready
+		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 
 	} else if err != nil {
 		return r.error(ctx, instance, "Failed to get ImageStream", err)
