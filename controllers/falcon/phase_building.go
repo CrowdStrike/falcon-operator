@@ -3,6 +3,7 @@ package falcon
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -16,12 +17,17 @@ import (
 func (r *FalconConfigReconciler) phaseBuildingReconcile(ctx context.Context, instance *falconv1alpha1.FalconConfig, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Phase: Building")
 
-	_, err := r.getDockercfg(ctx, instance.ObjectMeta.Namespace)
+	err := r.ensureDockercfg(ctx, instance.ObjectMeta.Namespace)
 	if err != nil {
 		return r.error(ctx, instance, "Cannot find dockercfg secret from the current namespace", err)
 	}
+	imageStream, err := r.imageStream(ctx, instance.ObjectMeta.Namespace)
+	if err != nil {
+		return r.error(ctx, instance, "Cannot access image stream", err)
+	}
+	logger.Info(imageStream.Status.DockerImageRepository)
 
-	err = r.refreshContainerImage(ctx, instance)
+	err = r.refreshContainerImage(ctx, instance, imageStream.Status.DockerImageRepository)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("Error when reconciling Falcon Container Image: %w", err)
 	}
@@ -32,9 +38,17 @@ func (r *FalconConfigReconciler) phaseBuildingReconcile(ctx context.Context, ins
 	return ctrl.Result{}, err
 }
 
-func (r *FalconConfigReconciler) refreshContainerImage(ctx context.Context, falconConfig *falconv1alpha1.FalconConfig) error {
+func (r *FalconConfigReconciler) refreshContainerImage(ctx context.Context, falconConfig *falconv1alpha1.FalconConfig, destination string) error {
 	image := falcon_container.NewImageRefresher(ctx, r.Log, falconConfig.Spec.FalconAPI.ApiConfig())
-	return image.Refresh(falconConfig.Spec.WorkloadProtectionSpec.LinuxContainerSpec.Registry)
+	return image.Refresh(destination)
+}
+
+func (r *FalconConfigReconciler) ensureDockercfg(ctx context.Context, namespace string) error {
+	dockercfg, err := r.getDockercfg(ctx, namespace)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile("/tmp/.dockercfg", dockercfg, 0600)
 }
 
 func (r *FalconConfigReconciler) getDockercfg(ctx context.Context, namespace string) ([]byte, error) {
