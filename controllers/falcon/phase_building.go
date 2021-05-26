@@ -34,7 +34,7 @@ func (r *FalconConfigReconciler) phaseBuildingReconcile(ctx context.Context, ins
 	logger.Info("Falcon Container Image pushed successfully")
 
 	instance.Status.ErrorMessage = ""
-	instance.Status.Phase = falconv1alpha1.PhaseDone
+	instance.Status.Phase = falconv1alpha1.PhaseConfiguring
 
 	err = r.Client.Status().Update(ctx, instance)
 	return ctrl.Result{}, err

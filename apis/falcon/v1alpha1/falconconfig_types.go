@@ -71,6 +71,8 @@ const (
 	PhasePending FalconConfigStatusPhase = "PENDING"
 	// PhaseBuilding represents the deployment before the falcon image is successfully fetched
 	PhaseBuilding FalconConfigStatusPhase = "BUILDING"
+	// PhaseConfiguring represents the state when injector/installer is being run
+	PhaseConfiguring = "CONFIGURING"
 	// PhaseDone represents the Falcon Protection being successfully installed
 	PhaseDone FalconConfigStatusPhase = "DONE"
 )
