@@ -46,6 +46,14 @@ spec:
       clusterPermissions:
       - rules:
         - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
           - falcon.crowdstrike.com
           resources:
           - falconconfigs
