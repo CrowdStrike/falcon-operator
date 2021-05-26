@@ -83,6 +83,10 @@ type FalconConfigStatus struct {
 	// Phase or the status of the deployment
 	Phase FalconConfigStatusPhase `json:"phase,omitempty"`
 
+	// ErrorMessage informs user of the last notable error. Users are welcomed to see the operator logs
+	// to understand the full context.
+	ErrorMessage string `json:"errormsg,omitempty"`
+
 	WorkloadProtectionStatus *WorkloadProtectionStatus `json:"workload_protection,omitempty"`
 }
 

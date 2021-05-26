@@ -6,7 +6,6 @@ package falcon
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -15,8 +14,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
-	"github.com/crowdstrike/gofalcon/pkg/falcon_util"
 )
 
 // FalconConfigReconciler reconciles a FalconConfig object
@@ -30,6 +27,7 @@ type FalconConfigReconciler struct {
 // +kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconconfigs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconconfigs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=image.openshift.io,resources=imagestreams,verbs=get;list;watch;create;update;delete
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -68,25 +66,8 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	switch instanceToBeUpdated.Status.Phase {
 	case falconv1alpha1.PhasePending:
 		return r.phasePendingReconcile(ctx, instanceToBeUpdated, logger)
-	}
-
-	refreshImage, err := r.reconcileContainerImage(falconConfig)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("Error when reconciling Falcon Container Image: %w", err)
-	}
-	if refreshImage {
-		err = r.refreshContainerImage(falconConfig)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("Error when reconciling Falcon Container Image: %w", err)
-		}
-		// TODO: write status
-	}
-
-	json, err := falcon_util.PrettyJson(falconConfig)
-	if err != nil {
-		logger.Error(err, "error")
-	} else {
-		_ = json
+	case falconv1alpha1.PhaseBuilding:
+		return r.phaseBuildingReconcile(ctx, instanceToBeUpdated, logger)
 	}
 
 	return ctrl.Result{}, nil
@@ -97,16 +78,4 @@ func (r *FalconConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&falconv1alpha1.FalconConfig{}).
 		Complete(r)
-}
-
-func (r *FalconConfigReconciler) refreshContainerImage(falconConfig *falconv1alpha1.FalconConfig) error {
-	image := falcon_container.NewImageRefresher(context.Background(), r.Log, falconConfig.Spec.FalconAPI.ApiConfig())
-	return image.Refresh(falconConfig.Spec.WorkloadProtectionSpec.LinuxContainerSpec.Registry)
-}
-
-func (r *FalconConfigReconciler) reconcileContainerImage(falconConfig *falconv1alpha1.FalconConfig) (bool, error) {
-	if falconConfig.Status.WorkloadProtectionStatus == nil {
-		return true, nil
-	}
-	return false, nil
 }

@@ -77,16 +77,12 @@ func (r *ImageRefresher) Refresh(imageDestination string) error {
 }
 
 func (r *ImageRefresher) destinationContext(imageRef types.ImageReference) (*types.SystemContext, error) {
-	// TODO credentials
-	destinationUsername := "docker"
 	ctx := &types.SystemContext{
-		DockerAuthConfig: &types.DockerAuthConfig{},
+		DockerInsecureSkipTLSVerify: 1,
+		LegacyFormatAuthFilePath:    "/tmp/.dockercfg",
 	}
-	ctx.DockerAuthConfig.Username = destinationUsername
-	ctx.DockerAuthConfig.Password = os.Getenv("REGISTRY_PASSWORD")
 
 	return ctx, nil
-
 }
 
 func wrapWithHint(in error) error {
