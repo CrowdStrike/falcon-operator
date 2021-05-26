@@ -39,10 +39,10 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 		return ctrl.Result{Requeue: true}, nil
 
 	} else if err != nil {
-		logger.Error(err, "Failed to get ImageStream")
-		return ctrl.Result{}, err
+		return r.error(ctx, instance, "Failed to get ImageStream", err)
 	}
 
+	instance.Status.ErrorMessage = ""
 	instance.Status.Phase = falconv1alpha1.PhaseBuilding
 
 	err = r.Client.Status().Update(ctx, instance)
