@@ -19,7 +19,7 @@ func (r *FalconConfigReconciler) phaseBuildingReconcile(ctx context.Context, ins
 		return ctrl.Result{}, fmt.Errorf("Error when reconciling Falcon Container Image: %w", err)
 	}
 	if refreshImage {
-		err = r.refreshContainerImage(instance)
+		err = r.refreshContainerImage(ctx, instance)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("Error when reconciling Falcon Container Image: %w", err)
 		}
@@ -32,8 +32,8 @@ func (r *FalconConfigReconciler) phaseBuildingReconcile(ctx context.Context, ins
 	return ctrl.Result{}, err
 }
 
-func (r *FalconConfigReconciler) refreshContainerImage(falconConfig *falconv1alpha1.FalconConfig) error {
-	image := falcon_container.NewImageRefresher(context.Background(), r.Log, falconConfig.Spec.FalconAPI.ApiConfig())
+func (r *FalconConfigReconciler) refreshContainerImage(ctx context.Context, falconConfig *falconv1alpha1.FalconConfig) error {
+	image := falcon_container.NewImageRefresher(ctx, r.Log, falconConfig.Spec.FalconAPI.ApiConfig())
 	return image.Refresh(falconConfig.Spec.WorkloadProtectionSpec.LinuxContainerSpec.Registry)
 }
 
