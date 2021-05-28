@@ -25,22 +25,19 @@ func (r *FalconConfigReconciler) phaseBuildingReconcile(ctx context.Context, ins
 	if err != nil {
 		return r.error(ctx, instance, "Cannot access image stream", err)
 	}
-	logger.Info(imageStream.Status.DockerImageRepository)
 
-	err = r.refreshContainerImage(ctx, instance, imageStream.Status.DockerImageRepository)
+	image := falcon_container.NewImageRefresher(ctx, logger, instance.Spec.FalconAPI.ApiConfig())
+	err = image.Refresh(imageStream.Status.DockerImageRepository)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("Error when reconciling Falcon Container Image: %w", err)
+		return r.error(ctx, instance, "Cannot refresh Falcon Container Image", err)
 	}
+	logger.Info("Falcon Container Image pushed successfully")
 
+	instance.Status.ErrorMessage = ""
 	instance.Status.Phase = falconv1alpha1.PhaseDone
 
 	err = r.Client.Status().Update(ctx, instance)
 	return ctrl.Result{}, err
-}
-
-func (r *FalconConfigReconciler) refreshContainerImage(ctx context.Context, falconConfig *falconv1alpha1.FalconConfig, destination string) error {
-	image := falcon_container.NewImageRefresher(ctx, r.Log, falconConfig.Spec.FalconAPI.ApiConfig())
-	return image.Refresh(destination)
 }
 
 func (r *FalconConfigReconciler) ensureDockercfg(ctx context.Context, namespace string) error {
@@ -82,6 +79,10 @@ func (r *FalconConfigReconciler) getDockercfg(ctx context.Context, namespace str
 
 func (r *FalconConfigReconciler) error(ctx context.Context, instance *falconv1alpha1.FalconConfig, message string, err error) (ctrl.Result, error) {
 	userError := fmt.Errorf("%s %w", message, err)
+
+	instance.Status.ErrorMessage = userError.Error()
+	instance.Status.Phase = falconv1alpha1.PhaseDone
+	_ = r.Client.Status().Update(ctx, instance)
 
 	return ctrl.Result{}, userError
 

@@ -37,8 +37,6 @@ func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falco
 }
 
 func (r *ImageRefresher) Refresh(imageDestination string) error {
-	stdout := os.Stdout // TODO: remove
-
 	policy := &signature.Policy{Default: []signature.PolicyRequirement{signature.NewPRInsecureAcceptAnything()}}
 	policyContext, err := signature.NewPolicyContext(policy)
 	if err != nil {
@@ -57,7 +55,7 @@ func (r *ImageRefresher) Refresh(imageDestination string) error {
 		return err
 	}
 
-	image, err := falcon_image.Pull(r.falconConfig, stdout)
+	image, err := falcon_image.Pull(r.falconConfig, r.log)
 	if err != nil {
 		return err
 	}
@@ -68,10 +66,10 @@ func (r *ImageRefresher) Refresh(imageDestination string) error {
 		return fmt.Errorf("Failed to build internal image representation for falcon image: %v", err)
 	}
 
-	fmt.Fprintf(stdout, "Pushing image to %s\n", destRef)
+	r.log.Info("Pushing falcon image", "docker", destRef.StringWithinTransport())
 	_, err = copy.Image(r.ctx, policyContext, destRef, ref, &copy.Options{
 		DestinationCtx: destinationContext,
-		ReportWriter:   stdout,
+		ReportWriter:   os.Stdout,
 	})
 	return wrapWithHint(err)
 }

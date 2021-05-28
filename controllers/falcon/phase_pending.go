@@ -2,6 +2,7 @@ package falcon
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -28,7 +29,6 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 			ObjectMeta: metav1.ObjectMeta{Name: IMAGE_STREAM_NAME, Namespace: instance.ObjectMeta.Namespace},
 			Spec:       imagev1.ImageStreamSpec{},
 		}
-		logger.Info("Creating a new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
 		err = r.Client.Create(ctx, imageStream)
 		if err != nil {
 			if !errors.IsAlreadyExists(err) {
@@ -36,13 +36,15 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 				return ctrl.Result{}, err
 			}
 		}
-		return ctrl.Result{Requeue: true}, nil
+		logger.Info("Created a new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
+		// It takes few moment for the ImageStream to be ready
+		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 
 	} else if err != nil {
-		logger.Error(err, "Failed to get ImageStream")
-		return ctrl.Result{}, err
+		return r.error(ctx, instance, "Failed to get ImageStream", err)
 	}
 
+	instance.Status.ErrorMessage = ""
 	instance.Status.Phase = falconv1alpha1.PhaseBuilding
 
 	err = r.Client.Status().Update(ctx, instance)
