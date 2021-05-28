@@ -54,6 +54,16 @@ spec:
           - list
           - watch
         - apiGroups:
+          - batch
+          resources:
+          - jobs
+          verbs:
+          - create
+          - get
+          - list
+          - update
+          - watch
+        - apiGroups:
           - falcon.crowdstrike.com
           resources:
           - falconconfigs
