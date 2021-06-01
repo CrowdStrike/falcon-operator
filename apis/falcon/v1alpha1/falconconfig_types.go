@@ -16,6 +16,8 @@ type FalconAPI struct {
 	ClientId string `json:"client_id"`
 	// Falcon OAuth2 API Client Secret
 	ClientSecret string `json:"client_secret"`
+	// Falcon Customer ID (CID)
+	CID string `json:"cid"`
 }
 
 // LinuxContainerSpec configures Falcon Container Sensor product installation on your cluster

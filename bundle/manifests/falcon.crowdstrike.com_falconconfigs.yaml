@@ -33,6 +33,9 @@ spec:
               falcon_api:
                 description: FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
                 properties:
+                  cid:
+                    description: Falcon Customer ID (CID)
+                    type: string
                   client_id:
                     description: Falcon OAuth2 API Client ID
                     type: string
@@ -48,6 +51,7 @@ spec:
                     - us-gov-1
                     type: string
                 required:
+                - cid
                 - client_id
                 - client_secret
                 - cloud_region
