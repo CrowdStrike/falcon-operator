@@ -17,7 +17,7 @@ type FalconAPI struct {
 	// Falcon OAuth2 API Client Secret
 	ClientSecret string `json:"client_secret"`
 	// Falcon Customer ID (CID)
-	// +kubebuilder:validation:Pattern="[0-9a-zA-Z]+-[0-9a-zA-Z]{2}"
+	// +kubebuilder:validation:Pattern="^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$"
 	CID string `json:"cid"`
 }
 

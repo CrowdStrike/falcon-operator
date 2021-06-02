@@ -35,7 +35,7 @@ spec:
                 properties:
                   cid:
                     description: Falcon Customer ID (CID)
-                    pattern: '[0-9a-zA-Z]+-[0-9a-zA-Z]{2}'
+                    pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
                     type: string
                   client_id:
                     description: Falcon OAuth2 API Client ID
