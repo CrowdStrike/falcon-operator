@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 )
 
 const (
@@ -89,7 +90,9 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 	}
 
 	// (Step 3) verify configuration || or re-configure job
-	// (Step 4) wait for completion
+	// TODO
+
+	// (Step 4) wait for job completion
 	if !isJobReady(job) {
 		logger.Info("Waiting for Job completion")
 		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
@@ -99,10 +102,15 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 	if err != nil {
 		return r.error(ctx, instance, "Failed to get pod relevant to configure job", err)
 	}
-	_ = pod
 
-	// (Step 5) obtain job output
-	logger.Error(nil, "TODO")
+	// (Step 5) wait for pod completion
+	// TODO
+
+	// (Step 6) obtain job output
+	_, err = k8s_utils.GetPodLog(ctx, r.RestConfig, pod)
+	if err != nil {
+		return r.error(ctx, instance, "Failed to get pod relevant to configure job", err)
+	}
 
 	instance.Status.ErrorMessage = ""
 	instance.Status.Phase = falconv1alpha1.PhaseDone

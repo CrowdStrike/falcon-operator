@@ -10,6 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -19,8 +20,9 @@ import (
 // FalconConfigReconciler reconciles a FalconConfig object
 type FalconConfigReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log        logr.Logger
+	Scheme     *runtime.Scheme
+	RestConfig *rest.Config
 }
 
 // +kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconconfigs,verbs=get;list;watch;create;update;patch;delete
