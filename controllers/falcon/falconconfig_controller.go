@@ -28,6 +28,8 @@ type FalconConfigReconciler struct {
 // +kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconconfigs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=image.openshift.io,resources=imagestreams,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="batch",resources=jobs,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -68,6 +70,8 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return r.phasePendingReconcile(ctx, instanceToBeUpdated, logger)
 	case falconv1alpha1.PhaseBuilding:
 		return r.phaseBuildingReconcile(ctx, instanceToBeUpdated, logger)
+	case falconv1alpha1.PhaseConfiguring:
+		return r.phaseConfiguringReconcile(ctx, instanceToBeUpdated, logger)
 	}
 
 	return ctrl.Result{}, nil

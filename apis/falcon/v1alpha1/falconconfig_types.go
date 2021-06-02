@@ -16,6 +16,9 @@ type FalconAPI struct {
 	ClientId string `json:"client_id"`
 	// Falcon OAuth2 API Client Secret
 	ClientSecret string `json:"client_secret"`
+	// Falcon Customer ID (CID)
+	// +kubebuilder:validation:Pattern="^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$"
+	CID string `json:"cid"`
 }
 
 // LinuxContainerSpec configures Falcon Container Sensor product installation on your cluster
@@ -71,6 +74,8 @@ const (
 	PhasePending FalconConfigStatusPhase = "PENDING"
 	// PhaseBuilding represents the deployment before the falcon image is successfully fetched
 	PhaseBuilding FalconConfigStatusPhase = "BUILDING"
+	// PhaseConfiguring represents the state when injector/installer is being run
+	PhaseConfiguring = "CONFIGURING"
 	// PhaseDone represents the Falcon Protection being successfully installed
 	PhaseDone FalconConfigStatusPhase = "DONE"
 )
