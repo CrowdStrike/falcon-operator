@@ -39,6 +39,8 @@ type FalconConfigReconciler struct {
 // +kubebuilder:rbac:groups="",resources=services,verbs=create
 // +kubebuilder:rbac:groups="apps",resources=deployments,verbs=create
 // +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=create
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,verbs=create
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=create
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
