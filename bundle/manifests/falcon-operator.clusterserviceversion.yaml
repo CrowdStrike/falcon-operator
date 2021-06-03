@@ -48,6 +48,12 @@ spec:
         - apiGroups:
           - ""
           resources:
+          - namespaces
+          verbs:
+          - create
+        - apiGroups:
+          - ""
+          resources:
           - pods
           verbs:
           - get
