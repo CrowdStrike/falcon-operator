@@ -113,7 +113,7 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 	}
 
 	instance.Status.ErrorMessage = ""
-	instance.Status.Phase = falconv1alpha1.PhaseDone
+	instance.Status.Phase = falconv1alpha1.PhaseDeploying
 
 	err = r.Client.Status().Update(ctx, instance)
 	return ctrl.Result{}, err

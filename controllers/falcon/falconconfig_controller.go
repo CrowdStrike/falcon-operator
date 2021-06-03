@@ -83,6 +83,8 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return r.phaseBuildingReconcile(ctx, instanceToBeUpdated, logger)
 	case falconv1alpha1.PhaseConfiguring:
 		return r.phaseConfiguringReconcile(ctx, instanceToBeUpdated, logger)
+	case falconv1alpha1.PhaseDeploying:
+		return r.phaseDeployingReconcile(ctx, instanceToBeUpdated, logger)
 	}
 
 	return ctrl.Result{}, nil
