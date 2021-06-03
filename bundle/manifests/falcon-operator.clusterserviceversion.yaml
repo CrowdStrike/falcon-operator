@@ -81,6 +81,12 @@ spec:
           verbs:
           - create
         - apiGroups:
+          - admissionregistration.k8s.io
+          resources:
+          - mutatingwebhookconfigurations
+          verbs:
+          - create
+        - apiGroups:
           - apps
           resources:
           - deployments
