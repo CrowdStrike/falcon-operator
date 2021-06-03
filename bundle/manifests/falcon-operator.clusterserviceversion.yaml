@@ -75,6 +75,12 @@ spec:
           - list
           - watch
         - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - create
+        - apiGroups:
           - batch
           resources:
           - jobs
