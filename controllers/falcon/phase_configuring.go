@@ -32,7 +32,7 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 		Instance: instance,
 	}
 
-	imageStream, err := r.imageStream(ctx, d.Namespace())
+	imageStream, err := d.GetImageStream()
 	if err != nil {
 		return d.Error("Cannot access image stream", err)
 	}

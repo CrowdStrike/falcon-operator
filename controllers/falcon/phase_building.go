@@ -28,7 +28,7 @@ func (r *FalconConfigReconciler) phaseBuildingReconcile(ctx context.Context, ins
 	if err != nil {
 		return d.Error("Cannot find dockercfg secret from the current namespace", err)
 	}
-	imageStream, err := r.imageStream(ctx, d.Namespace())
+	imageStream, err := d.GetImageStream()
 	if err != nil {
 		return d.Error("Cannot access image stream", err)
 	}

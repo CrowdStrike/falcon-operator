@@ -7,7 +7,6 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	imagev1 "github.com/openshift/api/image/v1"
@@ -29,7 +28,7 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 		Instance: instance,
 	}
 
-	_, err := r.imageStream(ctx, d.Namespace())
+	_, err := d.GetImageStream()
 	if err != nil && errors.IsNotFound(err) {
 		imageStream := &imagev1.ImageStream{
 			TypeMeta:   metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
@@ -56,9 +55,4 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 
 	err = r.Client.Status().Update(ctx, instance)
 	return ctrl.Result{}, err
-}
-
-func (r *FalconConfigReconciler) imageStream(ctx context.Context, namespace string) (stream imagev1.ImageStream, err error) {
-	err = r.Client.Get(ctx, types.NamespacedName{Name: IMAGE_STREAM_NAME, Namespace: namespace}, &stream)
-	return
 }
