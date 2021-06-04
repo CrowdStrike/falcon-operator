@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
@@ -21,17 +20,13 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 		Instance: instance,
 	}
 
-	_, err := d.GetImageStream()
-	if err != nil && errors.IsNotFound(err) {
-		err := d.CreateImageStream()
-		if err != nil {
-			return d.Error("failed to create Image Stream", err)
-		}
-		// It takes few moment for the ImageStream to be ready
+	stream, err := d.UpsertImageStream()
+	if err != nil {
+		return d.Error("failed to upsert Image Stream", err)
+	}
+	if stream == nil {
+		// It takes few moment for the ImageStream to be ready (shortly after it has been created)
 		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-
-	} else if err != nil {
-		return d.Error("Failed to get ImageStream", err)
 	}
 
 	instance.Status.ErrorMessage = ""

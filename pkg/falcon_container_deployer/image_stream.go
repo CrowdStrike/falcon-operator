@@ -12,6 +12,14 @@ const (
 	IMAGE_STREAM_NAME = "falcon-container"
 )
 
+func (d *FalconContainerDeployer) UpsertImageStream() (stream *imagev1.ImageStream, err error) {
+	stream, err = d.GetImageStream()
+	if err != nil && errors.IsNotFound(err) {
+		return nil, d.CreateImageStream()
+	}
+	return stream, err
+}
+
 func (d *FalconContainerDeployer) GetImageStream() (*imagev1.ImageStream, error) {
 	var stream imagev1.ImageStream
 	err := d.Client.Get(d.Ctx, types.NamespacedName{Name: IMAGE_STREAM_NAME, Namespace: d.Namespace()}, &stream)
