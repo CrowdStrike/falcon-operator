@@ -29,11 +29,11 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 		Instance: instance,
 	}
 
-	_, err := r.imageStream(ctx, instance.ObjectMeta.Namespace)
+	_, err := r.imageStream(ctx, d.Namespace())
 	if err != nil && errors.IsNotFound(err) {
 		imageStream := &imagev1.ImageStream{
 			TypeMeta:   metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
-			ObjectMeta: metav1.ObjectMeta{Name: IMAGE_STREAM_NAME, Namespace: instance.ObjectMeta.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: IMAGE_STREAM_NAME, Namespace: d.Namespace()},
 			Spec:       imagev1.ImageStreamSpec{},
 		}
 		err = r.Client.Create(ctx, imageStream)
@@ -43,7 +43,7 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 				return ctrl.Result{}, err
 			}
 		}
-		logger.Info("Created a new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
+		logger.Info("Created a new ImageStream", "ImageStream.Namespace", d.Namespace(), "ImageStream.Name", imageStream.Name)
 		// It takes few moment for the ImageStream to be ready
 		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 

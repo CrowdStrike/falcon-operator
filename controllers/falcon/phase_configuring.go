@@ -32,19 +32,18 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 		Instance: instance,
 	}
 
-	imageStream, err := r.imageStream(ctx, instance.ObjectMeta.Namespace)
+	imageStream, err := r.imageStream(ctx, d.Namespace())
 	if err != nil {
 		return d.Error("Cannot access image stream", err)
 	}
 	falseP := false
 	trueP := true
-	namespace := instance.ObjectMeta.Namespace
 	imageUri := imageStream.Status.DockerImageRepository
 	cid := instance.Spec.FalconAPI.CID
 
 	job := &batchv1.Job{}
 	// (Step 1) Fetch Job
-	err = r.Client.Get(ctx, types.NamespacedName{Name: JOB_NAME, Namespace: namespace}, job)
+	err = r.Client.Get(ctx, types.NamespacedName{Name: JOB_NAME, Namespace: d.Namespace()}, job)
 	if err != nil && errors.IsNotFound(err) {
 		// (Step 2) create job if does not exists)
 		job = &batchv1.Job{
@@ -54,13 +53,13 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      JOB_NAME,
-				Namespace: namespace,
+				Namespace: d.Namespace(),
 			},
 			Spec: batchv1.JobSpec{
 				Template: corev1.PodTemplateSpec{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      JOB_NAME,
-						Namespace: namespace,
+						Namespace: d.Namespace(),
 					},
 					Spec: corev1.PodSpec{
 						RestartPolicy: corev1.RestartPolicyOnFailure,
@@ -86,11 +85,11 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 		err = r.Client.Create(ctx, job)
 		if err != nil {
 			if !errors.IsAlreadyExists(err) {
-				logger.Error(err, "Failed to schedule new Job", "Job.Namespace", namespace, "Job.Name", JOB_NAME)
+				logger.Error(err, "Failed to schedule new Job", "Job.Namespace", d.Namespace(), "Job.Name", JOB_NAME)
 				return d.Error("Failed to schedule new Job", err)
 			}
 		}
-		logger.Info("Created a new Job", "Job.Namespace", namespace, "Job.Name", JOB_NAME)
+		logger.Info("Created a new Job", "Job.Namespace", d.Namespace(), "Job.Name", JOB_NAME)
 		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 	} else if err != nil {
 		return d.Error("Failed to get Job", err)

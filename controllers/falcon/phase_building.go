@@ -24,11 +24,11 @@ func (r *FalconConfigReconciler) phaseBuildingReconcile(ctx context.Context, ins
 		Instance: instance,
 	}
 
-	err := r.ensureDockercfg(ctx, instance.ObjectMeta.Namespace)
+	err := r.ensureDockercfg(ctx, d.Namespace())
 	if err != nil {
 		return d.Error("Cannot find dockercfg secret from the current namespace", err)
 	}
-	imageStream, err := r.imageStream(ctx, instance.ObjectMeta.Namespace)
+	imageStream, err := r.imageStream(ctx, d.Namespace())
 	if err != nil {
 		return d.Error("Cannot access image stream", err)
 	}

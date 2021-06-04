@@ -23,10 +23,8 @@ func (r *FalconConfigReconciler) phaseDeployingReconcile(ctx context.Context, in
 
 	logger.Info("Phase: Deploying")
 
-	namespace := instance.ObjectMeta.Namespace
-
 	job := &batchv1.Job{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: JOB_NAME, Namespace: namespace}, job)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: JOB_NAME, Namespace: d.Namespace()}, job)
 	if err != nil {
 		return d.Error("Failed to get Job", err)
 	}
