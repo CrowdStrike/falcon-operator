@@ -70,9 +70,10 @@ func main() {
 	}
 
 	if err = (&falconcontrollers.FalconConfigReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("falcon").WithName("FalconConfig"),
-		Scheme: mgr.GetScheme(),
+		Client:     mgr.GetClient(),
+		Log:        ctrl.Log.WithName("controllers").WithName("falcon").WithName("FalconConfig"),
+		Scheme:     mgr.GetScheme(),
+		RestConfig: mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconConfig")
 		os.Exit(1)
