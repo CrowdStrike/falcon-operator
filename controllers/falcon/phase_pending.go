@@ -13,6 +13,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_container_deployer"
 )
 
 const (
@@ -21,6 +22,12 @@ const (
 
 func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, instance *falconv1alpha1.FalconConfig, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Phase: Pending")
+	d := falcon_container_deployer.FalconContainerDeployer{
+		Ctx:      ctx,
+		Client:   r.Client,
+		Log:      logger,
+		Instance: instance,
+	}
 
 	_, err := r.imageStream(ctx, instance.ObjectMeta.Namespace)
 	if err != nil && errors.IsNotFound(err) {
@@ -41,7 +48,7 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 
 	} else if err != nil {
-		return r.error(ctx, instance, "Failed to get ImageStream", err)
+		return d.Error("Failed to get ImageStream", err)
 	}
 
 	instance.Status.ErrorMessage = ""

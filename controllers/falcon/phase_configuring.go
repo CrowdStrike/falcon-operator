@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_container_deployer"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 )
 
@@ -24,10 +25,16 @@ const (
 
 func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, instance *falconv1alpha1.FalconConfig, logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Phase: Configuring")
+	d := falcon_container_deployer.FalconContainerDeployer{
+		Ctx:      ctx,
+		Client:   r.Client,
+		Log:      logger,
+		Instance: instance,
+	}
 
 	imageStream, err := r.imageStream(ctx, instance.ObjectMeta.Namespace)
 	if err != nil {
-		return r.error(ctx, instance, "Cannot access image stream", err)
+		return d.Error("Cannot access image stream", err)
 	}
 	falseP := false
 	trueP := true
@@ -80,13 +87,13 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 		if err != nil {
 			if !errors.IsAlreadyExists(err) {
 				logger.Error(err, "Failed to schedule new Job", "Job.Namespace", namespace, "Job.Name", JOB_NAME)
-				return r.error(ctx, instance, "Failed to schedule new Job", err)
+				return d.Error("Failed to schedule new Job", err)
 			}
 		}
 		logger.Info("Created a new Job", "Job.Namespace", namespace, "Job.Name", JOB_NAME)
 		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 	} else if err != nil {
-		return r.error(ctx, instance, "Failed to get Job", err)
+		return d.Error("Failed to get Job", err)
 	}
 
 	// (Step 3) verify configuration || or re-configure job
@@ -100,7 +107,7 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 
 	pod, err := r.configurePod(ctx, instance, job, logger)
 	if err != nil {
-		return r.error(ctx, instance, "Failed to get pod relevant to configure job", err)
+		return d.Error("Failed to get pod relevant to configure job", err)
 	}
 
 	// (Step 5) wait for pod completion
@@ -109,7 +116,7 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 	// (Step 6) obtain job output
 	_, err = k8s_utils.GetPodLog(ctx, r.RestConfig, pod)
 	if err != nil {
-		return r.error(ctx, instance, "Failed to get pod relevant to configure job", err)
+		return d.Error("Failed to get pod relevant to configure job", err)
 	}
 
 	instance.Status.ErrorMessage = ""
