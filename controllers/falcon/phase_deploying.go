@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	batchv1 "k8s.io/api/batch/v1"
-	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
@@ -23,8 +21,7 @@ func (r *FalconConfigReconciler) phaseDeployingReconcile(ctx context.Context, in
 
 	logger.Info("Phase: Deploying")
 
-	job := &batchv1.Job{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: JOB_NAME, Namespace: d.Namespace()}, job)
+	job, err := d.GetJob()
 	if err != nil {
 		return d.Error("Failed to get Job", err)
 	}

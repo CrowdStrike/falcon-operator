@@ -10,7 +10,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -41,9 +40,8 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 	imageUri := imageStream.Status.DockerImageRepository
 	cid := instance.Spec.FalconAPI.CID
 
-	job := &batchv1.Job{}
 	// (Step 1) Fetch Job
-	err = r.Client.Get(ctx, types.NamespacedName{Name: JOB_NAME, Namespace: d.Namespace()}, job)
+	job, err := d.GetJob()
 	if err != nil && errors.IsNotFound(err) {
 		// (Step 2) create job if does not exists)
 		job = &batchv1.Job{
