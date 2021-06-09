@@ -21,12 +21,7 @@ func (r *FalconConfigReconciler) phaseDeployingReconcile(ctx context.Context, in
 
 	logger.Info("Phase: Deploying")
 
-	job, err := d.GetJob()
-	if err != nil {
-		return d.Error("Failed to get Job", err)
-	}
-
-	pod, err := r.configurePod(ctx, instance, job, logger)
+	pod, err := d.ConfigurePod()
 	if err != nil {
 		return d.Error("Failed to get pod relevant to configure job", err)
 	}

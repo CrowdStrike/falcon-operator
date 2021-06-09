@@ -1,16 +1,36 @@
 package falcon_container_deployer
 
 import (
+	"fmt"
+
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	JOB_NAME = "falcon-configure"
 )
+
+func (d *FalconContainerDeployer) ConfigurePod() (*corev1.Pod, error) {
+	podList := &corev1.PodList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(d.Instance.ObjectMeta.Namespace),
+		client.MatchingLabels(map[string]string{"job-name": JOB_NAME}),
+	}
+	if err := d.Client.List(d.Ctx, podList, listOpts...); err != nil {
+		d.Log.Error(err, "Failed to list pods", "FalconConfig.Namespace", d.Instance.ObjectMeta.Namespace, "FalconConfig.Name", d.Instance.ObjectMeta.Name)
+		return nil, err
+	}
+	if len(podList.Items) != 1 {
+		return nil, fmt.Errorf("Found %d relevant pods, expected 1 pod", len(podList.Items))
+	}
+	return &podList.Items[0], nil
+
+}
 
 func (d *FalconContainerDeployer) UpsertJob() (job *batchv1.Job, err error) {
 	job, err = d.GetJob()
