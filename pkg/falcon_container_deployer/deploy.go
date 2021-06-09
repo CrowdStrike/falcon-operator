@@ -28,10 +28,5 @@ func (d *FalconContainerDeployer) PhasePending() (ctrl.Result, error) {
 		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 	}
 
-	d.Instance.Status.ErrorMessage = ""
-	d.Instance.Status.Phase = falconv1alpha1.PhaseBuilding
-
-	err = d.Client.Status().Update(d.Ctx, d.Instance)
-	return ctrl.Result{}, err
-
+	return d.NextPhase(falconv1alpha1.PhaseBuilding)
 }
