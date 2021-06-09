@@ -12,6 +12,14 @@ const (
 	JOB_NAME = "falcon-configure"
 )
 
+func (d *FalconContainerDeployer) UpsertJob() (job *batchv1.Job, err error) {
+	job, err = d.GetJob()
+	if err != nil && errors.IsNotFound(err) {
+		return nil, d.CreateJob()
+	}
+	return job, err
+}
+
 func (d *FalconContainerDeployer) GetJob() (*batchv1.Job, error) {
 	job := batchv1.Job{}
 	err := d.Client.Get(d.Ctx, types.NamespacedName{Name: JOB_NAME, Namespace: d.Namespace()}, &job)

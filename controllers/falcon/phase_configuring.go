@@ -8,7 +8,6 @@ import (
 	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -30,17 +29,13 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 		Instance: instance,
 	}
 
-	// (Step 1) Fetch Job
-	job, err := d.GetJob()
-	if err != nil && errors.IsNotFound(err) {
-		// (Step 2) create job if does not exists)
-		err := d.CreateJob()
-		if err != nil {
-			return d.Error("Cannot create new Job", err)
-		}
+	// (Step 1&2) Upsert Job
+	job, err := d.UpsertJob()
+	if err != nil {
+		return d.Error("failed to upsert Job", err)
+	}
+	if job == nil {
 		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-	} else if err != nil {
-		return d.Error("Failed to get Job", err)
 	}
 
 	// (Step 3) verify configuration || or re-configure job
