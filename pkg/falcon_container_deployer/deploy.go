@@ -21,6 +21,26 @@ type FalconContainerDeployer struct {
 	RestConfig *rest.Config
 }
 
+func (d *FalconContainerDeployer) Reconcile() (ctrl.Result, error) {
+	if d.Instance.Status.Phase == "" {
+		d.Instance.Status.Phase = falconv1alpha1.PhasePending
+	}
+
+	switch d.Instance.Status.Phase {
+	case falconv1alpha1.PhasePending:
+		return d.PhasePending()
+	case falconv1alpha1.PhaseBuilding:
+		return d.PhaseBuilding()
+	case falconv1alpha1.PhaseConfiguring:
+		return d.PhaseConfiguring()
+	case falconv1alpha1.PhaseDeploying:
+		return d.PhaseDeploying()
+	}
+
+	return ctrl.Result{}, nil
+
+}
+
 func (d *FalconContainerDeployer) PhasePending() (ctrl.Result, error) {
 	stream, err := d.UpsertImageStream()
 	if err != nil {
