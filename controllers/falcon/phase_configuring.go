@@ -9,7 +9,6 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -31,63 +30,14 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 		Instance: instance,
 	}
 
-	imageStream, err := d.GetImageStream()
-	if err != nil {
-		return d.Error("Cannot access image stream", err)
-	}
-	falseP := false
-	trueP := true
-	imageUri := imageStream.Status.DockerImageRepository
-	cid := instance.Spec.FalconAPI.CID
-
 	// (Step 1) Fetch Job
 	job, err := d.GetJob()
 	if err != nil && errors.IsNotFound(err) {
 		// (Step 2) create job if does not exists)
-		job = &batchv1.Job{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: batchv1.SchemeGroupVersion.String(),
-				Kind:       "Job",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      JOB_NAME,
-				Namespace: d.Namespace(),
-			},
-			Spec: batchv1.JobSpec{
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      JOB_NAME,
-						Namespace: d.Namespace(),
-					},
-					Spec: corev1.PodSpec{
-						RestartPolicy: corev1.RestartPolicyOnFailure,
-						Containers: []corev1.Container{
-							{
-								Name:  "installer",
-								Image: imageUri,
-								SecurityContext: &corev1.SecurityContext{
-									AllowPrivilegeEscalation: &falseP,
-									ReadOnlyRootFilesystem:   &trueP,
-								},
-								Command: []string{
-									"installer",
-									"-cid", cid,
-									"-image", imageUri,
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-		err = r.Client.Create(ctx, job)
+		err := d.CreateJob()
 		if err != nil {
-			if !errors.IsAlreadyExists(err) {
-				logger.Error(err, "Failed to schedule new Job", "Job.Namespace", d.Namespace(), "Job.Name", JOB_NAME)
-				return d.Error("Failed to schedule new Job", err)
-			}
+			return d.Error("Cannot create new Job", err)
 		}
-		logger.Info("Created a new Job", "Job.Namespace", d.Namespace(), "Job.Name", JOB_NAME)
 		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 	} else if err != nil {
 		return d.Error("Failed to get Job", err)
