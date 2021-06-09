@@ -2,7 +2,6 @@ package falcon
 
 import (
 	"context"
-	"time"
 
 	"github.com/go-logr/logr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -20,18 +19,5 @@ func (r *FalconConfigReconciler) phasePendingReconcile(ctx context.Context, inst
 		Instance: instance,
 	}
 
-	stream, err := d.UpsertImageStream()
-	if err != nil {
-		return d.Error("failed to upsert Image Stream", err)
-	}
-	if stream == nil {
-		// It takes few moment for the ImageStream to be ready (shortly after it has been created)
-		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-	}
-
-	instance.Status.ErrorMessage = ""
-	instance.Status.Phase = falconv1alpha1.PhaseBuilding
-
-	err = r.Client.Status().Update(ctx, instance)
-	return ctrl.Result{}, err
+	return d.PhasePending()
 }
