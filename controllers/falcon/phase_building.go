@@ -18,20 +18,5 @@ func (r *FalconConfigReconciler) phaseBuildingReconcile(ctx context.Context, ins
 		Log:      logger,
 		Instance: instance,
 	}
-
-	err := d.EnsureDockercfg(ctx, d.Namespace())
-	if err != nil {
-		return d.Error("Cannot find dockercfg secret from the current namespace", err)
-	}
-
-	err = d.PushImage()
-	if err != nil {
-		return d.Error("Cannot refresh Falcon Container image", err)
-	}
-
-	instance.Status.ErrorMessage = ""
-	instance.Status.Phase = falconv1alpha1.PhaseConfiguring
-
-	err = r.Client.Status().Update(ctx, instance)
-	return ctrl.Result{}, err
+	return d.PhaseBuilding()
 }

@@ -30,3 +30,16 @@ func (d *FalconContainerDeployer) PhasePending() (ctrl.Result, error) {
 
 	return d.NextPhase(falconv1alpha1.PhaseBuilding)
 }
+
+func (d *FalconContainerDeployer) PhaseBuilding() (ctrl.Result, error) {
+	err := d.EnsureDockercfg(d.Ctx, d.Namespace())
+	if err != nil {
+		return d.Error("Cannot find dockercfg secret from the current namespace", err)
+	}
+	err = d.PushImage()
+	if err != nil {
+		return d.Error("Cannot refresh Falcon Container image", err)
+	}
+
+	return d.NextPhase(falconv1alpha1.PhaseConfiguring)
+}
