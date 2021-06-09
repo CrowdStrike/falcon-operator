@@ -1,7 +1,6 @@
 package falcon_container_deployer
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 
@@ -9,17 +8,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *FalconContainerDeployer) EnsureDockercfg(ctx context.Context, namespace string) error {
-	dockercfg, err := r.getDockercfg(ctx, namespace)
+func (r *FalconContainerDeployer) EnsureDockercfg() error {
+	dockercfg, err := r.getDockercfg()
 	if err != nil {
 		return err
 	}
 	return ioutil.WriteFile("/tmp/.dockercfg", dockercfg, 0600)
 }
 
-func (r *FalconContainerDeployer) getDockercfg(ctx context.Context, namespace string) ([]byte, error) {
+func (r *FalconContainerDeployer) getDockercfg() ([]byte, error) {
+	namespace := r.Namespace()
 	secrets := &corev1.SecretList{}
-	err := r.Client.List(ctx, secrets, client.InNamespace(namespace))
+	err := r.Client.List(r.Ctx, secrets, client.InNamespace(namespace))
 	if err != nil {
 		return []byte{}, err
 	}

@@ -32,7 +32,7 @@ func (d *FalconContainerDeployer) PhasePending() (ctrl.Result, error) {
 }
 
 func (d *FalconContainerDeployer) PhaseBuilding() (ctrl.Result, error) {
-	err := d.EnsureDockercfg(d.Ctx, d.Namespace())
+	err := d.EnsureDockercfg()
 	if err != nil {
 		return d.Error("Cannot find dockercfg secret from the current namespace", err)
 	}
