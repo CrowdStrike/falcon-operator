@@ -42,7 +42,7 @@ func (r *FalconConfigReconciler) phaseConfiguringReconcile(ctx context.Context, 
 	// TODO
 
 	// (Step 4) wait for job completion
-	if !isJobReady(job) {
+	if !k8s_utils.IsJobCompleted(job) {
 		logger.Info("Waiting for Job completion")
 		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 	}
@@ -84,11 +84,3 @@ func (r *FalconConfigReconciler) configurePod(ctx context.Context, instance *fal
 	return &podList.Items[0], nil
 }
 
-func isJobReady(job *batchv1.Job) bool {
-	for _, cond := range job.Status.Conditions {
-		if cond.Type == batchv1.JobComplete && cond.Status == corev1.ConditionTrue {
-			return true
-		}
-	}
-	return false
-}
