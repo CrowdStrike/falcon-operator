@@ -82,3 +82,27 @@ func (d *FalconContainerDeployer) PhaseConfiguring() (ctrl.Result, error) {
 
 	return d.NextPhase(falconv1alpha1.PhaseDeploying)
 }
+
+func (d *FalconContainerDeployer) PhaseDeploying() (ctrl.Result, error) {
+	pod, err := d.ConfigurePod()
+	if err != nil {
+		return d.Error("Failed to get pod relevant to configure job", err)
+	}
+
+	yaml, err := k8s_utils.GetPodLog(d.Ctx, d.RestConfig, pod)
+	if err != nil {
+		return d.Error("Failed to get pod relevant to configure job", err)
+	}
+
+	objects, err := k8s_utils.ParseK8sObjects(yaml)
+	if err != nil {
+		return d.Error("Failed to parse output of installer", err)
+	}
+
+	err = k8s_utils.Create(d.Ctx, d.Client, objects, d.Log)
+	if err != nil {
+		return d.Error("Failed to create Falcon Container objects in the cluster", err)
+	}
+
+	return d.NextPhase(falconv1alpha1.PhaseDone)
+}
