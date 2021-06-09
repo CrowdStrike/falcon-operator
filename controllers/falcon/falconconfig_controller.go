@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_container_deployer"
 )
 
 // FalconConfigReconciler reconciles a FalconConfig object
@@ -70,24 +71,15 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	instanceToBeUpdated := falconConfig.DeepCopy()
-
-	if instanceToBeUpdated.Status.Phase == "" {
-		instanceToBeUpdated.Status.Phase = falconv1alpha1.PhasePending
+	d := falcon_container_deployer.FalconContainerDeployer{
+		Ctx:        ctx,
+		Client:     r.Client,
+		Log:        logger,
+		Instance:   falconConfig.DeepCopy(),
+		RestConfig: r.RestConfig,
 	}
+	return d.Reconcile()
 
-	switch instanceToBeUpdated.Status.Phase {
-	case falconv1alpha1.PhasePending:
-		return r.phasePendingReconcile(ctx, instanceToBeUpdated, logger)
-	case falconv1alpha1.PhaseBuilding:
-		return r.phaseBuildingReconcile(ctx, instanceToBeUpdated, logger)
-	case falconv1alpha1.PhaseConfiguring:
-		return r.phaseConfiguringReconcile(ctx, instanceToBeUpdated, logger)
-	case falconv1alpha1.PhaseDeploying:
-		return r.phaseDeployingReconcile(ctx, instanceToBeUpdated, logger)
-	}
-
-	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
