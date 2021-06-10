@@ -21,39 +21,6 @@ type FalconAPI struct {
 	CID string `json:"cid"`
 }
 
-// LinuxContainerSpec configures Falcon Container Sensor product installation on your cluster
-type LinuxContainerSpec struct {
-	Enabled bool `json:"enabled"`
-	// Container Registry to which falcon-operator will push falcon-container sensor and from which falcon-container sensor will be consumed by pods
-	Registry string `json:"registry"`
-}
-
-type ContainerItem struct {
-	Image   string      `json:"image"`
-	Created metav1.Time `json:"created"`
-	Tag     string      `json:"tag"`
-}
-
-type RegistryStatus struct {
-	Location string          `json:"location"`
-	Items    []ContainerItem `json:"items"`
-}
-
-// LinuxContainerStatus defines observed state of FalconConfig
-type LinuxContainerStatus struct {
-	Registry *RegistryStatus `json:"registry"`
-}
-
-// WorkloadProtectionSpec configures workload protection on the cluster
-type WorkloadProtectionSpec struct {
-	// LinuxContainerSpec configures Falcon Container Sensor product installation on your cluster
-	LinuxContainerSpec *LinuxContainerSpec `json:"linux_container,omitempty"`
-}
-
-// WorkloadProtectionStatus defines observed state of workload protection on the cluster
-type WorkloadProtectionStatus struct {
-	LinuxContainerStatus *LinuxContainerStatus `json:"linux_container,omitempty"`
-}
 
 // FalconConfigSpec defines the desired state of FalconConfig
 type FalconConfigSpec struct {
@@ -62,8 +29,6 @@ type FalconConfigSpec struct {
 
 	// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 	FalconAPI FalconAPI `json:"falcon_api"`
-	// WorkloadProtectionSpec configures workload protection on the cluster
-	WorkloadProtectionSpec WorkloadProtectionSpec `json:"workload_protection"`
 }
 
 // Represents the status of Falcon deployment
@@ -93,8 +58,6 @@ type FalconConfigStatus struct {
 	// ErrorMessage informs user of the last notable error. Users are welcomed to see the operator logs
 	// to understand the full context.
 	ErrorMessage string `json:"errormsg,omitempty"`
-
-	WorkloadProtectionStatus *WorkloadProtectionStatus `json:"workload_protection,omitempty"`
 }
 
 // +kubebuilder:object:root=true
