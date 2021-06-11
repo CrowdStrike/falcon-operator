@@ -26,6 +26,7 @@ func (d *FalconContainerDeployer) Reconcile() (ctrl.Result, error) {
 		d.Instance.Status.Phase = falconv1alpha1.PhasePending
 	}
 
+	d.Log.Info("Falcon Container Deploy", "Phase", d.Instance.Status.Phase)
 	switch d.Instance.Status.Phase {
 	case falconv1alpha1.PhasePending:
 		return d.PhasePending()
