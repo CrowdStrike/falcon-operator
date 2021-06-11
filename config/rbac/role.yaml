@@ -66,7 +66,7 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconconfigs
+  - falconcontainers
   verbs:
   - create
   - delete
@@ -78,13 +78,13 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconconfigs/finalizers
+  - falconcontainers/finalizers
   verbs:
   - update
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconconfigs/status
+  - falconcontainers/status
   verbs:
   - get
   - patch

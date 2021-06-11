@@ -1,7 +1,3 @@
-/*
-Copyright 2021 CrowdStrike
-*/
-
 package falcon
 
 import (
@@ -18,17 +14,18 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container_deployer"
 )
 
-// FalconConfigReconciler reconciles a FalconConfig object
-type FalconConfigReconciler struct {
+// FalconContainerReconciler reconciles a FalconContainer object
+type FalconContainerReconciler struct {
 	client.Client
 	Log        logr.Logger
 	Scheme     *runtime.Scheme
 	RestConfig *rest.Config
 }
 
-// +kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconconfigs,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconconfigs/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconconfigs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconcontainers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconcontainers/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconcontainers/finalizers,verbs=update
+
 // +kubebuilder:rbac:groups=image.openshift.io,resources=imagestreams,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups="batch",resources=jobs,verbs=get;list;watch;create;update
@@ -46,19 +43,18 @@ type FalconConfigReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the FalconConfig object against the actual cluster state, and then
+// the FalconContainer object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.0/pkg/reconcile
-func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := r.Log.WithValues("falconconfig", req.NamespacedName)
-	logger.Info("Reconciling FalconConfig")
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.2/pkg/reconcile
+func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := r.Log.WithValues("falconcontainer", req.NamespacedName)
+	log.Info("Reconciling FalconContainer")
 
-	// your logic here
-	falconConfig := &falconv1alpha1.FalconConfig{}
-	err := r.Client.Get(ctx, req.NamespacedName, falconConfig)
+	falconContainer := &falconv1alpha1.FalconContainer{}
+	err := r.Client.Get(ctx, req.NamespacedName, falconContainer)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -67,24 +63,23 @@ func (r *FalconConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		logger.Error(err, "Cannot get the Falcon Config")
+		log.Error(err, "Cannot get the Falcon Container custom resource")
 		return ctrl.Result{}, err
 	}
 
 	d := falcon_container_deployer.FalconContainerDeployer{
 		Ctx:        ctx,
 		Client:     r.Client,
-		Log:        logger,
-		Instance:   falconConfig.DeepCopy(),
+		Log:        log,
+		Instance:   falconContainer.DeepCopy(),
 		RestConfig: r.RestConfig,
 	}
 	return d.Reconcile()
-
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *FalconConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *FalconContainerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&falconv1alpha1.FalconConfig{}).
+		For(&falconv1alpha1.FalconContainer{}).
 		Complete(r)
 }

@@ -4,4 +4,4 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: $(CERTIFICATE_NAMESPACE)/$(CERTIFICATE_NAME)
-  name: falconconfigs.falcon.crowdstrike.com
+  name: falconcontainers.falcon.crowdstrike.com

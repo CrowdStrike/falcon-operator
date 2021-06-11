@@ -1,20 +1,24 @@
-# permissions for end users to view falconconfigs.
+# permissions for end users to edit falconcontainers.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: falconconfig-viewer-role
+  name: falconcontainer-editor-role
 rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconconfigs
+  - falconcontainers
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconconfigs/status
+  - falconcontainers/status
   verbs:
   - get

@@ -17,7 +17,7 @@ type FalconContainerDeployer struct {
 	Ctx context.Context
 	client.Client
 	Log        logr.Logger
-	Instance   *falconv1alpha1.FalconConfig
+	Instance   *falconv1alpha1.FalconContainer
 	RestConfig *rest.Config
 }
 

@@ -18,7 +18,7 @@ func (d *FalconContainerDeployer) Error(message string, err error) (ctrl.Result,
 	return ctrl.Result{}, userError
 }
 
-func (d *FalconContainerDeployer) NextPhase(phase falconv1alpha1.FalconConfigStatusPhase) (ctrl.Result, error) {
+func (d *FalconContainerDeployer) NextPhase(phase falconv1alpha1.FalconContainerStatusPhase) (ctrl.Result, error) {
 	d.Instance.Status.ErrorMessage = ""
 	d.Instance.Status.Phase = phase
 
