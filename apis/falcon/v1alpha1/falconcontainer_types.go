@@ -57,6 +57,8 @@ type FalconContainerStatus struct {
 	// ErrorMessage informs user of the last notable error. Users are welcomed to see the operator logs
 	// to understand the full context.
 	ErrorMessage string `json:"errormsg,omitempty"`
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true
