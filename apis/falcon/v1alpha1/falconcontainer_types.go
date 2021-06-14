@@ -21,9 +21,8 @@ type FalconAPI struct {
 	CID string `json:"cid"`
 }
 
-
-// FalconConfigSpec defines the desired state of FalconConfig
-type FalconConfigSpec struct {
+// FalconContainerSpec defines the desired state of FalconContainer
+type FalconContainerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
@@ -32,55 +31,55 @@ type FalconConfigSpec struct {
 }
 
 // Represents the status of Falcon deployment
-type FalconConfigStatusPhase string
+type FalconContainerStatusPhase string
 
 const (
 	// PhasePending represents the deployment to be started
-	PhasePending FalconConfigStatusPhase = "PENDING"
+	PhasePending FalconContainerStatusPhase = "PENDING"
 	// PhaseBuilding represents the deployment before the falcon image is successfully fetched
-	PhaseBuilding FalconConfigStatusPhase = "BUILDING"
+	PhaseBuilding FalconContainerStatusPhase = "BUILDING"
 	// PhaseConfiguring represents the state when injector/installer is being run
 	PhaseConfiguring = "CONFIGURING"
 	// PhaseDeploying represents the state when injector is being deployed on the cluster
 	PhaseDeploying = "DEPLOYING"
 	// PhaseDone represents the Falcon Protection being successfully installed
-	PhaseDone FalconConfigStatusPhase = "DONE"
+	PhaseDone FalconContainerStatusPhase = "DONE"
 )
 
-// FalconConfigStatus defines the observed state of FalconConfig
-type FalconConfigStatus struct {
+// FalconContainerStatus defines the observed state of FalconContainer
+type FalconContainerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Phase or the status of the deployment
-	Phase FalconConfigStatusPhase `json:"phase,omitempty"`
+	Phase FalconContainerStatusPhase `json:"phase,omitempty"`
 
 	// ErrorMessage informs user of the last notable error. Users are welcomed to see the operator logs
 	// to understand the full context.
 	ErrorMessage string `json:"errormsg,omitempty"`
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
 
-// FalconConfig is the Schema for the falconconfigs API
-type FalconConfig struct {
+// FalconContainer is the Schema for the falconcontainers API
+type FalconContainer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   FalconConfigSpec   `json:"spec,omitempty"`
-	Status FalconConfigStatus `json:"status,omitempty"`
+	Spec   FalconContainerSpec   `json:"spec,omitempty"`
+	Status FalconContainerStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
 
-// FalconConfigList contains a list of FalconConfig
-type FalconConfigList struct {
+// FalconContainerList contains a list of FalconContainer
+type FalconContainerList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []FalconConfig `json:"items"`
+	Items           []FalconContainer `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&FalconConfig{}, &FalconConfigList{})
+	SchemeBuilder.Register(&FalconContainer{}, &FalconContainerList{})
 }

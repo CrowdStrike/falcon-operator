@@ -6,14 +6,10 @@ repo: github.com/crowdstrike/falcon-operator
 resources:
 - api:
     crdVersion: v1
-    # TODO(user): Uncomment the below line if this resource's CRD is namespace scoped, else delete it.
-    # namespaced: true
-  # TODO(user): Uncomment the below line if this resource implements a controller, else delete it.
-  # controller: true
+  controller: true
   domain: crowdstrike.com
   group: falcon
-  kind: FalconConfig
-  # TODO(user): Update the package path for your API if the below value is incorrect.
+  kind: FalconContainer
   path: github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1
   version: v1alpha1
 version: "3"

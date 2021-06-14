@@ -10,10 +10,10 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: FalconConfig is the Schema for the falconconfigs API
-      displayName: Falcon Config
-      kind: FalconConfig
-      name: falconconfigs.falcon.crowdstrike.com
+    - description: FalconContainer is the Schema for the falconcontainers API
+      displayName: Falcon Container
+      kind: FalconContainer
+      name: falconcontainers.falcon.crowdstrike.com
       version: v1alpha1
   description: todo
   displayName: falcon-operator

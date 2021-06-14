@@ -22,7 +22,7 @@ func (d *FalconContainerDeployer) ConfigurePod() (*corev1.Pod, error) {
 		client.MatchingLabels(map[string]string{"job-name": JOB_NAME}),
 	}
 	if err := d.Client.List(d.Ctx, podList, listOpts...); err != nil {
-		d.Log.Error(err, "Failed to list pods", "FalconConfig.Namespace", d.Instance.ObjectMeta.Namespace, "FalconConfig.Name", d.Instance.ObjectMeta.Name)
+		d.Log.Error(err, "Failed to list pods", "FalconContainer.Namespace", d.Instance.ObjectMeta.Namespace, "FalconContainer.Name", d.Instance.ObjectMeta.Name)
 		return nil, err
 	}
 	if len(podList.Items) != 1 {

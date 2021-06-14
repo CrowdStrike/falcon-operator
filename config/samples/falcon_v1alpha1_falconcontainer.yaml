@@ -1,0 +1,7 @@
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconContainer
+metadata:
+  name: falconcontainer-sample
+spec:
+  falcon_api:
+    cloud_region: us-1

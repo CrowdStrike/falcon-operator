@@ -69,13 +69,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&falconcontrollers.FalconConfigReconciler{
+	if err = (&falconcontrollers.FalconContainerReconciler{
 		Client:     mgr.GetClient(),
-		Log:        ctrl.Log.WithName("controllers").WithName("falcon").WithName("FalconConfig"),
+		Log:        ctrl.Log.WithName("controllers").WithName("falcon").WithName("FalconContainer"),
 		Scheme:     mgr.GetScheme(),
 		RestConfig: mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "FalconConfig")
+		setupLog.Error(err, "unable to create controller", "controller", "FalconContainer")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
