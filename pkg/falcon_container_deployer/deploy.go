@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -124,6 +125,12 @@ func (d *FalconContainerDeployer) PhaseDeploying() (ctrl.Result, error) {
 	if err != nil {
 		return d.Error("Failed to create Falcon Container objects in the cluster", err)
 	}
+
+	d.Instance.Status.SetCondition(&metav1.Condition{
+		Type:   "Complete",
+		Status: "True",
+		Reason: "Deployed",
+	})
 
 	return d.NextPhase(falconv1alpha1.PhaseDone)
 }
