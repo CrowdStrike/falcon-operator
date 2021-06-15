@@ -20,19 +20,21 @@ import (
 )
 
 type ImageRefresher struct {
-	ctx          context.Context
-	log          logr.Logger
-	falconConfig *falcon.ApiConfig
+	ctx                   context.Context
+	log                   logr.Logger
+	falconConfig          *falcon.ApiConfig
+	insecureSkipTLSVerify bool
 }
 
-func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig) *ImageRefresher {
+func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig, insecureSkipTLSVerify bool) *ImageRefresher {
 	if falconConfig.Context == nil {
 		falconConfig.Context = ctx
 	}
 	return &ImageRefresher{
-		ctx:          ctx,
-		log:          log,
-		falconConfig: falconConfig,
+		ctx:                   ctx,
+		log:                   log,
+		falconConfig:          falconConfig,
+		insecureSkipTLSVerify: insecureSkipTLSVerify,
 	}
 }
 
@@ -50,7 +52,7 @@ func (r *ImageRefresher) Refresh(imageDestination string) error {
 		return fmt.Errorf("Invalid destination name %s: %v", dest, err)
 	}
 
-	destinationContext, err := r.destinationContext(destRef)
+	destinationContext, err := r.destinationContext(destRef, r.insecureSkipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -74,10 +76,12 @@ func (r *ImageRefresher) Refresh(imageDestination string) error {
 	return wrapWithHint(err)
 }
 
-func (r *ImageRefresher) destinationContext(imageRef types.ImageReference) (*types.SystemContext, error) {
+func (r *ImageRefresher) destinationContext(imageRef types.ImageReference, insecureSkipTLSVerify bool) (*types.SystemContext, error) {
 	ctx := &types.SystemContext{
-		DockerInsecureSkipTLSVerify: 1,
-		LegacyFormatAuthFilePath:    "/tmp/.dockercfg",
+		LegacyFormatAuthFilePath: "/tmp/.dockercfg",
+	}
+	if insecureSkipTLSVerify {
+		ctx.DockerInsecureSkipTLSVerify = 1
 	}
 
 	return ctx, nil

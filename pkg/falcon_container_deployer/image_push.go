@@ -11,7 +11,7 @@ func (d *FalconContainerDeployer) PushImage() error {
 	if err != nil {
 		return err
 	}
-	image := falcon_container.NewImageRefresher(d.Ctx, d.Log, d.Instance.Spec.FalconAPI.ApiConfig())
+	image := falcon_container.NewImageRefresher(d.Ctx, d.Log, d.Instance.Spec.FalconAPI.ApiConfig(), d.Instance.Spec.Registry.TLS.InsecureSkipVerify)
 	err = image.Refresh(imageStream.Status.DockerImageRepository)
 	if err != nil {
 		return err
