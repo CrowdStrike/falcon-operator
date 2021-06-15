@@ -44,27 +44,7 @@ func (d *FalconContainerDeployer) Reconcile() (ctrl.Result, error) {
 }
 
 func (d *FalconContainerDeployer) PhasePending() (ctrl.Result, error) {
-	if d.Instance.Status.GetCondition("Complete") == nil {
-		d.Instance.Status.SetCondition(&metav1.Condition{
-			Type:   "Complete",
-			Status: metav1.ConditionUnknown,
-			Reason: "Starting",
-		})
-	}
-	if d.Instance.Status.GetCondition("ImageReady") == nil {
-		d.Instance.Status.SetCondition(&metav1.Condition{
-			Type:   "ImageReady",
-			Status: metav1.ConditionUnknown,
-			Reason: "Starting",
-		})
-	}
-	if d.Instance.Status.GetCondition("InstallerComplete") == nil {
-		d.Instance.Status.SetCondition(&metav1.Condition{
-			Type:   "InstallerComplete",
-			Status: metav1.ConditionUnknown,
-			Reason: "Starting",
-		})
-	}
+	d.Instance.Status.SetInitialConditions()
 
 	stream, err := d.UpsertImageStream()
 	if err != nil {

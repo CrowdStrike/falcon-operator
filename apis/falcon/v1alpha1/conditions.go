@@ -42,3 +42,20 @@ func (status *FalconContainerStatus) GetCondition(typ string) *metav1.Condition 
 	}
 	return nil
 }
+
+func (status *FalconContainerStatus) SetInitialConditions() {
+	conditionTypes := []string{
+		"ImageReady",
+		"InstallerComplete",
+		"Complete",
+	}
+	for _, typ := range conditionTypes {
+		if status.GetCondition(typ) == nil {
+			status.SetCondition(&metav1.Condition{
+				Type:   typ,
+				Status: metav1.ConditionUnknown,
+				Reason: "Starting",
+			})
+		}
+	}
+}
