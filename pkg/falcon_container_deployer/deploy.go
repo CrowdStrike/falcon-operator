@@ -58,6 +58,13 @@ func (d *FalconContainerDeployer) PhasePending() (ctrl.Result, error) {
 			Reason: "Starting",
 		})
 	}
+	if d.Instance.Status.GetCondition("InstallerComplete") == nil {
+		d.Instance.Status.SetCondition(&metav1.Condition{
+			Type:   "InstallerComplete",
+			Status: metav1.ConditionUnknown,
+			Reason: "Starting",
+		})
+	}
 
 	stream, err := d.UpsertImageStream()
 	if err != nil {
@@ -110,7 +117,7 @@ func (d *FalconContainerDeployer) PhaseConfiguring() (ctrl.Result, error) {
 
 	// (Step 5) wait for pod completion
 	if !k8s_utils.IsPodCompleted(pod) {
-		d.Log.Info("Waiting for pod run completion", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+		d.Log.Info("Waiting for pod completion", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
 		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 	}
 
@@ -119,6 +126,12 @@ func (d *FalconContainerDeployer) PhaseConfiguring() (ctrl.Result, error) {
 	if err != nil {
 		return d.Error("Failed to get pod relevant to configure job", err)
 	}
+
+	d.Instance.Status.SetCondition(&metav1.Condition{
+		Type:   "InstallerComplete",
+		Status: metav1.ConditionTrue,
+		Reason: "Completed",
+	})
 
 	return d.NextPhase(falconv1alpha1.PhaseDeploying)
 }
