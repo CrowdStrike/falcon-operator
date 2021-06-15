@@ -109,7 +109,10 @@ func (d *FalconContainerDeployer) PhaseConfiguring() (ctrl.Result, error) {
 	}
 
 	// (Step 5) wait for pod completion
-	// TODO
+	if !k8s_utils.IsPodCompleted(pod) {
+		d.Log.Info("Waiting for pod run completion", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+	}
 
 	// (Step 6) obtain job output
 	_, err = k8s_utils.GetPodLog(d.Ctx, d.RestConfig, pod)
