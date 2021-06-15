@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,6 +44,8 @@ func (d *FalconContainerDeployer) Reconcile() (ctrl.Result, error) {
 }
 
 func (d *FalconContainerDeployer) PhasePending() (ctrl.Result, error) {
+	d.Instance.Status.SetInitialConditions()
+
 	stream, err := d.UpsertImageStream()
 	if err != nil {
 		return d.Error("failed to upsert Image Stream", err)
@@ -93,13 +96,22 @@ func (d *FalconContainerDeployer) PhaseConfiguring() (ctrl.Result, error) {
 	}
 
 	// (Step 5) wait for pod completion
-	// TODO
+	if !k8s_utils.IsPodCompleted(pod) {
+		d.Log.Info("Waiting for pod completion", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+	}
 
 	// (Step 6) obtain job output
 	_, err = k8s_utils.GetPodLog(d.Ctx, d.RestConfig, pod)
 	if err != nil {
 		return d.Error("Failed to get pod relevant to configure job", err)
 	}
+
+	d.Instance.Status.SetCondition(&metav1.Condition{
+		Type:   "InstallerComplete",
+		Status: metav1.ConditionTrue,
+		Reason: "Completed",
+	})
 
 	return d.NextPhase(falconv1alpha1.PhaseDeploying)
 }
@@ -124,6 +136,12 @@ func (d *FalconContainerDeployer) PhaseDeploying() (ctrl.Result, error) {
 	if err != nil {
 		return d.Error("Failed to create Falcon Container objects in the cluster", err)
 	}
+
+	d.Instance.Status.SetCondition(&metav1.Condition{
+		Type:   "Complete",
+		Status: metav1.ConditionTrue,
+		Reason: "Deployed",
+	})
 
 	return d.NextPhase(falconv1alpha1.PhaseDone)
 }
