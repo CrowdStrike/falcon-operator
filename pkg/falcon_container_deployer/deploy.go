@@ -51,6 +51,13 @@ func (d *FalconContainerDeployer) PhasePending() (ctrl.Result, error) {
 			Reason: "Starting",
 		})
 	}
+	if d.Instance.Status.GetCondition("ImageReady") == nil {
+		d.Instance.Status.SetCondition(&metav1.Condition{
+			Type:   "ImageReady",
+			Status: metav1.ConditionUnknown,
+			Reason: "Starting",
+		})
+	}
 
 	stream, err := d.UpsertImageStream()
 	if err != nil {
