@@ -21,6 +21,18 @@ type FalconAPI struct {
 	CID string `json:"cid"`
 }
 
+// RegistryTLSSpec configures TLS for registry pushing
+type RegistryTLSSpec struct {
+	// Allow pushing to docker registries over HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
+	InsecureSkipVerify bool `json:"insecure_skip_verify,omitempty"`
+}
+
+// RegistrySpec configures container image registry to which the Falcon Container image will be pushed
+type RegistrySpec struct {
+	// TLS configures TLS connection for push of Falcon Container image to the registry
+	TLS RegistryTLSSpec `json:"tls,omitempty"`
+}
+
 // FalconContainerSpec defines the desired state of FalconContainer
 type FalconContainerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -28,6 +40,8 @@ type FalconContainerSpec struct {
 
 	// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 	FalconAPI FalconAPI `json:"falcon_api"`
+	// Registry configures container image registry to which the Falcon Container image will be pushed
+	Registry RegistrySpec `json:"registry,omitempty"`
 }
 
 // Represents the status of Falcon deployment
