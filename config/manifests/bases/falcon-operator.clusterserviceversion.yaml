@@ -4,6 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
+    categories: Security,Monitoring
   name: falcon-operator.v0.0.0
   namespace: placeholder
 spec:
