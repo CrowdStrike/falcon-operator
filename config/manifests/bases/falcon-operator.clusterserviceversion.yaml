@@ -5,6 +5,7 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     categories: Security,Monitoring
+    operatorframework.io/suggested-namespace: falcon-operator
   name: falcon-operator.v0.0.0
   namespace: placeholder
 spec:

@@ -19,6 +19,7 @@ metadata:
       ]
     capabilities: Basic Install
     categories: Security,Monitoring
+    operatorframework.io/suggested-namespace: falcon-operator
     operators.operatorframework.io/builder: operator-sdk-v1.5.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
   name: falcon-operator.v0.0.1
