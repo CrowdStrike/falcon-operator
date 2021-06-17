@@ -39,9 +39,9 @@ spec:
   - runtime-protection
   links:
   - name: Falcon Operator
-    url: https://falcon-operator.domain
+    url: https://github.com/CrowdStrike/falcon-operator
   maturity: alpha
   provider:
     name: CrowdStrike
-    url: https://github.com/CrowdStrike/falcon-operator
+    url: https://crowdStrike.com
   version: 0.0.0
