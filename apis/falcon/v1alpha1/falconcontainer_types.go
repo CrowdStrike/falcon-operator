@@ -27,8 +27,19 @@ type RegistryTLSSpec struct {
 	InsecureSkipVerify bool `json:"insecure_skip_verify,omitempty"`
 }
 
+type RegistryTypeSpec string
+
+const (
+	// RegistryTypeOpenshift represents OpenShift Image Stream
+	RegistryTypeOpenshift RegistryTypeSpec = "openshift"
+)
+
 // RegistrySpec configures container image registry to which the Falcon Container image will be pushed
 type RegistrySpec struct {
+	// Type of the registry to be used
+	// +kubebuilder:validation:Enum=openshift
+	Type RegistryTypeSpec `json:"type"`
+
 	// TLS configures TLS connection for push of Falcon Container image to the registry
 	TLS RegistryTLSSpec `json:"tls,omitempty"`
 }

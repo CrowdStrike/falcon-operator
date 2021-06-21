@@ -67,6 +67,13 @@ spec:
                         description: Allow pushing to docker registries over HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
                         type: boolean
                     type: object
+                  type:
+                    description: Type of the registry to be used
+                    enum:
+                    - openshift
+                    type: string
+                required:
+                - type
                 type: object
             required:
             - falcon_api
