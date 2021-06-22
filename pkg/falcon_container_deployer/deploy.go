@@ -46,15 +46,17 @@ func (d *FalconContainerDeployer) Reconcile() (ctrl.Result, error) {
 func (d *FalconContainerDeployer) PhasePending() (ctrl.Result, error) {
 	d.Instance.Status.SetInitialConditions()
 
-	stream, err := d.UpsertImageStream()
-	if err != nil {
-		return d.Error("failed to upsert Image Stream", err)
+	switch d.Instance.Spec.Registry.Type {
+	case falconv1alpha1.RegistryTypeOpenshift:
+		stream, err := d.UpsertImageStream()
+		if err != nil {
+			return d.Error("failed to upsert Image Stream", err)
+		}
+		if stream == nil {
+			// It takes few moment for the ImageStream to be ready (shortly after it has been created)
+			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+		}
 	}
-	if stream == nil {
-		// It takes few moment for the ImageStream to be ready (shortly after it has been created)
-		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
-	}
-
 	return d.NextPhase(falconv1alpha1.PhaseBuilding)
 }
 
