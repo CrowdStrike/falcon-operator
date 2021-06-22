@@ -28,19 +28,22 @@ func (r *FalconContainerDeployer) getDockercfg() ([]byte, error) {
 		if secret.Data == nil {
 			continue
 		}
-		if secret.Type != "kubernetes.io/dockercfg" {
+		if secret.Type != "kubernetes.io/dockercfg" && secret.Type != "kubernetes.io/dockerconfigjson" {
 			continue
 		}
 
-		if secret.ObjectMeta.Annotations == nil || secret.ObjectMeta.Annotations["kubernetes.io/service-account.name"] != "builder" {
+		if (secret.ObjectMeta.Annotations == nil || secret.ObjectMeta.Annotations["kubernetes.io/service-account.name"] != "builder") && secret.Name != "builder" {
 			continue
 		}
 
 		value, ok := secret.Data[".dockercfg"]
-		if !ok {
-			continue
+		if ok {
+			return value, nil
 		}
-		return value, nil
+		value, ok = secret.Data[".dockerconfigjson"]
+		if ok {
+			return value, nil
+		}
 	}
 
 	return []byte{}, fmt.Errorf("Cannot find suitable secret in namespace %s to push falcon-image to the registry", namespace)
