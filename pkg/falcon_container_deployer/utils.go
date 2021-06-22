@@ -9,7 +9,7 @@ import (
 )
 
 func (d *FalconContainerDeployer) Error(message string, err error) (ctrl.Result, error) {
-	userError := fmt.Errorf("%s %w", message, err)
+	userError := fmt.Errorf("%s: %w", message, err)
 
 	d.Instance.Status.ErrorMessage = userError.Error()
 	d.Instance.Status.Phase = falconv1alpha1.PhaseDone
