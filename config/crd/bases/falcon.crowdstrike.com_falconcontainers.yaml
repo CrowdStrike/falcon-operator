@@ -82,6 +82,7 @@ spec:
                   type:
                     description: Type of the registry to be used
                     enum:
+                    - gcr
                     - openshift
                     type: string
                 required:
