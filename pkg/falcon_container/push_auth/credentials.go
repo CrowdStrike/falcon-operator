@@ -33,8 +33,8 @@ func GetCredentials(secrets []corev1.Secret) Credentials {
 		}
 		value, ok = secret.Data[".dockerconfigjson"]
 		if ok {
-			return &legacy{
-				Dockercfg: value,
+			return &gcr{
+				Key: value,
 			}
 		}
 	}
@@ -58,4 +58,17 @@ func (l *legacy) DestinationContext() (*types.SystemContext, error) {
 		LegacyFormatAuthFilePath: dockerCfgFile,
 	}
 	return ctx, nil
+}
+
+type gcr struct {
+	Key []byte
+}
+
+func (g *gcr) DestinationContext() (*types.SystemContext, error) {
+	return &types.SystemContext{
+		DockerAuthConfig: &types.DockerAuthConfig{
+			Username: "_json_key",
+			Password: string(g.Key),
+		},
+	}, nil
 }
