@@ -52,7 +52,7 @@ func (r *ImageRefresher) Refresh(imageDestination string) error {
 		return fmt.Errorf("Invalid destination name %s: %v", dest, err)
 	}
 
-	destinationContext, err := r.destinationContext(destRef, r.insecureSkipTLSVerify)
+	destinationContext, err := r.destinationContext(r.insecureSkipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func (r *ImageRefresher) Refresh(imageDestination string) error {
 	return wrapWithHint(err)
 }
 
-func (r *ImageRefresher) destinationContext(imageRef types.ImageReference, insecureSkipTLSVerify bool) (*types.SystemContext, error) {
+func (r *ImageRefresher) destinationContext(insecureSkipTLSVerify bool) (*types.SystemContext, error) {
 	ctx := &types.SystemContext{
 		LegacyFormatAuthFilePath: "/tmp/.dockercfg",
 	}
