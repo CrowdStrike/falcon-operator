@@ -28,7 +28,7 @@ type ImageRefresher struct {
 	pushCredentials       push_auth.Credentials
 }
 
-func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig, insecureSkipTLSVerify bool) *ImageRefresher {
+func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig, pushAuth push_auth.Credentials, insecureSkipTLSVerify bool) *ImageRefresher {
 	if falconConfig.Context == nil {
 		falconConfig.Context = ctx
 	}
@@ -37,7 +37,7 @@ func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falco
 		log:                   log,
 		falconConfig:          falconConfig,
 		insecureSkipTLSVerify: insecureSkipTLSVerify,
-		pushCredentials:       &push_auth.Legacy{},
+		pushCredentials:       pushAuth,
 	}
 }
 

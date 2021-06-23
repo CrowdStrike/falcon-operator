@@ -9,7 +9,7 @@ import (
 )
 
 func (d *FalconContainerDeployer) PushImage() error {
-	err := d.EnsureDockercfg()
+	pushAuth, err := d.EnsureDockercfg()
 	if err != nil {
 		return fmt.Errorf("Cannot find dockercfg secret from the current namespace: %v", err)
 	}
@@ -18,7 +18,7 @@ func (d *FalconContainerDeployer) PushImage() error {
 	if err != nil {
 		return err
 	}
-	image := falcon_container.NewImageRefresher(d.Ctx, d.Log, d.Instance.Spec.FalconAPI.ApiConfig(), d.Instance.Spec.Registry.TLS.InsecureSkipVerify)
+	image := falcon_container.NewImageRefresher(d.Ctx, d.Log, d.Instance.Spec.FalconAPI.ApiConfig(), pushAuth, d.Instance.Spec.Registry.TLS.InsecureSkipVerify)
 	err = image.Refresh(registryUri)
 	if err != nil {
 		return err
