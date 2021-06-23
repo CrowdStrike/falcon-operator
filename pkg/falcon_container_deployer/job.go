@@ -47,7 +47,7 @@ func (d *FalconContainerDeployer) GetJob() (*batchv1.Job, error) {
 }
 
 func (d *FalconContainerDeployer) CreateJob() error {
-	imageStream, err := d.GetImageStream()
+	imageUri, err := d.registryUri()
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,6 @@ func (d *FalconContainerDeployer) CreateJob() error {
 	falseP := false
 	trueP := true
 	cid := d.Instance.Spec.FalconAPI.CID
-	imageUri := imageStream.Status.DockerImageRepository
 
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{

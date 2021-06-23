@@ -7,12 +7,12 @@ import (
 )
 
 func (d *FalconContainerDeployer) PushImage() error {
-	imageStream, err := d.GetImageStream()
+	registryUri, err := d.registryUri()
 	if err != nil {
 		return err
 	}
 	image := falcon_container.NewImageRefresher(d.Ctx, d.Log, d.Instance.Spec.FalconAPI.ApiConfig(), d.Instance.Spec.Registry.TLS.InsecureSkipVerify)
-	err = image.Refresh(imageStream.Status.DockerImageRepository)
+	err = image.Refresh(registryUri)
 	if err != nil {
 		return err
 	}
@@ -20,8 +20,16 @@ func (d *FalconContainerDeployer) PushImage() error {
 	d.Instance.Status.SetCondition(&metav1.Condition{
 		Type:    "ImageReady",
 		Status:  metav1.ConditionTrue,
-		Message: imageStream.Status.DockerImageRepository,
+		Message: registryUri,
 		Reason:  "Pushed",
 	})
 	return nil
+}
+
+func (d *FalconContainerDeployer) registryUri() (string, error) {
+	imageStream, err := d.GetImageStream()
+	if err != nil {
+		return "", err
+	}
+	return imageStream.Status.DockerImageRepository, nil
 }
