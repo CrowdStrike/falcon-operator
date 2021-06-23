@@ -9,44 +9,16 @@ import (
 )
 
 func (r *FalconContainerDeployer) EnsureDockercfg() (push_auth.Credentials, error) {
-	dockercfg, err := r.getDockercfg()
-	if err != nil {
-		return nil, err
-	}
-	return &push_auth.Legacy{
-		Dockercfg: dockercfg,
-	}, nil
-}
-
-func (r *FalconContainerDeployer) getDockercfg() ([]byte, error) {
 	namespace := r.Namespace()
 	secrets := &corev1.SecretList{}
 	err := r.Client.List(r.Ctx, secrets, client.InNamespace(namespace))
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 
-	for _, secret := range secrets.Items {
-		if secret.Data == nil {
-			continue
-		}
-		if secret.Type != "kubernetes.io/dockercfg" && secret.Type != "kubernetes.io/dockerconfigjson" {
-			continue
-		}
-
-		if (secret.ObjectMeta.Annotations == nil || secret.ObjectMeta.Annotations["kubernetes.io/service-account.name"] != "builder") && secret.Name != "builder" {
-			continue
-		}
-
-		value, ok := secret.Data[".dockercfg"]
-		if ok {
-			return value, nil
-		}
-		value, ok = secret.Data[".dockerconfigjson"]
-		if ok {
-			return value, nil
-		}
+	creds := push_auth.GetCredentials(secrets.Items)
+	if creds == nil {
+		return nil, fmt.Errorf("Cannot find suitable secret in namespace %s to push falcon-image to the registry", namespace)
 	}
-
-	return []byte{}, fmt.Errorf("Cannot find suitable secret in namespace %s to push falcon-image to the registry", namespace)
+	return creds, nil
 }
