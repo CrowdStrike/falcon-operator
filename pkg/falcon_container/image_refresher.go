@@ -16,6 +16,7 @@ import (
 	"github.com/containers/image/v5/types"
 
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/falcon_image"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/push_auth"
 	"github.com/crowdstrike/gofalcon/falcon"
 )
 
@@ -24,6 +25,7 @@ type ImageRefresher struct {
 	log                   logr.Logger
 	falconConfig          *falcon.ApiConfig
 	insecureSkipTLSVerify bool
+	pushCredentials       push_auth.Credentials
 }
 
 func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig, insecureSkipTLSVerify bool) *ImageRefresher {
@@ -35,6 +37,7 @@ func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falco
 		log:                   log,
 		falconConfig:          falconConfig,
 		insecureSkipTLSVerify: insecureSkipTLSVerify,
+		pushCredentials:       &push_auth.Legacy{},
 	}
 }
 
@@ -77,9 +80,11 @@ func (r *ImageRefresher) Refresh(imageDestination string) error {
 }
 
 func (r *ImageRefresher) destinationContext(insecureSkipTLSVerify bool) (*types.SystemContext, error) {
-	ctx := &types.SystemContext{
-		LegacyFormatAuthFilePath: "/tmp/.dockercfg",
+	ctx, err := r.pushCredentials.DestinationContext()
+	if err != nil {
+		return nil, err
 	}
+
 	if insecureSkipTLSVerify {
 		ctx.DockerInsecureSkipTLSVerify = 1
 	}
