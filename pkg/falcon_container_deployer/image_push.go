@@ -3,15 +3,18 @@ package falcon_container_deployer
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/push_auth"
 )
 
 func (d *FalconContainerDeployer) PushImage() error {
-	pushAuth, err := d.EnsureDockercfg()
+	pushAuth, err := d.pushAuth()
 	if err != nil {
-		return fmt.Errorf("Cannot find dockercfg secret from the current namespace: %v", err)
+		return err
 	}
 
 	registryUri, err := d.registryUri()
@@ -39,4 +42,19 @@ func (d *FalconContainerDeployer) registryUri() (string, error) {
 		return "", err
 	}
 	return imageStream.Status.DockerImageRepository, nil
+}
+
+func (d *FalconContainerDeployer) pushAuth() (push_auth.Credentials, error) {
+	namespace := d.Namespace()
+	secrets := &corev1.SecretList{}
+	err := d.Client.List(d.Ctx, secrets, client.InNamespace(namespace))
+	if err != nil {
+		return nil, err
+	}
+
+	creds := push_auth.GetCredentials(secrets.Items)
+	if creds == nil {
+		return nil, fmt.Errorf("Cannot find suitable secret in namespace %s to push falcon-image to the registry", namespace)
+	}
+	return creds, nil
 }
