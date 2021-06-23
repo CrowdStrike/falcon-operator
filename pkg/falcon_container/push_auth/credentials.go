@@ -1,6 +1,8 @@
 package push_auth
 
 import (
+	"io/ioutil"
+
 	"github.com/containers/image/v5/types"
 )
 
@@ -10,9 +12,16 @@ type Credentials interface {
 }
 
 // Legacy represents old .dockercfg based credentials
-type Legacy struct{}
+type Legacy struct {
+	Dockercfg []byte
+}
 
 func (l *Legacy) DestinationContext() (*types.SystemContext, error) {
+	err := ioutil.WriteFile("/tmp/.dockercfg", l.Dockercfg, 0600)
+	if err != nil {
+		return nil, err
+	}
+
 	ctx := &types.SystemContext{
 		LegacyFormatAuthFilePath: "/tmp/.dockercfg",
 	}
