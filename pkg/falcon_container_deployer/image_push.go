@@ -7,8 +7,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/push_auth"
+	"github.com/crowdstrike/falcon-operator/pkg/gcp"
 )
 
 func (d *FalconContainerDeployer) PushImage() error {
@@ -37,11 +39,24 @@ func (d *FalconContainerDeployer) PushImage() error {
 }
 
 func (d *FalconContainerDeployer) registryUri() (string, error) {
-	imageStream, err := d.GetImageStream()
-	if err != nil {
-		return "", err
+	switch d.Instance.Spec.Registry.Type {
+	case falconv1alpha1.RegistryTypeOpenshift:
+		imageStream, err := d.GetImageStream()
+
+		if err != nil {
+			return "", err
+		}
+		return imageStream.Status.DockerImageRepository, nil
+	case falconv1alpha1.RegistryTypeGCR:
+		projectId, err := gcp.GetProjectID()
+		if err != nil {
+			return "", fmt.Errorf("Cannot get GCP Project ID: %v", err)
+		}
+
+		return "gcr.io/" + projectId + "/falcon-container", nil
+	default:
+		return "", fmt.Errorf("Unrecognized registry type: %s", d.Instance.Spec.Registry.Type)
 	}
-	return imageStream.Status.DockerImageRepository, nil
 }
 
 func (d *FalconContainerDeployer) pushAuth() (push_auth.Credentials, error) {
