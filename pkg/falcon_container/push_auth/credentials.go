@@ -17,13 +17,15 @@ type Legacy struct {
 }
 
 func (l *Legacy) DestinationContext() (*types.SystemContext, error) {
-	err := ioutil.WriteFile("/tmp/.dockercfg", l.Dockercfg, 0600)
+	const dockerCfgFile = "/tmp/.dockercfg"
+
+	err := ioutil.WriteFile(dockerCfgFile, l.Dockercfg, 0600)
 	if err != nil {
 		return nil, err
 	}
 
 	ctx := &types.SystemContext{
-		LegacyFormatAuthFilePath: "/tmp/.dockercfg",
+		LegacyFormatAuthFilePath: dockerCfgFile,
 	}
 	return ctx, nil
 }
