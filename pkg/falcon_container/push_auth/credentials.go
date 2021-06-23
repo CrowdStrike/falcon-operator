@@ -27,13 +27,13 @@ func GetCredentials(secrets []corev1.Secret) Credentials {
 
 		value, ok := secret.Data[".dockercfg"]
 		if ok {
-			return &Legacy{
+			return &legacy{
 				Dockercfg: value,
 			}
 		}
 		value, ok = secret.Data[".dockerconfigjson"]
 		if ok {
-			return &Legacy{
+			return &legacy{
 				Dockercfg: value,
 			}
 		}
@@ -42,11 +42,11 @@ func GetCredentials(secrets []corev1.Secret) Credentials {
 }
 
 // Legacy represents old .dockercfg based credentials
-type Legacy struct {
+type legacy struct {
 	Dockercfg []byte
 }
 
-func (l *Legacy) DestinationContext() (*types.SystemContext, error) {
+func (l *legacy) DestinationContext() (*types.SystemContext, error) {
 	const dockerCfgFile = "/tmp/.dockercfg"
 
 	err := ioutil.WriteFile(dockerCfgFile, l.Dockercfg, 0600)
