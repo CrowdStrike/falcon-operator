@@ -1,12 +1,19 @@
 package falcon_container_deployer
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
 )
 
 func (d *FalconContainerDeployer) PushImage() error {
+	err := d.EnsureDockercfg()
+	if err != nil {
+		return fmt.Errorf("Cannot find dockercfg secret from the current namespace: %v", err)
+	}
+
 	registryUri, err := d.registryUri()
 	if err != nil {
 		return err
