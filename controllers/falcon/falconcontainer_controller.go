@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container_deployer"
@@ -21,6 +22,8 @@ type FalconContainerReconciler struct {
 	Scheme     *runtime.Scheme
 	RestConfig *rest.Config
 }
+
+const falconContainerFinalizer = "falcon.crowdstrike.com/finalizer"
 
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconcontainers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconcontainers/status,verbs=get;update;patch
@@ -67,6 +70,23 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	isFalconContainerToBeDeleted := falconContainer.GetDeletionTimestamp() != nil
+	if isFalconContainerToBeDeleted {
+		if controllerutil.ContainsFinalizer(falconContainer, falconContainerFinalizer) {
+			if err := r.finalize(log, falconContainer); err != nil {
+				return ctrl.Result{}, err
+			}
+			controllerutil.RemoveFinalizer(falconContainer, falconContainerFinalizer)
+			return ctrl.Result{}, r.Update(ctx, falconContainer)
+		}
+		return ctrl.Result{}, err
+	}
+
+	if !controllerutil.ContainsFinalizer(falconContainer, falconContainerFinalizer) {
+		controllerutil.AddFinalizer(falconContainer, falconContainerFinalizer)
+		return ctrl.Result{}, r.Update(ctx, falconContainer)
+	}
+
 	d := falcon_container_deployer.FalconContainerDeployer{
 		Ctx:        ctx,
 		Client:     r.Client,
@@ -82,4 +102,9 @@ func (r *FalconContainerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&falconv1alpha1.FalconContainer{}).
 		Complete(r)
+}
+
+func (r *FalconContainerReconciler) finalize(log logr.Logger, fc *falconv1alpha1.FalconContainer) error {
+	log.Info("Running Falcon Container Finalizer")
+	return nil
 }
