@@ -71,6 +71,9 @@ type FalconContainerStatus struct {
 	// ErrorMessage informs user of the last notable error. Users are welcomed to see the operator logs
 	// to understand the full context.
 	ErrorMessage string `json:"errormsg,omitempty"`
+
+	// RetryAttempt is number of previous failed attempts. Valid values: 0-5
+	RetryAttempt *uint8 `json:"retry_attempt,omitempty"`
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
