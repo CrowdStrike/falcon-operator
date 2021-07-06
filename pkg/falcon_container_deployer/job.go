@@ -31,20 +31,12 @@ func (d *FalconContainerDeployer) ConfigurePod() (*corev1.Pod, error) {
 	return &podList.Items[0], nil
 }
 
-func (d *FalconContainerDeployer) DeletePod(pod *corev1.Pod) error {
-	return d.Client.Delete(d.Ctx, pod)
-}
-
 func (d *FalconContainerDeployer) UpsertJob() (job *batchv1.Job, err error) {
 	job, err = d.GetJob()
 	if err != nil && errors.IsNotFound(err) {
 		return nil, d.CreateJob()
 	}
 	return job, err
-}
-
-func (d *FalconContainerDeployer) DeleteJob(job *batchv1.Job) error {
-	return d.Client.Delete(d.Ctx, job)
 }
 
 func (d *FalconContainerDeployer) GetJob() (*batchv1.Job, error) {

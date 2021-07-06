@@ -2,6 +2,7 @@ package falcon_container_deployer
 
 import (
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
@@ -37,7 +38,7 @@ func (d *FalconContainerDeployer) finalize() error {
 		if err != nil {
 			d.Log.Error(err, "Could not find ImageStream for deletion")
 		}
-		err = d.DeleteImageStream(stream)
+		err = d.k8s_delete(stream)
 		if err != nil {
 			d.Log.Error(err, "Could not delete ImageStream")
 		}
@@ -73,7 +74,7 @@ func (d *FalconContainerDeployer) finalizeDeleteJob() {
 	if err != nil {
 		d.Log.Error(err, "Could not find Falcon Container Installer pod for deletion")
 	} else {
-		err = d.DeletePod(pod)
+		err = d.k8s_delete(pod)
 		if err != nil {
 			d.Log.Error(err, "Could not delete Falcon Container Installer pod")
 		}
@@ -84,8 +85,12 @@ func (d *FalconContainerDeployer) finalizeDeleteJob() {
 		d.Log.Error(err, "Could not get Falcon Container Installer job")
 		return
 	}
-	err = d.DeleteJob(job)
+	err = d.k8s_delete(job)
 	if err != nil {
 		d.Log.Error(err, "Cloud not delete Falcon Container Installer job")
 	}
+}
+
+func (d *FalconContainerDeployer) k8s_delete(object client.Object) error {
+	return d.Client.Delete(d.Ctx, object)
 }
