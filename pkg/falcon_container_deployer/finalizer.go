@@ -92,5 +92,6 @@ func (d *FalconContainerDeployer) finalizeDeleteJob() {
 }
 
 func (d *FalconContainerDeployer) k8s_delete(object client.Object) error {
+	d.Log.Info("Deleting Falcon operator object", "Kind", object.GetObjectKind().GroupVersionKind().Kind, "Name", object.GetName())
 	return d.Client.Delete(d.Ctx, object)
 }
