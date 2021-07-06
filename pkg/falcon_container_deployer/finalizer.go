@@ -3,6 +3,8 @@ package falcon_container_deployer
 import (
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 )
 
 const falconContainerFinalizer = "falcon.crowdstrike.com/finalizer"
@@ -28,6 +30,19 @@ func (d *FalconContainerDeployer) finalize() error {
 
 	d.finalizeDeleteObjects()
 	d.finalizeDeleteJob()
+
+	switch d.Instance.Spec.Registry.Type {
+	case falconv1alpha1.RegistryTypeOpenshift:
+		stream, err := d.GetImageStream()
+		if err != nil {
+			d.Log.Error(err, "Could not find ImageStream for deletion")
+		}
+		err = d.DeleteImageStream(stream)
+		if err != nil {
+			d.Log.Error(err, "Could not delete ImageStream")
+		}
+	}
+
 	return nil
 }
 

@@ -50,3 +50,7 @@ func (d *FalconContainerDeployer) CreateImageStream() error {
 	}
 	return nil
 }
+
+func (d *FalconContainerDeployer) DeleteImageStream(stream *imagev1.ImageStream) error {
+	return d.Client.Delete(d.Ctx, stream)
+}
