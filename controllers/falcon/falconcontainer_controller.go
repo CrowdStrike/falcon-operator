@@ -28,7 +28,7 @@ type FalconContainerReconciler struct {
 
 // +kubebuilder:rbac:groups=image.openshift.io,resources=imagestreams,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
-// +kubebuilder:rbac:groups="batch",resources=jobs,verbs=get;list;watch;create;update
+// +kubebuilder:rbac:groups="batch",resources=jobs,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=pods/log,verbs=get
 

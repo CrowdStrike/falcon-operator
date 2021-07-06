@@ -27,6 +27,7 @@ func (d *FalconContainerDeployer) finalize() error {
 	d.Log.Info("Running Falcon Container Finalizer")
 
 	d.finalizeDeleteObjects()
+	d.finalizeDeleteJob()
 	return nil
 }
 
@@ -49,5 +50,16 @@ func (d *FalconContainerDeployer) finalizeDeleteObjects() {
 	err = k8s_utils.Delete(d.Ctx, d.Client, objects, d.Log)
 	if err != nil {
 		d.Log.Error(err, "Could not delete Falcon Container from the cluster")
+	}
+}
+
+func (d *FalconContainerDeployer) finalizeDeleteJob() {
+	job, err := d.GetJob()
+	if err != nil {
+		d.Log.Error(err, "Could not get Falcon Container Installer job")
+	}
+	err = d.DeleteJob(job)
+	if err != nil {
+		d.Log.Error(err, "Cloud not delete Falcon Container Installer job")
 	}
 }

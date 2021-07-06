@@ -40,6 +40,10 @@ func (d *FalconContainerDeployer) UpsertJob() (job *batchv1.Job, err error) {
 	return job, err
 }
 
+func (d *FalconContainerDeployer) DeleteJob(job *batchv1.Job) error {
+	return d.Client.Delete(d.Ctx, job)
+}
+
 func (d *FalconContainerDeployer) GetJob() (*batchv1.Job, error) {
 	job := batchv1.Job{}
 	err := d.Client.Get(d.Ctx, types.NamespacedName{Name: JOB_NAME, Namespace: d.Namespace()}, &job)
