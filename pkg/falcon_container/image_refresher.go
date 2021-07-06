@@ -16,6 +16,7 @@ import (
 	"github.com/containers/image/v5/types"
 
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/falcon_image"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/push_auth"
 	"github.com/crowdstrike/gofalcon/falcon"
 )
 
@@ -24,9 +25,10 @@ type ImageRefresher struct {
 	log                   logr.Logger
 	falconConfig          *falcon.ApiConfig
 	insecureSkipTLSVerify bool
+	pushCredentials       push_auth.Credentials
 }
 
-func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig, insecureSkipTLSVerify bool) *ImageRefresher {
+func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig, pushAuth push_auth.Credentials, insecureSkipTLSVerify bool) *ImageRefresher {
 	if falconConfig.Context == nil {
 		falconConfig.Context = ctx
 	}
@@ -35,6 +37,7 @@ func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falco
 		log:                   log,
 		falconConfig:          falconConfig,
 		insecureSkipTLSVerify: insecureSkipTLSVerify,
+		pushCredentials:       pushAuth,
 	}
 }
 
@@ -52,7 +55,7 @@ func (r *ImageRefresher) Refresh(imageDestination string) error {
 		return fmt.Errorf("Invalid destination name %s: %v", dest, err)
 	}
 
-	destinationContext, err := r.destinationContext(destRef, r.insecureSkipTLSVerify)
+	destinationContext, err := r.destinationContext(r.insecureSkipTLSVerify)
 	if err != nil {
 		return err
 	}
@@ -76,10 +79,12 @@ func (r *ImageRefresher) Refresh(imageDestination string) error {
 	return wrapWithHint(err)
 }
 
-func (r *ImageRefresher) destinationContext(imageRef types.ImageReference, insecureSkipTLSVerify bool) (*types.SystemContext, error) {
-	ctx := &types.SystemContext{
-		LegacyFormatAuthFilePath: "/tmp/.dockercfg",
+func (r *ImageRefresher) destinationContext(insecureSkipTLSVerify bool) (*types.SystemContext, error) {
+	ctx, err := r.pushCredentials.DestinationContext()
+	if err != nil {
+		return nil, err
 	}
+
 	if insecureSkipTLSVerify {
 		ctx.DockerInsecureSkipTLSVerify = 1
 	}

@@ -1,7 +1,10 @@
 package falcon_container_deployer
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/api/errors"
+	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 
@@ -14,8 +17,12 @@ const (
 
 func (d *FalconContainerDeployer) UpsertImageStream() (stream *imagev1.ImageStream, err error) {
 	stream, err = d.GetImageStream()
-	if err != nil && errors.IsNotFound(err) {
-		return nil, d.CreateImageStream()
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, d.CreateImageStream()
+		} else if meta.IsNoMatchError(err) {
+			return nil, fmt.Errorf("Image Stream Kind is not available on the cluster: %v", err)
+		}
 	}
 	return stream, err
 }

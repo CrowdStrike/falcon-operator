@@ -27,8 +27,21 @@ type RegistryTLSSpec struct {
 	InsecureSkipVerify bool `json:"insecure_skip_verify,omitempty"`
 }
 
+type RegistryTypeSpec string
+
+const (
+	// RegistryTypeOpenshift represents OpenShift Image Stream
+	RegistryTypeOpenshift RegistryTypeSpec = "openshift"
+	// RegistryTypeGCR represents Google Container Registry
+	RegistryTypeGCR RegistryTypeSpec = "gcr"
+)
+
 // RegistrySpec configures container image registry to which the Falcon Container image will be pushed
 type RegistrySpec struct {
+	// Type of the registry to be used
+	// +kubebuilder:validation:Enum=gcr;openshift
+	Type RegistryTypeSpec `json:"type"`
+
 	// TLS configures TLS connection for push of Falcon Container image to the registry
 	TLS RegistryTLSSpec `json:"tls,omitempty"`
 }
@@ -53,9 +66,9 @@ const (
 	// PhaseBuilding represents the deployment before the falcon image is successfully fetched
 	PhaseBuilding FalconContainerStatusPhase = "BUILDING"
 	// PhaseConfiguring represents the state when injector/installer is being run
-	PhaseConfiguring = "CONFIGURING"
+	PhaseConfiguring FalconContainerStatusPhase = "CONFIGURING"
 	// PhaseDeploying represents the state when injector is being deployed on the cluster
-	PhaseDeploying = "DEPLOYING"
+	PhaseDeploying FalconContainerStatusPhase = "DEPLOYING"
 	// PhaseDone represents the Falcon Protection being successfully installed
 	PhaseDone FalconContainerStatusPhase = "DONE"
 )
