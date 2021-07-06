@@ -69,9 +69,20 @@ func (d *FalconContainerDeployer) finalizeDeleteObjects() {
 }
 
 func (d *FalconContainerDeployer) finalizeDeleteJob() {
+	pod, err := d.ConfigurePod()
+	if err != nil {
+		d.Log.Error(err, "Could not find Falcon Container Installer pod for deletion")
+	} else {
+		err = d.DeletePod(pod)
+		if err != nil {
+			d.Log.Error(err, "Could not delete Falcon Container Installer pod")
+		}
+	}
+
 	job, err := d.GetJob()
 	if err != nil {
 		d.Log.Error(err, "Could not get Falcon Container Installer job")
+		return
 	}
 	err = d.DeleteJob(job)
 	if err != nil {

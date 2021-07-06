@@ -29,7 +29,10 @@ func (d *FalconContainerDeployer) ConfigurePod() (*corev1.Pod, error) {
 		return nil, fmt.Errorf("Found %d relevant pods, expected 1 pod", len(podList.Items))
 	}
 	return &podList.Items[0], nil
+}
 
+func (d *FalconContainerDeployer) DeletePod(pod *corev1.Pod) error {
+	return d.Client.Delete(d.Ctx, pod)
 }
 
 func (d *FalconContainerDeployer) UpsertJob() (job *batchv1.Job, err error) {
