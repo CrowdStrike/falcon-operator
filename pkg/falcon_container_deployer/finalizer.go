@@ -31,18 +31,23 @@ func (d *FalconContainerDeployer) finalize() error {
 }
 
 func (d *FalconContainerDeployer) finalizeDeleteObjects() {
-
 	pod, err := d.ConfigurePod()
 	if err != nil {
+		d.Log.Error(err, "Could not find Falcon Container Installer pod for deletion")
 		return
 	}
 	yaml, err := k8s_utils.GetPodLog(d.Ctx, d.RestConfig, pod)
 	if err != nil {
+		d.Log.Error(err, "Could not fetch logs of Falcon Container Installer")
 		return
 	}
 	objects, err := k8s_utils.ParseK8sObjects(yaml)
 	if err != nil {
+		d.Log.Error(err, "Could not parse Falcon Container Installer output")
 		return
 	}
-	_ = k8s_utils.Delete(d.Ctx, d.Client, objects, d.Log)
+	err = k8s_utils.Delete(d.Ctx, d.Client, objects, d.Log)
+	if err != nil {
+		d.Log.Error(err, "Could not delete Falcon Container from the cluster")
+	}
 }
