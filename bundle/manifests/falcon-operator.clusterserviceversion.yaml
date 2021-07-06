@@ -48,6 +48,7 @@ spec:
           - namespaces
           verbs:
           - create
+          - delete
         - apiGroups:
           - ""
           resources:
@@ -68,6 +69,7 @@ spec:
           - secrets
           verbs:
           - create
+          - delete
           - get
           - list
           - watch
@@ -77,18 +79,21 @@ spec:
           - services
           verbs:
           - create
+          - delete
         - apiGroups:
           - admissionregistration.k8s.io
           resources:
           - mutatingwebhookconfigurations
           verbs:
           - create
+          - delete
         - apiGroups:
           - apps
           resources:
           - deployments
           verbs:
           - create
+          - delete
         - apiGroups:
           - batch
           resources:
@@ -142,12 +147,14 @@ spec:
           - clusterrolebindings
           verbs:
           - create
+          - delete
         - apiGroups:
           - rbac.authorization.k8s.io
           resources:
           - clusterroles
           verbs:
           - create
+          - delete
         - apiGroups:
           - authentication.k8s.io
           resources:

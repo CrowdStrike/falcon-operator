@@ -30,3 +30,21 @@ func Create(ctx context.Context, cli client.Client, objects []runtime.Object, lo
 
 	return nil
 }
+
+func Delete(ctx context.Context, cli client.Client, objects []runtime.Object, logger logr.Logger) error {
+	for i := len(objects) - 1; i >= 0; i-- {
+		obj := objects[i]
+		switch t := obj.(type) {
+		case client.Object:
+			logger.Info("Deleting Falcon Container object from the cluster", "Kind", t.GetObjectKind().GroupVersionKind().Kind, "Name", t.GetName())
+			err := cli.Delete(ctx, t)
+			if err != nil {
+				logger.Error(err, "Cannot delete object from cluster", "Kind", t.GetObjectKind().GroupVersionKind().Kind, "Name", t.GetName())
+			}
+		default:
+			return fmt.Errorf("Unrecognized kube object type: %T", obj)
+		}
+	}
+
+	return nil
+}
