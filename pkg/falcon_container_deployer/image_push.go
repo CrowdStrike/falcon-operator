@@ -19,6 +19,7 @@ func (d *FalconContainerDeployer) PushImage() error {
 		return err
 	}
 
+	d.Log.Info("Found secret for image push", "Secret.Name", pushAuth.Name())
 	registryUri, err := d.registryUri()
 	if err != nil {
 		return err
