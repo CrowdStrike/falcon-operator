@@ -8,11 +8,22 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 )
 
+const maxRetryAttempts = 5
+
 func (d *FalconContainerDeployer) Error(message string, err error) (ctrl.Result, error) {
 	userError := fmt.Errorf("%s: %w", message, err)
 
 	d.Instance.Status.ErrorMessage = userError.Error()
-	d.Instance.Status.Phase = falconv1alpha1.PhaseDone
+
+	if d.Instance.Status.RetryAttempt == nil {
+		zero := uint8(0)
+		d.Instance.Status.RetryAttempt = &zero
+	} else if *d.Instance.Status.RetryAttempt < maxRetryAttempts {
+		*(d.Instance.Status.RetryAttempt) += 1
+	} else {
+		d.Instance.Status.Phase = falconv1alpha1.PhaseDone
+	}
+
 	_ = d.Client.Status().Update(d.Ctx, d.Instance)
 
 	return ctrl.Result{}, userError

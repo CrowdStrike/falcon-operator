@@ -171,6 +171,10 @@ spec:
               phase:
                 description: Phase or the status of the deployment
                 type: string
+              retry_attempt:
+                description: 'RetryAttempt is number of previous failed attempts.
+                  Valid values: 0-5'
+                type: integer
             type: object
         type: object
     served: true
