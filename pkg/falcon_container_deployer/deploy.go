@@ -23,6 +23,22 @@ type FalconContainerDeployer struct {
 }
 
 func (d *FalconContainerDeployer) Reconcile() (ctrl.Result, error) {
+	if d.isToBeDeleted() {
+		if d.containsFinalizer() {
+			if err := d.finalize(); err != nil {
+				return ctrl.Result{}, err
+			}
+			d.removeFinalizer()
+			return ctrl.Result{}, d.Client.Update(d.Ctx, d.Instance)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if !d.containsFinalizer() {
+		d.addFinalizer()
+		return ctrl.Result{}, d.Client.Update(d.Ctx, d.Instance)
+	}
+
 	if d.Instance.Status.Phase == "" {
 		d.Instance.Status.Phase = falconv1alpha1.PhasePending
 	}

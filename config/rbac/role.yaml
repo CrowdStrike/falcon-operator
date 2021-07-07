@@ -12,11 +12,13 @@ rules:
   - namespaces
   verbs:
   - create
+  - delete
 - apiGroups:
   - ""
   resources:
   - pods
   verbs:
+  - delete
   - get
   - list
   - watch
@@ -32,6 +34,7 @@ rules:
   - secrets
   verbs:
   - create
+  - delete
   - get
   - list
   - watch
@@ -41,24 +44,28 @@ rules:
   - services
   verbs:
   - create
+  - delete
 - apiGroups:
   - admissionregistration.k8s.io
   resources:
   - mutatingwebhookconfigurations
   verbs:
   - create
+  - delete
 - apiGroups:
   - apps
   resources:
   - deployments
   verbs:
   - create
+  - delete
 - apiGroups:
   - batch
   resources:
   - jobs
   verbs:
   - create
+  - delete
   - get
   - list
   - update
@@ -106,9 +113,11 @@ rules:
   - clusterrolebindings
   verbs:
   - create
+  - delete
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
   - clusterroles
   verbs:
   - create
+  - delete

@@ -28,17 +28,17 @@ type FalconContainerReconciler struct {
 
 // +kubebuilder:rbac:groups=image.openshift.io,resources=imagestreams,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
-// +kubebuilder:rbac:groups="batch",resources=jobs,verbs=get;list;watch;create;update
-// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
+// +kubebuilder:rbac:groups="batch",resources=jobs,verbs=get;list;watch;create;update;delete
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete
 // +kubebuilder:rbac:groups="",resources=pods/log,verbs=get
 
-// +kubebuilder:rbac:groups="",resources=namespaces,verbs=create
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=create
-// +kubebuilder:rbac:groups="",resources=services,verbs=create
-// +kubebuilder:rbac:groups="apps",resources=deployments,verbs=create
-// +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=create
-// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,verbs=create
-// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=create
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=create;delete
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=create;delete
+// +kubebuilder:rbac:groups="",resources=services,verbs=create;delete
+// +kubebuilder:rbac:groups="apps",resources=deployments,verbs=create;delete
+// +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=create;delete
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,verbs=create;delete
+// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=create;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
