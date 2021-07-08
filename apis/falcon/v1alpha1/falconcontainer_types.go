@@ -96,6 +96,7 @@ type FalconContainerStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster
 //+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="Phase of deployment"
 //+kubebuilder:printcolumn:name="Error",type="string",JSONPath=".status.errormsg",description="Last error message"
 

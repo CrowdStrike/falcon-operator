@@ -12,7 +12,7 @@ spec:
     listKind: FalconContainerList
     plural: falconcontainers
     singular: falconcontainer
-  scope: Namespaced
+  scope: Cluster
   versions:
   - additionalPrinterColumns:
     - description: Phase of deployment
