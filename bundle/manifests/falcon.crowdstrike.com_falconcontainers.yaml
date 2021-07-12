@@ -20,10 +20,14 @@ spec:
         description: FalconContainer is the Schema for the falconcontainers API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -31,7 +35,8 @@ spec:
             description: FalconContainerSpec defines the desired state of FalconContainer
             properties:
               falcon_api:
-                description: FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
+                description: FalconAPI configures connection from your local Falcon
+                  operator to CrowdStrike Falcon platform.
                 properties:
                   cid:
                     description: Falcon Customer ID (CID)
@@ -44,7 +49,8 @@ spec:
                     description: Falcon OAuth2 API Client Secret
                     type: string
                   cloud_region:
-                    description: CloudRegion defines CrowdStrike Falcon Cloud Region to which the operator will connect to
+                    description: CloudRegion defines CrowdStrike Falcon Cloud Region
+                      to which the operator will connect to
                     enum:
                     - us-1
                     - us-2
@@ -58,13 +64,17 @@ spec:
                 - cloud_region
                 type: object
               registry:
-                description: Registry configures container image registry to which the Falcon Container image will be pushed
+                description: Registry configures container image registry to which
+                  the Falcon Container image will be pushed
                 properties:
                   tls:
-                    description: TLS configures TLS connection for push of Falcon Container image to the registry
+                    description: TLS configures TLS connection for push of Falcon
+                      Container image to the registry
                     properties:
                       insecure_skip_verify:
-                        description: Allow pushing to docker registries over HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
+                        description: Allow pushing to docker registries over HTTPS
+                          with failed TLS verification. Note that this does not affect
+                          other TLS connections.
                         type: boolean
                     type: object
                   type:
@@ -84,23 +94,45 @@ spec:
             properties:
               conditions:
                 items:
-                  description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, type FooStatus struct{     // Represents the observations of a foo's current state.     // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\"     // +patchMergeKey=type     // +patchStrategy=merge     // +listType=map     // +listMapKey=type     Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n     // other fields }"
+                  description: "Condition contains details for one aspect of the current
+                    state of this API Resource. --- This struct is intended for direct
+                    use as an array at the field path .status.conditions.  For example,
+                    type FooStatus struct{     // Represents the observations of a
+                    foo's current state.     // Known .status.conditions.type are:
+                    \"Available\", \"Progressing\", and \"Degraded\"     // +patchMergeKey=type
+                    \    // +patchStrategy=merge     // +listType=map     // +listMapKey=type
+                    \    Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`
+                    \n     // other fields }"
                   properties:
                     lastTransitionTime:
-                      description: lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      description: lastTransitionTime is the last time the condition
+                        transitioned from one status to another. This should be when
+                        the underlying condition changed.  If that is not known, then
+                        using the time when the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
-                      description: message is a human readable message indicating details about the transition. This may be an empty string.
+                      description: message is a human readable message indicating
+                        details about the transition. This may be an empty string.
                       maxLength: 32768
                       type: string
                     observedGeneration:
-                      description: observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance.
+                      description: observedGeneration represents the .metadata.generation
+                        that the condition was set based upon. For instance, if .metadata.generation
+                        is currently 12, but the .status.conditions[x].observedGeneration
+                        is 9, the condition is out of date with respect to the current
+                        state of the instance.
                       format: int64
                       minimum: 0
                       type: integer
                     reason:
-                      description: reason contains a programmatic identifier indicating the reason for the condition's last transition. Producers of specific condition types may define expected values and meanings for this field, and whether the values are considered a guaranteed API. The value should be a CamelCase string. This field may not be empty.
+                      description: reason contains a programmatic identifier indicating
+                        the reason for the condition's last transition. Producers
+                        of specific condition types may define expected values and
+                        meanings for this field, and whether the values are considered
+                        a guaranteed API. The value should be a CamelCase string.
+                        This field may not be empty.
                       maxLength: 1024
                       minLength: 1
                       pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
@@ -113,7 +145,11 @@ spec:
                       - Unknown
                       type: string
                     type:
-                      description: type of condition in CamelCase or in foo.example.com/CamelCase. --- Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be useful (see .node.status.conditions), the ability to deconflict is important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        --- Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -126,13 +162,16 @@ spec:
                   type: object
                 type: array
               errormsg:
-                description: ErrorMessage informs user of the last notable error. Users are welcomed to see the operator logs to understand the full context.
+                description: ErrorMessage informs user of the last notable error.
+                  Users are welcomed to see the operator logs to understand the full
+                  context.
                 type: string
               phase:
                 description: Phase or the status of the deployment
                 type: string
               retry_attempt:
-                description: 'RetryAttempt is number of previous failed attempts. Valid values: 0-5'
+                description: 'RetryAttempt is number of previous failed attempts.
+                  Valid values: 0-5'
                 type: integer
             type: object
         type: object
