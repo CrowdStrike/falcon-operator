@@ -2,7 +2,6 @@
 kind: FalconContainer
 metadata:
   name: default
-  namespace: falcon-system-configure
 spec:
   falcon_api:
     client_id: PLEASE_FILL_IN
