@@ -87,7 +87,7 @@ func (d *FalconContainerDeployer) finalizeDeleteJob() {
 	}
 	err = d.k8s_delete(job)
 	if err != nil {
-		d.Log.Error(err, "Cloud not delete Falcon Container Installer job")
+		d.Log.Error(err, "Could not delete Falcon Container Installer job")
 	}
 }
 
