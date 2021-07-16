@@ -1,0 +1,106 @@
+#!/bin/sh
+
+set -e -o pipefail
+
+fail(){
+    echo "$progname: fatal error: $*" >&2
+    exit 1
+}
+
+install_operator_sdk(){
+  export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
+  export OS=$(uname | awk '{print tolower($0)}')
+  export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.8.0
+  curl -s -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
+  gpg --keyserver keyserver.ubuntu.com --recv-keys 052996E2A20B5C7E
+
+  curl -s -LO ${OPERATOR_SDK_DL_URL}/checksums.txt
+  curl -s -LO ${OPERATOR_SDK_DL_URL}/checksums.txt.asc
+  gpg -u "Operator SDK (release) <cncf-operator-sdk@cncf.io>" --verify checksums.txt.asc
+
+  grep operator-sdk_${OS}_${ARCH} checksums.txt | sha256sum -c -
+
+  chmod +x operator-sdk_${OS}_${ARCH} && sudo mv operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
+}
+
+
+if ! type gcloud > /dev/null 2>&1; then
+   fail "gcloud tool is not present. Please run this tool in GCP cloud-shell that includes gcloud tool."
+fi
+
+if ! type kubectl > /dev/null 2>&1; then
+   fail "kubectl tool is not present. Please run this tool in GCP cloud-shell that includes kubectl tool."
+fi
+
+if ! type operator-sdk > /dev/null 2>&1; then
+   install_operator_sdk
+fi
+
+if [ -z "$(gcloud config get-value project 2> /dev/null)" ]; then
+    project_ids=$(gcloud projects list --format json | jq -r '.[].projectId')
+    project_count=$(wc -w <<< "$project_ids")
+    if [ "$project_count" == "1" ]; then
+        gcloud config set project "$project_ids"
+    else
+        gcloud projects list
+        echo "Multiple pre-existing GCP projects found. Please select project using the following command before re-trying"
+        echo "  gcloud config set project VALUE"
+        exit 1
+   fi
+fi
+
+if ! kubectl cluster-info > /dev/null 2>&1; then
+  cluster_count=$(gcloud container clusters list | tail -n +2 | wc -l)
+  if [ "$cluster_count" == "1" ]; then
+      cluster_name=$(gcloud container clusters list | tail -n 1 | awk '{print $1}')
+      zone_name=$(gcloud container clusters list | tail -n 1 | awk '{print $2}')
+      gcloud container clusters get-credentials --zone $zone_name $cluster_name
+  else
+      gcloud container clusters list
+        echo "Multiple pre-existing GKE clusters found. Please select cluster using the following command before re-trying"
+        echo "  gcloud container clusters get-credentials CLUSTER_NAME"
+        exit 1
+  fi
+fi
+
+if ! operator-sdk olm status > /dev/null 2>&1; then
+    operator-sdk olm install
+fi
+
+OPERATOR_NAMESPACE=falcon-operator
+kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+
+if ! kubectl get catalogsources.operators.coreos.com  -n $OPERATOR_NAMESPACE falcon-operator-catalog > /dev/null 2>&1; then
+   operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
+fi
+
+kubectl wait --timeout=240s --for=condition=Available -n $OPERATOR_NAMESPACE deployment falcon-operator-controller-manager
+
+export FALCON_SYSTEM_CONFIGURE=falcon-system-configure
+kubectl create ns $FALCON_SYSTEM_CONFIGURE --dry-run=client -o yaml | kubectl apply -f -
+
+GCP_PROJECT_ID=$(gcloud config get-value core/project)
+
+if ! gcloud iam service-accounts describe falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com > /dev/null 2>&1 ; then
+   gcloud iam service-accounts create falcon-operator
+fi
+
+gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
+    --member serviceAccount:falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com \
+    --role roles/storage.admin
+
+gcloud iam service-accounts keys create \
+    --iam-account "falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
+    gcr-storage-admin.json
+
+    cp gcr-storage-admin.json .dockerconfigjson
+    kubectl create secret docker-registry -n $FALCON_SYSTEM_CONFIGURE builder --from-file .dockerconfigjson
+
+
+curl -O falconcontainer-gke.yaml https://github.com/isimluk/falcon-operator/tree/deployment-script/docs/deployment/gke/falconcontainer-gke.yaml
+
+kubectl create -f falconcontainer-gke.yaml --edit=true
+
+kubectl -n $OPERATOR_NAMESPACE logs -f deploy/falcon-operator-controller-manager -c manager
+
+
