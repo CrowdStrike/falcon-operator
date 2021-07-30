@@ -33,7 +33,7 @@ spec:
       kind: FalconContainer
       name: falconcontainers.falcon.crowdstrike.com
       version: v1alpha1
-  description: An operator which deploys CrowdStrike Falcon Container Workload Protection
+  description: Falcon Operator deploys CrowdStrike Falcon Container Workload Protection
     to the cluster.
   displayName: falcon-operator
   icon:
