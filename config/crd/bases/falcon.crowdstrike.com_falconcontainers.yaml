@@ -65,6 +65,14 @@ spec:
                 - client_secret
                 - cloud_region
                 type: object
+              installer_args:
+                description: InstallerArgs are passed directly down to the Falcon
+                  Container Installer. Users are advised to consult Falcon Container
+                  documentation to learn about available command line arguments at
+                  https://falcon.crowdstrike.com/documentation/146/falcon-container-sensor-for-linux
+                items:
+                  type: string
+                type: array
               registry:
                 description: Registry configures container image registry to which
                   the Falcon Container image will be pushed

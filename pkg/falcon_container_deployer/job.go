@@ -55,6 +55,8 @@ func (d *FalconContainerDeployer) CreateJob() error {
 	trueP := true
 	cid := d.Instance.Spec.FalconAPI.CID
 
+	installCmd := []string{"installer", "-cid", cid, "-image", imageUri}
+	installCmd = append(installCmd, d.Instance.Spec.InstallerArgs...)
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: batchv1.SchemeGroupVersion.String(),
@@ -80,11 +82,7 @@ func (d *FalconContainerDeployer) CreateJob() error {
 								AllowPrivilegeEscalation: &falseP,
 								ReadOnlyRootFilesystem:   &trueP,
 							},
-							Command: []string{
-								"installer",
-								"-cid", cid,
-								"-image", imageUri,
-							},
+							Command: installCmd,
 						},
 					},
 				},
