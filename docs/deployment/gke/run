@@ -97,7 +97,7 @@ gcloud iam service-accounts keys create \
     kubectl create secret docker-registry -n $FALCON_SYSTEM_CONFIGURE builder --from-file .dockerconfigjson
 
 
-curl -O falconcontainer-gke.yaml https://github.com/isimluk/falcon-operator/tree/deployment-script/docs/deployment/gke/falconcontainer-gke.yaml
+curl -O falconcontainer-gke.yaml https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/gke/falconcontainer-gke.yaml
 
 kubectl create -f falconcontainer-gke.yaml --edit=true
 
