@@ -73,6 +73,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Log:        log,
 		Instance:   falconContainer.DeepCopy(),
 		RestConfig: r.RestConfig,
+		Scheme:     r.Scheme,
 	}
 	return d.Reconcile()
 }
