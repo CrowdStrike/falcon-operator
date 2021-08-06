@@ -81,25 +81,24 @@ kubectl create ns $FALCON_SYSTEM_CONFIGURE --dry-run=client -o yaml | kubectl ap
 
 GCP_PROJECT_ID=$(gcloud config get-value core/project)
 
-if ! gcloud iam service-accounts describe falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com > /dev/null 2>&1 ; then
-   gcloud iam service-accounts create falcon-operator
-fi
+if ! kubectl get secret builder -n $FALCON_SYSTEM_CONFIGURE > /dev/null 2>&1; then
+    if ! gcloud iam service-accounts describe falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com > /dev/null 2>&1 ; then
+        gcloud iam service-accounts create falcon-operator
+    fi
 
-gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
-    --member serviceAccount:falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com \
-    --role roles/storage.admin
+    gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
+        --member serviceAccount:falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com \
+        --role roles/storage.admin
 
-gcloud iam service-accounts keys create \
-    --iam-account "falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
-    gcr-storage-admin.json
+    gcloud iam service-accounts keys create \
+        --iam-account "falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
+        gcr-storage-admin.json
 
     cp gcr-storage-admin.json .dockerconfigjson
     kubectl create secret docker-registry -n $FALCON_SYSTEM_CONFIGURE builder --from-file .dockerconfigjson
+fi
 
-
-curl -O falconcontainer-gke.yaml https://github.com/isimluk/falcon-operator/tree/deployment-script/docs/deployment/gke/falconcontainer-gke.yaml
-
-kubectl create -f falconcontainer-gke.yaml --edit=true
+kubectl create -n $FALCON_SYSTEM_CONFIGURE -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/gke/falconcontainer-gke.yaml --edit=true
 
 kubectl -n $OPERATOR_NAMESPACE logs -f deploy/falcon-operator-controller-manager -c manager
 

@@ -1,7 +1,7 @@
 ﻿apiVersion: falcon.crowdstrike.com/v1alpha1
 kind: FalconContainer
 metadata:
-  name: my-setup
+  name: default
   namespace: falcon-system-configure
 spec:
   falcon_api:
