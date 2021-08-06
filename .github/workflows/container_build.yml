@@ -13,6 +13,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Container build
+    - name: "Build container: Manager"
       run: |
         docker build .
+    - name: "Build container: Bundle"
+      run: |
+        make bundle-build
