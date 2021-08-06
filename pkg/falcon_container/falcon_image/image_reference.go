@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"fmt"
 
 	"github.com/containers/image/v5/docker/archive"
 	"github.com/containers/image/v5/types"
@@ -35,7 +36,12 @@ func (fi *FalconImage) imageFilePath() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error closing file: %s\n", err)
+			}
+		}()
+
 		_, err = io.Copy(f, &fi.tar)
 		if err != nil {
 			return "", err
