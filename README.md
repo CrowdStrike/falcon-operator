@@ -1,6 +1,7 @@
 # Falcon Operator
 [![CI Golang Build](https://github.com/CrowdStrike/falcon-operator/actions/workflows/go.yml/badge.svg)](https://github.com/CrowdStrike/falcon-operator/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/crowdstrike/falcon-operator)](https://goreportcard.com/report/github.com/crowdstrike/falcon-operator)
+[![gosec](https://github.com/CrowdStrike/falcon-operator/actions/workflows/gosec.yml/badge.svg)](https://github.com/CrowdStrike/falcon-operator/actions/workflows/gosec.yml)
 [![CI Container Build](https://github.com/CrowdStrike/falcon-operator/actions/workflows/container_build.yml/badge.svg)](https://github.com/CrowdStrike/falcon-operator/actions/workflows/container_build.yml)
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator)
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator-bundle/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator-bundle)
