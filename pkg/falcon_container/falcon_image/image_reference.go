@@ -1,11 +1,11 @@
 package falcon_image
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"fmt"
 
 	"github.com/containers/image/v5/docker/archive"
 	"github.com/containers/image/v5/types"
