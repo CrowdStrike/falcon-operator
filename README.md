@@ -85,7 +85,7 @@ The following namespaces will be used by Falcon Operator.
 
 Falcon Operator initially supports only GKE/GCR.
 
-| Platoform               | Supported versions                                     |
+| Platform                | Supported versions                                     |
 |:------------------------|:-------------------------------------------------------|
 | GKE                     | 1.18, 1.19, 1.20                                       |
 
