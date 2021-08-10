@@ -7,6 +7,7 @@ import (
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	imagev1 "github.com/openshift/api/image/v1"
 )
@@ -39,7 +40,11 @@ func (d *FalconContainerDeployer) CreateImageStream() error {
 		ObjectMeta: metav1.ObjectMeta{Name: IMAGE_STREAM_NAME, Namespace: d.Namespace()},
 		Spec:       imagev1.ImageStreamSpec{},
 	}
-	err := d.Client.Create(d.Ctx, imageStream)
+	err := ctrl.SetControllerReference(d.Instance, imageStream, d.Scheme)
+	if err != nil {
+		d.Log.Error(err, "Unable to assign Controller Reference to the ImageStream")
+	}
+	err = d.Client.Create(d.Ctx, imageStream)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
 			d.Log.Error(err, "Failed to create new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)

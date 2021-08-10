@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -88,6 +89,10 @@ func (d *FalconContainerDeployer) CreateJob() error {
 				},
 			},
 		},
+	}
+	err = ctrl.SetControllerReference(d.Instance, job, d.Scheme)
+	if err != nil {
+		d.Log.Error(err, "Unable to assign Controller Reference to the Job")
 	}
 	err = d.Client.Create(d.Ctx, job)
 	if err != nil {
