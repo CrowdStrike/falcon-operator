@@ -42,3 +42,15 @@ jobs:
       with:
         version: v1.29
         args: --timeout=3m12s
+
+    - name: Ensure manifests are in sync
+      run: |
+        make manifests generate
+        if [[ -n $(git status -s) ]] ; then
+          echo "Generating manifests leaves tracked fiels in a modified state."
+          echo "Ensure to include updated manifests in this PR."
+          echo "This is usually done by running 'make manifests' and running 'git add ...' for the files that was modified by generating manifests."
+          git status -s
+          git diff
+          exit 1
+        fi
