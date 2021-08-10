@@ -55,6 +55,9 @@ type FalconContainerSpec struct {
 	FalconAPI FalconAPI `json:"falcon_api"`
 	// Registry configures container image registry to which the Falcon Container image will be pushed
 	Registry RegistrySpec `json:"registry,omitempty"`
+
+	// InstallerArgs are passed directly down to the Falcon Container Installer. Users are advised to consult Falcon Container documentation to learn about available command line arguments at https://falcon.crowdstrike.com/documentation/146/falcon-container-sensor-for-linux
+	InstallerArgs []string `json:"installer_args,omitempty"`
 }
 
 // Represents the status of Falcon deployment
