@@ -16,7 +16,16 @@ spec:
     singular: falconcontainer
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: Phase of deployment
+      jsonPath: .status.phase
+      name: Status
+      type: string
+    - description: Last error message
+      jsonPath: .status.errormsg
+      name: Error
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: FalconContainer is the Schema for the falconcontainers API
