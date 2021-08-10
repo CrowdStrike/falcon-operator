@@ -70,6 +70,11 @@ func (d *FalconContainerDeployer) PhasePending() (ctrl.Result, error) {
 	}
 
 	switch d.Instance.Spec.Registry.Type {
+	case falconv1alpha1.RegistryTypeECR:
+		_, err := d.UpsertECRRepo()
+		if err != nil {
+			return d.Error("Failed to create ECR repository", err)
+		}
 	case falconv1alpha1.RegistryTypeOpenshift:
 		stream, err := d.UpsertImageStream()
 		if err != nil {
