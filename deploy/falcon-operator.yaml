@@ -102,6 +102,7 @@ spec:
                   type:
                     description: Type of the registry to be used
                     enum:
+                    - ecr
                     - gcr
                     - openshift
                     type: string

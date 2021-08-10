@@ -34,12 +34,14 @@ const (
 	RegistryTypeOpenshift RegistryTypeSpec = "openshift"
 	// RegistryTypeGCR represents Google Container Registry
 	RegistryTypeGCR RegistryTypeSpec = "gcr"
+	// RegistryTypeECR represents AWS Elastic Container Registry
+	RegistryTypeECR RegistryTypeSpec = "ecr"
 )
 
 // RegistrySpec configures container image registry to which the Falcon Container image will be pushed
 type RegistrySpec struct {
 	// Type of the registry to be used
-	// +kubebuilder:validation:Enum=gcr;openshift
+	// +kubebuilder:validation:Enum=ecr;gcr;openshift
 	Type RegistryTypeSpec `json:"type"`
 
 	// TLS configures TLS connection for push of Falcon Container image to the registry
