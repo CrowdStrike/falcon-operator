@@ -78,13 +78,6 @@ spec:
 
     Current version of the operator does not automatically updates Falcon Container sensor. Users are advised to remove & re-add FalconContainer resource to uninstall Falcon Container and to install the newest version.
 
-    ### Debugging
-
-    To review the logs of Falcon Operator run
-    ```
-    kubectl -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
-    ```
-
     ### Namespace Reference
 
     The following namespaces will be used by Falcon Operator.
@@ -104,6 +97,27 @@ spec:
     | GKE                     | 1.18, 1.19, 1.20                                       |
 
     Falcon Operator is an open source project, not CrowdStrike product. As such it carries no formal support, expressed or implied.
+
+    ### Troubleshooting
+
+    Falcon Operator modifies the FalconContainer CRD based on what is happening in the cluster. Should an error occur during Falcon Container deployment that error will appear in kubectl output as shown below.
+
+    ```
+    $ kubectl get falconcontainers.falcon.crowdstrike.com --all-namespaces
+    NAMESPACE                 NAME       STATUS   ERROR
+    falcon-system-configure   default    DONE
+    ```
+
+    The empty ERROR column together with status=DONE indicates that Falcon Container deployment did not yield any errors. Should more insight be needed, users are advised to view FalconContainer CRD in full detail
+
+    ```
+    kubectl get falconcontainers.falcon.crowdstrike.com -n falcon-system-configure -o yaml
+    ```
+
+    or to review the logs of Falcon Operator
+    ```
+    kubectl -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
+    ```
 
     ### Additional Documentation
 
