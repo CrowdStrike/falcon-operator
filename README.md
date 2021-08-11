@@ -3,6 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/crowdstrike/falcon-operator)](https://goreportcard.com/report/github.com/crowdstrike/falcon-operator)
 [![gosec](https://github.com/CrowdStrike/falcon-operator/actions/workflows/gosec.yml/badge.svg)](https://github.com/CrowdStrike/falcon-operator/actions/workflows/gosec.yml)
 [![CodeQL](https://github.com/CrowdStrike/falcon-operator/actions/workflows/codeql.yml/badge.svg)](https://github.com/CrowdStrike/falcon-operator/actions/workflows/codeql.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/crowdstrike/falcon-operator.svg)](https://pkg.go.dev/github.com/crowdstrike/falcon-operator)
 [![CI Container Build](https://github.com/CrowdStrike/falcon-operator/actions/workflows/container_build.yml/badge.svg)](https://github.com/CrowdStrike/falcon-operator/actions/workflows/container_build.yml)
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator)
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator-bundle/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator-bundle)
