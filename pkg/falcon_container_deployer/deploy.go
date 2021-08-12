@@ -64,6 +64,11 @@ func (d *FalconContainerDeployer) Reconcile() (ctrl.Result, error) {
 func (d *FalconContainerDeployer) PhasePending() (ctrl.Result, error) {
 	d.Instance.Status.SetInitialConditions()
 
+	_, err := d.UpsertNamespace(d.Namespace())
+	if err != nil {
+		return d.Error("Failed to upsert Namespace", err)
+	}
+
 	switch d.Instance.Spec.Registry.Type {
 	case falconv1alpha1.RegistryTypeOpenshift:
 		stream, err := d.UpsertImageStream()

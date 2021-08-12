@@ -98,7 +98,7 @@ if ! kubectl get secret builder -n $FALCON_SYSTEM_CONFIGURE > /dev/null 2>&1; th
     kubectl create secret docker-registry -n $FALCON_SYSTEM_CONFIGURE builder --from-file .dockerconfigjson
 fi
 
-kubectl create -n $FALCON_SYSTEM_CONFIGURE -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/gke/falconcontainer-gke.yaml --edit=true
+kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/gke/falconcontainer-gke.yaml --edit=true
 
 kubectl -n $OPERATOR_NAMESPACE logs -f deploy/falcon-operator-controller-manager -c manager
 
