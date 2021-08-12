@@ -36,7 +36,6 @@ apiVersion: falcon.crowdstrike.com/v1alpha1
 kind: FalconContainer
 metadata:
   name: default
-  namespace: falcon-system-configure
 spec:
   falcon_api:
     cid: PLEASE_FILL_IN
@@ -55,7 +54,7 @@ When FalconContainer Resources is pushed to the cluster, falcon-operator will au
  - To uninstall Falcon Container simply remove FalconContainer resource. The operator will uninstall Falcon Container product from the cluster.
 
    ```
-   kubectl delete falconcontainers.falcon.crowdstrike.com  -n falcon-system-configure default
+   kubectl delete falconcontainers.falcon.crowdstrike.com default
    ```
  - To uninstall Falcon Operator run
    ```
@@ -89,15 +88,15 @@ Falcon Operator initially supports only GKE/GCR.
 Falcon Operator modifies the FalconContainer CRD based on what is happening in the cluster. Should an error occur during Falcon Container deployment that error will appear in kubectl output as shown below.
 
 ```
-$ kubectl get falconcontainers.falcon.crowdstrike.com --all-namespaces
-NAMESPACE                 NAME       STATUS   ERROR
-falcon-system-configure   default    DONE
+$ kubectl get falconcontainers.falcon.crowdstrike.com
+NAME       STATUS   ERROR
+default    DONE
 ```
 
 The empty ERROR column together with status=DONE indicates that Falcon Container deployment did not yield any errors. Should more insight be needed, users are advised to view FalconContainer CRD in full detail
 
 ```
-kubectl get falconcontainers.falcon.crowdstrike.com -n falcon-system-configure -o yaml
+kubectl get falconcontainers.falcon.crowdstrike.com -o yaml
 ```
 
 or to review the logs of Falcon Operator

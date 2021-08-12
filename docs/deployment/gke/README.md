@@ -26,7 +26,7 @@
 
  - To uninstall Falcon Container simply remove FalconContainer resource. The operator will uninstall Falcon Container product from the cluster.
    ```
-   kubectl delete falconcontainers.falcon.crowdstrike.com  -n falcon-system-configure default
+   kubectl delete falconcontainers.falcon.crowdstrike.com default
    ```
  - To uninstall Falcon Operator run
    ```
