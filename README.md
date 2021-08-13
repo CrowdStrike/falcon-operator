@@ -1,4 +1,5 @@
 # Falcon Operator
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/falcon-operator)](https://artifacthub.io/packages/search?repo=falcon-operator)
 [![CI Golang Build](https://github.com/CrowdStrike/falcon-operator/actions/workflows/go.yml/badge.svg)](https://github.com/CrowdStrike/falcon-operator/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/crowdstrike/falcon-operator)](https://goreportcard.com/report/github.com/crowdstrike/falcon-operator)
 [![gosec](https://github.com/CrowdStrike/falcon-operator/actions/workflows/gosec.yml/badge.svg)](https://github.com/CrowdStrike/falcon-operator/actions/workflows/gosec.yml)
