@@ -52,11 +52,19 @@ func (d *FalconContainerDeployer) CreateJob() error {
 		return err
 	}
 
+	pulltoken, err := d.pulltoken()
+	if err != nil {
+		return err
+	}
+
 	falseP := false
 	trueP := true
 	cid := d.Instance.Spec.FalconAPI.CID
 
 	installCmd := []string{"installer", "-cid", cid, "-image", imageUri}
+	if pulltoken != "" {
+		installCmd = append(installCmd, "-pulltoken", pulltoken)
+	}
 	installCmd = append(installCmd, d.Instance.Spec.InstallerArgs...)
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
