@@ -51,21 +51,13 @@ func (d *FalconContainerDeployer) CreateJob() error {
 	if err != nil {
 		return err
 	}
-
-	pulltoken, err := d.pulltoken()
+	installCmd, err := d.installerCmd()
 	if err != nil {
 		return err
 	}
 
 	falseP := false
 	trueP := true
-	cid := d.Instance.Spec.FalconAPI.CID
-
-	installCmd := []string{"installer", "-cid", cid, "-image", imageUri}
-	if pulltoken != "" {
-		installCmd = append(installCmd, "-pulltoken", pulltoken)
-	}
-	installCmd = append(installCmd, d.Instance.Spec.InstallerArgs...)
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: batchv1.SchemeGroupVersion.String(),
@@ -112,4 +104,24 @@ func (d *FalconContainerDeployer) CreateJob() error {
 		d.Log.Info("Created a new Job", "Job.Namespace", d.Namespace(), "Job.Name", JOB_NAME)
 	}
 	return nil
+}
+
+func (d *FalconContainerDeployer) installerCmd() ([]string, error) {
+	imageUri, err := d.registryUri()
+	if err != nil {
+		return nil, err
+	}
+
+	cid := d.Instance.Spec.FalconAPI.CID
+	installCmd := []string{"installer", "-cid", cid, "-image", imageUri}
+
+	pulltoken, err := d.pulltoken()
+	if err != nil {
+		return nil, err
+	}
+	if pulltoken != "" {
+		installCmd = append(installCmd, "-pulltoken", pulltoken)
+	}
+
+	return append(installCmd, d.Instance.Spec.InstallerArgs...), nil
 }
