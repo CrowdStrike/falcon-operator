@@ -47,17 +47,10 @@ func (d *FalconContainerDeployer) GetJob() (*batchv1.Job, error) {
 }
 
 func (d *FalconContainerDeployer) CreateJob() error {
-	imageUri, err := d.registryUri()
+	containerSpec, err := d.installerContainer()
 	if err != nil {
 		return err
 	}
-	installCmd, err := d.installerCmd()
-	if err != nil {
-		return err
-	}
-
-	falseP := false
-	trueP := true
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: batchv1.SchemeGroupVersion.String(),
@@ -75,17 +68,7 @@ func (d *FalconContainerDeployer) CreateJob() error {
 				},
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyOnFailure,
-					Containers: []corev1.Container{
-						{
-							Name:  "installer",
-							Image: imageUri,
-							SecurityContext: &corev1.SecurityContext{
-								AllowPrivilegeEscalation: &falseP,
-								ReadOnlyRootFilesystem:   &trueP,
-							},
-							Command: installCmd,
-						},
-					},
+					Containers:    []corev1.Container{*containerSpec},
 				},
 			},
 		},
@@ -106,12 +89,30 @@ func (d *FalconContainerDeployer) CreateJob() error {
 	return nil
 }
 
-func (d *FalconContainerDeployer) installerCmd() ([]string, error) {
+func (d *FalconContainerDeployer) installerContainer() (*corev1.Container, error) {
 	imageUri, err := d.registryUri()
 	if err != nil {
 		return nil, err
 	}
+	installCmd, err := d.installerCmd(imageUri)
+	if err != nil {
+		return nil, err
+	}
 
+	falseP := false
+	trueP := true
+	return &corev1.Container{
+		Name:  "installer",
+			Image: imageUri,
+			SecurityContext: &corev1.SecurityContext{
+				AllowPrivilegeEscalation: &falseP,
+				ReadOnlyRootFilesystem:   &trueP,
+			},
+			Command: installCmd,
+		}, nil
+}
+
+func (d *FalconContainerDeployer) installerCmd(imageUri string) ([]string, error) {
 	cid := d.Instance.Spec.FalconAPI.CID
 	installCmd := []string{"installer", "-cid", cid, "-image", imageUri}
 
