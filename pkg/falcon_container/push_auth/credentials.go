@@ -17,6 +17,24 @@ type Credentials interface {
 	Pulltoken() (string, error)
 }
 
+func newCreds(secret corev1.Secret) Credentials {
+	value, ok := secret.Data[".dockercfg"]
+	if ok {
+		return &legacy{
+			name:      secret.Name,
+			Dockercfg: value,
+		}
+	}
+	value, ok = secret.Data[".dockerconfigjson"]
+	if ok {
+		return &gcr{
+			name: secret.Name,
+			Key:  value,
+		}
+	}
+	return nil
+}
+
 func GetCredentials(secrets []corev1.Secret) Credentials {
 	for _, secret := range secrets {
 		if secret.Data == nil {
@@ -30,19 +48,9 @@ func GetCredentials(secrets []corev1.Secret) Credentials {
 			continue
 		}
 
-		value, ok := secret.Data[".dockercfg"]
-		if ok {
-			return &legacy{
-				name:      secret.Name,
-				Dockercfg: value,
-			}
-		}
-		value, ok = secret.Data[".dockerconfigjson"]
-		if ok {
-			return &gcr{
-				name: secret.Name,
-				Key:  value,
-			}
+		creds := newCreds(secret)
+		if creds != nil {
+			return creds
 		}
 	}
 	return nil
