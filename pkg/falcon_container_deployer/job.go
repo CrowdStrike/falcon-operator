@@ -99,17 +99,9 @@ func (d *FalconContainerDeployer) installerContainer() (*corev1.Container, error
 		return nil, err
 	}
 
-	cert, err := d.registryCert()
-	if err != nil {
-		return nil, err
-	}
-	if len(cert) > 0 {
-		installCmd = append(installCmd, "-registry-certs", saCertDir)
-	}
-
 	falseP := false
 	trueP := true
-	containerSpec := &corev1.Container{
+	return &corev1.Container{
 		Name:  "installer",
 		Image: imageUri,
 		SecurityContext: &corev1.SecurityContext{
@@ -117,8 +109,7 @@ func (d *FalconContainerDeployer) installerContainer() (*corev1.Container, error
 			ReadOnlyRootFilesystem:   &trueP,
 		},
 		Command: installCmd,
-	}
-	return containerSpec, nil
+	}, nil
 }
 
 func (d *FalconContainerDeployer) installerCmd(imageUri string) ([]string, error) {
@@ -131,6 +122,14 @@ func (d *FalconContainerDeployer) installerCmd(imageUri string) ([]string, error
 	}
 	if pulltoken != "" {
 		installCmd = append(installCmd, "-pulltoken", pulltoken)
+	}
+
+	cert, err := d.registryCert()
+	if err != nil {
+		return nil, err
+	}
+	if len(cert) > 0 {
+		installCmd = append(installCmd, "-registry-certs", saCertDir)
 	}
 
 	return append(installCmd, d.Instance.Spec.InstallerArgs...), nil
