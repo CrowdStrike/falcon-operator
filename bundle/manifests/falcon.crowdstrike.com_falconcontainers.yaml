@@ -72,6 +72,20 @@ spec:
                 - client_secret
                 - cloud_region
                 type: object
+              global_scc:
+                description: GlobalSCC (on OpenShift) deploys global SCC based on
+                  the needs of FalconContainer. This option exists for demoing purposes
+                  and should be used with caution. Usually, SCC administrators may
+                  want to deploy their own customized security context based on their
+                  own needs.
+                properties:
+                  enable:
+                    type: boolean
+                  enable_run_as_root:
+                    type: boolean
+                required:
+                - enable
+                type: object
               installer_args:
                 description: InstallerArgs are passed directly down to the Falcon
                   Container Installer. Users are advised to consult Falcon Container

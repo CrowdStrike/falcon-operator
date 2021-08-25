@@ -46,6 +46,12 @@ type RegistrySpec struct {
 	TLS RegistryTLSSpec `json:"tls,omitempty"`
 }
 
+// GlobalSCC (on OpenShift) deploys global SCC based on the needs of FalconContainer. This option exists for demoing purposes and should be used with caution. Usually, SCC administrators may want to deploy their own customized security context based on their own needs.
+type SCCSpec struct {
+	Enable          bool `json:"enable"`
+	EnableRunAsRoot bool `json:"enable_run_as_root,omitempty"`
+}
+
 // FalconContainerSpec defines the desired state of FalconContainer
 type FalconContainerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -58,6 +64,9 @@ type FalconContainerSpec struct {
 
 	// InstallerArgs are passed directly down to the Falcon Container Installer. Users are advised to consult Falcon Container documentation to learn about available command line arguments at https://falcon.crowdstrike.com/documentation/146/falcon-container-sensor-for-linux
 	InstallerArgs []string `json:"installer_args,omitempty"`
+
+	// GlobalSCC (on OpenShift) deploys global SCC based on the needs of FalconContainer. This option exists for demoing purposes and should be used with caution. Usually, SCC administrators may want to deploy their own customized security context based on their own needs.
+	GlobalSCC SCCSpec `json:"global_scc,omitempty"`
 }
 
 // Represents the status of Falcon deployment
