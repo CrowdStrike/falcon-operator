@@ -9,8 +9,8 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/push_auth"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
+	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
 )
 
 func (d *FalconContainerDeployer) PushImage() error {
@@ -60,7 +60,7 @@ func (d *FalconContainerDeployer) registryUri() (string, error) {
 	}
 }
 
-func (d *FalconContainerDeployer) pushAuth() (push_auth.Credentials, error) {
+func (d *FalconContainerDeployer) pushAuth() (registry_auth.Credentials, error) {
 	namespace := d.Namespace()
 	secrets := &corev1.SecretList{}
 	err := d.Client.List(d.Ctx, secrets, client.InNamespace(namespace))
@@ -68,7 +68,7 @@ func (d *FalconContainerDeployer) pushAuth() (push_auth.Credentials, error) {
 		return nil, err
 	}
 
-	creds := push_auth.GetCredentials(secrets.Items)
+	creds := registry_auth.GetCredentials(secrets.Items)
 	if creds == nil {
 		return nil, fmt.Errorf("Cannot find suitable secret in namespace %s to push falcon-image to the registry", namespace)
 	}

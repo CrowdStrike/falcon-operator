@@ -1,4 +1,4 @@
-package push_auth
+package registry_auth
 
 import (
 	"encoding/base64"
