@@ -99,17 +99,26 @@ func (d *FalconContainerDeployer) installerContainer() (*corev1.Container, error
 		return nil, err
 	}
 
+	cert, err := d.registryCert()
+	if err != nil {
+		return nil, err
+	}
+	if len(cert) > 0 {
+		installCmd = append(installCmd, "-registry-certs", "/var/run/secrets/kubernetes.io/serviceaccount/")
+	}
+
 	falseP := false
 	trueP := true
-	return &corev1.Container{
+	containerSpec := &corev1.Container{
 		Name:  "installer",
-			Image: imageUri,
-			SecurityContext: &corev1.SecurityContext{
-				AllowPrivilegeEscalation: &falseP,
-				ReadOnlyRootFilesystem:   &trueP,
-			},
-			Command: installCmd,
-		}, nil
+		Image: imageUri,
+		SecurityContext: &corev1.SecurityContext{
+			AllowPrivilegeEscalation: &falseP,
+			ReadOnlyRootFilesystem:   &trueP,
+		},
+		Command: installCmd,
+	}
+	return containerSpec, nil
 }
 
 func (d *FalconContainerDeployer) installerCmd(imageUri string) ([]string, error) {
