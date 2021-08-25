@@ -124,11 +124,7 @@ func (d *FalconContainerDeployer) installerCmd(imageUri string) ([]string, error
 		installCmd = append(installCmd, "-pulltoken", pulltoken)
 	}
 
-	cert, err := d.registryCert()
-	if err != nil {
-		return nil, err
-	}
-	if len(cert) > 0 {
+	if d.registryCertExists() {
 		installCmd = append(installCmd, "-registry-certs", saCertDir)
 	}
 

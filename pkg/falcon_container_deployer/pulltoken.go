@@ -2,7 +2,6 @@ package falcon_container_deployer
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
@@ -30,9 +29,10 @@ func (d *FalconContainerDeployer) pulltoken() (string, error) {
 	return creds.Pulltoken()
 }
 
-func (d *FalconContainerDeployer) registryCert() ([]byte, error) {
-	if _, err := os.Stat(saCertPath); os.IsNotExist(err) {
-		return []byte{}, nil
+func (d *FalconContainerDeployer) registryCertExists() bool {
+	_, err := os.Stat(saCertPath)
+	if err != nil && !os.IsNotExist(err) {
+		d.Log.Error(err, "Received error when trying to stat k8s certificate", "path", saCertPath)
 	}
-	return ioutil.ReadFile(saCertPath)
+	return err == nil
 }
