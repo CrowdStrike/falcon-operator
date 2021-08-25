@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	saCertPath = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	saCertDir  = "/var/run/secrets/kubernetes.io/serviceaccount/"
+	saCertPath = saCertDir + "ca.crt"
 )
 
 func (d *FalconContainerDeployer) pulltoken() (string, error) {

@@ -104,7 +104,7 @@ func (d *FalconContainerDeployer) installerContainer() (*corev1.Container, error
 		return nil, err
 	}
 	if len(cert) > 0 {
-		installCmd = append(installCmd, "-registry-certs", "/var/run/secrets/kubernetes.io/serviceaccount/")
+		installCmd = append(installCmd, "-registry-certs", saCertDir)
 	}
 
 	falseP := false
