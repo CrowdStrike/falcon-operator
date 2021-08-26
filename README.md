@@ -102,9 +102,19 @@ The empty ERROR column together with status=DONE indicates that Falcon Container
 kubectl get falconcontainers.falcon.crowdstrike.com -o yaml
 ```
 
-or to review the logs of Falcon Operator
+To review the logs of Falcon Operator
 ```
 kubectl -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
+```
+
+To review the logs of Falcon Container Installer
+```
+kubectl logs -n falcon-system-configure job/falcon-configure
+```
+
+To review the logs of Falcon Container Injector
+```
+kubectl logs -n falcon-system deploy/injector -f
 ```
 
 ### Additional Documentation
