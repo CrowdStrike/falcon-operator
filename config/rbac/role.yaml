@@ -97,6 +97,32 @@ rules:
   - patch
   - update
 - apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falconnodesensors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falconnodesensors/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falconnodesensors/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - image.openshift.io
   resources:
   - imagestreams

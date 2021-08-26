@@ -1,0 +1,7 @@
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconNodeSensor
+metadata:
+  name: falconnodesensor-sample
+spec:
+  # Add fields here
+  foo: bar

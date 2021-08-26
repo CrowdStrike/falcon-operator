@@ -1,6 +1,10 @@
 domain: crowdstrike.com
-layout: go.kubebuilder.io/v3
+layout:
+- go.kubebuilder.io/v3
 multigroup: true
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
 projectName: falcon-operator
 repo: github.com/crowdstrike/falcon-operator
 resources:
@@ -12,7 +16,13 @@ resources:
   kind: FalconContainer
   path: github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: crowdstrike.com
+  group: falcon
+  kind: FalconNodeSensor
+  path: github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1
+  version: v1alpha1
 version: "3"
-plugins:
-  manifests.sdk.operatorframework.io/v2: {}
-  scorecard.sdk.operatorframework.io/v2: {}
