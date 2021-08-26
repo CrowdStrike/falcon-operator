@@ -1,0 +1,24 @@
+# permissions for end users to edit falconnodesensors.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: falconnodesensor-editor-role
+rules:
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falconnodesensors
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falconnodesensors/status
+  verbs:
+  - get

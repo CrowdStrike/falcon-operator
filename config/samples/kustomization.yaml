@@ -1,4 +1,5 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
 - falcon_v1alpha1_falconcontainer.yaml
+- falcon_v1alpha1_falconnodesensor.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples
