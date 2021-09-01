@@ -47,17 +47,10 @@ func (d *FalconContainerDeployer) GetJob() (*batchv1.Job, error) {
 }
 
 func (d *FalconContainerDeployer) CreateJob() error {
-	imageUri, err := d.registryUri()
+	containerSpec, err := d.installerContainer()
 	if err != nil {
 		return err
 	}
-
-	falseP := false
-	trueP := true
-	cid := d.Instance.Spec.FalconAPI.CID
-
-	installCmd := []string{"installer", "-cid", cid, "-image", imageUri}
-	installCmd = append(installCmd, d.Instance.Spec.InstallerArgs...)
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: batchv1.SchemeGroupVersion.String(),
@@ -75,17 +68,7 @@ func (d *FalconContainerDeployer) CreateJob() error {
 				},
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyOnFailure,
-					Containers: []corev1.Container{
-						{
-							Name:  "installer",
-							Image: imageUri,
-							SecurityContext: &corev1.SecurityContext{
-								AllowPrivilegeEscalation: &falseP,
-								ReadOnlyRootFilesystem:   &trueP,
-							},
-							Command: installCmd,
-						},
-					},
+					Containers:    []corev1.Container{*containerSpec},
 				},
 			},
 		},
@@ -104,4 +87,46 @@ func (d *FalconContainerDeployer) CreateJob() error {
 		d.Log.Info("Created a new Job", "Job.Namespace", d.Namespace(), "Job.Name", JOB_NAME)
 	}
 	return nil
+}
+
+func (d *FalconContainerDeployer) installerContainer() (*corev1.Container, error) {
+	imageUri, err := d.registryUri()
+	if err != nil {
+		return nil, err
+	}
+	installCmd, err := d.installerCmd(imageUri)
+	if err != nil {
+		return nil, err
+	}
+
+	falseP := false
+	trueP := true
+	return &corev1.Container{
+		Name:  "installer",
+		Image: imageUri,
+		SecurityContext: &corev1.SecurityContext{
+			AllowPrivilegeEscalation: &falseP,
+			ReadOnlyRootFilesystem:   &trueP,
+		},
+		Command: installCmd,
+	}, nil
+}
+
+func (d *FalconContainerDeployer) installerCmd(imageUri string) ([]string, error) {
+	cid := d.Instance.Spec.FalconAPI.CID
+	installCmd := []string{"installer", "-cid", cid, "-image", imageUri}
+
+	pulltoken, err := d.pulltoken()
+	if err != nil {
+		return nil, err
+	}
+	if pulltoken != "" {
+		installCmd = append(installCmd, "-pulltoken", pulltoken)
+	}
+
+	if d.registryCertExists() {
+		installCmd = append(installCmd, "-registry-certs", saCertDir)
+	}
+
+	return append(installCmd, d.Instance.Spec.InstallerArgs...), nil
 }

@@ -16,7 +16,7 @@ import (
 	"github.com/containers/image/v5/types"
 
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/falcon_image"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/push_auth"
+	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
 	"github.com/crowdstrike/gofalcon/falcon"
 )
 
@@ -25,10 +25,10 @@ type ImageRefresher struct {
 	log                   logr.Logger
 	falconConfig          *falcon.ApiConfig
 	insecureSkipTLSVerify bool
-	pushCredentials       push_auth.Credentials
+	pushCredentials       registry_auth.Credentials
 }
 
-func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig, pushAuth push_auth.Credentials, insecureSkipTLSVerify bool) *ImageRefresher {
+func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig, pushAuth registry_auth.Credentials, insecureSkipTLSVerify bool) *ImageRefresher {
 	if falconConfig.Context == nil {
 		falconConfig.Context = ctx
 	}
