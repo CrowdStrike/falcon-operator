@@ -47,6 +47,8 @@ jobs:
       run: |
         go mod tidy
         make manifests generate
+        make bundle
+        find ./bundle* -type f -exec sed -i -e 's/operator-sdk-v1.7.1+git/operator-sdk-v1.8.0/g' {} \;
         if [[ -n $(git status -s) ]] ; then
           echo "Generating manifests leaves tracked fiels in a modified state."
           echo "Ensure to include updated manifests in this PR."
