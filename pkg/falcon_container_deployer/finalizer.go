@@ -42,6 +42,16 @@ func (d *FalconContainerDeployer) finalize() error {
 		if err != nil {
 			d.Log.Error(err, "Could not delete ImageStream")
 		}
+		if d.Instance.SCCEnabled() {
+			scc, err := d.GetSCC()
+			if err != nil {
+				d.Log.Error(err, "Could not find SecurityContextConstraints for deletion")
+			}
+			err = d.k8s_delete(scc)
+			if err != nil {
+				d.Log.Error(err, "Could not delete SecurityContextConstraints")
+			}
+		}
 	}
 
 	return nil

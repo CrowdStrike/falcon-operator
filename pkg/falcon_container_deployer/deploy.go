@@ -79,6 +79,16 @@ func (d *FalconContainerDeployer) PhasePending() (ctrl.Result, error) {
 			// It takes few moment for the ImageStream to be ready (shortly after it has been created)
 			return ctrl.Result{RequeueAfter: time.Second * 5}, nil
 		}
+		if d.Instance.SCCEnabled() {
+			scc, err := d.UpsertSCC()
+			if err != nil {
+				return d.Error("failed to upsert SecurityContextConstraints", err)
+			}
+			if scc == nil {
+				// It takes few moment for the ImageStream to be ready (shortly after it has been created)
+				return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+			}
+		}
 	}
 	return d.NextPhase(falconv1alpha1.PhaseBuilding)
 }

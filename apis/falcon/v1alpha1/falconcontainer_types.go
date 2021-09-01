@@ -66,7 +66,7 @@ type FalconContainerSpec struct {
 	InstallerArgs []string `json:"installer_args,omitempty"`
 
 	// GlobalSCC (on OpenShift) deploys global SCC based on the needs of FalconContainer. This option exists for demoing purposes and should be used with caution. Usually, SCC administrators may want to deploy their own customized security context based on their own needs.
-	GlobalSCC SCCSpec `json:"global_scc,omitempty"`
+	GlobalSCC *SCCSpec `json:"global_scc,omitempty"`
 }
 
 // Represents the status of Falcon deployment
