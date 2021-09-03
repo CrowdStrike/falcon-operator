@@ -15,6 +15,16 @@ metadata:
               "cloud_region": "us-1"
             }
           }
+        },
+        {
+          "apiVersion": "falcon.crowdstrike.com/v1alpha1",
+          "kind": "FalconNodeSensor",
+          "metadata": {
+            "name": "falconnodesensor-sample"
+          },
+          "spec": {
+            "foo": "bar"
+          }
         }
       ]
     capabilities: Basic Install
@@ -36,6 +46,11 @@ spec:
       displayName: Falcon Container
       kind: FalconContainer
       name: falconcontainers.falcon.crowdstrike.com
+      version: v1alpha1
+    - description: FalconNodeSensor is the Schema for the falconnodesensors API
+      displayName: Falcon Node Sensor
+      kind: FalconNodeSensor
+      name: falconnodesensors.falcon.crowdstrike.com
       version: v1alpha1
   description: |
     Falcon Operator installs CrowdStrike Falcon Container Sensor on the cluster.
@@ -262,6 +277,32 @@ spec:
           - falcon.crowdstrike.com
           resources:
           - falconcontainers/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - falcon.crowdstrike.com
+          resources:
+          - falconnodesensors
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - falcon.crowdstrike.com
+          resources:
+          - falconnodesensors/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - falcon.crowdstrike.com
+          resources:
+          - falconnodesensors/status
           verbs:
           - get
           - patch
