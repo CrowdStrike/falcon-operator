@@ -21,6 +21,11 @@ spec:
       kind: FalconContainer
       name: falconcontainers.falcon.crowdstrike.com
       version: v1alpha1
+    - description: FalconNodeSensor is the Schema for the falconnodesensors API
+      displayName: Falcon Node Sensor
+      kind: FalconNodeSensor
+      name: falconnodesensors.falcon.crowdstrike.com
+      version: v1alpha1
   description: |
     Falcon Operator installs CrowdStrike Falcon Container Sensor on the cluster.
 
