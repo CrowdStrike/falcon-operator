@@ -109,7 +109,7 @@ endef
 
 # Generate bundle manifests and metadata, then validate generated files.
 .PHONY: bundle
-bundle: manifests kustomize
+bundle: manifests kustomize operator-sdk
 	operator-sdk generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
@@ -119,3 +119,18 @@ bundle: manifests kustomize
 .PHONY: bundle-build
 bundle-build:
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+
+OS_NAME=$(shell uname -s)
+SDK_VERSION?=v1.8.0
+ifeq ($(OS_NAME), Linux)
+    OPERATOR_SDK_URL=https://github.com/operator-framework/operator-sdk/releases/download/$(SDK_VERSION)/operator-sdk_linux_amd64
+else ifeq ($(OS_NAME), Darwin)
+    OPERATOR_SDK_URL=https://github.com/operator-framework/operator-sdk/releases/download/$(SDK_VERSION)/operator-sdk_linux_amd64
+endif
+
+.PHONY: operator-sdk
+operator-sdk: $(GOBIN)/operator-sdk
+
+$(GOBIN)/operator-sdk:
+	wget -nv $(OPERATOR_SDK_URL) -O $(GOBIN)/operator-sdk || (echo "wget returned $$? trying to fetch operator-sdk. please install operator-sdk and try again"; exit 1)
+	chmod +x $(GOBIN)/operator-sdk
