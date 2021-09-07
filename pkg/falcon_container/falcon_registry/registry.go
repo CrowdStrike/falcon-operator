@@ -38,20 +38,32 @@ func NewFalconRegistry(apiCfg *falcon.ApiConfig, CID string, logger logr.Logger)
 	}, nil
 }
 
-func (fr *FalconRegistry) LastImageReference(ctx context.Context) (types.ImageReference, error) {
-	imageUri, err := fr.imageUri()
+func (reg *FalconRegistry) PullInfo(ctx context.Context) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
+	systemContext, err = reg.systemContext()
 	if err != nil {
-		return nil, err
+		return
 	}
-	lastTag, err := fr.lastTag(ctx, imageUri)
+	imageUri, err := reg.imageUri()
 	if err != nil {
-		return nil, err
+		return
 	}
-	image := fmt.Sprintf("//%s:%s", imageUri, lastTag)
-	return docker.ParseReference(image)
+	falconTag, err = lastTag(ctx, systemContext, imageUri)
+	if err != nil {
+		return
+	}
+
+	falconImage, err = imageReference(imageUri, falconTag)
+	if err != nil {
+		return
+	}
+	return
 }
 
-func (fr *FalconRegistry) lastTag(ctx context.Context, imageUri string) (string, error) {
+func imageReference(imageUri, tag string) (types.ImageReference, error) {
+	return docker.ParseReference(fmt.Sprintf("//%s:%s", imageUri, tag))
+}
+
+func lastTag(ctx context.Context, systemContext *types.SystemContext, imageUri string) (string, error) {
 	ref, err := reference.ParseNormalizedNamed(imageUri)
 	if err != nil {
 		return "", err
@@ -61,12 +73,7 @@ func (fr *FalconRegistry) lastTag(ctx context.Context, imageUri string) (string,
 		return "", err
 	}
 
-	sys, err := fr.SystemContext()
-	if err != nil {
-		return "", err
-	}
-
-	tags, err := listDockerTags(ctx, sys, imgRef)
+	tags, err := listDockerTags(ctx, systemContext, imgRef)
 	if err != nil {
 		return "", err
 	}
@@ -94,7 +101,7 @@ func listDockerTags(ctx context.Context, sys *types.SystemContext, imgRef types.
 	return tags, nil
 }
 
-func (fr *FalconRegistry) SystemContext() (*types.SystemContext, error) {
+func (fr *FalconRegistry) systemContext() (*types.SystemContext, error) {
 	username, err := fr.username()
 	if err != nil {
 		return nil, err

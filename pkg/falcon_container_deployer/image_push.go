@@ -25,10 +25,11 @@ func (d *FalconContainerDeployer) PushImage() error {
 		return err
 	}
 	image := falcon_container.NewImageRefresher(d.Ctx, d.Log, d.Instance.Spec.FalconAPI.ApiConfig(), d.Instance.Spec.FalconAPI.CID, pushAuth, d.Instance.Spec.Registry.TLS.InsecureSkipVerify)
-	err = image.Refresh(registryUri)
+	falconImageTag, err := image.Refresh(registryUri)
 	if err != nil {
 		return err
 	}
+	_ = falconImageTag
 	d.Log.Info("Falcon Container Image pushed successfully")
 	d.Instance.Status.SetCondition(&metav1.Condition{
 		Type:    "ImageReady",

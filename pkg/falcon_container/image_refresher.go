@@ -43,37 +43,29 @@ func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falco
 	}
 }
 
-func (r *ImageRefresher) Refresh(imageDestination string) error {
-	registry, err := falcon_registry.NewFalconRegistry(r.falconConfig, r.falconCID, r.log)
+func (r *ImageRefresher) Refresh(imageDestination string) (string, error) {
+	falconTag, srcRef, sourceCtx, err := r.source()
 	if err != nil {
-		return err
+		return "", err
 	}
+	r.log.Info("Identified the latest Falcon Container image", "reference", srcRef.DockerReference().String())
 
 	policy := &signature.Policy{Default: []signature.PolicyRequirement{signature.NewPRInsecureAcceptAnything()}}
 	policyContext, err := signature.NewPolicyContext(policy)
 	if err != nil {
-		return fmt.Errorf("Error loading trust policy: %v", err)
+		return "", fmt.Errorf("Error loading trust policy: %v", err)
 	}
 	defer func() { _ = policyContext.Destroy() }()
 
 	dest := fmt.Sprintf("docker://%s", imageDestination)
 	destRef, err := alltransports.ParseImageName(dest)
 	if err != nil {
-		return fmt.Errorf("Invalid destination name %s: %v", dest, err)
+		return "", fmt.Errorf("Invalid destination name %s: %v", dest, err)
 	}
-	srcRef, err := registry.LastImageReference(r.ctx)
-	if err != nil {
-		return err
-	}
-	r.log.Info("Identified the latest Falcon Container image", "reference", srcRef.DockerReference().String())
 
-	sourceCtx, err := registry.SystemContext()
-	if err != nil {
-		return err
-	}
 	destinationCtx, err := r.destinationContext(r.insecureSkipTLSVerify)
 	if err != nil {
-		return err
+		return "", err
 	}
 	_, err = copy.Image(r.ctx, policyContext, destRef, srcRef,
 		&copy.Options{
@@ -82,7 +74,15 @@ func (r *ImageRefresher) Refresh(imageDestination string) error {
 			DestinationCtx: destinationCtx,
 		},
 	)
-	return wrapWithHint(err)
+	return falconTag, wrapWithHint(err)
+}
+
+func (r *ImageRefresher) source() (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
+	registry, err := falcon_registry.NewFalconRegistry(r.falconConfig, r.falconCID, r.log)
+	if err != nil {
+		return
+	}
+	return registry.PullInfo(r.ctx)
 }
 
 func (r *ImageRefresher) destinationContext(insecureSkipTLSVerify bool) (*types.SystemContext, error) {
