@@ -31,6 +31,7 @@ func (d *FalconContainerDeployer) PushImage() error {
 	}
 	_ = falconImageTag
 	d.Log.Info("Falcon Container Image pushed successfully")
+	d.Instance.Status.Version = &falconImageTag
 	d.Instance.Status.SetCondition(&metav1.Condition{
 		Type:    "ImageReady",
 		Status:  metav1.ConditionTrue,

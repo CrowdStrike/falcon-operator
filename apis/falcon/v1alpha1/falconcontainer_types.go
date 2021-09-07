@@ -88,6 +88,8 @@ type FalconContainerStatus struct {
 	// to understand the full context.
 	ErrorMessage string `json:"errormsg,omitempty"`
 
+	Version *string `json:"version,omitempty"`
+
 	// RetryAttempt is number of previous failed attempts. Valid values: 0-5
 	RetryAttempt *uint8 `json:"retry_attempt,omitempty"`
 	// +optional
@@ -98,6 +100,7 @@ type FalconContainerStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster
 //+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="Phase of deployment"
+//+kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="Version of Falcon Container"
 //+kubebuilder:printcolumn:name="Error",type="string",JSONPath=".status.errormsg",description="Last error message"
 
 // FalconContainer is the Schema for the falconcontainers API
