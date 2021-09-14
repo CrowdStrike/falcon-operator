@@ -3,7 +3,6 @@
 ## Pre-requisites
 
  - Have CrowdStrike CWP subscription with Falcon Container enabled (have your CrowdStrike CID ready)
- - Have Container Administrator access to GCP and at least one GKE cluster deployed
  - Create new CrowdStrike API key pair with permission to download the sensor (no other permission shall be required)
 
 ## Installation Steps
