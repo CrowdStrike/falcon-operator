@@ -80,11 +80,12 @@ The following namespaces will be used by Falcon Operator.
 
 ### Compatibility Guide
 
-Falcon Operator initially supports only GKE/GCR.
+Falcon Operator initially supports only GKE (with GCR) and OpenShift (with ImageStreams).
 
 | Platform                | Supported versions                                     |
 |:------------------------|:-------------------------------------------------------|
-| GKE                     | 1.18, 1.19, 1.20                                       |
+| GKE                     | 1.18 or greater                                        |
+| OpenShift               | 4.7 or greater                                         |
 
 ### Troubleshooting
 
@@ -120,6 +121,7 @@ kubectl logs -n falcon-system deploy/injector -f
 ### Additional Documentation
 
  - [Deployment Guide for GKE](docs/deployment/gke/README.md)
+ - [Deployment Guide for OpenShift](docs/deployment/openshift/README.md)
  - [Developer Documentation](docs/developer_guide.md)
 
 ## Getting Help
