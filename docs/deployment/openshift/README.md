@@ -8,7 +8,7 @@
 
 ## Installation Steps
 
- - Authenticate your kubectl/oc with the OpenShift cluster
+ - Authenticate to your OpenShift cluster
    ```
    oc login --token=sha256~abcde-ABCDE-1 --server=https://openshift.example.com
    ```
