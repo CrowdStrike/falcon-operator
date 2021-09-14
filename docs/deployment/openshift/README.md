@@ -15,8 +15,8 @@
 
  - Create namespaces used by the operator
    ```
-   kubectl create ns falcon-operator --dry-run=client -o yaml | kubectl apply -f
-   kubectl create ns falcon-system-configure --dry-run=client -o yaml | kubectl apply -f -
+   oc create ns falcon-operator --dry-run=client -o yaml | oc apply -f
+   oc create ns falcon-system-configure --dry-run=client -o yaml | oc apply -f -
    ```
  
  - Add Falcon Operator subscription to the operator hub on the cluster (This is needed until falcon-operator is available through operatorhub.io)
@@ -24,16 +24,16 @@
    operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle --namespace falcon-operator
    ```
 
- - Deploy FalconContainer either through OpenShift web console or through `kubectl`
+ - Deploy FalconContainer either through OpenShift web console or through `oc`
    ```
-   kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/falconcontainer-openshift.yaml --edit=true
+   oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/falconcontainer-openshift.yaml --edit=true
    ```
    
 ## Uninstall Steps
 
  - To uninstall Falcon Container simply remove FalconContainer resource. The operator will uninstall Falcon Container product from the cluster.
    ```
-   kubectl delete falconcontainers.falcon.crowdstrike.com default
+   oc delete falconcontainers.falcon.crowdstrike.com default
    ```
  - To uninstall Falcon Operator run
    ```
