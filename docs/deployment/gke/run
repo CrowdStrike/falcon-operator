@@ -7,33 +7,12 @@ fail(){
     exit 1
 }
 
-install_operator_sdk(){
-  export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
-  export OS=$(uname | awk '{print tolower($0)}')
-  export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.8.0
-  curl -s -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
-  gpg --keyserver keyserver.ubuntu.com --recv-keys 052996E2A20B5C7E
-
-  curl -s -LO ${OPERATOR_SDK_DL_URL}/checksums.txt
-  curl -s -LO ${OPERATOR_SDK_DL_URL}/checksums.txt.asc
-  gpg -u "Operator SDK (release) <cncf-operator-sdk@cncf.io>" --verify checksums.txt.asc
-
-  grep operator-sdk_${OS}_${ARCH} checksums.txt | sha256sum -c -
-
-  chmod +x operator-sdk_${OS}_${ARCH} && sudo mv operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
-}
-
-
 if ! type gcloud > /dev/null 2>&1; then
    fail "gcloud tool is not present. Please run this tool in GCP cloud-shell that includes gcloud tool."
 fi
 
 if ! type kubectl > /dev/null 2>&1; then
    fail "kubectl tool is not present. Please run this tool in GCP cloud-shell that includes kubectl tool."
-fi
-
-if ! type operator-sdk > /dev/null 2>&1; then
-   install_operator_sdk
 fi
 
 if [ -z "$(gcloud config get-value project 2> /dev/null)" ]; then
@@ -63,15 +42,36 @@ if ! kubectl cluster-info > /dev/null 2>&1; then
   fi
 fi
 
-if ! operator-sdk olm status > /dev/null 2>&1; then
-    operator-sdk olm install
-fi
 
 OPERATOR_NAMESPACE=falcon-operator
-kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+if kubectl get crd catalogsources.operators.coreos.com > /dev/null 2>&1; then
+    # Installation using operator OLM and operator sdk
+    if ! type operator-sdk > /dev/null 2>&1; then
+        export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
+        export OS=$(uname | awk '{print tolower($0)}')
+        export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.8.0
+        curl -s -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
+        gpg --keyserver keyserver.ubuntu.com --recv-keys 052996E2A20B5C7E
 
-if ! kubectl get catalogsources.operators.coreos.com  -n $OPERATOR_NAMESPACE falcon-operator-catalog > /dev/null 2>&1; then
-   operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
+        curl -s -LO ${OPERATOR_SDK_DL_URL}/checksums.txt
+        curl -s -LO ${OPERATOR_SDK_DL_URL}/checksums.txt.asc
+        gpg -u "Operator SDK (release) <cncf-operator-sdk@cncf.io>" --verify checksums.txt.asc
+
+        grep operator-sdk_${OS}_${ARCH} checksums.txt | sha256sum -c -
+
+        chmod +x operator-sdk_${OS}_${ARCH} && sudo mv operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
+    fi
+    if ! operator-sdk olm status > /dev/null 2>&1; then
+        fail "Unexpected cluster state: Found catalogsources.operators.coreos.com installed on the cluster, but OLM is not ready."
+    fi
+
+    kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+
+    if ! kubectl get catalogsources.operators.coreos.com  -n $OPERATOR_NAMESPACE falcon-operator-catalog > /dev/null 2>&1; then
+        operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
+    fi
+else
+    kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
 fi
 
 kubectl wait --timeout=240s --for=condition=Available -n $OPERATOR_NAMESPACE deployment falcon-operator-controller-manager
