@@ -15,7 +15,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/falcon_image"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
 	"github.com/crowdstrike/gofalcon/falcon"
 )
@@ -24,11 +24,12 @@ type ImageRefresher struct {
 	ctx                   context.Context
 	log                   logr.Logger
 	falconConfig          *falcon.ApiConfig
+	falconCID             string
 	insecureSkipTLSVerify bool
 	pushCredentials       registry_auth.Credentials
 }
 
-func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig, pushAuth registry_auth.Credentials, insecureSkipTLSVerify bool) *ImageRefresher {
+func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig, CID string, pushAuth registry_auth.Credentials, insecureSkipTLSVerify bool) *ImageRefresher {
 	if falconConfig.Context == nil {
 		falconConfig.Context = ctx
 	}
@@ -36,12 +37,18 @@ func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falco
 		ctx:                   ctx,
 		log:                   log,
 		falconConfig:          falconConfig,
+		falconCID:             CID,
 		insecureSkipTLSVerify: insecureSkipTLSVerify,
 		pushCredentials:       pushAuth,
 	}
 }
 
 func (r *ImageRefresher) Refresh(imageDestination string) error {
+	registry, err := falcon_registry.NewFalconRegistry(r.falconConfig, r.falconCID, r.log)
+	if err != nil {
+		return err
+	}
+
 	policy := &signature.Policy{Default: []signature.PolicyRequirement{signature.NewPRInsecureAcceptAnything()}}
 	policyContext, err := signature.NewPolicyContext(policy)
 	if err != nil {
@@ -54,28 +61,27 @@ func (r *ImageRefresher) Refresh(imageDestination string) error {
 	if err != nil {
 		return fmt.Errorf("Invalid destination name %s: %v", dest, err)
 	}
-
-	destinationContext, err := r.destinationContext(r.insecureSkipTLSVerify)
+	srcRef, err := registry.LastImageReference(r.ctx)
 	if err != nil {
 		return err
 	}
+	r.log.Info("Identified the latest Falcon Container image", "reference", srcRef.DockerReference().String())
 
-	image, err := falcon_image.Pull(r.falconConfig, r.log)
+	sourceCtx, err := registry.SystemContext()
 	if err != nil {
 		return err
 	}
-	defer func() { _ = image.Delete() }()
-
-	ref, err := image.ImageReference()
+	destinationCtx, err := r.destinationContext(r.insecureSkipTLSVerify)
 	if err != nil {
-		return fmt.Errorf("Failed to build internal image representation for falcon image: %v", err)
+		return err
 	}
-
-	r.log.Info("Pushing falcon image", "docker", destRef.StringWithinTransport())
-	_, err = copy.Image(r.ctx, policyContext, destRef, ref, &copy.Options{
-		DestinationCtx: destinationContext,
-		ReportWriter:   os.Stdout,
-	})
+	_, err = copy.Image(r.ctx, policyContext, destRef, srcRef,
+		&copy.Options{
+			ReportWriter:   os.Stdout,
+			SourceCtx:      sourceCtx,
+			DestinationCtx: destinationCtx,
+		},
+	)
 	return wrapWithHint(err)
 }
 

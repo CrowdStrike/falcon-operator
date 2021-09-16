@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/containerd/containerd v1.5.5 // indirect
 	github.com/containers/image/v5 v5.15.2
-	github.com/crowdstrike/gofalcon v0.2.7
+	github.com/crowdstrike/gofalcon v0.2.9
 	github.com/fsnotify/fsnotify v1.5.0 // indirect
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
