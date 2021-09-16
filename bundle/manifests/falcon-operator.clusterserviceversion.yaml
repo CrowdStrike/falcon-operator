@@ -344,7 +344,7 @@ spec:
           - subjectaccessreviews
           verbs:
           - create
-        serviceAccountName: default
+        serviceAccountName: falcon-operator
       deployments:
       - name: falcon-operator-controller-manager
         spec:
@@ -399,6 +399,7 @@ spec:
                     memory: 20Mi
                 securityContext:
                   allowPrivilegeEscalation: false
+              serviceAccountName: falcon-operator
               terminationGracePeriodSeconds: 10
       permissions:
       - rules:
@@ -423,7 +424,7 @@ spec:
           verbs:
           - create
           - patch
-        serviceAccountName: default
+        serviceAccountName: falcon-operator
     strategy: deployment
   installModes:
   - supported: true
