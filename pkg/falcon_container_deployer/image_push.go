@@ -58,6 +58,12 @@ func (d *FalconContainerDeployer) registryUri() (string, error) {
 		}
 
 		return "gcr.io/" + projectId + "/falcon-container", nil
+	case falconv1alpha1.RegistryTypeECR:
+		repo, err := d.UpsertECRRepo()
+		if err != nil {
+			return "", fmt.Errorf("Cannot get target docker URI for ECR repository: %v", err)
+		}
+		return *repo.RepositoryUri, nil
 	default:
 		return "", fmt.Errorf("Unrecognized registry type: %s", d.Instance.Spec.Registry.Type)
 	}
