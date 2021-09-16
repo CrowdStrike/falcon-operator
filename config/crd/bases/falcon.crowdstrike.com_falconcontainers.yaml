@@ -21,6 +21,10 @@ spec:
       jsonPath: .status.phase
       name: Status
       type: string
+    - description: Version of Falcon Container
+      jsonPath: .status.version
+      name: Version
+      type: string
     - description: Last error message
       jsonPath: .status.errormsg
       name: Error
@@ -192,6 +196,8 @@ spec:
                 description: 'RetryAttempt is number of previous failed attempts.
                   Valid values: 0-5'
                 type: integer
+              version:
+                type: string
             type: object
         type: object
     served: true
