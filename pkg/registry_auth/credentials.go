@@ -126,3 +126,34 @@ func (g *gcr) DestinationContext() (*types.SystemContext, error) {
 		},
 	}, nil
 }
+
+type ecr struct {
+	password string
+}
+
+func (e *ecr) Name() string {
+	return "ECR Token from AWS API"
+}
+
+func (e *ecr) Pulltoken() (string, error) {
+	return "", fmt.Errorf("Pulltoken on ECR not implemented")
+}
+
+func (e *ecr) DestinationContext() (*types.SystemContext, error) {
+	return &types.SystemContext{
+		DockerAuthConfig: &types.DockerAuthConfig{
+			Username: "AWS",
+			Password: e.password,
+		},
+	}, nil
+}
+
+func ECRCredentials(token string) (Credentials, error) {
+	if token[0:4] != "AWS:" {
+		return nil, fmt.Errorf("Could not parse EKS crendentials token. Expected to start with 'AWS:', got: '%s'", token[0:4])
+	}
+	return &ecr{
+		password: token[4:],
+	}, nil
+
+}

@@ -1,7 +1,6 @@
 package falcon_container_deployer
 
 import (
-	"encoding/base64"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
@@ -75,12 +74,7 @@ func (d *FalconContainerDeployer) pushAuth() (registry_auth.Credentials, error) 
 		if err != nil {
 			return nil, err
 		}
-		dec, err := base64.StdEncoding.DecodeString(token)
-		if err != nil {
-			fmt.Printf("WHAT %s", err)
-		}
-		fmt.Printf("\n%s\n\n", string(dec))
-		return nil, nil
+		return registry_auth.ECRCredentials(string(token))
 	default:
 		namespace := d.Namespace()
 		secrets := &corev1.SecretList{}
