@@ -134,3 +134,11 @@ operator-sdk: $(GOBIN)/operator-sdk
 $(GOBIN)/operator-sdk:
 	wget -nv $(OPERATOR_SDK_URL) -O $(GOBIN)/operator-sdk || (echo "wget returned $$? trying to fetch operator-sdk. please install operator-sdk and try again"; exit 1)
 	chmod +x $(GOBIN)/operator-sdk
+
+deploy/parts/crd-falconcontainers.yaml: bundle/manifests/falcon.crowdstrike.com_falconcontainers.yaml
+	(echo "---"; cat $^ ) > $@
+deploy/parts/crd-falconnodesensors.yaml: bundle/manifests/falcon.crowdstrike.com_falconnodesensors.yaml
+	(echo "---"; cat $^ ) > $@
+
+deploy/falcon-operator.yaml: deploy/parts/crd-falconcontainers.yaml deploy/parts/crd-falconnodesensors.yaml deploy/parts/ns.yaml deploy/parts/role.yaml deploy/parts/service_account.yaml deploy/parts/role_binding.yaml deploy/parts/operator.yaml
+	cat $^ > $@
