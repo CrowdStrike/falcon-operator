@@ -28,7 +28,11 @@
    ```
    kubectl delete falconcontainers.falcon.crowdstrike.com default
    ```
- - To uninstall Falcon Operator run
+ - To uninstall Falcon Operator that was installed using Operator Lifecycle manager
    ```
    operator-sdk cleanup falcon-operator --namespace falcon-operator
+   ```
+ - To uninstall Falcon Operator that was installed without Operator Lifecycle manager
+   ```
+   kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
    ```
