@@ -8,6 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
 	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
@@ -57,22 +58,41 @@ func (d *FalconContainerDeployer) registryUri() (string, error) {
 		}
 
 		return "gcr.io/" + projectId + "/falcon-container", nil
+	case falconv1alpha1.RegistryTypeECR:
+		repo, err := d.UpsertECRRepo()
+		if err != nil {
+			return "", fmt.Errorf("Cannot get target docker URI for ECR repository: %v", err)
+		}
+		return *repo.RepositoryUri, nil
 	default:
 		return "", fmt.Errorf("Unrecognized registry type: %s", d.Instance.Spec.Registry.Type)
 	}
 }
 
 func (d *FalconContainerDeployer) pushAuth() (registry_auth.Credentials, error) {
-	namespace := d.Namespace()
-	secrets := &corev1.SecretList{}
-	err := d.Client.List(d.Ctx, secrets, client.InNamespace(namespace))
-	if err != nil {
-		return nil, err
-	}
+	switch d.Instance.Spec.Registry.Type {
+	case falconv1alpha1.RegistryTypeECR:
+		cfg, err := aws.NewConfig()
+		if err != nil {
+			return nil, err
+		}
+		token, err := cfg.ECRLogin(d.Ctx)
+		if err != nil {
+			return nil, err
+		}
+		return registry_auth.ECRCredentials(string(token))
+	default:
+		namespace := d.Namespace()
+		secrets := &corev1.SecretList{}
+		err := d.Client.List(d.Ctx, secrets, client.InNamespace(namespace))
+		if err != nil {
+			return nil, err
+		}
 
-	creds := registry_auth.GetCredentials(secrets.Items)
-	if creds == nil {
-		return nil, fmt.Errorf("Cannot find suitable secret in namespace %s to push falcon-image to the registry", namespace)
+		creds := registry_auth.GetCredentials(secrets.Items)
+		if creds == nil {
+			return nil, fmt.Errorf("Cannot find suitable secret in namespace %s to push falcon-image to the registry", namespace)
+		}
+		return creds, nil
 	}
-	return creds, nil
 }
