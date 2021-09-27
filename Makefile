@@ -169,7 +169,9 @@ rm -rf $$TMP_DIR ;\
 endef
 
 .PHONY: bundle
-bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
+
+## Generate bundle manifests and metadata, then validate generated files.
+bundle: manifests kustomize operator-sdk config/manifests/bases/falcon-operator.clusterserviceversion.yaml
 	operator-sdk generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
@@ -248,3 +250,6 @@ deploy/parts/crd-falconnodesensors.yaml: bundle/manifests/falcon.crowdstrike.com
 
 deploy/falcon-operator.yaml: deploy/parts/crd-falconcontainers.yaml deploy/parts/crd-falconnodesensors.yaml deploy/parts/ns.yaml deploy/parts/role.yaml deploy/parts/service_account.yaml deploy/parts/role_binding.yaml deploy/parts/operator.yaml
 	cat $^ > $@
+
+config/manifests/bases/falcon-operator.clusterserviceversion.yaml: README.md
+	hack/update-manifest.sh $@ $^

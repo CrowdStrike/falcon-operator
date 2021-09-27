@@ -39,7 +39,7 @@ jobs:
       run: |
         export PATH=$HOME/go/bin:$PATH
         make manifests generate
-        make bundle
+        touch README.md ; make bundle
         rm deploy/falcon-operator.yaml && make deploy/falcon-operator.yaml
         find ./bundle* -type f -exec sed -i -e 's/operator-sdk-v1.16.0+git/operator-sdk-v1.17.0/g' {} \;
 
