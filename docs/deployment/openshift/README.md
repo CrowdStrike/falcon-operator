@@ -14,13 +14,13 @@
 
  - Create namespaces used by the operator
    ```
-   oc create ns falcon-operator --dry-run=client -o yaml | oc apply -f
+   oc create ns falcon-operator --dry-run=client -o yaml | oc apply -f -
    oc create ns falcon-system-configure --dry-run=client -o yaml | oc apply -f -
    ```
  
  - Add Falcon Operator subscription to the operator hub on the cluster (This is needed until falcon-operator is available through operatorhub.io)
    ```
-   operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle --namespace falcon-operator
+   operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace falcon-operator
    ```
 
  - Deploy FalconContainer either through OpenShift web console or through `oc`
