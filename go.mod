@@ -3,7 +3,7 @@ module github.com/crowdstrike/falcon-operator
 go 1.15
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.9.0
+	github.com/aws/aws-sdk-go-v2 v1.9.2
 	github.com/aws/aws-sdk-go-v2/config v1.8.1
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.5.0
 	github.com/containerd/containerd v1.5.7 // indirect
