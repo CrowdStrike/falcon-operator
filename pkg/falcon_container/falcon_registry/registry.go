@@ -165,11 +165,11 @@ func (fr *FalconRegistry) imageUri() (string, error) {
 func (fr *FalconRegistry) falconCloudLower() (string, error) {
 	switch fr.falconCloud {
 	case falcon.CloudUs1:
-		return "us1", nil
+		return "us-1", nil
 	case falcon.CloudUs2:
-		return "us2", nil
+		return "us-2", nil
 	case falcon.CloudEu1:
-		return "eu1", nil
+		return "eu-1", nil
 	}
 	return "", fmt.Errorf("Unrecognized Falcon Cloud Region: %v", fr.falconCloud)
 }
