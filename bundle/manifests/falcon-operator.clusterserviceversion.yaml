@@ -36,7 +36,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
-  name: falcon-operator.v0.2.3
+  name: falcon-operator.v0.3.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -450,4 +450,4 @@ spec:
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
-  version: 0.2.3
+  version: 0.3.0
