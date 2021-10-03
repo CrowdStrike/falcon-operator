@@ -57,16 +57,36 @@ func (r *ImageRefresher) Refresh(imageDestination string) (string, error) {
 	}
 	defer func() { _ = policyContext.Destroy() }()
 
-	dest := fmt.Sprintf("docker://%s", imageDestination)
-	destRef, err := alltransports.ParseImageName(dest)
-	if err != nil {
-		return "", fmt.Errorf("Invalid destination name %s: %v", dest, err)
-	}
-
 	destinationCtx, err := r.destinationContext(r.insecureSkipTLSVerify)
 	if err != nil {
 		return "", err
 	}
+
+	// Push to the registry with the falconTag
+	dest := fmt.Sprintf("docker://%s:%s", imageDestination, falconTag)
+	destRef, err := alltransports.ParseImageName(dest)
+	if err != nil {
+		return "", fmt.Errorf("Invalid destination name %s: %v", dest, err)
+	}
+	r.log.Info("Identified the target location for image push", "reference", destRef.DockerReference().String())
+	_, err = copy.Image(r.ctx, policyContext, destRef, srcRef,
+		&copy.Options{
+			ReportWriter:   os.Stdout,
+			SourceCtx:      sourceCtx,
+			DestinationCtx: destinationCtx,
+		},
+	)
+	if err != nil {
+		return "", wrapWithHint(err)
+	}
+
+	// Push to the registry with the latest tag
+	dest = fmt.Sprintf("docker://%s", imageDestination)
+	destRef, err = alltransports.ParseImageName(dest)
+	if err != nil {
+		return "", fmt.Errorf("Invalid destination name %s: %v", dest, err)
+	}
+	r.log.Info("Identified the target location for image push", "reference", destRef.DockerReference().String())
 	_, err = copy.Image(r.ctx, policyContext, destRef, srcRef,
 		&copy.Options{
 			ReportWriter:   os.Stdout,
