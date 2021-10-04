@@ -162,5 +162,9 @@ func registryToken(apiCfg *falcon.ApiConfig, logger logr.Logger) (string, error)
 }
 
 func (fr *FalconRegistry) imageUri() string {
-	return fmt.Sprintf("registry.crowdstrike.com/falcon-container/%s/release/falcon-sensor", fr.falconCloud.String())
+	return ImageURI(fr.falconCloud)
+}
+
+func ImageURI(falconCloud falcon.CloudType) string {
+	return fmt.Sprintf("registry.crowdstrike.com/falcon-container/%s/release/falcon-sensor", falconCloud.String())
 }
