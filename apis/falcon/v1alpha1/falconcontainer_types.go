@@ -38,12 +38,14 @@ const (
 	RegistryTypeECR RegistryTypeSpec = "ecr"
 	// RegistryTypeACR represents Azure Container Registry
 	RegistryTypeACR RegistryTypeSpec = "acr"
+	// RegistryTypeNone represents deployment that won't push Falcon Container to local registry, instead CrowdStrike registry will be used.
+	RegistryTypeNone RegistryTypeSpec = "none"
 )
 
 // RegistrySpec configures container image registry to which the Falcon Container image will be pushed
 type RegistrySpec struct {
 	// Type of the registry to be used
-	// +kubebuilder:validation:Enum=acr;ecr;gcr;openshift
+	// +kubebuilder:validation:Enum=acr;ecr;gcr;none;openshift
 	Type RegistryTypeSpec `json:"type"`
 
 	// TLS configures TLS connection for push of Falcon Container image to the registry

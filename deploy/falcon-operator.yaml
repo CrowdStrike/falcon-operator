@@ -110,6 +110,7 @@ spec:
                     - acr
                     - ecr
                     - gcr
+                    - none
                     - openshift
                     type: string
                 required:
