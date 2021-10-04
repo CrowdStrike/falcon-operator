@@ -110,6 +110,10 @@ spec:
                 required:
                 - type
                 type: object
+              version:
+                description: Falcon Container Version. The latest version will be
+                  selected when version specifier is missing.
+                type: string
             required:
             - falcon_api
             type: object

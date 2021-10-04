@@ -60,6 +60,8 @@ type FalconContainerSpec struct {
 
 	// InstallerArgs are passed directly down to the Falcon Container Installer. Users are advised to consult Falcon Container documentation to learn about available command line arguments at https://falcon.crowdstrike.com/documentation/146/falcon-container-sensor-for-linux
 	InstallerArgs []string `json:"installer_args,omitempty"`
+	// Falcon Container Version. The latest version will be selected when version specifier is missing.
+	Version *string `json:"version,omitempty"`
 }
 
 // Represents the status of Falcon deployment
