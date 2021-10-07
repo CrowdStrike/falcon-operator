@@ -10,6 +10,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
 	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
 )
@@ -67,6 +68,34 @@ func (d *FalconContainerDeployer) registryUri() (string, error) {
 	default:
 		return "", fmt.Errorf("Unrecognized registry type: %s", d.Instance.Spec.Registry.Type)
 	}
+}
+
+func (d *FalconContainerDeployer) imageUri() (string, error) {
+	registryUri, err := d.registryUri()
+	if err != nil {
+		return "", err
+	}
+
+	imageTag, err := d.imageTag()
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s:%s", registryUri, imageTag), nil
+}
+
+func (d *FalconContainerDeployer) imageTag() (string, error) {
+	if d.Instance.Status.Version != nil && *d.Instance.Status.Version != "" {
+		return *d.Instance.Status.Version, nil
+	}
+	registry, err := falcon_registry.NewFalconRegistry(d.Instance.Spec.FalconAPI.ApiConfig(), d.Instance.Spec.FalconAPI.CID, d.Log)
+	if err != nil {
+		return "", err
+	}
+	tag, _, _, err := registry.PullInfo(d.Ctx, d.Instance.Spec.Version)
+	if err == nil {
+		d.Instance.Status.Version = &tag
+	}
+	return tag, err
 }
 
 func (d *FalconContainerDeployer) pushAuth() (registry_auth.Credentials, error) {

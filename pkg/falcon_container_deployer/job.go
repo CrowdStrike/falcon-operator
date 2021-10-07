@@ -90,7 +90,7 @@ func (d *FalconContainerDeployer) CreateJob() error {
 }
 
 func (d *FalconContainerDeployer) installerContainer() (*corev1.Container, error) {
-	imageUri, err := d.registryUri()
+	imageUri, err := d.imageUri()
 	if err != nil {
 		return nil, err
 	}
