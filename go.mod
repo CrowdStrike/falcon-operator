@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.9.0
 	github.com/aws/aws-sdk-go-v2/config v1.8.1
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.5.0
-	github.com/containerd/containerd v1.5.5 // indirect
+	github.com/containerd/containerd v1.5.7 // indirect
 	github.com/containers/image/v5 v5.15.2
 	github.com/crowdstrike/gofalcon v0.2.9
 	github.com/fsnotify/fsnotify v1.5.0 // indirect
@@ -16,7 +16,6 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
-	github.com/opencontainers/runc v1.0.2 // indirect
 	github.com/openshift/api v0.0.0-20210428205234-a8389931bee7
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
