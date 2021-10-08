@@ -136,7 +136,7 @@ You can contribute by:
 * Fixing issues by opening [Pull Requests](https://github.com/CrowdStrike/falcon-operator/pulls)
 * Submitting a patch or opening a PR
 * Improving documentation
-* Talking about 3scale Operator
+* Talking about Falcon Operator
 
 All bugs, tasks or enhancements are tracked as [GitHub issues](https://github.com/CrowdStrike/falcon-operator/issues).
 
