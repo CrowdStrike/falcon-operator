@@ -155,21 +155,6 @@ func registryToken(apiCfg *falcon.ApiConfig, logger logr.Logger) (string, error)
 }
 
 func (fr *FalconRegistry) imageUri() (string, error) {
-	cloud, err := fr.falconCloudLower()
-	if err != nil {
-		return "", err
-	}
+	cloud := fr.falconCloud.String()
 	return fmt.Sprintf("registry.crowdstrike.com/falcon-container/%s/release/falcon-sensor", cloud), nil
-}
-
-func (fr *FalconRegistry) falconCloudLower() (string, error) {
-	switch fr.falconCloud {
-	case falcon.CloudUs1:
-		return "us-1", nil
-	case falcon.CloudUs2:
-		return "us-2", nil
-	case falcon.CloudEu1:
-		return "eu-1", nil
-	}
-	return "", fmt.Errorf("Unrecognized Falcon Cloud Region: %v", fr.falconCloud)
 }
