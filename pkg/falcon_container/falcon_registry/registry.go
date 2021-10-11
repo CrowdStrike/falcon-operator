@@ -43,10 +43,7 @@ func (reg *FalconRegistry) PullInfo(ctx context.Context) (falconTag string, falc
 	if err != nil {
 		return
 	}
-	imageUri, err := reg.imageUri()
-	if err != nil {
-		return
-	}
+	imageUri := reg.imageUri()
 	falconTag, err = lastTag(ctx, systemContext, imageUri)
 	if err != nil {
 		return
@@ -154,7 +151,6 @@ func registryToken(apiCfg *falcon.ApiConfig, logger logr.Logger) (string, error)
 	return valueString, nil
 }
 
-func (fr *FalconRegistry) imageUri() (string, error) {
-	cloud := fr.falconCloud.String()
-	return fmt.Sprintf("registry.crowdstrike.com/falcon-container/%s/release/falcon-sensor", cloud), nil
+func (fr *FalconRegistry) imageUri() string {
+	return fmt.Sprintf("registry.crowdstrike.com/falcon-container/%s/release/falcon-sensor", fr.falconCloud.String())
 }
