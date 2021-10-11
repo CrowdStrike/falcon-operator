@@ -89,6 +89,11 @@ spec:
                 description: Registry configures container image registry to which
                   the Falcon Container image will be pushed
                 properties:
+                  acr_name:
+                    description: Azure Container Registry Name represents the name
+                      of the ACR for the Falcon Container push. Only applicable to
+                      Azure cloud.
+                    type: string
                   tls:
                     description: TLS configures TLS connection for push of Falcon
                       Container image to the registry
@@ -102,6 +107,7 @@ spec:
                   type:
                     description: Type of the registry to be used
                     enum:
+                    - acr
                     - ecr
                     - gcr
                     - openshift

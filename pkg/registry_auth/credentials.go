@@ -135,9 +135,9 @@ type dockerConfigFile struct {
 }
 
 func dockerJsonValid(raw []byte) bool {
-	var content dockerAuthConfig
+	var content dockerConfigFile
 	err := json.Unmarshal(raw, &content)
-	return (err == nil && content.Auth != "")
+	return (err == nil && len(content.AuthConfigs) != 0)
 }
 
 func (g *gcr) Pulltoken() (string, error) {

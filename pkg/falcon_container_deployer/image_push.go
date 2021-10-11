@@ -65,6 +65,11 @@ func (d *FalconContainerDeployer) registryUri() (string, error) {
 			return "", fmt.Errorf("Cannot get target docker URI for ECR repository: %v", err)
 		}
 		return *repo.RepositoryUri, nil
+	case falconv1alpha1.RegistryTypeACR:
+		if d.Instance.Spec.Registry.AcrName == nil {
+			return "", fmt.Errorf("Cannot push Falcon Image locally to ACR. acr_name was not specified")
+		}
+		return fmt.Sprintf("%s.azurecr.io/falcon-container", *d.Instance.Spec.Registry.AcrName), nil
 	default:
 		return "", fmt.Errorf("Unrecognized registry type: %s", d.Instance.Spec.Registry.Type)
 	}
