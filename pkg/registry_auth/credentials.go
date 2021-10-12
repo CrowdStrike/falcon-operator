@@ -126,20 +126,6 @@ func (g *gcr) Name() string {
 	return g.name
 }
 
-type dockerAuthConfig struct {
-	Auth string `json:"auth,omitempty"`
-}
-
-type dockerConfigFile struct {
-	AuthConfigs map[string]dockerAuthConfig `json:"auths"`
-}
-
-func dockerJsonValid(raw []byte) bool {
-	var content dockerConfigFile
-	err := json.Unmarshal(raw, &content)
-	return (err == nil && len(content.AuthConfigs) != 0)
-}
-
 func (g *gcr) Pulltoken() (string, error) {
 	auths := dockerConfigFile{
 		AuthConfigs: map[string]dockerAuthConfig{},
