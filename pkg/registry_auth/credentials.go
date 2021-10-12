@@ -2,7 +2,6 @@ package registry_auth
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
@@ -127,18 +126,11 @@ func (g *gcr) Name() string {
 }
 
 func (g *gcr) Pulltoken() (string, error) {
-	auths := dockerConfigFile{
-		AuthConfigs: map[string]dockerAuthConfig{},
-	}
 	username := "_json_key"
 	password := string(g.Key)
-	creds := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-	newCreds := dockerAuthConfig{Auth: creds}
-	auths.AuthConfigs["gcr.io"] = newCreds
-
-	newData, err := json.MarshalIndent(auths, "", "\t")
+	newData, err := newDockerFile("gcr.io", username, password)
 	if err != nil {
-		return "", fmt.Errorf("Error marshaling JSON: %s", err)
+		return "", fmt.Errorf("Could not create pull token for GCR: %s", err)
 	}
 	return base64.StdEncoding.EncodeToString([]byte(newData)), nil
 }
