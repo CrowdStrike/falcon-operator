@@ -447,6 +447,7 @@ spec:
   - name: Falcon Operator
     url: https://github.com/CrowdStrike/falcon-operator
   maturity: alpha
+  minKubeVersion: 1.17.0
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
