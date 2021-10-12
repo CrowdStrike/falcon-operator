@@ -82,7 +82,7 @@ func (d *FalconContainerDeployer) pushAuth() (registry_auth.Credentials, error) 
 		}
 		return registry_auth.ECRCredentials(string(token))
 	default:
-		namespace := d.Namespace()
+		namespace := d.imageNamespace()
 		secrets := &corev1.SecretList{}
 		err := d.Client.List(d.Ctx, secrets, client.InNamespace(namespace))
 		if err != nil {
@@ -95,4 +95,13 @@ func (d *FalconContainerDeployer) pushAuth() (registry_auth.Credentials, error) 
 		}
 		return creds, nil
 	}
+}
+
+func (d *FalconContainerDeployer) imageNamespace() string {
+	if d.Instance.Spec.Registry.Type == falconv1alpha1.RegistryTypeOpenshift {
+		// Within OpenShift, ImageStreams are separated by namespaces. The "openshift" namespace
+		// is shared and images pushed there can be referenced by deployments in other namespaces
+		return "openshift"
+	}
+	return d.Namespace()
 }

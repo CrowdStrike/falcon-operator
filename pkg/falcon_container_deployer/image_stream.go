@@ -30,14 +30,14 @@ func (d *FalconContainerDeployer) UpsertImageStream() (stream *imagev1.ImageStre
 
 func (d *FalconContainerDeployer) GetImageStream() (*imagev1.ImageStream, error) {
 	var stream imagev1.ImageStream
-	err := d.Client.Get(d.Ctx, types.NamespacedName{Name: IMAGE_STREAM_NAME, Namespace: d.Namespace()}, &stream)
+	err := d.Client.Get(d.Ctx, types.NamespacedName{Name: IMAGE_STREAM_NAME, Namespace: d.imageNamespace()}, &stream)
 	return &stream, err
 }
 
 func (d *FalconContainerDeployer) CreateImageStream() error {
 	imageStream := &imagev1.ImageStream{
 		TypeMeta:   metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
-		ObjectMeta: metav1.ObjectMeta{Name: IMAGE_STREAM_NAME, Namespace: d.Namespace()},
+		ObjectMeta: metav1.ObjectMeta{Name: IMAGE_STREAM_NAME, Namespace: d.imageNamespace()},
 		Spec:       imagev1.ImageStreamSpec{},
 	}
 	err := ctrl.SetControllerReference(d.Instance, imageStream, d.Scheme)
@@ -51,7 +51,7 @@ func (d *FalconContainerDeployer) CreateImageStream() error {
 			return err
 		}
 	} else {
-		d.Log.Info("Created a new ImageStream", "ImageStream.Namespace", d.Namespace(), "ImageStream.Name", imageStream.Name)
+		d.Log.Info("Created a new ImageStream", "ImageStream.Namespace", imageStream.Namespace, "ImageStream.Name", imageStream.Name)
 	}
 	return nil
 }
