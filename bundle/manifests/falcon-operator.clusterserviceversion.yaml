@@ -31,6 +31,7 @@ metadata:
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
     createdAt: "2021-07-30T10:00:00Z"
+    description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     operatorframework.io/suggested-namespace: falcon-operator
     operators.operatorframework.io/builder: operator-sdk-v1.8.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
