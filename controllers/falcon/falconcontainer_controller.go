@@ -52,8 +52,6 @@ type FalconContainerReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.2/pkg/reconcile
 func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := clog.FromContext(ctx)
-	log.Info("Reconciling FalconContainer")
-
 	falconContainer := &falconv1alpha1.FalconContainer{}
 	err := r.Client.Get(ctx, req.NamespacedName, falconContainer)
 	if err != nil {
