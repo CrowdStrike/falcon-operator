@@ -20,10 +20,24 @@ metadata:
           "apiVersion": "falcon.crowdstrike.com/v1alpha1",
           "kind": "FalconNodeSensor",
           "metadata": {
-            "name": "falconnodesensor-sample"
+            "name": "falcon-node-sensor"
           },
           "spec": {
-            "foo": "bar"
+            "falcon": {
+              "apd": null,
+              "aph": null,
+              "app": null,
+              "billing": null,
+              "cid": null,
+              "feature": null,
+              "message_log": null,
+              "provisioning_token": null,
+              "tags": null,
+              "trace": "none"
+            },
+            "node": {
+              "terminationGracePeriod": 30
+            }
           }
         }
       ]
