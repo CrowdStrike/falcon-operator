@@ -36,16 +36,20 @@ const (
 	RegistryTypeGCR RegistryTypeSpec = "gcr"
 	// RegistryTypeECR represents AWS Elastic Container Registry
 	RegistryTypeECR RegistryTypeSpec = "ecr"
+	// RegistryTypeACR represents Azure Container Registry
+	RegistryTypeACR RegistryTypeSpec = "acr"
 )
 
 // RegistrySpec configures container image registry to which the Falcon Container image will be pushed
 type RegistrySpec struct {
 	// Type of the registry to be used
-	// +kubebuilder:validation:Enum=ecr;gcr;openshift
+	// +kubebuilder:validation:Enum=acr;ecr;gcr;openshift
 	Type RegistryTypeSpec `json:"type"`
 
 	// TLS configures TLS connection for push of Falcon Container image to the registry
 	TLS RegistryTLSSpec `json:"tls,omitempty"`
+	// Azure Container Registry Name represents the name of the ACR for the Falcon Container push. Only applicable to Azure cloud.
+	AcrName *string `json:"acr_name,omitempty"`
 }
 
 // FalconContainerSpec defines the desired state of FalconContainer

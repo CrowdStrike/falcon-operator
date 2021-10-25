@@ -27,6 +27,13 @@ func newCreds(secret corev1.Secret) Credentials {
 	}
 	value, ok = secret.Data[".dockerconfigjson"]
 	if ok {
+		if dockerJsonValid(value) {
+			return &classic{
+				name:  secret.Name,
+				value: value,
+			}
+		}
+
 		return &gcr{
 			name: secret.Name,
 			Key:  value,
@@ -84,6 +91,32 @@ func (l *legacy) Pulltoken() (string, error) {
 	return base64.StdEncoding.EncodeToString(l.Dockercfg), nil
 }
 
+type classic struct {
+	name  string
+	value []byte
+}
+
+func (c *classic) Name() string {
+	return c.name
+}
+
+func (c *classic) DestinationContext() (*types.SystemContext, error) {
+
+	const dockerCfgFile = "/tmp/.dockercfg"
+
+	err := ioutil.WriteFile(dockerCfgFile, c.value, 0600)
+	if err != nil {
+		return nil, err
+	}
+	return &types.SystemContext{
+		AuthFilePath: dockerCfgFile,
+	}, nil
+}
+
+func (c *classic) Pulltoken() (string, error) {
+	return base64.StdEncoding.EncodeToString([]byte(c.value)), nil
+}
+
 type gcr struct {
 	name string
 	Key  []byte
@@ -99,6 +132,12 @@ type dockerAuthConfig struct {
 
 type dockerConfigFile struct {
 	AuthConfigs map[string]dockerAuthConfig `json:"auths"`
+}
+
+func dockerJsonValid(raw []byte) bool {
+	var content dockerConfigFile
+	err := json.Unmarshal(raw, &content)
+	return (err == nil && len(content.AuthConfigs) != 0)
 }
 
 func (g *gcr) Pulltoken() (string, error) {
