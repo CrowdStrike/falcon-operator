@@ -38,13 +38,13 @@ func NewFalconRegistry(apiCfg *falcon.ApiConfig, CID string, logger logr.Logger)
 	}, nil
 }
 
-func (reg *FalconRegistry) PullInfo(ctx context.Context) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
+func (reg *FalconRegistry) PullInfo(ctx context.Context, versionRequested *string) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
 	systemContext, err = reg.systemContext()
 	if err != nil {
 		return
 	}
 	imageUri := reg.imageUri()
-	falconTag, err = lastTag(ctx, systemContext, imageUri)
+	falconTag, err = lastTag(ctx, systemContext, imageUri, versionRequested)
 	if err != nil {
 		return
 	}
@@ -60,7 +60,7 @@ func imageReference(imageUri, tag string) (types.ImageReference, error) {
 	return docker.ParseReference(fmt.Sprintf("//%s:%s", imageUri, tag))
 }
 
-func lastTag(ctx context.Context, systemContext *types.SystemContext, imageUri string) (string, error) {
+func lastTag(ctx context.Context, systemContext *types.SystemContext, imageUri string, versionRequested *string) (string, error) {
 	ref, err := reference.ParseNormalizedNamed(imageUri)
 	if err != nil {
 		return "", err
@@ -74,10 +74,10 @@ func lastTag(ctx context.Context, systemContext *types.SystemContext, imageUri s
 	if err != nil {
 		return "", err
 	}
-	return guessLastTag(tags)
+	return guessLastTag(tags, versionRequested)
 }
 
-func guessLastTag(tags []string) (string, error) {
+func guessLastTag(tags []string, versionRequested *string) (string, error) {
 	versionTags := []string{}
 	for _, tag := range tags {
 		if tag[0] >= '0' && tag[0] <= '9' {
@@ -86,6 +86,16 @@ func guessLastTag(tags []string) (string, error) {
 	}
 	if len(versionTags) == 0 {
 		return "", fmt.Errorf("Could not find suitable image tag in the CrowdStrike registry. Tags were: %+v", tags)
+	}
+
+	if versionRequested != nil {
+		for i := range versionTags {
+			tag := versionTags[len(versionTags)-i-1]
+			if strings.HasPrefix(tag, *versionRequested) {
+				return tag, nil
+			}
+		}
+		return "", fmt.Errorf("Could not find suitable image tag in the CrowdStrike registry. Requested version was: %s while the available tags were: %+v", *versionRequested, tags)
 	}
 	return versionTags[len(versionTags)-1], nil
 }

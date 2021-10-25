@@ -43,8 +43,8 @@ func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falco
 	}
 }
 
-func (r *ImageRefresher) Refresh(imageDestination string) (string, error) {
-	falconTag, srcRef, sourceCtx, err := r.source()
+func (r *ImageRefresher) Refresh(imageDestination string, versionRequested *string) (string, error) {
+	falconTag, srcRef, sourceCtx, err := r.source(versionRequested)
 	if err != nil {
 		return "", err
 	}
@@ -97,12 +97,12 @@ func (r *ImageRefresher) Refresh(imageDestination string) (string, error) {
 	return falconTag, wrapWithHint(err)
 }
 
-func (r *ImageRefresher) source() (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
+func (r *ImageRefresher) source(versionRequested *string) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
 	registry, err := falcon_registry.NewFalconRegistry(r.falconConfig, r.falconCID, r.log)
 	if err != nil {
 		return
 	}
-	return registry.PullInfo(r.ctx)
+	return registry.PullInfo(r.ctx, versionRequested)
 }
 
 func (r *ImageRefresher) destinationContext(insecureSkipTLSVerify bool) (*types.SystemContext, error) {
