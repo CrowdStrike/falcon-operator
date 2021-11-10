@@ -145,7 +145,7 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 	err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: nodesensor.Namespace}, confCm)
 	if err != nil && errors.IsNotFound(err) {
 		// does not exist, create
-		if err := r.Create(ctx, node.DaemonsetConfigMap(cmName, nodesensor.Namespace, &nodesensor.Spec.Falcon)); err != nil {
+		if err := r.Create(ctx, r.nodeSensorConfigmap(cmName, nodesensor, logger)); err != nil {
 			logger.Error(err, "Failed to create new Configmap", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
 			return nil, updated, err
 		}
@@ -156,7 +156,7 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 		logger.Error(err, "error getting Configmap")
 		return nil, updated, err
 	} else {
-		err = r.Update(ctx, node.DaemonsetConfigMap(cmName, nodesensor.Namespace, &nodesensor.Spec.Falcon))
+		err = r.Update(ctx, r.nodeSensorConfigmap(cmName, nodesensor, logger))
 		if err != nil {
 			logger.Error(err, "Failed to update Configmap", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
 			return nil, updated, err
@@ -166,6 +166,16 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 	}
 
 	return confCm, updated, nil
+}
+
+func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) *corev1.ConfigMap {
+	cm := node.DaemonsetConfigMap(name, nodesensor.Namespace, &nodesensor.Spec.Falcon)
+
+	err := controllerutil.SetControllerReference(nodesensor, cm, r.Scheme)
+	if err != nil {
+		logger.Error(err, "unable to set controller reference")
+	}
+	return cm
 }
 
 func (r *FalconNodeSensorReconciler) nodeSensorDaemonset(name string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) *appsv1.DaemonSet {
