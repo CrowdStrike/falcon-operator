@@ -7,11 +7,11 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/assets/node"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -123,7 +123,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				return ctrl.Result{}, err
 			}
 
-			err := restartNodeDaemonsets(r.Client, ctx, dsUpdate)
+			err := k8s_utils.RestartDeamonSet(ctx, r.Client, dsUpdate)
 			if err != nil {
 				logger.Error(err, "Failed to restart pods after DaemonSet configuration changed.")
 				return ctrl.Result{}, err
@@ -236,41 +236,4 @@ func updateDaemonSetImages(ds *appsv1.DaemonSet, logger logr.Logger) bool {
 	}
 
 	return imgUpdate
-}
-
-// restartNodeDaemonsets restarts all pods that belong to the daemonset
-func restartNodeDaemonsets(c client.Client, ctx context.Context, dsUpdate *appsv1.DaemonSet) error {
-	ds := &appsv1.DaemonSet{}
-	err := c.Get(ctx, types.NamespacedName{Name: dsUpdate.Name, Namespace: dsUpdate.Namespace}, ds)
-	if err != nil {
-		return err
-	}
-
-	if err := deleteDaemonSetPods(c, ctx, ds); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// deleteDaemonSetPods deletes the old pods associated with the daemonset to start new pods
-func deleteDaemonSetPods(c client.Client, ctx context.Context, ds *appsv1.DaemonSet) error {
-	var pods corev1.PodList
-
-	if err := c.List(ctx, &pods, &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labels.Set{"app": ds.Name}),
-		Namespace:     ds.Namespace,
-	}); err != nil {
-		return err
-	}
-
-	for podIDs := range pods.Items {
-		pod := pods.Items[podIDs]
-		err := c.Delete(ctx, &pod, &client.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
