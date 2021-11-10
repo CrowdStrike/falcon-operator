@@ -171,7 +171,6 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 func (r *FalconNodeSensorReconciler) nodeSensorDaemonset(name string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) *appsv1.DaemonSet {
 	ds := node.Daemonset(name, nodesensor)
 
-	// Set Memcached instance as the owner and controller.memcac
 	// NOTE: calling SetControllerReference, and setting owner references in
 	// general, is important as it allows deleted objects to be garbage collected.
 	err := controllerutil.SetControllerReference(nodesensor, ds, r.Scheme)
