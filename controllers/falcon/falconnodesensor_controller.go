@@ -111,7 +111,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		dsUpdate := daemonset.DeepCopy()
 
 		// Objects to check for updates to re-spin pods
-		imgUpdate := updateDaemonSetImages(dsUpdate, logger)
+		imgUpdate := updateDaemonSetImages(dsUpdate, nodesensor, logger)
 		tolsUpdate := updateDaemonSetTolerations(dsUpdate, nodesensor, logger)
 		containerVolUpdate := updateDaemonSetContainerVolumes(dsUpdate, nodesensor, logger)
 		volumeUpdates := updateDaemonSetVolumes(dsUpdate, nodesensor, logger)
@@ -221,9 +221,9 @@ func updateDaemonSetVolumes(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.Fal
 }
 
 // If an update is needed, this will update the InitContainer image reference from the given DaemonSet
-func updateDaemonSetImages(ds *appsv1.DaemonSet, logger logr.Logger) bool {
+func updateDaemonSetImages(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
 	initImage := &ds.Spec.Template.Spec.InitContainers[0].Image
-	origImg := common.FalconDefaultImage
+	origImg := common.GetFalconImage(nodesensor)
 	imgUpdate := *initImage != origImg
 	if imgUpdate {
 		logger.Info("Updating FalconNodeSensor DaemonSet InitContainer image", "Original Image", origImg, "Current Image", initImage)
