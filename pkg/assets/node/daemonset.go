@@ -111,7 +111,7 @@ func daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: dsName,
+											Name: dsName + "-config",
 										},
 									},
 								},
