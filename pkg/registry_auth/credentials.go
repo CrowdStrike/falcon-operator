@@ -128,7 +128,7 @@ func (g *gcr) Name() string {
 func (g *gcr) Pulltoken() (string, error) {
 	username := "_json_key"
 	password := string(g.Key)
-	newData, err := newDockerFile("gcr.io", username, password)
+	newData, err := Dockerfile("gcr.io", username, password)
 	if err != nil {
 		return "", fmt.Errorf("Could not create pull token for GCR: %s", err)
 	}

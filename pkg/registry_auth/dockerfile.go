@@ -20,7 +20,7 @@ func dockerJsonValid(raw []byte) bool {
 	return (err == nil && len(content.AuthConfigs) != 0)
 }
 
-func newDockerFile(registry, username, password string) ([]byte, error) {
+func Dockerfile(registry, username, password string) ([]byte, error) {
 	auths := dockerConfigFile{
 		AuthConfigs: map[string]dockerAuthConfig{},
 	}

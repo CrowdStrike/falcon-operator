@@ -2,6 +2,7 @@ package falcon_registry
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 
+	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/crowdstrike/gofalcon/falcon/client/falcon_container"
 )
@@ -36,6 +38,18 @@ func NewFalconRegistry(apiCfg *falcon.ApiConfig, CID string, logger logr.Logger)
 		falconCID:   CID,
 		token:       token,
 	}, nil
+}
+
+func (reg *FalconRegistry) Pulltoken() (string, error) {
+	username, err := reg.username()
+	if err != nil {
+		return "", err
+	}
+	dockerfile, err := registry_auth.Dockerfile("registry.crowdstrike.com", username, reg.token)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString([]byte(dockerfile)), nil
 }
 
 func (reg *FalconRegistry) PullInfo(ctx context.Context, versionRequested *string) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
