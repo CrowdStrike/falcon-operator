@@ -80,7 +80,6 @@ func daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 					HostPID:                       hostpid,
 					HostIPC:                       hostipc,
 					HostNetwork:                   hostnetwork,
-					ServiceAccountName:            common.OperatorServiceAccountName,
 					TerminationGracePeriodSeconds: getTermGracePeriod(node),
 					InitContainers: []corev1.Container{
 						{
