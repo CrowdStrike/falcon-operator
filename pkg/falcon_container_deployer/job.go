@@ -51,6 +51,16 @@ func (d *FalconContainerDeployer) CreateJob() error {
 	if err != nil {
 		return err
 	}
+
+	var pullSecrets []corev1.LocalObjectReference = nil
+	if d.JobSecretRequired() {
+		pullSecrets = []corev1.LocalObjectReference{
+			{
+				Name: JOB_SECRET_NAME,
+			},
+		}
+	}
+
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: batchv1.SchemeGroupVersion.String(),
@@ -67,11 +77,9 @@ func (d *FalconContainerDeployer) CreateJob() error {
 					Namespace: d.Namespace(),
 				},
 				Spec: corev1.PodSpec{
-					RestartPolicy: corev1.RestartPolicyOnFailure,
-					Containers:    []corev1.Container{*containerSpec},
-					ImagePullSecrets: []corev1.LocalObjectReference{
-						{Name: "regcred"},
-					},
+					RestartPolicy:    corev1.RestartPolicyOnFailure,
+					Containers:       []corev1.Container{*containerSpec},
+					ImagePullSecrets: pullSecrets,
 				},
 			},
 		},

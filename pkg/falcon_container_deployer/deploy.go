@@ -98,6 +98,12 @@ func (d *FalconContainerDeployer) PhaseBuilding() (ctrl.Result, error) {
 }
 
 func (d *FalconContainerDeployer) PhaseConfiguring() (ctrl.Result, error) {
+	if d.JobSecretRequired() {
+		_, err := d.UpsertJobSecret()
+		if err != nil {
+			return d.Error("failed to usert falcon pulltoken secret", err)
+		}
+	}
 	// (Step 1&2) Upsert Job
 	job, err := d.UpsertJob()
 	if err != nil {
