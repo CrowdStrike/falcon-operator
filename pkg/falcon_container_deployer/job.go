@@ -69,6 +69,9 @@ func (d *FalconContainerDeployer) CreateJob() error {
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyOnFailure,
 					Containers:    []corev1.Container{*containerSpec},
+					ImagePullSecrets: []corev1.LocalObjectReference{
+						{Name: "regcred"},
+					},
 				},
 			},
 		},

@@ -1,7 +1,6 @@
 package registry_auth
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 
@@ -13,7 +12,7 @@ import (
 type Credentials interface {
 	Name() string
 	DestinationContext() (*types.SystemContext, error)
-	Pulltoken() (string, error)
+	Pulltoken() ([]byte, error)
 }
 
 func newCreds(secret corev1.Secret) Credentials {
@@ -86,8 +85,8 @@ func (l *legacy) Name() string {
 	return l.name
 }
 
-func (l *legacy) Pulltoken() (string, error) {
-	return base64.StdEncoding.EncodeToString(l.Dockercfg), nil
+func (l *legacy) Pulltoken() ([]byte, error) {
+	return l.Dockercfg, nil
 }
 
 type classic struct {
@@ -112,8 +111,8 @@ func (c *classic) DestinationContext() (*types.SystemContext, error) {
 	}, nil
 }
 
-func (c *classic) Pulltoken() (string, error) {
-	return base64.StdEncoding.EncodeToString([]byte(c.value)), nil
+func (c *classic) Pulltoken() ([]byte, error) {
+	return c.value, nil
 }
 
 type gcr struct {
@@ -125,14 +124,14 @@ func (g *gcr) Name() string {
 	return g.name
 }
 
-func (g *gcr) Pulltoken() (string, error) {
+func (g *gcr) Pulltoken() ([]byte, error) {
 	username := "_json_key"
 	password := string(g.Key)
 	newData, err := Dockerfile("gcr.io", username, password)
 	if err != nil {
-		return "", fmt.Errorf("Could not create pull token for GCR: %s", err)
+		return nil, fmt.Errorf("Could not create pull token for GCR: %s", err)
 	}
-	return base64.StdEncoding.EncodeToString([]byte(newData)), nil
+	return newData, nil
 }
 
 func (g *gcr) DestinationContext() (*types.SystemContext, error) {
@@ -152,8 +151,8 @@ func (e *ecr) Name() string {
 	return "ECR Token from AWS API"
 }
 
-func (e *ecr) Pulltoken() (string, error) {
-	return "", fmt.Errorf("Pulltoken on ECR not implemented")
+func (e *ecr) Pulltoken() ([]byte, error) {
+	return nil, fmt.Errorf("Pulltoken on ECR not implemented")
 }
 
 func (e *ecr) DestinationContext() (*types.SystemContext, error) {
