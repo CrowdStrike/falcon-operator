@@ -30,9 +30,6 @@ type ImageRefresher struct {
 }
 
 func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig, CID string, pushAuth registry_auth.Credentials, insecureSkipTLSVerify bool) *ImageRefresher {
-	if falconConfig.Context == nil {
-		falconConfig.Context = ctx
-	}
 	return &ImageRefresher{
 		ctx:                   ctx,
 		log:                   log,

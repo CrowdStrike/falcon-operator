@@ -13,6 +13,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
 	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
+	"github.com/crowdstrike/gofalcon/falcon"
 )
 
 func (d *FalconContainerDeployer) PushImage() error {
@@ -38,7 +39,7 @@ func (d *FalconContainerDeployer) PushImage() error {
 	}
 
 	d.Log.Info("Found secret for image push", "Secret.Name", pushAuth.Name())
-	image := falcon_container.NewImageRefresher(d.Ctx, d.Log, d.Instance.Spec.FalconAPI.ApiConfig(), d.Instance.Spec.FalconAPI.CID, pushAuth, d.Instance.Spec.Registry.TLS.InsecureSkipVerify)
+	image := falcon_container.NewImageRefresher(d.Ctx, d.Log, d.falconApiConfig(), d.Instance.Spec.FalconAPI.CID, pushAuth, d.Instance.Spec.Registry.TLS.InsecureSkipVerify)
 	falconImageTag, err := image.Refresh(registryUri, d.Instance.Spec.Version)
 	if err != nil {
 		return err
@@ -106,7 +107,7 @@ func (d *FalconContainerDeployer) imageTag() (string, error) {
 	if d.Instance.Status.Version != nil && *d.Instance.Status.Version != "" {
 		return *d.Instance.Status.Version, nil
 	}
-	registry, err := falcon_registry.NewFalconRegistry(d.Instance.Spec.FalconAPI.ApiConfig(), d.Instance.Spec.FalconAPI.CID, d.Log)
+	registry, err := falcon_registry.NewFalconRegistry(d.falconApiConfig(), d.Instance.Spec.FalconAPI.CID, d.Log)
 	if err != nil {
 		return "", err
 	}
@@ -152,4 +153,10 @@ func (d *FalconContainerDeployer) imageNamespace() string {
 		return "openshift"
 	}
 	return d.Namespace()
+}
+
+func (d *FalconContainerDeployer) falconApiConfig() *falcon.ApiConfig {
+	cfg := d.Instance.Spec.FalconAPI.ApiConfig()
+	cfg.Context = d.Ctx
+	return cfg
 }
