@@ -116,7 +116,7 @@ func (d *FalconContainerDeployer) installerCmd(imageUri string) ([]string, error
 	cid := d.Instance.Spec.FalconAPI.CID
 	installCmd := []string{"installer", "-cid", cid, "-image", imageUri}
 
-	pulltoken, err := d.pulltoken()
+	pulltoken, err := d.pulltokenBase64()
 	if err != nil {
 		return nil, err
 	}

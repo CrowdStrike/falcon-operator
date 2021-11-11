@@ -16,7 +16,7 @@ const (
 	saCertPath = saCertDir + "ca.crt"
 )
 
-func (d *FalconContainerDeployer) pulltoken() (string, error) {
+func (d *FalconContainerDeployer) pulltokenBase64() (string, error) {
 	switch d.Instance.Spec.Registry.Type {
 	case falconv1alpha1.RegistryTypeECR:
 		return "", nil
