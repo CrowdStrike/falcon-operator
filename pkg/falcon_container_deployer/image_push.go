@@ -22,7 +22,7 @@ func (d *FalconContainerDeployer) PushImage() error {
 		return err
 	}
 
-	if d.Instance.Spec.Registry.Type == falconv1alpha1.RegistryTypeNone {
+	if d.Instance.Spec.Registry.Type == falconv1alpha1.RegistryTypeCrowdStrike {
 		d.Log.Info("Skipping push of Falcon Container image to local registry. Remote CrowdStrike registry will be used.")
 		d.Instance.Status.SetCondition(&metav1.Condition{
 			Type:    "ImageReady",
@@ -83,7 +83,7 @@ func (d *FalconContainerDeployer) registryUri() (string, error) {
 			return "", fmt.Errorf("Cannot push Falcon Image locally to ACR. acr_name was not specified")
 		}
 		return fmt.Sprintf("%s.azurecr.io/falcon-container", *d.Instance.Spec.Registry.AcrName), nil
-	case falconv1alpha1.RegistryTypeNone:
+	case falconv1alpha1.RegistryTypeCrowdStrike:
 		return falcon_registry.ImageURI(d.Instance.Spec.FalconAPI.FalconCloud()), nil
 	default:
 		return "", fmt.Errorf("Unrecognized registry type: %s", d.Instance.Spec.Registry.Type)

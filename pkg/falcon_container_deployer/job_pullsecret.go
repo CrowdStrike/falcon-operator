@@ -15,7 +15,7 @@ const (
 )
 
 func (d *FalconContainerDeployer) JobSecretRequired() bool {
-	return d.Instance.Spec.Registry.Type == falconv1alpha1.RegistryTypeNone
+	return d.Instance.Spec.Registry.Type == falconv1alpha1.RegistryTypeCrowdStrike
 }
 
 func (d *FalconContainerDeployer) UpsertJobSecret() (secret *corev1.Secret, err error) {
