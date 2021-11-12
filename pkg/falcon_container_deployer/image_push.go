@@ -112,7 +112,7 @@ func (d *FalconContainerDeployer) imageTag() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	tag, _, _, err := registry.PullInfo(d.Ctx, d.Instance.Spec.Version)
+	tag, err := registry.LastContainerTag(d.Ctx, d.Instance.Spec.Version)
 	if err == nil {
 		d.Instance.Status.Version = &tag
 	}
