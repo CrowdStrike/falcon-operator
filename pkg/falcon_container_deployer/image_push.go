@@ -30,7 +30,8 @@ func (d *FalconContainerDeployer) PushImage() error {
 			Message: registryUri,
 			Reason:  "Discovered",
 		})
-		return nil
+		_, err := d.imageTag()
+		return err
 	}
 
 	pushAuth, err := d.pushAuth()
