@@ -5,3 +5,8 @@ metadata:
 spec:
   falcon_api:
     cloud_region: us-1
+  registry:
+    type: crowdstrike
+  installer_args:
+    - '-falconctl-opts'
+    - '--tags=test-cluster'

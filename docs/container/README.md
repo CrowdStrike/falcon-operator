@@ -30,7 +30,10 @@ spec:
     client_secret: PLEASE_FILL_IN
     cloud_region: us-1
   registry:
-    type: gcr
+    type: crowdstrike
+  installer_args:
+    - '-falconctl-opts'
+    - '--tags=test-cluster'
 ```
 
 The `cid` parameter refers to CrowdStrike Customer ID. This CID will be used to start Falcon Container sensors and all the data will be reported to that CID. The `client_id` and `client_secret` parameters refer to API key pairs used to download the CrowdStrike Falcon Container sensor (no other permission except the sensor download shall be granted to this API key pair).
