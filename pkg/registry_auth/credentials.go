@@ -1,8 +1,6 @@
 package registry_auth
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
@@ -14,7 +12,7 @@ import (
 type Credentials interface {
 	Name() string
 	DestinationContext() (*types.SystemContext, error)
-	Pulltoken() (string, error)
+	Pulltoken() ([]byte, error)
 }
 
 func newCreds(secret corev1.Secret) Credentials {
@@ -87,8 +85,8 @@ func (l *legacy) Name() string {
 	return l.name
 }
 
-func (l *legacy) Pulltoken() (string, error) {
-	return base64.StdEncoding.EncodeToString(l.Dockercfg), nil
+func (l *legacy) Pulltoken() ([]byte, error) {
+	return l.Dockercfg, nil
 }
 
 type classic struct {
@@ -113,8 +111,8 @@ func (c *classic) DestinationContext() (*types.SystemContext, error) {
 	}, nil
 }
 
-func (c *classic) Pulltoken() (string, error) {
-	return base64.StdEncoding.EncodeToString([]byte(c.value)), nil
+func (c *classic) Pulltoken() ([]byte, error) {
+	return c.value, nil
 }
 
 type gcr struct {
@@ -126,35 +124,14 @@ func (g *gcr) Name() string {
 	return g.name
 }
 
-type dockerAuthConfig struct {
-	Auth string `json:"auth,omitempty"`
-}
-
-type dockerConfigFile struct {
-	AuthConfigs map[string]dockerAuthConfig `json:"auths"`
-}
-
-func dockerJsonValid(raw []byte) bool {
-	var content dockerConfigFile
-	err := json.Unmarshal(raw, &content)
-	return (err == nil && len(content.AuthConfigs) != 0)
-}
-
-func (g *gcr) Pulltoken() (string, error) {
-	auths := dockerConfigFile{
-		AuthConfigs: map[string]dockerAuthConfig{},
-	}
+func (g *gcr) Pulltoken() ([]byte, error) {
 	username := "_json_key"
 	password := string(g.Key)
-	creds := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-	newCreds := dockerAuthConfig{Auth: creds}
-	auths.AuthConfigs["gcr.io"] = newCreds
-
-	newData, err := json.MarshalIndent(auths, "", "\t")
+	newData, err := Dockerfile("gcr.io", username, password)
 	if err != nil {
-		return "", fmt.Errorf("Error marshaling JSON: %s", err)
+		return nil, fmt.Errorf("Could not create pull token for GCR: %s", err)
 	}
-	return base64.StdEncoding.EncodeToString([]byte(newData)), nil
+	return newData, nil
 }
 
 func (g *gcr) DestinationContext() (*types.SystemContext, error) {
@@ -174,8 +151,8 @@ func (e *ecr) Name() string {
 	return "ECR Token from AWS API"
 }
 
-func (e *ecr) Pulltoken() (string, error) {
-	return "", fmt.Errorf("Pulltoken on ECR not implemented")
+func (e *ecr) Pulltoken() ([]byte, error) {
+	return nil, fmt.Errorf("Pulltoken on ECR not implemented")
 }
 
 func (e *ecr) DestinationContext() (*types.SystemContext, error) {

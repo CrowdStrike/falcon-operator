@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 
+	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/crowdstrike/gofalcon/falcon/client/falcon_container"
 )
@@ -38,22 +39,36 @@ func NewFalconRegistry(apiCfg *falcon.ApiConfig, CID string, logger logr.Logger)
 	}, nil
 }
 
-func (reg *FalconRegistry) PullInfo(ctx context.Context, versionRequested *string) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
-	systemContext, err = reg.systemContext()
+func (reg *FalconRegistry) Pulltoken() ([]byte, error) {
+	username, err := reg.username()
 	if err != nil {
-		return
+		return nil, err
 	}
-	imageUri := reg.imageUri()
-	falconTag, err = lastTag(ctx, systemContext, imageUri, versionRequested)
+	dockerfile, err := registry_auth.Dockerfile("registry.crowdstrike.com", username, reg.token)
 	if err != nil {
-		return
+		return nil, err
 	}
+	return dockerfile, nil
+}
 
-	falconImage, err = imageReference(imageUri, falconTag)
+func (reg *FalconRegistry) PullInfo(ctx context.Context, versionRequested *string) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
+	falconTag, err = reg.LastContainerTag(ctx, versionRequested)
+	if err != nil {
+		return
+	}
+	falconImage, err = imageReference(reg.imageUri(), falconTag)
 	if err != nil {
 		return
 	}
 	return
+}
+
+func (reg *FalconRegistry) LastContainerTag(ctx context.Context, versionRequested *string) (string, error) {
+	systemContext, err := reg.systemContext()
+	if err != nil {
+		return "", err
+	}
+	return lastTag(ctx, systemContext, reg.imageUri(), versionRequested)
 }
 
 func imageReference(imageUri, tag string) (types.ImageReference, error) {
@@ -162,5 +177,9 @@ func registryToken(apiCfg *falcon.ApiConfig, logger logr.Logger) (string, error)
 }
 
 func (fr *FalconRegistry) imageUri() string {
-	return fmt.Sprintf("registry.crowdstrike.com/falcon-container/%s/release/falcon-sensor", fr.falconCloud.String())
+	return ImageURI(fr.falconCloud)
+}
+
+func ImageURI(falconCloud falcon.CloudType) string {
+	return fmt.Sprintf("registry.crowdstrike.com/falcon-container/%s/release/falcon-sensor", falconCloud.String())
 }

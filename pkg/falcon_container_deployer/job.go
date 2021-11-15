@@ -51,6 +51,16 @@ func (d *FalconContainerDeployer) CreateJob() error {
 	if err != nil {
 		return err
 	}
+
+	var pullSecrets []corev1.LocalObjectReference = nil
+	if d.JobSecretRequired() {
+		pullSecrets = []corev1.LocalObjectReference{
+			{
+				Name: JOB_SECRET_NAME,
+			},
+		}
+	}
+
 	job := &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: batchv1.SchemeGroupVersion.String(),
@@ -67,8 +77,9 @@ func (d *FalconContainerDeployer) CreateJob() error {
 					Namespace: d.Namespace(),
 				},
 				Spec: corev1.PodSpec{
-					RestartPolicy: corev1.RestartPolicyOnFailure,
-					Containers:    []corev1.Container{*containerSpec},
+					RestartPolicy:    corev1.RestartPolicyOnFailure,
+					Containers:       []corev1.Container{*containerSpec},
+					ImagePullSecrets: pullSecrets,
 				},
 			},
 		},
@@ -116,7 +127,7 @@ func (d *FalconContainerDeployer) installerCmd(imageUri string) ([]string, error
 	cid := d.Instance.Spec.FalconAPI.CID
 	installCmd := []string{"installer", "-cid", cid, "-image", imageUri}
 
-	pulltoken, err := d.pulltoken()
+	pulltoken, err := d.pulltokenBase64()
 	if err != nil {
 		return nil, err
 	}

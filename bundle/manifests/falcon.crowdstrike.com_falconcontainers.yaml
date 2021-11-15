@@ -109,6 +109,7 @@ spec:
                     - acr
                     - ecr
                     - gcr
+                    - crowdstrike
                     - openshift
                     type: string
                 required:

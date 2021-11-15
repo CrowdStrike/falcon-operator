@@ -7,8 +7,12 @@ import (
 // ApiConfig generates standard gofalcon library api config
 func (fa *FalconAPI) ApiConfig() *falcon.ApiConfig {
 	return &falcon.ApiConfig{
-		Cloud:        falcon.Cloud(fa.CloudRegion),
+		Cloud:        fa.FalconCloud(),
 		ClientId:     fa.ClientId,
 		ClientSecret: fa.ClientSecret,
 	}
+}
+
+func (fa *FalconAPI) FalconCloud() falcon.CloudType {
+	return falcon.Cloud(fa.CloudRegion)
 }
