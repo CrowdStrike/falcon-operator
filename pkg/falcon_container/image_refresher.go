@@ -24,17 +24,15 @@ type ImageRefresher struct {
 	ctx                   context.Context
 	log                   logr.Logger
 	falconConfig          *falcon.ApiConfig
-	falconCID             string
 	insecureSkipTLSVerify bool
 	pushCredentials       registry_auth.Credentials
 }
 
-func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig, CID string, pushAuth registry_auth.Credentials, insecureSkipTLSVerify bool) *ImageRefresher {
+func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falcon.ApiConfig, pushAuth registry_auth.Credentials, insecureSkipTLSVerify bool) *ImageRefresher {
 	return &ImageRefresher{
 		ctx:                   ctx,
 		log:                   log,
 		falconConfig:          falconConfig,
-		falconCID:             CID,
 		insecureSkipTLSVerify: insecureSkipTLSVerify,
 		pushCredentials:       pushAuth,
 	}
@@ -95,7 +93,7 @@ func (r *ImageRefresher) Refresh(imageDestination string, versionRequested *stri
 }
 
 func (r *ImageRefresher) source(versionRequested *string) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
-	registry, err := falcon_registry.NewFalconRegistry(r.falconConfig, r.falconCID)
+	registry, err := falcon_registry.NewFalconRegistry(r.falconConfig)
 	if err != nil {
 		return
 	}
