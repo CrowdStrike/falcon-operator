@@ -15,8 +15,13 @@ The Falcon Container sensor for Linux extends runtime security to container work
 Learn more at [product pages](https://www.crowdstrike.com/products/cloud-security/falcon-cloud-workload-protection/container-security/).
 
 
-## Installation Steps
-Falcon Operator provides automated install & uninstall of a Falcon Container Sensor. To start a new installation please push the FalconContainer resource to your cluster. A sample FalconContainer resource follows:
+## About FalconContainer Custom Resource
+Falcon Operator introduces FalconContainer Custom Resource to the cluster. The resource is meant to be singleton and it will install, configure and uninstall Falcon Container Sensor on the cluster.
+
+To start the Falcon Container installation please push the following FalconContainer resource to your cluster. You will need to provide CrowdStrike API Keys and CrowdStrike cloud region for the installation. It is recommended to establish new API credentials for the installation at https://falcon.crowdstrike.com/support/api-clients-and-keys, minimal required permissions are:
+ * Falcon Images Download: Read
+ * Sensor Download: Read
+No other permissions shall be granted to the new API key pair.
 
 ```
 apiVersion: falcon.crowdstrike.com/v1alpha1
@@ -35,9 +40,36 @@ spec:
     - '--tags=test-cluster'
 ```
 
-The `cid` parameter refers to CrowdStrike Customer ID. This CID will be used to start Falcon Container sensors and all the data will be reported to that CID. The `client_id` and `client_secret` parameters refer to API key pairs used to download the CrowdStrike Falcon Container sensor (no other permission except the sensor download shall be granted to this API key pair).
+### Installation Phases
 
-When FalconContainer resources are pushed to the cluster, falcon-operator will automatically install the Falcon Container product to the cluster.
+Once the FalconContainer resource is pushed to the cluster the operator will start an installation process. The installation process consists of the following 5 phases
+
+| Phase         | Description                                                                                                                                  |
+|:--------------|:---------------------------------------------------------------------------------------------------------------------------------------------|
+| *Pending*     | Namespace `falcon-system-configure` is created. Optionally registry may be initialised (OpenShift ImageStream or new ECR repository created) |
+| *Building*    | Falcon Container is pushed to custom registry (not applicable if registry.type=crowdstrike` that skips the image push)                       |
+| *Configuring* | Falcon Container Installer is run in `falcon-system-configure` namespace as Kubernetes Job. Operator waits for the Job completion            |
+| *Deploying*   | Using the Installer output, Falcon Container is installed to the cluster                                                                     |
+| *Done*        | Falcon Container Injector is up and running in `falcon-system` namespace.                                                                    |
+
+### FalconContainer Reference Manual
+
+| Spec                                | Description                                                                                                                              |
+| :---------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------|
+| falcon_api.client_id                | CrowdStrike API Client ID                                                                                                                |
+| falcon_api.client_secret            | CrowdStrike API Client Secret                                                                                                            |
+| falcon_api.client_region            | CrowdStrike cloud region (allowed values: us-1, us-2, eu-1, us-gov-1)                                                                    |
+| registry.type                       | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift))                                             |
+| registry.tls.insecure_skip_verify   | (optional) Skip TLS check when pushing Falcon Container to target registry (only for demoing purposes on self-signed openshift clusters) |
+| registry.acr_name                   | (optional) Name of ACR for the Falcon Container push. Only applicable to Azure cloud. (`registry.type="acr"`)                            |
+| installer_args                      | (optional) Additional arguments to Falcon Container Installer (see [Product Documentation](https://falcon.crowdstrike.com/documentation/146/falcon-container-sensor-for-linux)) |
+| version                             | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                        | 
+
+### Install Steps
+ - To install Falcon Container (assuming Falcon Operator is installed):
+   ```
+   kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconcontainer.yaml --edit=true
+   ```
 
 ### Uninstall Steps
  - To uninstall Falcon Container simply remove the FalconContainer resource. The operator will uninstall the Falcon Container product from the cluster.
@@ -62,7 +94,7 @@ The following namespaces will be used by Falcon Operator.
 
 ### Compatibility Guide
 
-Falcon Operator supports EKS (with ECR), GKE (with GCR), and OpenShift (with ImageStreams).
+Falcon Operator has been explicitly tested on AKS (with ECR), EKS (with ECR), GKE (with GCR), and OpenShift (with ImageStreams).
 
 | Platform                      | Supported versions                                     |
 |:------------------------------|:-------------------------------------------------------|
