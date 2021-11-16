@@ -78,19 +78,11 @@ func (reg *FalconRegistry) PullInfo(ctx context.Context, versionRequested *strin
 	return
 }
 
-func (reg *FalconRegistry) LastContainerTag(ctx context.Context, versionRequested *string) (string, error) {
-	systemContext, err := reg.systemContext()
-	if err != nil {
-		return "", err
-	}
-	return lastTag(ctx, systemContext, reg.imageUri(), versionRequested)
-}
-
 func imageReference(imageUri, tag string) (types.ImageReference, error) {
 	return docker.ParseReference(fmt.Sprintf("//%s:%s", imageUri, tag))
 }
 
-func lastTag(ctx context.Context, systemContext *types.SystemContext, imageUri string, versionRequested *string) (string, error) {
+func lastTag(ctx context.Context, systemContext *types.SystemContext, imageUri string, filter func(string) bool) (string, error) {
 	ref, err := reference.ParseNormalizedNamed(imageUri)
 	if err != nil {
 		return "", err
@@ -104,30 +96,21 @@ func lastTag(ctx context.Context, systemContext *types.SystemContext, imageUri s
 	if err != nil {
 		return "", err
 	}
-	return guessLastTag(tags, versionRequested)
+	return guessLastTag(tags, filter)
 }
 
-func guessLastTag(tags []string, versionRequested *string) (string, error) {
-	versionTags := []string{}
+func guessLastTag(tags []string, filter func(string) bool) (string, error) {
+	filteredTags := []string{}
 	for _, tag := range tags {
-		if tag[0] >= '0' && tag[0] <= '9' {
-			versionTags = append(versionTags, tag)
+		if filter(tag) {
+			filteredTags = append(filteredTags, tag)
 		}
 	}
-	if len(versionTags) == 0 {
+	if len(filteredTags) == 0 {
 		return "", fmt.Errorf("Could not find suitable image tag in the CrowdStrike registry. Tags were: %+v", tags)
 	}
 
-	if versionRequested != nil {
-		for i := range versionTags {
-			tag := versionTags[len(versionTags)-i-1]
-			if strings.HasPrefix(tag, *versionRequested) {
-				return tag, nil
-			}
-		}
-		return "", fmt.Errorf("Could not find suitable image tag in the CrowdStrike registry. Requested version was: %s while the available tags were: %+v", *versionRequested, tags)
-	}
-	return versionTags[len(versionTags)-1], nil
+	return filteredTags[len(filteredTags)-1], nil
 }
 
 func listDockerTags(ctx context.Context, sys *types.SystemContext, imgRef types.ImageReference) ([]string, error) {
