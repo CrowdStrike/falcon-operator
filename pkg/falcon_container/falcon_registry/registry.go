@@ -22,7 +22,12 @@ type FalconRegistry struct {
 }
 
 func NewFalconRegistry(apiCfg *falcon.ApiConfig) (*FalconRegistry, error) {
-	token, err := falcon_api.RegistryToken(apiCfg)
+	client, err := falcon.NewClient(apiCfg)
+	if err != nil {
+		return nil, fmt.Errorf("Could not authenticate with CrowdStrike API: %v", err)
+	}
+
+	token, err := falcon_api.RegistryToken(apiCfg.Context, client)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to fetch registry token for CrowdStrike container registry: %v", err)
 	}
@@ -30,7 +35,7 @@ func NewFalconRegistry(apiCfg *falcon.ApiConfig) (*FalconRegistry, error) {
 		return nil, errors.New("Empty registry token received from CrowdStrike API")
 	}
 
-	ccid, err := falcon_api.CCID(apiCfg)
+	ccid, err := falcon_api.CCID(apiCfg.Context, client)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to fetch CCID from CrowdStrike API: %v", err)
 	}

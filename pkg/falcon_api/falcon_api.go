@@ -1,20 +1,18 @@
 package falcon_api
 
 import (
+	"context"
 	"fmt"
+
 	"github.com/crowdstrike/gofalcon/falcon"
+	"github.com/crowdstrike/gofalcon/falcon/client"
 	"github.com/crowdstrike/gofalcon/falcon/client/falcon_container"
 	"github.com/crowdstrike/gofalcon/falcon/client/sensor_download"
 )
 
-func RegistryToken(apiCfg *falcon.ApiConfig) (string, error) {
-	client, err := falcon.NewClient(apiCfg)
-	if err != nil {
-		return "", err
-	}
-
+func RegistryToken(ctx context.Context, client *client.CrowdStrikeAPISpecification) (string, error) {
 	res, err := client.FalconContainer.GetCredentials(&falcon_container.GetCredentialsParams{
-		Context: apiCfg.Context,
+		Context: ctx,
 	})
 	if err != nil {
 		return "", err
@@ -37,13 +35,9 @@ func RegistryToken(apiCfg *falcon.ApiConfig) (string, error) {
 	return valueString, nil
 }
 
-func CCID(apiCfg *falcon.ApiConfig) (string, error) {
-	client, err := falcon.NewClient(apiCfg)
-	if err != nil {
-		return "", err
-	}
+func CCID(ctx context.Context, client *client.CrowdStrikeAPISpecification) (string, error) {
 	response, err := client.SensorDownload.GetSensorInstallersCCIDByQuery(&sensor_download.GetSensorInstallersCCIDByQueryParams{
-		Context: apiCfg.Context,
+		Context: ctx,
 	})
 	if err != nil {
 		return "", fmt.Errorf("Could not get CCID from CrowdStrike Falcon API: %v", err)
