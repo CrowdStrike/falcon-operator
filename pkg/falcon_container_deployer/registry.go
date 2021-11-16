@@ -9,7 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/falcon_registry"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
 )
 

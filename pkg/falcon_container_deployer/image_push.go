@@ -10,7 +10,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_container/falcon_registry"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
 	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
 	"github.com/crowdstrike/gofalcon/falcon"
