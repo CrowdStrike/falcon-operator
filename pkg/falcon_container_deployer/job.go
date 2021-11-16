@@ -3,6 +3,8 @@ package falcon_container_deployer
 import (
 	"fmt"
 
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
+	"github.com/crowdstrike/gofalcon/falcon"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -124,7 +126,10 @@ func (d *FalconContainerDeployer) installerContainer() (*corev1.Container, error
 }
 
 func (d *FalconContainerDeployer) installerCmd(imageUri string) ([]string, error) {
-	cid := d.Instance.Spec.FalconAPI.CID
+	cid, err := d.getCCID()
+	if err != nil {
+		return nil, err
+	}
 	installCmd := []string{"installer", "-cid", cid, "-image", imageUri}
 
 	pulltoken, err := d.pulltokenBase64()
@@ -140,4 +145,15 @@ func (d *FalconContainerDeployer) installerCmd(imageUri string) ([]string, error
 	}
 
 	return append(installCmd, d.Instance.Spec.InstallerArgs...), nil
+}
+
+func (d *FalconContainerDeployer) getCCID() (string, error) {
+	if d.Instance.Spec.FalconAPI.CID != nil {
+		return *d.Instance.Spec.FalconAPI.CID, nil
+	}
+	client, err := falcon.NewClient(d.falconApiConfig())
+	if err != nil {
+		return "", err
+	}
+	return falcon_api.CCID(d.Ctx, client)
 }
