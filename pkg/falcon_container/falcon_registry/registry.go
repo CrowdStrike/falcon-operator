@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-logr/logr"
-
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
@@ -23,8 +21,8 @@ type FalconRegistry struct {
 	falconCID   string
 }
 
-func NewFalconRegistry(apiCfg *falcon.ApiConfig, CID string, logger logr.Logger) (*FalconRegistry, error) {
-	token, err := registryToken(apiCfg, logger)
+func NewFalconRegistry(apiCfg *falcon.ApiConfig, CID string) (*FalconRegistry, error) {
+	token, err := registryToken(apiCfg)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to fetch registry token for CrowdStrike container registry: %v", err)
 	}
@@ -150,7 +148,7 @@ func (fr *FalconRegistry) username() (string, error) {
 	return fmt.Sprintf("fc-%s", lowerCID), nil
 }
 
-func registryToken(apiCfg *falcon.ApiConfig, logger logr.Logger) (string, error) {
+func registryToken(apiCfg *falcon.ApiConfig) (string, error) {
 	client, err := falcon.NewClient(apiCfg)
 	if err != nil {
 		return "", err

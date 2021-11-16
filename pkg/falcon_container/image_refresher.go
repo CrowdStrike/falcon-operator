@@ -95,7 +95,7 @@ func (r *ImageRefresher) Refresh(imageDestination string, versionRequested *stri
 }
 
 func (r *ImageRefresher) source(versionRequested *string) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
-	registry, err := falcon_registry.NewFalconRegistry(r.falconConfig, r.falconCID, r.log)
+	registry, err := falcon_registry.NewFalconRegistry(r.falconConfig, r.falconCID)
 	if err != nil {
 		return
 	}

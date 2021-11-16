@@ -108,7 +108,7 @@ func (d *FalconContainerDeployer) imageTag() (string, error) {
 	if d.Instance.Status.Version != nil && *d.Instance.Status.Version != "" {
 		return *d.Instance.Status.Version, nil
 	}
-	registry, err := falcon_registry.NewFalconRegistry(d.falconApiConfig(), d.Instance.Spec.FalconAPI.CID, d.Log)
+	registry, err := falcon_registry.NewFalconRegistry(d.falconApiConfig(), d.Instance.Spec.FalconAPI.CID)
 	if err != nil {
 		return "", err
 	}
