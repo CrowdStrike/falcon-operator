@@ -50,6 +50,7 @@ func (d *FalconContainerDeployer) CreateJobSecret() error {
 		Data: map[string][]byte{
 			".dockerconfigjson": pulltoken,
 		},
+		Type: corev1.SecretTypeDockerConfigJson,
 	}
 	err = ctrl.SetControllerReference(d.Instance, secret, d.Scheme)
 	if err != nil {
