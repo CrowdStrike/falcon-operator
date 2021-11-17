@@ -13,6 +13,13 @@ metadata:
           "spec": {
             "falcon_api": {
               "cloud_region": "us-1"
+            },
+            "installer_args": [
+              "-falconctl-opts",
+              "--tags=test-cluster"
+            ],
+            "registry": {
+              "type": "crowdstrike"
             }
           }
         },

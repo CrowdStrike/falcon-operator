@@ -11,120 +11,47 @@
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator)
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator-bundle/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator-bundle)
 
-Falcon Operator installs CrowdStrike Falcon Container Sensor on the cluster.
+Falcon Operator installs CrowdStrike Falcon Container Sensor or CrowdStrike Falcon Node Sensor on the cluster.
 
 Falcon Operator is an open source project, not a CrowdStrike product. As such it carries no formal support, expressed or implied.
 
-## About Falcon Container Sensor
-The Falcon Container sensor for Linux extends runtime security to container workloads in Kubernetes clusters that don’t allow you to deploy the kernel-based Falcon sensor for Linux. The Falcon Container sensor runs as an unprivileged container in user space with no code running in the kernel of the worker node OS. This allows it to secure Kubernetes pods in clusters where it isn’t possible to deploy the kernel-based Falcon sensor for Linux on the worker node, as with AWS Fargate where organizations don’t have access to the kernel and where privileged containers are disallowed. The Falcon Container sensor can also secure container workloads on clusters where worker node security is managed separately.
-
-### Core Features
- - **Leverage market-leading protection technologies:** Machine learning (ML), artificial intelligence (AI), indicators of attack (IOAs) and custom hash blocking automatically defend against malware and sophisticated threats targeting containers.
- - **Stop malicious behavior:** Behavioral profiling enables you to block activities that violate policy with zero impact to legitimate container operation.
- - **Investigate container incidents faster:** Easily investigate incidents when detections are associated with the specific container and not bundled with host events.
- - **See everything:** Capture container start, stop, image, runtime information and all events generated inside each and every container.
- - **Deploy seamlessly with Kubernetes:** Deploy easily at scale by including it as part of a Kubernetes cluster.
- - **Improve container orchestration:** Capture Kubernetes namespace, pod metadata, process, file and network events.
-
-Learn more at [product pages](https://www.crowdstrike.com/products/cloud-security/falcon-cloud-workload-protection/container-security/).
-
 ## About Falcon Operator
-Falcon Operator deploys CrowdStrike Falcon Container Workload Protection to the cluster. The operator introduces the Custom Resource: FalconContainer that allows easy install & uninstall of the Falcon Container.
+Falcon Operator deploys CrowdStrike Falcon Workload Protection to the cluster. The operator exposes 2 custom resources that allows you to deploy either Falcon Container Sensor or Falcon Node Sensor.
 
-### Installation Steps
-Falcon Operator provides automated install & uninstall of a Falcon Container Sensor. To start a new installation please push the FalconContainer resource to your cluster. A sample FalconContainer resource follows:
+## About Custom Resources
 
-```
-apiVersion: falcon.crowdstrike.com/v1alpha1
-kind: FalconContainer
-metadata:
-  name: default
-spec:
-  falcon_api:
-    cid: PLEASE_FILL_IN
-    client_id: PLEASE_FILL_IN
-    client_secret: PLEASE_FILL_IN
-    cloud_region: us-1
-  registry:
-    type: gcr
-```
+| Custom Resource                   | Description                                                      |
+| :--------                         | :------------                                                    |
+| [FalconContainer](docs/container) | Manages installation of Falcon Container Sensor on the cluster   |
+| [FalconNodeSensor](docs/node)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
 
-The `cid` parameter refers to CrowdStrike Customer ID. This CID will be used to start Falcon Container sensors and all the data will be reported to that CID. The `client_id` and `client_secret` parameters refer to API key pairs used to download the CrowdStrike Falcon Container sensor (no other permission except the sensor download shall be granted to this API key pair).
+## Installation Steps
 
-When FalconContainer resources are pushed to the cluster, falcon-operator will automatically install the Falcon Container product to the cluster.
-
-### Uninstall Steps
- - To uninstall Falcon Container simply remove the FalconContainer resource. The operator will uninstall the Falcon Container product from the cluster.
-
+ - (option 1): In case your cluster **is** using OLM (Operator Life-cycle Manager) run:
    ```
-   kubectl delete falconcontainers.falcon.crowdstrike.com default
+   kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
    ```
- - To uninstall Falcon Operator run
+   Note: You can determine whether OLM is running by `kubectl get crd catalogsources.operators.coreos.com`
+
+ - (option 2): In case your cluster **is not** using OLM run:
+   ```
+   OPERATOR_NAMESPACE=falcon-operator
+   kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+   operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
+   ```
+
+After the installation please proceed with deploying either [Falcon Container Sensor](docs/container) or [Falcon Node Sensor](docs/node).
+
+## Uninstall Steps
+
+ - To uninstall Falcon Operator run (when installed using OLM)
    ```
    operator-sdk cleanup falcon-operator --namespace falcon-operator
    ```
-
-### Upgrades
-
-The current version of the operator does not automatically update Falcon Container sensor. Users are advised to remove & re-add FalconContainer resource to uninstall Falcon Container and to install the newest version.
-
-### Namespace Reference
-
-The following namespaces will be used by Falcon Operator.
-
-| Namespace               | Description                                                      |
-|:------------------------|:-----------------------------------------------------------------|
-| falcon-system           | Used by Falcon Container product, runs the injector and webhoook |
-| falcon-operator         | Runs falcon-operator manager                                     |
-| falcon-system-configure | Used by operator, contains objects created by operator           |
-
-### Compatibility Guide
-
-Falcon Operator supports EKS (with ECR), GKE (with GCR), and OpenShift (with ImageStreams).
-
-| Platform                      | Supported versions                                     |
-|:------------------------------|:-------------------------------------------------------|
-| EKS (with ECR)                | 1.17 or greater                                        |
-| GKE (with GCR)                | 1.18 or greater                                        |
-| OpenShift (with ImageStreams) | 4.7 or greater                                         |
-
-### Troubleshooting
-
-Falcon Operator modifies the FalconContainer CRD based on what is happening in the cluster. Should an error occur during Falcon Container deployment that error will appear in kubectl output as shown below.
-
-```
-$ kubectl get falconcontainers.falcon.crowdstrike.com
-NAME       STATUS   ERROR
-default    DONE
-```
-
-The empty ERROR column together with `status=DONE` indicates that Falcon Container deployment did not yield any errors. Should more insight be needed, users are advised to view FalconContainer CRD in full detail.
-
-```
-kubectl get falconcontainers.falcon.crowdstrike.com -o yaml
-```
-
-To review the logs of Falcon Operator:
-```
-kubectl -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
-```
-
-To review the logs of Falcon Container Installer:
-```
-kubectl logs -n falcon-system-configure job/falcon-configure
-```
-
-To review the logs of Falcon Container Injector:
-```
-kubectl logs -n falcon-system deploy/injector -f
-```
-
-### Additional Documentation
-
- - [Deployment Guide for EKS/ECR](docs/deployment/eks/README.md)
- - [Deployment Guide for GKE/GCR](docs/deployment/gke/README.md)
- - [Deployment Guide for OpenShift](docs/deployment/openshift/README.md)
- - [Developer Documentation](docs/developer_guide.md)
+ - To uninstall Falcon Operator run (when installed manually)
+   ```
+   kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+   ```
 
 ## Getting Help
 If you encounter any issues while using Falcon Operator, you can create an issue on our [Github repo](https://github.com/CrowdStrike/falcon-operator) for bugs, enhancements, or other requests.
@@ -145,3 +72,4 @@ All bugs, tasks or enhancements are tracked as [GitHub issues](https://github.co
  - So You Think Your Containers Are Secure? Four Steps to Ensure a Secure Container Deployment: [Blog Post](https://www.crowdstrike.com/blog/four-steps-to-ensure-a-secure-containter-deployment/)
  - Container Security With CrowdStrike: [Blog Post](https://www.crowdstrike.com/blog/tech-center/container-security/)
  - To learn more about Falcon Container Sensor for Linux: [Deployment Guide](https://falcon.crowdstrike.com/support/documentation/146/falcon-container-sensor-for-linux), [Release Notes](https://falcon.crowdstrike.com/support/news/release-notes-falcon-container-sensor-for-linux)
+ - [Developer Documentation](docs/developer_guide.md)
