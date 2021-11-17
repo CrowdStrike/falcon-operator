@@ -38,18 +38,17 @@ spec:
 | node.image                          | Location of the CrowdStrike Daemonset image                                                                                               |
 
 ### Install Steps
-
- - To install Falcon Node Sensor (assuming Falcon Operator is installed):
-   ```
-   kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
-   ```
+To install Falcon Node Sensor (assuming Falcon Operator is installed):
+```
+kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
+```
 
 ### Uninstall Steps
- - To uninstall Falcon Node Sensor simply remove the FalconNodeSensor resource. The operator will uninstall the Falcon Sensor from the cluster.
+To uninstall Falcon Node Sensor simply remove the FalconNodeSensor resource. The operator will uninstall the Falcon Sensor from the cluster.
 
-   ```
-   kubectl delete falconnodesensors.falcon.crowdstrike.com --all -A
-   ```
+```
+kubectl delete falconnodesensors.falcon.crowdstrike.com --all -A
+```
 
 ### Troubleshooting
 
