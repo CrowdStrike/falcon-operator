@@ -52,6 +52,10 @@ func (reg *FalconRegistry) Pulltoken() ([]byte, error) {
 }
 
 func (reg *FalconRegistry) PullInfo(ctx context.Context, versionRequested *string) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
+	systemContext, err = reg.systemContext()
+	if err != nil {
+		return
+	}
 	falconTag, err = reg.LastContainerTag(ctx, versionRequested)
 	if err != nil {
 		return
