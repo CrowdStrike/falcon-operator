@@ -17,3 +17,7 @@ func IsJobCompleted(job *batchv1.Job) bool {
 func IsPodCompleted(pod *corev1.Pod) bool {
 	return pod.Status.Phase == corev1.PodSucceeded
 }
+
+func IsPodRunning(pod *corev1.Pod) bool {
+	return pod.Status.Phase == corev1.PodRunning
+}

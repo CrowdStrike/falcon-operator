@@ -46,11 +46,12 @@ spec:
 Once the FalconContainer resource is pushed to the cluster the operator will start an installation process. The installation process consists of the following 5 phases
 
 | Phase         | Description                                                                                                                                  |
-|:--------------|:---------------------------------------------------------------------------------------------------------------------------------------------|
+| :-------------| :--------------------------------------------------------------------------------------------------------------------------------------------|
 | *Pending*     | Namespace `falcon-system-configure` is created. Optionally registry may be initialised (OpenShift ImageStream or new ECR repository created) |
 | *Building*    | Falcon Container is pushed to custom registry (not applicable if `registry.type=crowdstrike` that skips the image push)                      |
 | *Configuring* | Falcon Container Installer is run in `falcon-system-configure` namespace as Kubernetes Job. Operator waits for the Job completion            |
 | *Deploying*   | Using the Installer output, Falcon Container is installed to the cluster                                                                     |
+| *Validating*  | Operator asserts whether Falcon Container is deployed successfully                                                                           |
 | *Done*        | Falcon Container Injector is up and running in `falcon-system` namespace.                                                                    |
 
 ### FalconContainer Reference Manual
