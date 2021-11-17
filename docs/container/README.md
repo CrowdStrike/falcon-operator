@@ -65,6 +65,16 @@ Once the FalconContainer resource is pushed to the cluster the operator will sta
 | installer_args                      | (optional) Additional arguments to Falcon Container Installer (see [Product Documentation](https://falcon.crowdstrike.com/documentation/146/falcon-container-sensor-for-linux)) |
 | version                             | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                        | 
 
+| Status                              | Description                                                                                                                               |
+| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
+| phase                               | Current phase of the deployment (see Installation Phases above) Must be `DONE` on successful deployment)                                  |
+| errormsg                            | Displays the last notable error. Must be empty on successful deployment.                                                                  |
+| version                             | Version of Falcon Container that is currently deployed                                                                                    |
+| retry_attempt                       | Number of previous failed attempts (valid values: 0-5)                                                                                    |
+| conditions.["ImageReady"]           | Informs about readiness of Falcon Container image. Custom message refers to image URI that will be used during the deployment             |
+| conditions.["InstallerComplete"]    | Informs about completion of Falcon Container Installer. Users can review the installer Job/Pod in `falcon-system-configure` namespace     |
+| conditions.["Complete"]             | Informs about the completion of the deployment of Falcon Container                                                                        |
+
 ### Install Steps
  - To install Falcon Container (assuming Falcon Operator is installed):
    ```
