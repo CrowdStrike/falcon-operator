@@ -146,6 +146,8 @@ kubectl logs -n falcon-system deploy/injector -f
 ```
 
 ### Additional Documentation
+End-to-end guides to install Falcon-operator together with FalconContainer resource.
+
  - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md)
  - [Deployment Guide for GKE/GCR](../../docs/deployment/gke/README.md)
  - [Deployment Guide for OpenShift](../../docs/deployment/openshift/README.md)

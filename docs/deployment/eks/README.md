@@ -1,4 +1,5 @@
 # Deployment Guide for EKS & ECR
+This document will guide you through the installation of falcon-operator and deployment of [FalconContainer](../../container) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to ECR (Elastic Container Registry). New AWS IAM Policy will be created to allow the opeator to push to ECR registry.
 
 ## Pre-requisites
 

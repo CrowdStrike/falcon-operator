@@ -1,8 +1,9 @@
 # Deployment Guide for GKE
+This document will guide you through the installation of falcon-operator and deployment of [FalconContainer](../../container) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to GCR (Google Container Registry). New GCP service account for pushing to GCR registry will be created.
 
 ## Pre-requisites
 
- - Have CrowdStrike CWP subscription with Falcon Container enabled (have your CrowdStrike CID ready)
+ - Have CrowdStrike CWP subscription with Falcon Container enabled
  - Have Container Administrator access to GCP and at least one GKE cluster deployed
  - Create new CrowdStrike API key pair with permission to download the sensor (no other permission shall be required)
 
