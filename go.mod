@@ -16,6 +16,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
+	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/openshift/api v0.0.0-20210428205234-a8389931bee7
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
