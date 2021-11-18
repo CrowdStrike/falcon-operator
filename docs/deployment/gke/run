@@ -82,13 +82,20 @@ kubectl create ns $FALCON_SYSTEM_CONFIGURE --dry-run=client -o yaml | kubectl ap
 GCP_PROJECT_ID=$(gcloud config get-value core/project)
 
 if ! kubectl get secret builder -n $FALCON_SYSTEM_CONFIGURE > /dev/null 2>&1; then
+    GCP_ROLE_NAME=falconOperatorPush
     if ! gcloud iam service-accounts describe falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com > /dev/null 2>&1 ; then
+
+        if ! gcloud iam roles describe "$GCP_ROLE_NAME" --project "$GCP_PROJECT_ID" > /dev/null 2>&1; then
+            gcloud iam roles create "$GCP_ROLE_NAME" --project="$GC_PROJECT_ID" \
+                   --file=https://raw.githubusercontent.com/CrowdStrike/falcon-operator/e572d06efaf8dbb0cecdfeaa3cbede9b0f2d5c6d/docs/deployment/gke/gcp-role.yaml
+        fi
+
         gcloud iam service-accounts create falcon-operator
     fi
 
     gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
         --member serviceAccount:falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com \
-        --role roles/storage.admin
+        --role roles/"$GCP_ROLE_NAME"
 
     gcloud iam service-accounts keys create \
         --iam-account "falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
