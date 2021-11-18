@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.8.1
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.5.0
 	github.com/containerd/containerd v1.5.8 // indirect
-	github.com/containers/image/v5 v5.15.2
+	github.com/containers/image/v5 v5.16.1
 	github.com/crowdstrike/gofalcon v0.2.11
 	github.com/fsnotify/fsnotify v1.5.0 // indirect
 	github.com/go-logr/logr v0.4.0
