@@ -116,7 +116,7 @@ func guessLastTag(tags []string, filter func(string) bool) (string, error) {
 func listDockerTags(ctx context.Context, sys *types.SystemContext, imgRef types.ImageReference) ([]string, error) {
 	tags, err := docker.GetRepositoryTags(ctx, sys, imgRef)
 	if err != nil {
-		return nil, fmt.Errorf("Error listing repository tags: %v", err)
+		return nil, fmt.Errorf("Error listing repository (%s) tags: %v", imgRef.StringWithinTransport(), err)
 	}
 	return tags, nil
 }
