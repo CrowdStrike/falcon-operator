@@ -23,7 +23,7 @@ func (d *FalconContainerDeployer) pulltoken() ([]byte, error) {
 	case falconv1alpha1.RegistryTypeECR:
 		return nil, nil
 	case falconv1alpha1.RegistryTypeCrowdStrike:
-		registry, err := falcon_registry.NewFalconRegistry(d.falconApiConfig(), d.Instance.Spec.FalconAPI.CID, d.Log)
+		registry, err := falcon_registry.NewFalconRegistry(d.falconApiConfig())
 		if err != nil {
 			return nil, err
 		}

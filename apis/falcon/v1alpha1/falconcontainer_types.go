@@ -16,9 +16,9 @@ type FalconAPI struct {
 	ClientId string `json:"client_id"`
 	// Falcon OAuth2 API Client Secret
 	ClientSecret string `json:"client_secret"`
-	// Falcon Customer ID (CID)
+	// Falcon Customer ID (CID) Override (optional, default is derived from the API Key pair)
 	// +kubebuilder:validation:Pattern="^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$"
-	CID string `json:"cid"`
+	CID *string `json:"cid,omitempty"`
 }
 
 // RegistryTLSSpec configures TLS for registry pushing

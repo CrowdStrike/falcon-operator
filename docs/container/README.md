@@ -25,7 +25,6 @@ metadata:
   name: default
 spec:
   falcon_api:
-    cid: PLEASE_FILL_IN
     client_id: PLEASE_FILL_IN
     client_secret: PLEASE_FILL_IN
     cloud_region: us-1

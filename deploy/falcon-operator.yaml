@@ -53,7 +53,8 @@ spec:
                   operator to CrowdStrike Falcon platform.
                 properties:
                   cid:
-                    description: Falcon Customer ID (CID)
+                    description: Falcon Customer ID (CID) Override (optional, default
+                      is derived from the API Key pair)
                     pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
                     type: string
                   client_id:
@@ -72,7 +73,6 @@ spec:
                     - us-gov-1
                     type: string
                 required:
-                - cid
                 - client_id
                 - client_secret
                 - cloud_region

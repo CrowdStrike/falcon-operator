@@ -6,15 +6,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-logr/logr"
-
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
 	"github.com/crowdstrike/gofalcon/falcon"
-	"github.com/crowdstrike/gofalcon/falcon/client/falcon_container"
 )
 
 type FalconRegistry struct {
@@ -23,8 +21,13 @@ type FalconRegistry struct {
 	falconCID   string
 }
 
-func NewFalconRegistry(apiCfg *falcon.ApiConfig, CID string, logger logr.Logger) (*FalconRegistry, error) {
-	token, err := registryToken(apiCfg, logger)
+func NewFalconRegistry(apiCfg *falcon.ApiConfig) (*FalconRegistry, error) {
+	client, err := falcon.NewClient(apiCfg)
+	if err != nil {
+		return nil, fmt.Errorf("Could not authenticate with CrowdStrike API: %v", err)
+	}
+
+	token, err := falcon_api.RegistryToken(apiCfg.Context, client)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to fetch registry token for CrowdStrike container registry: %v", err)
 	}
@@ -32,9 +35,17 @@ func NewFalconRegistry(apiCfg *falcon.ApiConfig, CID string, logger logr.Logger)
 		return nil, errors.New("Empty registry token received from CrowdStrike API")
 	}
 
+	ccid, err := falcon_api.CCID(apiCfg.Context, client)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to fetch CCID from CrowdStrike API: %v", err)
+	}
+	if ccid == "" {
+		return nil, errors.New("Empty CCID received from CrowdStrike API")
+	}
+
 	return &FalconRegistry{
 		falconCloud: apiCfg.Cloud,
-		falconCID:   CID,
+		falconCID:   ccid,
 		token:       token,
 	}, nil
 }
@@ -148,36 +159,6 @@ func (fr *FalconRegistry) username() (string, error) {
 	}
 	lowerCID := strings.ToLower(s[0])
 	return fmt.Sprintf("fc-%s", lowerCID), nil
-}
-
-func registryToken(apiCfg *falcon.ApiConfig, logger logr.Logger) (string, error) {
-	client, err := falcon.NewClient(apiCfg)
-	if err != nil {
-		return "", err
-	}
-
-	res, err := client.FalconContainer.GetCredentials(&falcon_container.GetCredentialsParams{
-		Context: context.Background(),
-	})
-	if err != nil {
-		return "", err
-	}
-	payload := res.GetPayload()
-	if err = falcon.AssertNoError(payload.Errors); err != nil {
-		return "", err
-	}
-	resources := payload.Resources
-	resourcesList := resources.([]interface{})
-	if len(resourcesList) != 1 {
-		return "", fmt.Errorf("Expected to receive exactly one token, but got %d\n", len(resourcesList))
-	}
-	resourceMap := resourcesList[0].(map[string]interface{})
-	value, ok := resourceMap["token"]
-	if !ok {
-		return "", fmt.Errorf("Expected to receive map containing 'token' key, but got %s\n", resourceMap)
-	}
-	valueString := value.(string)
-	return valueString, nil
 }
 
 func (fr *FalconRegistry) imageUri() string {
