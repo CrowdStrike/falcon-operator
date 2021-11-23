@@ -21,6 +21,7 @@ Falcon Operator introduces FalconContainer Custom Resource to the cluster. The r
 To start the Falcon Container installation please push the following FalconContainer resource to your cluster. You will need to provide CrowdStrike API Keys and CrowdStrike cloud region for the installation. It is recommended to establish new API credentials for the installation at https://falcon.crowdstrike.com/support/api-clients-and-keys, minimal required permissions are:
  * Falcon Images Download: Read
  * Sensor Download: Read
+
 No other permissions shall be granted to the new API key pair.
 
 ```
@@ -47,7 +48,7 @@ Once the FalconContainer resource is pushed to the cluster the operator will sta
 | Phase         | Description                                                                                                                                  |
 |:--------------|:---------------------------------------------------------------------------------------------------------------------------------------------|
 | *Pending*     | Namespace `falcon-system-configure` is created. Optionally registry may be initialised (OpenShift ImageStream or new ECR repository created) |
-| *Building*    | Falcon Container is pushed to custom registry (not applicable if registry.type=crowdstrike` that skips the image push)                       |
+| *Building*    | Falcon Container is pushed to custom registry (not applicable if `registry.type=crowdstrike` that skips the image push)                      |
 | *Configuring* | Falcon Container Installer is run in `falcon-system-configure` namespace as Kubernetes Job. Operator waits for the Job completion            |
 | *Deploying*   | Using the Installer output, Falcon Container is installed to the cluster                                                                     |
 | *Done*        | Falcon Container Injector is up and running in `falcon-system` namespace.                                                                    |
@@ -76,17 +77,17 @@ Once the FalconContainer resource is pushed to the cluster the operator will sta
 | conditions.["Complete"]             | Informs about the completion of the deployment of Falcon Container                                                                        |
 
 ### Install Steps
- - To install Falcon Container (assuming Falcon Operator is installed):
-   ```
-   kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconcontainer.yaml --edit=true
-   ```
+To install Falcon Container (assuming Falcon Operator is installed):
+```
+kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconcontainer.yaml --edit=true
+```
 
 ### Uninstall Steps
- - To uninstall Falcon Container simply remove the FalconContainer resource. The operator will uninstall the Falcon Container product from the cluster.
+To uninstall Falcon Container simply remove the FalconContainer resource. The operator will uninstall the Falcon Container product from the cluster.
 
-   ```
-   kubectl delete falconcontainers.falcon.crowdstrike.com --all
-   ```
+```
+kubectl delete falconcontainers.falcon.crowdstrike.com --all
+```
 
 ### Upgrades
 
@@ -145,6 +146,8 @@ kubectl logs -n falcon-system deploy/injector -f
 ```
 
 ### Additional Documentation
+End-to-end guides to install Falcon-operator together with FalconContainer resource.
+
  - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md)
  - [Deployment Guide for GKE/GCR](../../docs/deployment/gke/README.md)
  - [Deployment Guide for OpenShift](../../docs/deployment/openshift/README.md)

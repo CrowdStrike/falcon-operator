@@ -1,4 +1,5 @@
 # Deployment Guide for OpenShift
+This document will guide you through the installation of falcon-operator and deployment of [FalconContainer](../../container) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
 
 ## Pre-requisites
 
