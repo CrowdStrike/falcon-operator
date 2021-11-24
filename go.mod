@@ -8,15 +8,12 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.9.2
 	github.com/aws/aws-sdk-go-v2/config v1.8.1
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.5.0
-	github.com/bits-and-blooms/bitset v1.2.1 // indirect
 	github.com/containerd/cgroups v1.0.2 // indirect
 	github.com/containerd/containerd v1.5.8 // indirect
-	github.com/containerd/continuity v0.2.1 // indirect
 	github.com/containers/image/v5 v5.16.1
 	github.com/crowdstrike/gofalcon v0.2.11
 	github.com/fsnotify/fsnotify v1.5.0 // indirect
 	github.com/go-logr/logr v0.4.0
-	github.com/gogo/googleapis v1.4.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/moby/sys/mountinfo v0.5.0 // indirect
