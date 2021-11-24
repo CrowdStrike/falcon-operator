@@ -82,6 +82,8 @@ const (
 	PhaseConfiguring FalconContainerStatusPhase = "CONFIGURING"
 	// PhaseDeploying represents the state when injector is being deployed on the cluster
 	PhaseDeploying FalconContainerStatusPhase = "DEPLOYING"
+	// PhaseValidating represents the state when falcon-operator validates injector pod installation
+	PhaseValidating FalconContainerStatusPhase = "VALIDATING"
 	// PhaseDone represents the Falcon Protection being successfully installed
 	PhaseDone FalconContainerStatusPhase = "DONE"
 )

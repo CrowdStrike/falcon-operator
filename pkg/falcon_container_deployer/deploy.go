@@ -55,6 +55,8 @@ func (d *FalconContainerDeployer) Reconcile() (ctrl.Result, error) {
 		return d.PhaseConfiguring()
 	case falconv1alpha1.PhaseDeploying:
 		return d.PhaseDeploying()
+	case falconv1alpha1.PhaseValidating:
+		return d.PhaseValidating()
 	}
 
 	return ctrl.Result{}, nil
@@ -167,6 +169,19 @@ func (d *FalconContainerDeployer) PhaseDeploying() (ctrl.Result, error) {
 	err = k8s_utils.Create(d.Ctx, d.Client, objects, d.Log)
 	if err != nil {
 		return d.Error("Failed to create Falcon Container objects in the cluster", err)
+	}
+
+	return d.NextPhase(falconv1alpha1.PhaseValidating)
+}
+
+func (d *FalconContainerDeployer) PhaseValidating() (ctrl.Result, error) {
+	pod, err := d.InjectorPod()
+	if err != nil {
+		d.Log.Info("Waiting for Falcon Container Injector to deploy", "status", err.Error())
+		return ctrl.Result{RequeueAfter: time.Second * 5}, nil
+	}
+	if !k8s_utils.IsPodRunning(pod) {
+		d.Log.Info("Waiting for Falcon Container Injector to start")
 	}
 
 	d.Instance.Status.SetCondition(&metav1.Condition{
