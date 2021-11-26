@@ -11,7 +11,7 @@ require (
 	github.com/containerd/cgroups v1.0.2 // indirect
 	github.com/containerd/containerd v1.5.8 // indirect
 	github.com/containers/image/v5 v5.16.1
-	github.com/crowdstrike/gofalcon v0.2.11
+	github.com/crowdstrike/gofalcon v0.2.15
 	github.com/fsnotify/fsnotify v1.5.0 // indirect
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -26,7 +26,6 @@ require (
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/net v0.0.0-20211123203042-d83791d6bcd9 // indirect
 	golang.org/x/sys v0.0.0-20211123173158-ef496fb156ab // indirect
-	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/genproto v0.0.0-20211118181313-81c1377c94b1 // indirect
 	google.golang.org/grpc v1.42.0 // indirect
