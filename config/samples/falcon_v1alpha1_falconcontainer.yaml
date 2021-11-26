@@ -4,7 +4,7 @@ metadata:
   name: falconcontainer-sample
 spec:
   falcon_api:
-    cloud_region: us-1
+    cloud_region: autodiscover
   registry:
     type: crowdstrike
   installer_args:

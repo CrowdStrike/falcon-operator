@@ -33,7 +33,7 @@ spec:
   falcon_api:
     client_id: PLEASE_FILL_IN
     client_secret: PLEASE_FILL_IN
-    cloud_region: us-1
+    cloud_region: autodiscover
   registry:
     type: crowdstrike
   installer_args:
@@ -60,7 +60,7 @@ Once the FalconContainer resource is pushed to the cluster the operator will sta
 | :---------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------|
 | falcon_api.client_id                | CrowdStrike API Client ID                                                                                                                |
 | falcon_api.client_secret            | CrowdStrike API Client Secret                                                                                                            |
-| falcon_api.client_region            | CrowdStrike cloud region (allowed values: us-1, us-2, eu-1, us-gov-1)                                                                    |
+| falcon_api.client_region            | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                                      |
 | registry.type                       | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift))                                             |
 | registry.tls.insecure_skip_verify   | (optional) Skip TLS check when pushing Falcon Container to target registry (only for demoing purposes on self-signed openshift clusters) |
 | registry.acr_name                   | (optional) Name of ACR for the Falcon Container push. Only applicable to Azure cloud. (`registry.type="acr"`)                            |

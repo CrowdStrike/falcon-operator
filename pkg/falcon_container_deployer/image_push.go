@@ -85,7 +85,11 @@ func (d *FalconContainerDeployer) registryUri() (string, error) {
 		}
 		return fmt.Sprintf("%s.azurecr.io/falcon-container", *d.Instance.Spec.Registry.AcrName), nil
 	case falconv1alpha1.RegistryTypeCrowdStrike:
-		return falcon_registry.ImageURI(d.Instance.Spec.FalconAPI.FalconCloud()), nil
+		cloud, err := d.Instance.Spec.FalconAPI.FalconCloud(d.Ctx)
+		if err != nil {
+			return "", err
+		}
+		return falcon_registry.ImageURI(cloud), nil
 	default:
 		return "", fmt.Errorf("Unrecognized registry type: %s", d.Instance.Spec.Registry.Type)
 	}

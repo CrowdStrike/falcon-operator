@@ -12,7 +12,7 @@ metadata:
           },
           "spec": {
             "falcon_api": {
-              "cloud_region": "us-1"
+              "cloud_region": "autodiscover"
             },
             "installer_args": [
               "-falconctl-opts",
