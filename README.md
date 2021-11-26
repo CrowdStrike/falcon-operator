@@ -27,20 +27,21 @@ Falcon Operator deploys CrowdStrike Falcon Workload Protection to the cluster. T
 
 ## Installation Steps
 
- - (option 1): In case your cluster **is** using OLM (Operator Life-cycle Manager) run:
+Installation steps differ based on Operator Life-cycle Manager (OLM) availability. You can determine whether your cluster is using OLM by running: `kubectl get crd catalogsources.operators.coreos.com`
+
+ - (option 1): In case your cluster **is not** using OLM (Operator Life-cycle Manager) run:
    ```
    kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
    ```
-   Note: You can determine whether OLM is running by `kubectl get crd catalogsources.operators.coreos.com`
 
- - (option 2): In case your cluster **is not** using OLM run:
+ - (option 2): In case your cluster **is** using OLM run:
    ```
    OPERATOR_NAMESPACE=falcon-operator
    kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
    operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
    ```
 
-After the installation please proceed with deploying either [Falcon Container Sensor](docs/container) or [Falcon Node Sensor](docs/node).
+After the installation concludes please proceed with deploying either [Falcon Container Sensor](docs/container) or [Falcon Node Sensor](docs/node).
 
 ## Uninstall Steps
 
