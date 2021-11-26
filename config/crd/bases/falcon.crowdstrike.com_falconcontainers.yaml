@@ -68,6 +68,7 @@ spec:
                     description: CloudRegion defines CrowdStrike Falcon Cloud Region
                       to which the operator will connect to
                     enum:
+                    - autodiscover
                     - us-1
                     - us-2
                     - eu-1
