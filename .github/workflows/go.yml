@@ -42,6 +42,9 @@ jobs:
       with:
         version: v1.29
         args: --timeout=3m12s
+        skip-go-installation: true
+        skip-pkg-cache: true
+        skip-build-cache: true
 
     - name: Ensure go modules are tidy
       run: |
