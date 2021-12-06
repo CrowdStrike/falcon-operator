@@ -437,6 +437,9 @@ spec:
   links:
   - name: Falcon Operator
     url: https://github.com/CrowdStrike/falcon-operator
+  maintainers:
+  - email: simon.lukasik@crowdstrike.com
+    name: isimluk
   maturity: alpha
   minKubeVersion: 1.17.0
   provider:
