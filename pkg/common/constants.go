@@ -5,6 +5,9 @@ const (
 	FalconDataDir            = "/var/lib/crowdstrike"
 	FalconStoreFile          = "/var/lib/crowdstrike/falconstore"
 	FalconDefaultImage       = "falcon-node-sensor:latest"
+	FalconContainerProbePath = "/live"
+	FalconServiceHTTPSName   = "https"
+	FalconServiceHTTPSPort   = 443
 
 	FalconInstanceNameKey = "crowdstrike.com/name"
 	FalconInstanceKey     = "crowdstrike.com/instance"
