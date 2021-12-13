@@ -126,15 +126,17 @@ SDK_VERSION?=v1.8.0
 ifeq ($(OS_NAME), Linux)
     OPERATOR_SDK_URL=https://github.com/operator-framework/operator-sdk/releases/download/$(SDK_VERSION)/operator-sdk_linux_amd64
 else ifeq ($(OS_NAME), Darwin)
-    OPERATOR_SDK_URL=https://github.com/operator-framework/operator-sdk/releases/download/$(SDK_VERSION)/operator-sdk_linux_amd64
+    OPERATOR_SDK_URL=https://github.com/operator-framework/operator-sdk/releases/download/$(SDK_VERSION)/operator-sdk_darwin_amd64
 endif
 
 .PHONY: operator-sdk
 operator-sdk: $(GOBIN)/operator-sdk
 
 $(GOBIN)/operator-sdk:
-	wget -nv $(OPERATOR_SDK_URL) -O $(GOBIN)/operator-sdk || (echo "wget returned $$? trying to fetch operator-sdk. please install operator-sdk and try again"; exit 1)
+ifeq (, $(shell which operator-sdk))
+	curl -sL $(OPERATOR_SDK_URL) -o $(GOBIN)/operator-sdk || (echo "curl returned $$? trying to fetch operator-sdk. please install operator-sdk and try again"; exit 1)
 	chmod +x $(GOBIN)/operator-sdk
+endif
 
 deploy/parts/crd-falconcontainers.yaml: bundle/manifests/falcon.crowdstrike.com_falconcontainers.yaml
 	(echo "---"; cat $^ ) > $@
