@@ -276,9 +276,13 @@ spec:
                     type: string
                   billing:
                     description: Utilize default or metered billing.
+                    enum:
+                    - default
+                    - metered
                     type: boolean
                   cid:
                     description: Falcon Customer ID (CID)
+                    pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
                     type: string
                   feature:
                     description: Options to pass to the "--feature" flag. Options
@@ -289,19 +293,22 @@ spec:
                     type: boolean
                   provisioning_token:
                     description: Provisioning token.
+                    pattern: ^[0-9a-fA-F]{8}$
                     type: string
                   tags:
                     description: 'List of tags for sensor grouping. Allowed characters:
                       all alphanumerics, ''/'', ''-'', and ''_''.'
-                    items:
-                      type: string
-                    type: array
+                    pattern: ^[a-zA-Z0-9\/\-_\,]+$
+                    type: string
                   trace:
                     description: Set trace level. Options are [none|err|warn|info|debug].
+                    enum:
+                    - none
+                    - err
+                    - warn
+                    - info
+                    - debug
                     type: string
-                  update:
-                    description: SIGHUP the sensor for immediate trace/feature update.
-                    type: boolean
                 required:
                 - cid
                 type: object

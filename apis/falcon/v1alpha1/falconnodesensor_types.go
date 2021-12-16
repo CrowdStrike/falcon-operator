@@ -39,6 +39,7 @@ type FalconNodeSensorSpec struct {
 // +k8s:openapi-gen=true
 type FalconSensor struct {
 	// Falcon Customer ID (CID)
+	// +kubebuilder:validation:Pattern="^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$"
 	CID string `json:"cid"`
 	// Enable the App Proxy Port (APP). Uncommon in container-based deployments.
 	APD bool `json:"apd,omitempty"`
@@ -47,19 +48,21 @@ type FalconSensor struct {
 	// App Proxy Port (APP). Uncommon in container-based deployments.
 	APP string `json:"app,omitempty"`
 	// Utilize default or metered billing.
+	// +kubebuilder:validation:Enum=default;metered
 	Billing bool `json:"billing,omitempty"`
 	// Options to pass to the "--feature" flag. Options are [none,[enableLog[,disableLogBuffer[,disableOsfm[,emulateUpdate]]]]].
 	Feature string `json:"feature,omitempty"`
 	// Enable message log for logging to disk.
 	MessageLog bool `json:"message_log,omitempty"`
 	// Provisioning token.
+	// +kubebuilder:validation:Pattern="^[0-9a-fA-F]{8}$"
 	PToken string `json:"provisioning_token,omitempty"`
 	// List of tags for sensor grouping. Allowed characters: all alphanumerics, '/', '-', and '_'.
-	Tags []string `json:"tags,omitempty"`
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9\/\-_\,]+$`
+	Tags string `json:"tags,omitempty"`
 	// Set trace level. Options are [none|err|warn|info|debug].
+	// +kubebuilder:validation:Enum=none;err;warn;info;debug
 	Trace string `json:"trace,omitempty"`
-	// SIGHUP the sensor for immediate trace/feature update.
-	Update bool `json:"update,omitempty"`
 }
 
 // FalconNodeSensorConfig defines aspects about how the daemonset works.
