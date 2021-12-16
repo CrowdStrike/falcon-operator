@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -44,8 +45,10 @@ func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor) (map[string]s
 			switch v := val.(type) {
 			case bool:
 				m[key] = strconv.FormatBool(v)
+			case string:
+				m[key] = v
 			default:
-				m[key] = v.(string)
+				return m, fmt.Errorf("unexpected type received for FALCONCTL_OPT, field '%s', type: %T, value: %v", field, val, val)
 			}
 		}
 	}
