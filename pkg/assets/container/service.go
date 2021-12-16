@@ -8,14 +8,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func ContainerService(dsName string, nsName string, falconsensor *falconv1alpha1.FalconSensor) *corev1.Service {
-	return containerService(dsName, nsName, falconsensor)
+func ContainerService(dsName string, nsName string, falconContainer *falconv1alpha1.FalconContainer) *corev1.Service {
+	return containerService(dsName, nsName, falconContainer)
 }
 
-func containerService(dsName string, nsName string, falconsensor *falconv1alpha1.FalconSensor) *corev1.Service {
-	portName := "https"
-	var port int32 = 443
-
+func containerService(dsName string, nsName string, falconContainer *falconv1alpha1.FalconContainer) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
@@ -41,9 +38,9 @@ func containerService(dsName string, nsName string, falconsensor *falconv1alpha1
 			},
 			Ports: []corev1.ServicePort{
 				{
-					Name:       portName,
-					Port:       port,
-					TargetPort: intstr.FromString(portName),
+					Name:       common.FalconServiceHTTPSName,
+					Port:       common.FalconServiceHTTPSPort,
+					TargetPort: intstr.FromString(common.FalconServiceHTTPSName),
 				},
 			},
 		},
