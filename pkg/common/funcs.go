@@ -3,6 +3,7 @@ package common
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -27,17 +28,17 @@ func GetFalconImage(nodesensor *falconv1alpha1.FalconNodeSensor) string {
 	return nodesensor.Spec.Node.Image
 }
 
-func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor) map[string]string {
+func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor) (map[string]string, error) {
 	m := make(map[string]string)
 	var cmOptInt map[string]interface{}
 	jsonCmOpt, err := json.Marshal(falconsensor)
 	if err != nil {
-		return m
+		return nil, err
 	}
 
 	err = json.Unmarshal(jsonCmOpt, &cmOptInt)
 	if err != nil {
-		return m
+		return nil, err
 	}
 
 	// iterate through jsonCmOpt
@@ -49,13 +50,15 @@ func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor) map[string]st
 			switch v := val.(type) {
 			case bool:
 				m[key] = strconv.FormatBool(v)
+			case string:
+				m[key] = v
 			default:
-				m[key] = v.(string)
+				return m, fmt.Errorf("unexpected type received for FALCONCTL_OPT, field '%s', type: %T, value: %v", field, val, val)
 			}
 		}
 	}
 
-	return m
+	return m, nil
 }
 
 func FCAdmissionReviewVersions() []string {
