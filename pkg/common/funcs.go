@@ -22,17 +22,17 @@ func GetFalconImage(nodesensor *falconv1alpha1.FalconNodeSensor) string {
 	return nodesensor.Spec.Node.Image
 }
 
-func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor) map[string]string {
+func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor) (map[string]string, error) {
 	m := make(map[string]string)
 	var cmOptInt map[string]interface{}
 	jsonCmOpt, err := json.Marshal(falconsensor)
 	if err != nil {
-		return m
+		return nil, err
 	}
 
 	err = json.Unmarshal(jsonCmOpt, &cmOptInt)
 	if err != nil {
-		return m
+		return nil, err
 	}
 
 	// iterate through jsonCmOpt
@@ -50,5 +50,5 @@ func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor) map[string]st
 		}
 	}
 
-	return m
+	return m, nil
 }

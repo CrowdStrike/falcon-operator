@@ -12,6 +12,7 @@ func DaemonsetConfigMap(dsname string, nsname string, falconsensor *falconv1alph
 }
 
 func daemonsetConfigMap(dsname string, nsname string, falconsensor *falconv1alpha1.FalconSensor) *corev1.ConfigMap {
+	data, _ := common.FalconSensorConfig(falconsensor)
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsname,
@@ -26,6 +27,6 @@ func daemonsetConfigMap(dsname string, nsname string, falconsensor *falconv1alph
 				common.FalconControllerKey:   "controller-manager",
 			},
 		},
-		Data: common.FalconSensorConfig(falconsensor),
+		Data: data,
 	}
 }
