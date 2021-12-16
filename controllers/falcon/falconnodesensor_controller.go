@@ -168,7 +168,7 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 }
 
 func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) *corev1.ConfigMap {
-	cm := node.DaemonsetConfigMap(name, nodesensor.Namespace, &nodesensor.Spec.Falcon)
+	cm, _ := node.DaemonsetConfigMap(name, nodesensor.Namespace, &nodesensor.Spec.Falcon)
 
 	err := controllerutil.SetControllerReference(nodesensor, cm, r.Scheme)
 	if err != nil {
