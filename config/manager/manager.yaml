@@ -22,7 +22,8 @@ spec:
       labels:
         control-plane: controller-manager
     spec:
-      serviceAccountName: falcon-operator
+      securityContext:
+        runAsNonRoot: true
       containers:
       - command:
         - /manager
@@ -46,9 +47,10 @@ spec:
           periodSeconds: 10
         resources:
           limits:
-            cpu: 100m
-            memory: 256Mi
+            cpu: 200m
+            memory: 100Mi
           requests:
             cpu: 100m
             memory: 20Mi
+      serviceAccountName: falcon-operator
       terminationGracePeriodSeconds: 10
