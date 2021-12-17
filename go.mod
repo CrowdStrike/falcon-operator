@@ -7,7 +7,7 @@ require (
 	github.com/Microsoft/hcsshim v0.9.1 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.11.2
 	github.com/aws/aws-sdk-go-v2/config v1.11.0
-	github.com/aws/aws-sdk-go-v2/service/ecr v1.5.0
+	github.com/aws/aws-sdk-go-v2/service/ecr v1.11.1
 	github.com/containerd/cgroups v1.0.2 // indirect
 	github.com/containerd/containerd v1.5.8 // indirect
 	github.com/containers/image/v5 v5.17.0
