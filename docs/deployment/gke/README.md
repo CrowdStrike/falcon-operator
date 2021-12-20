@@ -37,3 +37,34 @@ This document will guide you through the installation of falcon-operator and dep
    ```
    kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
    ```
+
+## Manual installation of GCR push secret
+
+If you don't want to use the installation [script](run) mentioned above you may need to create image push secret manually.
+
+Image push secret is used by the operator to mirror Falcon Container image from CrowdStrike registry to your GCR.
+
+ - Set environment variable to refer to your GCP project
+   ```
+   GCP_PROJECT_ID=$(gcloud config get-value core/project)
+   ```
+ - Create new GCP service account
+   ```
+   gcloud iam service-accounts create falcon-operator
+   ```
+ - Grant image push access to the newly created service account
+   ```
+   gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
+       --member serviceAccount:falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com \
+       --role roles/storage.admin
+   ```
+ - Create new private key for the newly create service account
+   ```
+   gcloud iam service-accounts keys create \
+       --iam-account "falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
+       .dockerconfigjson
+   ```
+ - Store the newly created private key for image push in the kubernetes
+   ```
+   kubectl create secret docker-registry -n falcon-system-configure builder --from-file .dockerconfigjson
+   ```
