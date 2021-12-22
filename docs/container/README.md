@@ -83,7 +83,7 @@ Falcon Container Image is distributed by CrowdStrike through CrowdStrike Falcon 
 
 #### (Option 1) Use CrowdStrike registry directly
 
-This is recommended for demoing purposes. Does not require any advanced set-ups. Users are advised to use the following excerpt in theirs FalconContainer custom resource definition.
+Does not require any advanced set-ups. Users are advised to use the following excerpt in theirs FalconContainer custom resource definition.
 
 ```
 registry:
@@ -94,7 +94,7 @@ Falcon Container product will then be installed directly from CrowdStrike regist
 
 #### (Option 2) Let operator mirror Falcon Container image to your local registry
 
-This is recommended for production. Requires advanced set-up to grant the operator push access to your local registry. The operator will then mirror Falcon Container image from CrowdStrike registry to your local registry of choice.
+Requires advanced set-up to grant the operator push access to your local registry. The operator will then mirror Falcon Container image from CrowdStrike registry to your local registry of choice.
 
 Supported registries are: acr, ecr, gcr, and openshift. Each registry type requires advanced set-up enable image push.
 
