@@ -32,4 +32,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.8.3
 )
 
-replace github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
+replace (
+	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
+	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.3
+)
