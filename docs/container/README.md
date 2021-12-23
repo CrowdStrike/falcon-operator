@@ -77,6 +77,33 @@ Once the FalconContainer resource is pushed to the cluster the operator will sta
 | conditions.["InstallerComplete"]    | Informs about completion of Falcon Container Installer. Users can review the installer Job/Pod in `falcon-system-configure` namespace     |
 | conditions.["Complete"]             | Informs about the completion of the deployment of Falcon Container                                                                        |
 
+### Image Registry considerations
+
+Falcon Container Image is distributed by CrowdStrike through CrowdStrike Falcon registry. Operator supports two modes of deployment:
+
+#### (Option 1) Use CrowdStrike registry directly
+
+Does not require any advanced set-ups. Users are advised to use the following excerpt in theirs FalconContainer custom resource definition.
+
+```
+registry:
+  type: crowdstrike
+```
+
+Falcon Container product will then be installed directly from CrowdStrike registry. Any new deployment to the cluster may contact CrowdStrike registry for the image download. The `imagePullSecret` needs to be added to every namespace to enable direct pull from CrowdStrike registry. By default the `imagePullSecret` will be created in `falcon-system-configure`, `falcon-system`, and `default` namespaces.
+
+#### (Option 2) Let operator mirror Falcon Container image to your local registry
+
+Requires advanced set-up to grant the operator push access to your local registry. The operator will then mirror Falcon Container image from CrowdStrike registry to your local registry of choice.
+
+Supported registries are: acr, ecr, gcr, and openshift. Each registry type requires advanced set-up enable image push.
+
+Consult specific deployment guides to learn about the steps needed for image mirroring.
+
+ - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md)
+ - [Deployment Guide for GKE/GCR](../../docs/deployment/gke/README.md)
+ - [Deployment Guide for OpenShift](../../docs/deployment/openshift/README.md)
+
 ### Install Steps
 To install Falcon Container (assuming Falcon Operator is installed):
 ```
