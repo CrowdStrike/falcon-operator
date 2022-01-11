@@ -10,16 +10,13 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.11.1
 	github.com/containerd/cgroups v1.0.2 // indirect
 	github.com/containerd/containerd v1.5.9 // indirect
-	github.com/containerd/continuity v0.2.2 // indirect
 	github.com/containers/image/v5 v5.17.0
 	github.com/crowdstrike/gofalcon v0.2.16
 	github.com/fsnotify/fsnotify v1.5.0 // indirect
 	github.com/go-logr/logr v0.4.0
-	github.com/gogo/googleapis v1.4.1 // indirect
 	github.com/moby/sys/mountinfo v0.5.0 // indirect
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0
-	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/opencontainers/runc v1.0.3 // indirect
 	github.com/opencontainers/selinux v1.10.0 // indirect
 	github.com/openshift/api v0.0.0-20210428205234-a8389931bee7
