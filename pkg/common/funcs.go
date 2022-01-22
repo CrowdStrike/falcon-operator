@@ -1,12 +1,18 @@
 package common
 
 import (
+	"context"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	sprigcrypto "github.com/crowdstrike/falcon-operator/pkg/sprig"
+	"github.com/crowdstrike/gofalcon/falcon"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -58,6 +64,39 @@ func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor) map[string]st
 	return sensorConfig
 }
 
+func FalconContainerConfig(falconContainer *falconv1alpha1.FalconContainer) map[string]string {
+	m := make(map[string]string)
+	var cmOptInt map[string]interface{}
+	jsonCmOpt, err := json.Marshal(falconContainer)
+	if err != nil {
+		return nil
+	}
+
+	err = json.Unmarshal(jsonCmOpt, &cmOptInt)
+	if err != nil {
+		return nil
+	}
+
+	// iterate through jsonCmOpt
+	for field, val := range cmOptInt {
+		if field != "" {
+			// Make the keys match the env variable names for now
+			key := "FALCONCTL_OPT_" + strings.ToUpper(field)
+
+			switch v := val.(type) {
+			case bool:
+				m[key] = strconv.FormatBool(v)
+			case string:
+				m[key] = v
+			default:
+				return m
+			}
+		}
+	}
+
+	return m
+}
+
 func FCAdmissionReviewVersions() []string {
 	kubeVersion := GetKubernetesVersion()
 	fcArv := []string{"v1"}
@@ -92,6 +131,17 @@ func EncodedBase64String(data string) []byte {
 	return base64EncodedData
 }
 
+func DecodedBase64(s string) string {
+	b64byte, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return ""
+	}
+	re := regexp.MustCompile(`[\t|\n]*`)
+	cleanup := re.ReplaceAllString(string(b64byte), "")
+
+	return cleanup
+}
+
 func GetKubernetesVersion() *version.Info {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
@@ -110,4 +160,16 @@ func GetKubernetesVersion() *version.Info {
 	}
 
 	return version
+}
+
+func FalconCID(ctx context.Context, cid *string, fa *falcon.ApiConfig) (string, error) {
+	if cid != nil {
+		return *cid, nil
+	}
+
+	client, err := falcon.NewClient(fa)
+	if err != nil {
+		return "", err
+	}
+	return falcon_api.CCID(ctx, client)
 }

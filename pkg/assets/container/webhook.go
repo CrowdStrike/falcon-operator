@@ -10,16 +10,11 @@ import (
 )
 
 func ContainerMutatingWebhook(dsName string, nsName string, falconContainer *falconv1alpha1.FalconContainer) *arv1.MutatingWebhookConfiguration {
-	return containerMutatingWebhook(dsName, nsName, falconContainer)
-}
-
-func containerMutatingWebhook(dsName string, nsName string, falconContainer *falconv1alpha1.FalconContainer) *arv1.MutatingWebhookConfiguration {
 	sideEffectNone := arv1.SideEffectClassNone
 	failurePolicy := arv1.Fail
-	var timeoutSeconds int32 = 30
-	useURL := false
-	nsInjection := false
-	fqdn := ""
+	url := falconContainer.Spec.FalconContainerSensorConfig.URL
+	timeoutSeconds := falconContainer.Spec.FalconContainerSensorConfig.TimeoutSeconds
+	disableNSInjection := falconContainer.Spec.FalconContainerSensorConfig.DisableNSInjection
 
 	return &arv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
@@ -41,9 +36,9 @@ func containerMutatingWebhook(dsName string, nsName string, falconContainer *fal
 				AdmissionReviewVersions: common.FCAdmissionReviewVersions(),
 				SideEffects:             &sideEffectNone,
 				FailurePolicy:           &failurePolicy,
-				ClientConfig:            webhookClientConfig(useURL, dsName, fqdn),
+				ClientConfig:            webhookClientConfig(dsName, url),
 				TimeoutSeconds:          &timeoutSeconds,
-				NamespaceSelector:       webhookMatchExpressions(nsInjection, dsName),
+				NamespaceSelector:       webhookMatchExpressions(disableNSInjection, dsName),
 				Rules: []arv1.RuleWithOperations{
 					{
 						Operations: []arv1.OperationType{arv1.Create},
@@ -59,21 +54,21 @@ func containerMutatingWebhook(dsName string, nsName string, falconContainer *fal
 	}
 }
 
-func webhookClientConfig(useURL bool, namespace string, domain string) arv1.WebhookClientConfig {
+func webhookClientConfig(namespace string, url string) arv1.WebhookClientConfig {
 	webhookConfig := arv1.WebhookClientConfig{
 		CABundle: common.EncodedBase64String(common.CA.Cert),
 	}
 	path := "/mutate"
-	url := fmt.Sprintf("https://%s:%d/mutate", domain, common.FalconServiceHTTPSPort)
 
-	if !useURL {
+	if len(url) > 0 {
+		url := fmt.Sprintf("https://%s:%d/mutate", url, common.FalconServiceHTTPSPort)
+		webhookConfig.URL = &url
+	} else {
 		webhookConfig.Service = &arv1.ServiceReference{
 			Namespace: namespace,
 			Name:      namespace + "-injector",
 			Path:      &path,
 		}
-	} else {
-		webhookConfig.URL = &url
 	}
 
 	return webhookConfig

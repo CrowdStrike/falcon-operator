@@ -9,10 +9,6 @@ import (
 )
 
 func ContainerService(dsName string, nsName string, falconContainer *falconv1alpha1.FalconContainer) *corev1.Service {
-	return containerService(dsName, nsName, falconContainer)
-}
-
-func containerService(dsName string, nsName string, falconContainer *falconv1alpha1.FalconContainer) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,

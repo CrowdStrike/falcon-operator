@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -11,6 +12,7 @@ import (
 type FalconAPI struct {
 	// CloudRegion defines CrowdStrike Falcon Cloud Region to which the operator will connect to
 	// +kubebuilder:validation:Enum=autodiscover;us-1;us-2;eu-1;us-gov-1
+	// +kubebuilder:default=autodiscover
 	CloudRegion string `json:"cloud_region"`
 	// Falcon OAuth2 API Client ID
 	ClientId string `json:"client_id"`
@@ -64,10 +66,138 @@ type FalconContainerSpec struct {
 	// Registry configures container image registry to which the Falcon Container image will be pushed
 	Registry RegistrySpec `json:"registry,omitempty"`
 
+	FalconContainerSensor       `json:"falcon,omitempty"`
+	FalconContainerSensorConfig `json:"container,omitempty"`
+
 	// InstallerArgs are passed directly down to the Falcon Container Installer. Users are advised to consult Falcon Container documentation to learn about available command line arguments at https://falcon.crowdstrike.com/documentation/146/falcon-container-sensor-for-linux
 	InstallerArgs []string `json:"installer_args,omitempty"`
 	// Falcon Container Version. The latest version will be selected when version specifier is missing.
 	Version *string `json:"version,omitempty"`
+}
+
+// FalconContainerSensorConfig defines aspects about how the Falcon Container sensor and injector work.
+// +k8s:openapi-gen=true
+type FalconContainerSensorConfig struct {
+	// Image Pull Policy
+	// +kubebuilder:default=Always
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+
+	// Name of the Falcon Sensor container to pull. Format should be repository/namespace/name:tag
+	// +kubebuilder:default="falcon-sensor:latest"
+	Image string `json:"image,omitempty"`
+
+	// Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.
+	// +kubebuilder:default=30
+	TimeoutSeconds int32 `json:"timeout,omitempty"`
+
+	// Configure number of replicas for the injector deployment
+	// +kubebuilder:default=1
+	Replicas int32 `json:"replicas"`
+
+	// Configure the requests and limits of the injector. Please note that setting limits can have an affect on how effective the sensor is depending on cluster load.
+	InjectorResources Resources `json:"resources,omitempty"`
+
+	// Use URL instead of a service definition for the MutatingWebhook configuration
+	// +kubebuilder:default=""
+	URL string `json:"url,omitempty"`
+
+	// Configure the list of namespaces that should have access to pull the Falcon sensor from a registry that requires authentication.
+	Namespaces []string `json:"namespaces,omitempty"`
+
+	// Set to true if connecting to a registry that requires authentication
+	// +kubebuilder:default=false
+	EnablePullSecrets bool `json:"enablePullSecrets,omitempty"`
+
+	// Custom registry pull secret (in base64) to pull authenticate to an external registry.
+	// +kubebuilder:default=""
+	ContainerRegistryPullSecret string `json:"registryPullSecret,omitempty"`
+
+	// Enable if running in Azure AKS
+	// +kubebuilder:default=false
+	AzureEnable bool `json:"azure"`
+
+	// Path to the Kubernetes Azure config file on worker nodes (e.g. /etc/kubernetes/azure.json)
+	// +kubebuilder:default="/etc/kubernetes/azure.json"
+	AzureConfig string `json:"azureConfig"`
+
+	// Port Falcon Injector listens on
+	// +kubebuilder:default=4433
+	InjectorPort int32 `json:"injectorPort"`
+
+	// Disable injection for all Namespaces
+	// +kubebuilder:default=false
+	DisableNSInjection bool `json:"disableNSInjection"`
+
+	// Disable injection for all Pods
+	// +kubebuilder:default=false
+	DisablePodInjection bool `json:"disablePodInjection"`
+
+	// Certificate validity duration in number of days
+	// +kubebuilder:default=3650
+	CertExpiration int `json:"certExpiration"`
+
+	// The path which the container runtime daemon socket can be found on worker node. This will mount the socket in the sensor container
+	ContainerDaemonSocket string `json:"containerDaemonSocket,omitempty"`
+}
+
+// Configure the Resources of the injector pod
+// +k8s:openapi-gen=true
+type Resources struct {
+	Requests InjectorRequests `json:"requests"`
+	Limits   Limits           `json:"limits,omitempty"`
+}
+
+// Configure the resources requests of the injector pod
+// +k8s:openapi-gen=true
+type InjectorRequests struct {
+	// +kubebuilder:default:="10m"
+	CPU string `json:"cpu"`
+	// +kubebuilder:default:="20Mi"
+	Memory string `json:"memory"`
+}
+
+// Configure the resource limits of the injector pod or container sidecar sensor
+// +k8s:openapi-gen=true
+type Limits struct {
+	CPU    string `json:"cpu,omitempty"`
+	Memory string `json:"memory,omitempty"`
+}
+
+// CrowdStrike Falcon Sensor configuration settings.
+// +k8s:openapi-gen=true
+type FalconContainerSensor struct {
+	// Falcon Customer ID (CID)
+	CID string `json:"cid,omitempty"`
+	// Enable the App Proxy Port (APP). Uncommon in container-based deployments.
+	APD bool `json:"apd,omitempty"`
+	// App Proxy Hostname (APH). Uncommon in container-based deployments.
+	APH string `json:"aph,omitempty"`
+	// App Proxy Port (APP). Uncommon in container-based deployments.
+	APP string `json:"app,omitempty"`
+	// Utilize default or metered billing.
+	Billing bool `json:"billing,omitempty"`
+	// Provisioning token.
+	PToken string `json:"provisioning_token,omitempty"`
+	// List of tags for sensor grouping. Allowed characters: all alphanumerics, '/', '-', and '_'.
+	Tags []string `json:"tags,omitempty"`
+	// Set trace level. Options are [none|err|warn|info|debug].
+	Trace string `json:"trace,omitempty"`
+	// Configure the requests and limits of the container sidecar sensor. Please note that setting limits can have an affect on how effective the sensor is depending on cluster load.
+	ContainerResources *ContainerResources `json:"resources,omitempty"`
+}
+
+// Configure the resources requests of the container sidecar sensor
+// +k8s:openapi-gen=true
+type ContainerResources struct {
+	Requests *ContainerRequests `json:"requests,omitempty"`
+	Limits   *Limits            `json:"limits,omitempty"`
+}
+
+// Configure the resources requests of the container sidecar sensor
+// +k8s:openapi-gen=true
+type ContainerRequests struct {
+	CPU    string `json:"cpu,omitempty"`
+	Memory string `json:"memory,omitempty"`
 }
 
 // Represents the status of Falcon deployment
