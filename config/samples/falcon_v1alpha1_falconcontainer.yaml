@@ -1,9 +1,18 @@
+# Falcon Container Installation.
+#
+# REQUIRED: Please fill in your CrowdStrike Falcon credentials bellow.
+#
+# To learn more about FaclonContainer resource please consult documentation at
+# https://github.com/CrowdStrike/falcon-operator/tree/main/docs/container
+
 apiVersion: falcon.crowdstrike.com/v1alpha1
 kind: FalconContainer
 metadata:
-  name: falconcontainer-sample
+  name: default
 spec:
   falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
     cloud_region: autodiscover
   registry:
     type: crowdstrike
