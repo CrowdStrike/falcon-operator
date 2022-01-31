@@ -65,6 +65,10 @@ func (d *FalconContainerDeployer) registryUri() (string, error) {
 		if err != nil {
 			return "", err
 		}
+		if imageStream.Status.DockerImageRepository == "" {
+			return "", fmt.Errorf("Unable to find route to OpenShift on-cluster registry. Please verify that OpenShift on-cluster registry is up and running")
+		}
+
 		return imageStream.Status.DockerImageRepository, nil
 	case falconv1alpha1.RegistryTypeGCR:
 		projectId, err := gcp.GetProjectID()
