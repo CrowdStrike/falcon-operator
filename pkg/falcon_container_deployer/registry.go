@@ -7,14 +7,10 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 )
 
-func (d *FalconContainerDeployer) pulltoken() ([]byte, error) {
-	return pulltoken.Get(d.Ctx, d.Instance.Spec.Registry.Type, d.falconApiConfig(),
+func (d *FalconContainerDeployer) pulltokenBase64() (string, error) {
+	token, err := pulltoken.Get(d.Ctx, d.Instance.Spec.Registry.Type, d.falconApiConfig(),
 		k8s_utils.QuerySecrets(d.Namespace(), d.Client),
 	)
-}
-
-func (d *FalconContainerDeployer) pulltokenBase64() (string, error) {
-	token, err := d.pulltoken()
 	if err != nil || token == nil {
 		return "", err
 	}
