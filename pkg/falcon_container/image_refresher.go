@@ -15,8 +15,8 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	"github.com/crowdstrike/gofalcon/falcon"
 )
 

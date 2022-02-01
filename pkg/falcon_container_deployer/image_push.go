@@ -7,9 +7,9 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pushtoken"
 	"github.com/crowdstrike/gofalcon/falcon"
 )

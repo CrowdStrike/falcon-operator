@@ -1,7 +1,7 @@
 package pulltoken
 
 import (
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_registry"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	"github.com/crowdstrike/gofalcon/falcon"
 )
 
