@@ -15,9 +15,13 @@ type dockerConfigFile struct {
 }
 
 func dockerJsonValid(raw []byte) bool {
-	var content dockerConfigFile
-	err := json.Unmarshal(raw, &content)
+	content, err := parse(raw)
 	return (err == nil && len(content.AuthConfigs) != 0)
+}
+
+func parse(raw []byte) (result dockerConfigFile, err error) {
+	err = json.Unmarshal(raw, &result)
+	return
 }
 
 func Dockerfile(registry, username, password string) ([]byte, error) {
