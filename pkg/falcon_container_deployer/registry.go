@@ -3,7 +3,6 @@ package falcon_container_deployer
 import (
 	"encoding/base64"
 	"fmt"
-	"os"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -11,11 +10,6 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
-)
-
-const (
-	saCertDir  = "/var/run/secrets/kubernetes.io/serviceaccount/"
-	saCertPath = saCertDir + "ca.crt"
 )
 
 func (d *FalconContainerDeployer) pulltoken() ([]byte, error) {
@@ -45,12 +39,4 @@ func (d *FalconContainerDeployer) pulltokenBase64() (string, error) {
 		return "", err
 	}
 	return base64.StdEncoding.EncodeToString(token), nil
-}
-
-func (d *FalconContainerDeployer) registryCertExists() bool {
-	_, err := os.Stat(saCertPath)
-	if err != nil && !os.IsNotExist(err) {
-		d.Log.Error(err, "Received error when trying to stat k8s certificate", "path", saCertPath)
-	}
-	return err == nil
 }

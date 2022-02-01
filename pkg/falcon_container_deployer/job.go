@@ -3,8 +3,6 @@ package falcon_container_deployer
 import (
 	"fmt"
 
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
-	"github.com/crowdstrike/gofalcon/falcon"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -12,6 +10,10 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
+	"github.com/crowdstrike/falcon-operator/pkg/registry"
+	"github.com/crowdstrike/gofalcon/falcon"
 )
 
 const (
@@ -140,8 +142,9 @@ func (d *FalconContainerDeployer) installerCmd(imageUri string) ([]string, error
 		installCmd = append(installCmd, "-pulltoken", pulltoken)
 	}
 
-	if d.registryCertExists() {
-		installCmd = append(installCmd, "-registry-certs", saCertDir)
+	caDir := registry.CADirPath(d.Log)
+	if caDir != "" {
+		installCmd = append(installCmd, "-registry-certs", caDir)
 	}
 
 	return append(installCmd, d.Instance.Spec.InstallerArgs...), nil
