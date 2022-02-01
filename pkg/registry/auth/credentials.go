@@ -40,7 +40,7 @@ func newCreds(secret corev1.Secret) Credentials {
 	return nil
 }
 
-func GetCredentials(secrets []corev1.Secret) Credentials {
+func GetPushCredentials(secrets []corev1.Secret) Credentials {
 	for _, secret := range secrets {
 		if secret.Data == nil {
 			continue

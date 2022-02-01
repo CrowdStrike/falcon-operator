@@ -31,7 +31,7 @@ func (d *FalconContainerDeployer) pulltoken() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		creds := auth.GetCredentials(secrets.Items)
+		creds := auth.GetPushCredentials(secrets.Items)
 		if creds == nil {
 			return nil, fmt.Errorf("Cannot find suitable secret in namespace %s to allow falcon-container to pull images from the registry", namespace)
 		}
