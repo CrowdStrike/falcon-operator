@@ -9,8 +9,8 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pushtoken"
-	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
 	"github.com/crowdstrike/gofalcon/falcon"
 )
 
@@ -125,7 +125,7 @@ func (d *FalconContainerDeployer) imageTag() (string, error) {
 	return tag, err
 }
 
-func (d *FalconContainerDeployer) pushAuth() (registry_auth.Credentials, error) {
+func (d *FalconContainerDeployer) pushAuth() (auth.Credentials, error) {
 	return pushtoken.GetCredentials(d.Ctx, d.Instance.Spec.Registry.Type,
 		pushtoken.QuerySecrets(d.imageNamespace(), d.Client),
 	)

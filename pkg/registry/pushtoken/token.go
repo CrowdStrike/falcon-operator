@@ -9,7 +9,7 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
-	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
 )
 
 type KubeQuerySecretsMethod func(ctx context.Context) (*corev1.SecretList, error)
@@ -26,7 +26,7 @@ func QuerySecrets(namespace string, cli client.Client) KubeQuerySecretsMethod {
 }
 
 // GetCredentials returns container pushtoken authentication information that can be used to authenticate container push requests.
-func GetCredentials(ctx context.Context, registryType falconv1alpha1.RegistryTypeSpec, query KubeQuerySecretsMethod) (registry_auth.Credentials, error) {
+func GetCredentials(ctx context.Context, registryType falconv1alpha1.RegistryTypeSpec, query KubeQuerySecretsMethod) (auth.Credentials, error) {
 	switch registryType {
 	case falconv1alpha1.RegistryTypeECR:
 		cfg, err := aws.NewConfig()
@@ -37,14 +37,14 @@ func GetCredentials(ctx context.Context, registryType falconv1alpha1.RegistryTyp
 		if err != nil {
 			return nil, err
 		}
-		return registry_auth.ECRCredentials(string(token))
+		return auth.ECRCredentials(string(token))
 	default:
 		secrets, err := query(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		creds := registry_auth.GetCredentials(secrets.Items)
+		creds := auth.GetCredentials(secrets.Items)
 		if creds == nil {
 			return nil, fmt.Errorf("Cannot find suitable secret to push falcon-image to your registry")
 		}

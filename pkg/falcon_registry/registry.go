@@ -11,7 +11,7 @@ import (
 	"github.com/containers/image/v5/types"
 
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
-	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
 	"github.com/crowdstrike/gofalcon/falcon"
 )
 
@@ -55,7 +55,7 @@ func (reg *FalconRegistry) Pulltoken() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	dockerfile, err := registry_auth.Dockerfile("registry.crowdstrike.com", username, reg.token)
+	dockerfile, err := auth.Dockerfile("registry.crowdstrike.com", username, reg.token)
 	if err != nil {
 		return nil, err
 	}

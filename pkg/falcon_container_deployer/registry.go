@@ -9,8 +9,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
-	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
 )
 
 const (
@@ -31,7 +31,7 @@ func (d *FalconContainerDeployer) pulltoken() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		creds := registry_auth.GetCredentials(secrets.Items)
+		creds := auth.GetCredentials(secrets.Items)
 		if creds == nil {
 			return nil, fmt.Errorf("Cannot find suitable secret in namespace %s to allow falcon-container to pull images from the registry", namespace)
 		}
