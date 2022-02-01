@@ -33,7 +33,28 @@ func Dockerfile(registry, username, password string) ([]byte, error) {
 	newCreds := dockerAuthConfig{Auth: creds}
 	auths.AuthConfigs[registry] = newCreds
 
-	file, err := json.MarshalIndent(auths, "", "\t")
+	return marshal(auths)
+}
+
+func MergePullTokens(pulltokens [][]byte) ([]byte, error) {
+	merged := dockerConfigFile{
+		AuthConfigs: map[string]dockerAuthConfig{},
+	}
+
+	for _, pulltoken := range pulltokens {
+		parsed, err := parse(pulltoken)
+		if err != nil {
+			return nil, fmt.Errorf(".dockerconfigjson file that cannot be parsed: %v", err)
+		}
+		for k, v := range parsed.AuthConfigs {
+			merged.AuthConfigs[k] = v
+		}
+	}
+	return marshal(merged)
+}
+
+func marshal(cfg dockerConfigFile) ([]byte, error) {
+	file, err := json.MarshalIndent(cfg, "", "\t")
 	if err != nil {
 		return nil, fmt.Errorf("Error marshaling JSON: %s", err)
 	}

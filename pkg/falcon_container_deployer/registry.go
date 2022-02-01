@@ -8,7 +8,7 @@ import (
 )
 
 func (d *FalconContainerDeployer) pulltokenBase64() (string, error) {
-	token, err := pulltoken.Get(d.Ctx, d.Instance.Spec.Registry.Type, d.falconApiConfig(),
+	token, err := pulltoken.MergeAll(d.Ctx, d.Instance.Spec.Registry.Type, d.falconApiConfig(), d.Log,
 		k8s_utils.QuerySecrets(d.Namespace(), d.Client),
 	)
 	if err != nil || token == nil {

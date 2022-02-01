@@ -61,6 +61,23 @@ func GetPushCredentials(secrets []corev1.Secret) Credentials {
 	return nil
 }
 
+func GetPullCredentials(secrets []corev1.Secret) []Credentials {
+	result := []Credentials{}
+	for _, secret := range secrets {
+		if secret.Data == nil {
+			continue
+		}
+		if secret.Type != "kubernetes.io/dockerconfigjson" {
+			continue
+		}
+		creds := newCreds(secret)
+		if creds != nil {
+			result = append(result, creds)
+		}
+	}
+	return result
+}
+
 // Legacy represents old .dockercfg based credentials
 type legacy struct {
 	name      string
