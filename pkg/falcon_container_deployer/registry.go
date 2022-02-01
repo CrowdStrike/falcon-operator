@@ -9,7 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_registry"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
 )
 
@@ -23,11 +23,7 @@ func (d *FalconContainerDeployer) pulltoken() ([]byte, error) {
 	case falconv1alpha1.RegistryTypeECR:
 		return nil, nil
 	case falconv1alpha1.RegistryTypeCrowdStrike:
-		registry, err := falcon_registry.NewFalconRegistry(d.falconApiConfig())
-		if err != nil {
-			return nil, err
-		}
-		return registry.Pulltoken()
+		return pulltoken.CrowdStrike(d.falconApiConfig())
 	default:
 		namespace := d.Namespace()
 		secrets := &corev1.SecretList{}
