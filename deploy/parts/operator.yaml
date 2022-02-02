@@ -70,6 +70,5 @@ spec:
             drop:
               - ALL
           privileged: false
-          readOnlyRootFilesystem: true
       serviceAccountName: falcon-operator
       terminationGracePeriodSeconds: 10
