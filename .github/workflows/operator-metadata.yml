@@ -63,3 +63,15 @@ jobs:
           git diff
           exit 1
         fi
+
+    - name: Ensure go fmt is clean
+      run: |
+        make fmt
+        if [[ -n $(git status -s) ]] ; then
+          echo "Running 'make fmt' changes the current codebase"
+          echo "Ensure to include updated codebase in this PR."
+          echo "This is usually done by running 'make fmt'"
+          git status -s
+          git diff
+          exit 1
+        fi
