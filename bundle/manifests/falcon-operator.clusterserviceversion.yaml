@@ -402,7 +402,6 @@ spec:
                     drop:
                     - ALL
                   privileged: false
-                  readOnlyRootFilesystem: true
               securityContext:
                 fsGroup: 65532
                 runAsGroup: 65532
