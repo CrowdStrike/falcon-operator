@@ -15,23 +15,16 @@ func MergeAll(ctx context.Context, registryType falconv1alpha1.RegistryTypeSpec,
 	if err != nil {
 		return nil, err
 	}
-	pullTokens := [][]byte{}
-	for _, cred := range auth.GetPullCredentials(secrets.Items) {
-		log.Info("Found pull secret to be forwarded to Falcon Container Injector: ", "secret.Name", cred.Name())
-		pullToken, err := cred.Pulltoken()
-		if err != nil {
-			log.Error(err, "Skipping pull secret", "secret.Name", cred.Name())
-		} else {
-			pullTokens = append(pullTokens, pullToken)
+	creds := auth.GetPullCredentials(secrets.Items)
+	/*
+		if registryType == falconv1alpha1.RegistryTypeCrowdStrike {
+			crwd, err := crowdStrikeCreds(apiConfig)
+			if err != nil {
+				return nil, err
+			}
+			creds = append(creds, crwd)
 		}
-	}
-	if registryType == falconv1alpha1.RegistryTypeCrowdStrike {
-		pullToken, err := CrowdStrike(apiConfig)
-		if err != nil {
-			return nil, err
-		}
-		pullTokens = append(pullTokens, pullToken)
-	}
+	*/
 
-	return auth.MergePullTokens(pullTokens)
+	return auth.MergeCredentials(creds, log)
 }
