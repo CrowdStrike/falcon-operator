@@ -3,16 +3,15 @@ package falcon_container_deployer
 import (
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
-	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_container"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
-	"github.com/crowdstrike/falcon-operator/pkg/registry_auth"
+	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/pushtoken"
 	"github.com/crowdstrike/gofalcon/falcon"
 )
 
@@ -127,32 +126,10 @@ func (d *FalconContainerDeployer) imageTag() (string, error) {
 	return tag, err
 }
 
-func (d *FalconContainerDeployer) pushAuth() (registry_auth.Credentials, error) {
-	switch d.Instance.Spec.Registry.Type {
-	case falconv1alpha1.RegistryTypeECR:
-		cfg, err := aws.NewConfig()
-		if err != nil {
-			return nil, err
-		}
-		token, err := cfg.ECRLogin(d.Ctx)
-		if err != nil {
-			return nil, err
-		}
-		return registry_auth.ECRCredentials(string(token))
-	default:
-		namespace := d.imageNamespace()
-		secrets := &corev1.SecretList{}
-		err := d.Client.List(d.Ctx, secrets, client.InNamespace(namespace))
-		if err != nil {
-			return nil, err
-		}
-
-		creds := registry_auth.GetCredentials(secrets.Items)
-		if creds == nil {
-			return nil, fmt.Errorf("Cannot find suitable secret in namespace %s to push falcon-image to the registry", namespace)
-		}
-		return creds, nil
-	}
+func (d *FalconContainerDeployer) pushAuth() (auth.Credentials, error) {
+	return pushtoken.GetCredentials(d.Ctx, d.Instance.Spec.Registry.Type,
+		k8s_utils.QuerySecrets(d.imageNamespace(), d.Client),
+	)
 }
 
 func (d *FalconContainerDeployer) imageNamespace() string {

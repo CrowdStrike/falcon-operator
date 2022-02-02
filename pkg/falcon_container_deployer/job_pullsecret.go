@@ -8,6 +8,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 )
 
 const (
@@ -33,7 +34,7 @@ func (d *FalconContainerDeployer) GetJobSecret() (*corev1.Secret, error) {
 }
 
 func (d *FalconContainerDeployer) CreateJobSecret() error {
-	pulltoken, err := d.pulltoken()
+	pulltoken, err := pulltoken.CrowdStrike(d.falconApiConfig())
 	if err != nil {
 		return err
 	}
