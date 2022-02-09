@@ -183,6 +183,13 @@ spec:
         - apiGroups:
           - ""
           resources:
+          - serviceaccounts
+          verbs:
+          - list
+          - patch
+        - apiGroups:
+          - ""
+          resources:
           - services
           verbs:
           - create

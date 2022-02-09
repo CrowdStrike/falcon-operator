@@ -36,6 +36,7 @@ type FalconContainerReconciler struct {
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=create;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=create;delete
 // +kubebuilder:rbac:groups="",resources=services,verbs=create;delete
+// +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;patch
 // +kubebuilder:rbac:groups="apps",resources=deployments,verbs=create;delete
 // +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=create;delete
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,verbs=create;delete
