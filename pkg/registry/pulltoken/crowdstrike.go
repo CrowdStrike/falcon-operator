@@ -11,7 +11,7 @@ import (
 // Return value is in a form of corev1.SecretTypeDockerConfigJson (.dockerconfigjson)
 func CrowdStrike(ctx context.Context, apiConfig *falcon.ApiConfig) ([]byte, error) {
 	apiConfig.Context = ctx
-	registry, err := falcon_registry.NewFalconRegistry(apiConfig)
+	registry, err := falcon_registry.NewFalconRegistry(ctx, apiConfig)
 	if err != nil {
 		return nil, err
 	}
