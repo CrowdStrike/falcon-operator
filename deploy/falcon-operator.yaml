@@ -95,6 +95,10 @@ spec:
                       of the ACR for the Falcon Container push. Only applicable to
                       Azure cloud.
                     type: string
+                  ecr_iam_role_arn_for_injector:
+                    description: EcrIamRoleArnForInjector allows injector to assume
+                      AIM role to access registry
+                    type: string
                   tls:
                     description: TLS configures TLS connection for push of Falcon
                       Container image to the registry
