@@ -34,7 +34,7 @@ func (d *FalconContainerDeployer) GetJobSecret() (*corev1.Secret, error) {
 }
 
 func (d *FalconContainerDeployer) CreateJobSecret() error {
-	pulltoken, err := pulltoken.CrowdStrike(d.falconApiConfig())
+	pulltoken, err := pulltoken.CrowdStrike(d.Ctx, d.falconApiConfig())
 	if err != nil {
 		return err
 	}
