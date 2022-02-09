@@ -166,7 +166,6 @@ func (d *FalconContainerDeployer) PhaseDeploying() (ctrl.Result, error) {
 		return d.Error("Failed to parse output of installer", err)
 	}
 
-
 	err = d.deployInjector(objects)
 	if err != nil {
 		return d.Error("Failed to create Falcon Container objects in the cluster", err)
