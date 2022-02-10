@@ -42,24 +42,19 @@ type FalconSensor struct {
 	// +kubebuilder:validation:Pattern="^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$"
 	CID string `json:"cid"`
 	// Enable the App Proxy Port (APP). Uncommon in container-based deployments.
-	APD bool `json:"apd,omitempty"`
+	APD *bool `json:"apd,omitempty"`
 	// App Proxy Hostname (APH). Uncommon in container-based deployments.
 	APH string `json:"aph,omitempty"`
 	// App Proxy Port (APP). Uncommon in container-based deployments.
-	APP string `json:"app,omitempty"`
+	APP *int `json:"app,omitempty"`
 	// Utilize default or metered billing.
 	// +kubebuilder:validation:Enum=default;metered
-	Billing bool `json:"billing,omitempty"`
-	// Options to pass to the "--feature" flag. Options are [none,[enableLog[,disableLogBuffer[,disableOsfm[,emulateUpdate]]]]].
-	Feature string `json:"feature,omitempty"`
-	// Enable message log for logging to disk.
-	MessageLog bool `json:"message_log,omitempty"`
+	Billing string `json:"billing,omitempty"`
 	// Provisioning token.
 	// +kubebuilder:validation:Pattern="^[0-9a-fA-F]{8}$"
 	PToken string `json:"provisioning_token,omitempty"`
 	// List of tags for sensor grouping. Allowed characters: all alphanumerics, '/', '-', and '_'.
-	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9\/\-_\,]+$`
-	Tags string `json:"tags,omitempty"`
+	Tags []string `json:"tags,omitempty"`
 	// Set trace level. Options are [none|err|warn|info|debug].
 	// +kubebuilder:validation:Enum=none;err;warn;info;debug
 	Trace string `json:"trace,omitempty"`

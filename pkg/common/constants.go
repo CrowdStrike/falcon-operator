@@ -2,8 +2,9 @@ package common
 
 const (
 	FalconContainerInjection = "sensor.falcon-system.crowdstrike.com/injection"
-	FalconDataDir            = "/var/lib/crowdstrike"
-	FalconStoreFile          = "/var/lib/crowdstrike/falconstore"
+	FalconHostInstallDir     = "/opt"
+	FalconDataDir            = "/opt/CrowdStrike"
+	FalconStoreFile          = "/opt/CrowdStrike/falconstore"
 	FalconDefaultImage       = "falcon-node-sensor:latest"
 	FalconContainerProbePath = "/live"
 	FalconServiceHTTPSName   = "https"

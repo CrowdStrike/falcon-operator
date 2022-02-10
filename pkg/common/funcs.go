@@ -2,8 +2,6 @@ package common
 
 import (
 	"encoding/base64"
-	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -17,6 +15,7 @@ import (
 func InitContainerArgs() []string {
 	return []string{
 		"-c",
+		"mkdir -p" + FalconDataDir,
 		"touch " + FalconStoreFile,
 	}
 }
@@ -28,37 +27,34 @@ func GetFalconImage(nodesensor *falconv1alpha1.FalconNodeSensor) string {
 	return nodesensor.Spec.Node.Image
 }
 
-func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor) (map[string]string, error) {
-	m := make(map[string]string)
-	var cmOptInt map[string]interface{}
-	jsonCmOpt, err := json.Marshal(falconsensor)
-	if err != nil {
-		return nil, err
+func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor) map[string]string {
+	sensorConfig := make(map[string]string)
+	if falconsensor.CID != "" {
+		sensorConfig["FALCONCTL_OPT_CID"] = falconsensor.CID
+	}
+	if falconsensor.APD != nil {
+		sensorConfig["FALCONCTL_OPT_APD"] = strconv.FormatBool(*falconsensor.APD)
+	}
+	if falconsensor.APH != "" {
+		sensorConfig["FALCONCTL_OPT_APH"] = falconsensor.APH
+	}
+	if falconsensor.APP != nil {
+		sensorConfig["FALCONCTL_OPT_APP"] = strconv.Itoa(*falconsensor.APP)
+	}
+	if falconsensor.Billing != "" {
+		sensorConfig["FALCONCTL_OPT_BILLING"] = falconsensor.Billing
+	}
+	if falconsensor.PToken != "" {
+		sensorConfig["FALCONCTL_OPT_PROVISIONING_TOKEN"] = falconsensor.PToken
+	}
+	if len(falconsensor.Tags) > 0 {
+		sensorConfig["FALCONCTL_OPT_TAGS"] = strings.Join(falconsensor.Tags, ",")
+	}
+	if falconsensor.Trace != "" {
+		sensorConfig["FALCONCTL_OPT_TRACE"] = falconsensor.Trace
 	}
 
-	err = json.Unmarshal(jsonCmOpt, &cmOptInt)
-	if err != nil {
-		return nil, err
-	}
-
-	// iterate through jsonCmOpt
-	for field, val := range cmOptInt {
-		if field != "" {
-			// Make the keys match the env variable names for now
-			key := "FALCONCTL_OPT_" + strings.ToUpper(field)
-
-			switch v := val.(type) {
-			case bool:
-				m[key] = strconv.FormatBool(v)
-			case string:
-				m[key] = v
-			default:
-				return m, fmt.Errorf("unexpected type received for FALCONCTL_OPT, field '%s', type: %T, value: %v", field, val, val)
-			}
-		}
-	}
-
-	return m, nil
+	return sensorConfig
 }
 
 func FCAdmissionReviewVersions() []string {

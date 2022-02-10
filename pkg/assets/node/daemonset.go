@@ -27,6 +27,7 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 	hostipc := true
 	runAs := int64(0)
 	pathTypeUnset := corev1.HostPathUnset
+	pathDirCreate := corev1.HostPathDirectoryOrCreate
 
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -86,7 +87,7 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "falconstore-dir",
-									MountPath: common.FalconDataDir,
+									MountPath: common.FalconHostInstallDir,
 								},
 							},
 						},
@@ -113,62 +114,13 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "dev",
-									MountPath: "/dev",
-								},
-								{
-									Name:      "etc",
-									MountPath: "/etc",
-								},
-								{
-									Name:      "var-log",
-									MountPath: "/var/log",
-								},
-								{
-									Name:      "var-run",
-									MountPath: "/var/run",
-								},
-								{
 									Name:      "falconstore",
-									MountPath: "/opt/CrowdStrike/falconstore",
+									MountPath: common.FalconStoreFile,
 								},
 							},
 						},
 					},
 					Volumes: []corev1.Volume{
-						{
-							Name: "dev",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/dev",
-									Type: &pathTypeUnset,
-								},
-							},
-						},
-						{
-							Name: "etc",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/etc",
-									Type: &pathTypeUnset,
-								},
-							},
-						},
-						{
-							Name: "var-log",
-							VolumeSource: corev1.VolumeSource{
-								EmptyDir: &corev1.EmptyDirVolumeSource{},
-							},
-						},
-						{
-							Name: "var-run",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/run",
-									Type: &pathTypeUnset,
-								},
-							},
-						},
 						{
 							Name: "falconstore",
 							VolumeSource: corev1.VolumeSource{
@@ -179,11 +131,11 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 							},
 						},
 						{
-							Name: "falconstore-dir",
+							Name: "falconstore-hostdir",
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
-									Path: common.FalconDataDir,
-									Type: &pathTypeUnset,
+									Path: common.FalconHostInstallDir,
+									Type: &pathDirCreate,
 								},
 							},
 						},
