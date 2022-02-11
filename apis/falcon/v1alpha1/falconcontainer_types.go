@@ -52,8 +52,8 @@ type RegistrySpec struct {
 	TLS RegistryTLSSpec `json:"tls,omitempty"`
 	// Azure Container Registry Name represents the name of the ACR for the Falcon Container push. Only applicable to Azure cloud.
 	AcrName *string `json:"acr_name,omitempty"`
-	// EcrIamRoleArnForInjector allows injector to assume AIM role to access registry
-	EcrIamRoleArnForInjector *string `json:"ecr_iam_role_arn_for_injector,omitempty"`
+	// EcrIamRoleArn allows injector to assume AIM role to access registry. Please consult documentation to learn more about this set-up.
+	EcrIamRoleArn *string `json:"ecr_iam_role_arn,omitempty"`
 }
 
 // FalconContainerSpec defines the desired state of FalconContainer

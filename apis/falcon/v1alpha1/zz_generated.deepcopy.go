@@ -285,8 +285,8 @@ func (in *RegistrySpec) DeepCopyInto(out *RegistrySpec) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.EcrIamRoleArnForInjector != nil {
-		in, out := &in.EcrIamRoleArnForInjector, &out.EcrIamRoleArnForInjector
+	if in.EcrIamRoleArn != nil {
+		in, out := &in.EcrIamRoleArn, &out.EcrIamRoleArn
 		*out = new(string)
 		**out = **in
 	}
