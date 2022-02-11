@@ -101,7 +101,7 @@ Supported registries are: acr, ecr, gcr, and openshift. Each registry type requi
 Consult specific deployment guides to learn about the steps needed for image mirroring.
 
  - [Deployment Guide for AKS/ACR](../../docs/deployment/azure/README.md)
- - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md)
+ - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md) ([Fargate Considerations](../deployment/eks-fargate/README.md))
  - [Deployment Guide for GKE/GCR](../../docs/deployment/gke/README.md)
  - [Deployment Guide for OpenShift](../../docs/deployment/openshift/README.md)
 
@@ -178,6 +178,6 @@ kubectl logs -n falcon-system deploy/injector -f
 End-to-end guides to install Falcon-operator together with FalconContainer resource.
 
  - [Deployment Guide for AKS/ACR](../../docs/deployment/azure/README.md)
- - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md)
+ - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md) ([Fargate Considerations](../deployment/eks-fargate/README.md))
  - [Deployment Guide for GKE/GCR](../../docs/deployment/gke/README.md)
  - [Deployment Guide for OpenShift](../../docs/deployment/openshift/README.md)
