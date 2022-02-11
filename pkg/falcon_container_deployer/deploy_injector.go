@@ -35,6 +35,9 @@ func (d *FalconContainerDeployer) patchInjectorServiceAccount() error {
 	}
 	patch := client.MergeFrom(sa.DeepCopy())
 
+	if sa.ObjectMeta.Annotations == nil {
+		sa.ObjectMeta.Annotations = map[string]string{}
+	}
 	sa.ObjectMeta.Annotations["eks.amazonaws.com/role-arn"] = *d.Instance.Spec.Registry.EcrIamRoleArnForInjector
 
 	d.Log.Info("Patching injector service account: adding ECR Role", "EcrRoleArn", *d.Instance.Spec.Registry.EcrIamRoleArnForInjector)
