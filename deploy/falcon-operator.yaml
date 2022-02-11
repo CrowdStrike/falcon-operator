@@ -273,24 +273,17 @@ spec:
                   app:
                     description: App Proxy Port (APP). Uncommon in container-based
                       deployments.
-                    type: string
+                    type: integer
                   billing:
                     description: Utilize default or metered billing.
                     enum:
                     - default
                     - metered
-                    type: boolean
+                    type: string
                   cid:
                     description: Falcon Customer ID (CID)
                     pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
                     type: string
-                  feature:
-                    description: Options to pass to the "--feature" flag. Options
-                      are [none,[enableLog[,disableLogBuffer[,disableOsfm[,emulateUpdate]]]]].
-                    type: string
-                  message_log:
-                    description: Enable message log for logging to disk.
-                    type: boolean
                   provisioning_token:
                     description: Provisioning token.
                     pattern: ^[0-9a-fA-F]{8}$
@@ -298,8 +291,9 @@ spec:
                   tags:
                     description: 'List of tags for sensor grouping. Allowed characters:
                       all alphanumerics, ''/'', ''-'', and ''_''.'
-                    pattern: ^[a-zA-Z0-9\/\-_\,]+$
-                    type: string
+                    items:
+                      type: string
+                    type: array
                   trace:
                     description: Set trace level. Options are [none|err|warn|info|debug].
                     enum:

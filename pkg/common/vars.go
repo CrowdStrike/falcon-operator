@@ -7,7 +7,7 @@ import (
 
 var (
 	NodeSelector            = map[string]string{"kubernetes.io/os": "linux"}
-	FalconShellCommand      = []string{"/bin/sh"}
+	FalconShellCommand      = []string{"/bin/bash"}
 	OrigDSConfVersion       = "0"
 	FalconOperatorNamespace = "falcon-operator"
 	FalconInjectorCommand   = []string{"injector"}

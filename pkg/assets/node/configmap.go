@@ -7,11 +7,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func DaemonsetConfigMap(dsname string, nsname string, falconsensor *falconv1alpha1.FalconSensor) (*corev1.ConfigMap, error) {
-	data, err := common.FalconSensorConfig(falconsensor)
-	if err != nil {
-		return nil, err
-	}
+func DaemonsetConfigMap(dsname string, nsname string, falconsensor *falconv1alpha1.FalconSensor) *corev1.ConfigMap {
+	configData := common.FalconSensorConfig(falconsensor)
+
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsname,
@@ -26,6 +24,6 @@ func DaemonsetConfigMap(dsname string, nsname string, falconsensor *falconv1alph
 				common.FalconControllerKey:   "controller-manager",
 			},
 		},
-		Data: data,
-	}, nil
+		Data: configData,
+	}
 }
