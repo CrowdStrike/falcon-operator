@@ -42,8 +42,10 @@ rules:
   resources:
   - serviceaccounts
   verbs:
+  - get
   - list
   - patch
+  - watch
 - apiGroups:
   - ""
   resources:
