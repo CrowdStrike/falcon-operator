@@ -15,8 +15,9 @@ import (
 func InitContainerArgs() []string {
 	return []string{
 		"-c",
-		"mkdir -p" + FalconDataDir,
-		"touch " + FalconStoreFile,
+		"mkdir -p " + FalconDataDir +
+			" && " +
+			"touch " + FalconStoreFile,
 	}
 }
 
