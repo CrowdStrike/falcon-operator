@@ -12,6 +12,7 @@ require (
 	github.com/containerd/containerd v1.5.9 // indirect
 	github.com/containers/image/v5 v5.17.0
 	github.com/crowdstrike/gofalcon v0.2.16
+	github.com/docker/distribution v2.8.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.0 // indirect
 	github.com/go-logr/logr v0.4.0
 	github.com/moby/sys/mountinfo v0.5.0 // indirect
@@ -33,6 +34,7 @@ require (
 )
 
 replace (
+	github.com/docker/distribution => github.com/docker/distribution v2.8.0+incompatible
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.3
 )
