@@ -9,7 +9,19 @@ level=error msg="Failed to handle webhook request" error="Failed to retrieve ima
 This is may be an indication of the injector running with insufficient ECR privileged. That usually happens on EKS Fargate,
 when IAM role of Fargate nodes is not propagated to the pods. The following document describes remediation steps.
 
-## Steps to add ECR pull permission to the injector
+
+## Assigning AWS AIM Role to Falcon Container Injector
+
+Conceptually, the following tasks need to be done in order to enable ECR pull from the injector
+
+ - Create IAM Policy for ECR image pull
+ - Create IAM Role for the injector
+ - Assign the IAM Role to the injector (and set-up a proper trust relationship on the role and OIDC indentity provider)
+ - Put IAM Role ARN into your Falcon Container resource for re-deployments
+
+The following step-by-step guide uses `aws`, `eksctl` and `kubectl` command-line tools to achieve that.
+
+## Step-by-step guide to add ECR pull permission to the injector
 
  - Set up your shell environment variables
    ```
