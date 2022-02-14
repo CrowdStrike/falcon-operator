@@ -86,7 +86,7 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 							Args:    common.InitContainerArgs(),
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "falconstore-dir",
+									Name:      "falconstore-hostdir",
 									MountPath: common.FalconHostInstallDir,
 								},
 							},
