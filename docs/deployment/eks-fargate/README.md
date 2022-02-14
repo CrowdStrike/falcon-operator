@@ -7,7 +7,7 @@ level=error msg="Failed to handle webhook request" error="Failed to retrieve ima
 ```
 
 This is may be an indication of the injector running with insufficient ECR privileged. That usually happens on EKS Fargate,
-when AIM role of Fargate nodes is not propagated to the pods. The following document describes remediation steps.
+when IAM role of Fargate nodes is not propagated to the pods. The following document describes remediation steps.
 
 ## Steps to add ECR pull permission to the injector
 

@@ -97,7 +97,7 @@ spec:
                       Azure cloud.
                     type: string
                   ecr_iam_role_arn:
-                    description: EcrIamRoleArn allows injector to assume AIM role
+                    description: EcrIamRoleArn allows injector to assume IAM role
                       to access registry. Please consult documentation to learn more
                       about this set-up.
                     type: string
