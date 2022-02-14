@@ -12,6 +12,7 @@ require (
 	github.com/containerd/containerd v1.5.9 // indirect
 	github.com/containers/image/v5 v5.17.0
 	github.com/crowdstrike/gofalcon v0.2.16
+	github.com/docker/distribution v2.8.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.0 // indirect
 	github.com/go-logr/logr v0.4.0
 	github.com/moby/sys/mountinfo v0.5.0 // indirect
