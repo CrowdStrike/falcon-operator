@@ -64,6 +64,7 @@ Once the FalconContainer resource is pushed to the cluster the operator will sta
 | registry.type                       | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift))                                             |
 | registry.tls.insecure_skip_verify   | (optional) Skip TLS check when pushing Falcon Container to target registry (only for demoing purposes on self-signed openshift clusters) |
 | registry.acr_name                   | (optional) Name of ACR for the Falcon Container push. Only applicable to Azure cloud. (`registry.type="acr"`)                            |
+| registry.ecr_iam_role_arn           | (optional) ARN of AWS IAM Role to be assigned to the Injector (only needed when injector runs on EKS Fargate)
 | installer_args                      | (optional) Additional arguments to Falcon Container Installer (see [Product Documentation](https://falcon.crowdstrike.com/documentation/146/falcon-container-sensor-for-linux)) |
 | version                             | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                        | 
 
