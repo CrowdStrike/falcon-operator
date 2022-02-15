@@ -25,6 +25,8 @@ Falcon Operator deploys CrowdStrike Falcon Workload Protection to the cluster. T
 | [FalconContainer](docs/container) | Manages installation of Falcon Container Sensor on the cluster   |
 | [FalconNodeSensor](docs/node)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
 
+Additional information can be found in [FAQ document](docs/faq.md)
+
 ## Installation Steps
 
 Installation steps differ based on Operator Life-cycle Manager (OLM) availability. You can determine whether your cluster is using OLM by running: `kubectl get crd catalogsources.operators.coreos.com`
