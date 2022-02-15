@@ -13,6 +13,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
 	"github.com/crowdstrike/gofalcon/falcon"
+	"github.com/crowdstrike/gofalcon/falcon/client/falcon_container"
 )
 
 type FalconRegistry struct {
@@ -30,7 +31,11 @@ func NewFalconRegistry(ctx context.Context, apiCfg *falcon.ApiConfig) (*FalconRe
 
 	token, err := falcon_api.RegistryToken(ctx, client)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to fetch registry token for CrowdStrike container registry: %v", err)
+		switch err.(type) {
+		case *falcon_container.GetCredentialsForbidden:
+			return nil, fmt.Errorf("Insufficient CrowdStrike privileges, please grant [Falcon Images Download: Read] to CrowdStrike API Key. Error was: %s", err)
+		}
+		return nil, fmt.Errorf("Failed to fetch registry token for CrowdStrike container registry:, %v", err)
 	}
 	if token == "" {
 		return nil, errors.New("Empty registry token received from CrowdStrike API")
