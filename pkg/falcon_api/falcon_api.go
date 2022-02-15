@@ -40,6 +40,10 @@ func CCID(ctx context.Context, client *client.CrowdStrikeAPISpecification) (stri
 		Context: ctx,
 	})
 	if err != nil {
+		switch err.(type) {
+		case *sensor_download.GetSensorInstallersCCIDByQueryForbidden:
+			return "", fmt.Errorf("Insufficient CrowdStrike privileges, please grant [Sensor Download: Read] to CrowdStrike API Key. Error was: %s", err)
+		}
 		return "", fmt.Errorf("Could not get CCID from CrowdStrike Falcon API: %v", err)
 	}
 	payload := response.GetPayload()
@@ -47,7 +51,7 @@ func CCID(ctx context.Context, client *client.CrowdStrikeAPISpecification) (stri
 		return "", fmt.Errorf("Error reported when getting CCID from CrowdStrike Falcon API: %v", err)
 	}
 	if len(payload.Resources) != 1 {
-		return "", fmt.Errorf("Unexpected API response: %v", payload.Resources)
+		return "", fmt.Errorf("Failed to get CCID: Unexpected API response: %v", payload.Resources)
 	}
 	return payload.Resources[0], nil
 

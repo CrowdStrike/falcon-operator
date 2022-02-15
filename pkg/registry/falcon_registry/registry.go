@@ -43,7 +43,7 @@ func NewFalconRegistry(ctx context.Context, apiCfg *falcon.ApiConfig) (*FalconRe
 
 	ccid, err := falcon_api.CCID(ctx, client)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to fetch CCID from CrowdStrike API: %v", err)
+		return nil, err
 	}
 	if ccid == "" {
 		return nil, errors.New("Empty CCID received from CrowdStrike API")
