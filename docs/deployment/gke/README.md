@@ -5,7 +5,9 @@ This document will guide you through the installation of falcon-operator and dep
 
  - Have CrowdStrike CWP subscription with Falcon Container enabled
  - Have Container Administrator access to GCP and at least one GKE cluster deployed
- - Create new CrowdStrike API key pair with "Falcon Images Download - Read" permission (no other permission shall be required)
+ - Create new CrowdStrike API key pair with the following permissions
+    * Falcon Images Download: Read
+    * Sensor Download: Read
 
 ## Installation Steps
 
