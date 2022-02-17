@@ -10,7 +10,7 @@ import (
 func (d *FalconContainerDeployer) UpsertECRRepo() (*types.Repository, error) {
 	cfg, err := aws.NewConfig()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to initialise connection to AWS. Please make sure that kubernetes service account falcon-operator has access to AWS AIM role and OIDC Identity provider is running on the cluster. Error was: %v", err)
+		return nil, fmt.Errorf("Failed to initialise connection to AWS. Please make sure that kubernetes service account falcon-operator has access to AWS IAM role and OIDC Identity provider is running on the cluster. Error was: %v", err)
 	}
 	data, err := cfg.UpsertRepository(d.Ctx, "falcon-container")
 	if err != nil {

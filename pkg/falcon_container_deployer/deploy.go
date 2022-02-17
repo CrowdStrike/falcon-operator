@@ -166,7 +166,7 @@ func (d *FalconContainerDeployer) PhaseDeploying() (ctrl.Result, error) {
 		return d.Error("Failed to parse output of installer", err)
 	}
 
-	err = k8s_utils.Create(d.Ctx, d.Client, objects, d.Log)
+	err = d.deployInjector(objects)
 	if err != nil {
 		return d.Error("Failed to create Falcon Container objects in the cluster", err)
 	}
