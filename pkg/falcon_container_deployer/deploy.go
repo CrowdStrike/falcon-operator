@@ -100,7 +100,7 @@ func (d *FalconContainerDeployer) PhaseBuilding() (ctrl.Result, error) {
 }
 
 func (d *FalconContainerDeployer) PhaseConfiguring() (ctrl.Result, error) {
-	if d.JobSecretRequired() {
+	if !d.imageMirroringEnabled() {
 		_, err := d.UpsertJobSecret()
 		if err != nil {
 			return d.Error("failed to usert falcon pulltoken secret", err)

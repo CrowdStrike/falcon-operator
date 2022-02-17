@@ -7,17 +7,12 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 )
 
 const (
 	JOB_SECRET_NAME = "crowdstrike-falcon-pull-secret"
 )
-
-func (d *FalconContainerDeployer) JobSecretRequired() bool {
-	return d.Instance.Spec.Registry.Type == falconv1alpha1.RegistryTypeCrowdStrike
-}
 
 func (d *FalconContainerDeployer) UpsertJobSecret() (secret *corev1.Secret, err error) {
 	secret, err = d.GetJobSecret()
