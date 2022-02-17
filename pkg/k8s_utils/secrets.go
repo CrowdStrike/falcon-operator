@@ -9,7 +9,7 @@ import (
 
 type KubeQuerySecretsMethod func(ctx context.Context) (*corev1.SecretList, error)
 
-func QuerySecrets(namespace string, cli client.Client) KubeQuerySecretsMethod {
+func QuerySecretsInNamespace(cli client.Client, namespace string) KubeQuerySecretsMethod {
 	return func(ctx context.Context) (*corev1.SecretList, error) {
 		secrets := &corev1.SecretList{}
 		err := cli.List(ctx, secrets, client.InNamespace(namespace))

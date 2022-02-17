@@ -143,7 +143,7 @@ func (d *FalconContainerDeployer) imageTag() (string, error) {
 
 func (d *FalconContainerDeployer) pushAuth() (auth.Credentials, error) {
 	return pushtoken.GetCredentials(d.Ctx, d.Instance.Spec.Registry.Type,
-		k8s_utils.QuerySecrets(d.imageNamespace(), d.Client),
+		k8s_utils.QuerySecretsInNamespace(d.Client, d.imageNamespace()),
 	)
 }
 
