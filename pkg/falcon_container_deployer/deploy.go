@@ -104,10 +104,9 @@ func (d *FalconContainerDeployer) PhaseBuilding() (ctrl.Result, error) {
 		if updated {
 			return ctrl.Result{}, nil
 		}
-
-		_, err = d.UpsertJobSecret()
+		err = d.UpsertCrowdStrikeSecrets()
 		if err != nil {
-			return d.Error("failed to usert falcon pulltoken secret", err)
+			return d.Error("failed to upsert falcon pulltoken secrets", err)
 		}
 	}
 
