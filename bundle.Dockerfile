@@ -1,5 +1,17 @@
 FROM scratch
 
+# This block are standard Red Hat container labels
+LABEL name="crowdstrike/falcon-operator-bundle" \
+    License="ASL 2.0" \
+    io.k8s.display-name="CrowdStrike Falcon Operator bundle" \
+    io.k8s.description="CrowdStrike Falcon Operator's OLM bundle image" \
+    summary="CrowdStrike Falcon Operator's OLM bundle image" \
+    maintainer="CrowdStrike <integrations@crowdstrike.com>"
+
+LABEL com.redhat.delivery.operator.bundle=true
+LABEL com.redhat.openshift.versions="v4.7"
+LABEL com.redhat.delivery.backport=false
+
 # Core bundle labels.
 LABEL operators.operatorframework.io.bundle.mediatype.v1=registry+v1
 LABEL operators.operatorframework.io.bundle.manifests.v1=manifests/
