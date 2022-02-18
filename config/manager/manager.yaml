@@ -35,6 +35,18 @@ spec:
         - --leader-elect
         image: controller:latest
         name: manager
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: WATCH_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: OPERATOR_NAME
+            value: "falcon-operator"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
