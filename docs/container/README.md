@@ -45,14 +45,14 @@ spec:
 
 Once the FalconContainer resource is pushed to the cluster the operator will start an installation process. The installation process consists of the following 5 phases
 
-| Phase         | Description                                                                                                                                  |
-| :-------------| :--------------------------------------------------------------------------------------------------------------------------------------------|
-| *Pending*     | Namespace `falcon-system-configure` is created. Optionally registry may be initialised (OpenShift ImageStream or new ECR repository created) |
-| *Building*    | Falcon Container is pushed to custom registry (not applicable if `registry.type=crowdstrike` that skips the image push)                      |
-| *Configuring* | Falcon Container Installer is run in `falcon-system-configure` namespace as Kubernetes Job. Operator waits for the Job completion            |
-| *Deploying*   | Using the Installer output, Falcon Container is installed to the cluster                                                                     |
-| *Validating*  | Operator asserts whether Falcon Container is deployed successfully                                                                           |
-| *Done*        | Falcon Container Injector is up and running in `falcon-system` namespace.                                                                    |
+| Phase          | Description                                                                                                                                                                                            |
+| :------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| *Pending*      | Namespace `falcon-system-configure` is created. Optionally registry may be initialised (OpenShift ImageStream or new ECR repository created)                                                           |
+| *Building*     | Falcon Container image discovery. Depending on `registry.type` value the image is mirrored from CrowdStrike to your registry of choice **OR** access to CrowdStrike registry is set-up on the cluster. |
+| *Configuring*  | Falcon Container Installer is run in `falcon-system-configure` namespace as Kubernetes Job. Operator waits for the Job completion                                                                      |
+| *Deploying*    | Using the Installer output, Falcon Container is installed to the cluster                                                                                                                               |
+| *Validating*   | Operator asserts whether Falcon Container is deployed successfully                                                                                                                                     |
+| *Done*         | Falcon Container Injector is up and running in `falcon-system` namespace.                                                                                                                              |
 
 ### FalconContainer Reference Manual
 
@@ -91,7 +91,7 @@ registry:
   type: crowdstrike
 ```
 
-Falcon Container product will then be installed directly from CrowdStrike registry. Any new deployment to the cluster may contact CrowdStrike registry for the image download. The `imagePullSecret` needs to be added to every namespace to enable direct pull from CrowdStrike registry. By default the `imagePullSecret` will be created in `falcon-system-configure`, `falcon-system`, and `default` namespaces.
+Falcon Container product will then be installed directly from CrowdStrike registry. Any new deployment to the cluster may contact CrowdStrike registry for the image download. The `imagePullSecret` is created in all the namespaces existing at the time of deployment.
 
 #### (Option 2) Let operator mirror Falcon Container image to your local registry
 
