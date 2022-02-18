@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	JOB_SECRET_NAME          = "crowdstrike-falcon-pull-secret"
+	SECRET_NAME              = "crowdstrike-falcon-pull-secret"
 	SECRET_LABEL             = "crowdstrike.com/provider"
 	SECRET_LABEL_VALUE       = "crowdstrike"
 	INJECTION_LABEL          = "sensor.falcon-system.crowdstrike.com/injection"
@@ -47,7 +47,7 @@ func (d *FalconContainerDeployer) createCrowdstrikeSecret(namespace string, pull
 			Kind:       "Secret",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      JOB_SECRET_NAME,
+			Name:      SECRET_NAME,
 			Namespace: namespace,
 			Labels: map[string]string{
 				SECRET_LABEL: SECRET_LABEL_VALUE,
@@ -60,16 +60,16 @@ func (d *FalconContainerDeployer) createCrowdstrikeSecret(namespace string, pull
 	}
 	err := ctrl.SetControllerReference(d.Instance, secret, d.Scheme)
 	if err != nil {
-		d.Log.Error(err, "Unable to assign Controller Reference to the Job Secret")
+		d.Log.Error(err, "Unable to assign Controller Reference to the Pull Secret")
 	}
 	err = d.Client.Create(d.Ctx, secret)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
-			d.Log.Error(err, "Failed to schedule new Job Secret", "Secret.Namespace", namespace, "Secret.Name", JOB_SECRET_NAME)
+			d.Log.Error(err, "Failed to schedule new Pull Secret", "Secret.Namespace", namespace, "Secret.Name", SECRET_NAME)
 			return err
 		}
 	} else {
-		d.Log.Info("Created a new Job Secret", "Secret.Namespace", namespace, "Secret.Name", JOB_SECRET_NAME)
+		d.Log.Info("Created a new Pull Secret", "Secret.Namespace", namespace, "Secret.Name", SECRET_NAME)
 	}
 	return nil
 }
