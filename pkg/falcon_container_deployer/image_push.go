@@ -21,18 +21,6 @@ func (d *FalconContainerDeployer) PushImage() error {
 		return err
 	}
 
-	if d.Instance.Spec.Registry.Type == falconv1alpha1.RegistryTypeCrowdStrike {
-		d.Log.Info("Skipping push of Falcon Container image to local registry. Remote CrowdStrike registry will be used.")
-		d.Instance.Status.SetCondition(&metav1.Condition{
-			Type:    "ImageReady",
-			Status:  metav1.ConditionTrue,
-			Message: registryUri,
-			Reason:  "Discovered",
-		})
-		_, err := d.imageTag()
-		return err
-	}
-
 	pushAuth, err := d.pushAuth()
 	if err != nil {
 		return err
@@ -54,6 +42,33 @@ func (d *FalconContainerDeployer) PushImage() error {
 		Reason:  "Pushed",
 	})
 	return nil
+}
+
+func (d *FalconContainerDeployer) verifyCrowdStrikeRegistry() (bool, error) {
+	conditionName := "ImageReady"
+	condition := d.Instance.Status.GetCondition(conditionName)
+	if condition != nil && condition.Status == metav1.ConditionTrue {
+		return false, nil
+	}
+
+	d.Log.Info("Skipping push of Falcon Container image to local registry. Remote CrowdStrike registry will be used.")
+	registryUri, err := d.registryUri()
+	if err != nil {
+		return false, err
+	}
+	_, err = d.imageTag()
+	if err != nil {
+		return false, fmt.Errorf("Cannot find Falcon Registry Tag: %s", err)
+	}
+
+	d.Instance.Status.SetCondition(&metav1.Condition{
+		Type:    "ImageReady",
+		Status:  metav1.ConditionTrue,
+		Message: registryUri,
+		Reason:  "Discovered",
+	})
+
+	return true, d.Client.Status().Update(d.Ctx, d.Instance)
 }
 
 func (d *FalconContainerDeployer) registryUri() (string, error) {
@@ -128,7 +143,7 @@ func (d *FalconContainerDeployer) imageTag() (string, error) {
 
 func (d *FalconContainerDeployer) pushAuth() (auth.Credentials, error) {
 	return pushtoken.GetCredentials(d.Ctx, d.Instance.Spec.Registry.Type,
-		k8s_utils.QuerySecrets(d.imageNamespace(), d.Client),
+		k8s_utils.QuerySecretsInNamespace(d.Client, d.imageNamespace()),
 	)
 }
 

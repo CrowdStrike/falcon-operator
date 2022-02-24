@@ -91,21 +91,29 @@ func (d *FalconContainerDeployer) PhasePending() (ctrl.Result, error) {
 }
 
 func (d *FalconContainerDeployer) PhaseBuilding() (ctrl.Result, error) {
-	err := d.PushImage()
-	if err != nil {
-		return d.Error("Cannot refresh Falcon Container image", err)
+	if d.imageMirroringEnabled() {
+		err := d.PushImage()
+		if err != nil {
+			return d.Error("Cannot refresh Falcon Container image", err)
+		}
+	} else {
+		updated, err := d.verifyCrowdStrikeRegistry()
+		if err != nil {
+			return d.Error("Falcon Container Image not ready: ", err)
+		}
+		if updated {
+			return ctrl.Result{}, nil
+		}
+		err = d.UpsertCrowdStrikeSecrets()
+		if err != nil {
+			return d.Error("failed to upsert falcon pulltoken secrets", err)
+		}
 	}
 
 	return d.NextPhase(falconv1alpha1.PhaseConfiguring)
 }
 
 func (d *FalconContainerDeployer) PhaseConfiguring() (ctrl.Result, error) {
-	if d.JobSecretRequired() {
-		_, err := d.UpsertJobSecret()
-		if err != nil {
-			return d.Error("failed to usert falcon pulltoken secret", err)
-		}
-	}
 	// (Step 1&2) Upsert Job
 	job, err := d.UpsertJob()
 	if err != nil {

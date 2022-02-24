@@ -1,6 +1,7 @@
 package falcon_container_deployer
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/crowdstrike/gofalcon/falcon"
 )
 
@@ -57,10 +59,10 @@ func (d *FalconContainerDeployer) CreateJob() error {
 	}
 
 	var pullSecrets []corev1.LocalObjectReference = nil
-	if d.JobSecretRequired() {
+	if !d.imageMirroringEnabled() {
 		pullSecrets = []corev1.LocalObjectReference{
 			{
-				Name: JOB_SECRET_NAME,
+				Name: SECRET_NAME,
 			},
 		}
 	}
@@ -159,4 +161,15 @@ func (d *FalconContainerDeployer) getCCID() (string, error) {
 		return "", err
 	}
 	return falcon_api.CCID(d.Ctx, client)
+}
+
+func (d *FalconContainerDeployer) pulltokenBase64() (string, error) {
+	if d.imageMirroringEnabled() {
+		return "", nil
+	}
+	pulltoken, err := pulltoken.CrowdStrike(d.Ctx, d.falconApiConfig())
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(pulltoken), nil
 }
