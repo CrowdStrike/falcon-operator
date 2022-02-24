@@ -13,8 +13,6 @@ type Credentials interface {
 	Name() string
 	DestinationContext() (*types.SystemContext, error)
 	Pulltoken() ([]byte, error)
-	// legacy returns true if the Pulltoken format is in old .dockercfg form
-	legacy() bool
 }
 
 func newCreds(secret corev1.Secret) Credentials {
@@ -63,23 +61,6 @@ func GetPushCredentials(secrets []corev1.Secret) Credentials {
 	return nil
 }
 
-func GetPullCredentials(secrets []corev1.Secret) []Credentials {
-	result := []Credentials{}
-	for _, secret := range secrets {
-		if secret.Data == nil {
-			continue
-		}
-		if secret.Type != "kubernetes.io/dockercfg" && secret.Type != "kubernetes.io/dockerconfigjson" {
-			continue
-		}
-		creds := newCreds(secret)
-		if creds != nil {
-			result = append(result, creds)
-		}
-	}
-	return result
-}
-
 // Legacy represents old .dockercfg based credentials
 type legacy struct {
 	name      string
@@ -108,8 +89,6 @@ func (l *legacy) Pulltoken() ([]byte, error) {
 	return l.Dockercfg, nil
 }
 
-func (l *legacy) legacy() bool { return true }
-
 type classic struct {
 	name  string
 	value []byte
@@ -135,8 +114,6 @@ func (c *classic) DestinationContext() (*types.SystemContext, error) {
 func (c *classic) Pulltoken() ([]byte, error) {
 	return c.value, nil
 }
-
-func (c *classic) legacy() bool { return false }
 
 type gcr struct {
 	name string
@@ -166,8 +143,6 @@ func (g *gcr) DestinationContext() (*types.SystemContext, error) {
 	}, nil
 }
 
-func (g *gcr) legacy() bool { return false }
-
 type ecr struct {
 	password string
 }
@@ -188,8 +163,6 @@ func (e *ecr) DestinationContext() (*types.SystemContext, error) {
 		},
 	}, nil
 }
-
-func (e *ecr) legacy() bool { return false }
 
 func ECRCredentials(token string) (Credentials, error) {
 	if token[0:4] != "AWS:" {
