@@ -56,7 +56,7 @@ metadata:
     createdAt: "2021-07-30T10:00:00Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     operatorframework.io/suggested-namespace: falcon-operator
-    operators.operatorframework.io/builder: operator-sdk-v1.8.0
+    operators.operatorframework.io/builder: operator-sdk-v1.17.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
@@ -351,7 +351,7 @@ spec:
           - subjectaccessreviews
           verbs:
           - create
-        serviceAccountName: falcon-operator
+        serviceAccountName: falcon-operator-controller-manager
       deployments:
       - name: falcon-operator-controller-manager
         spec:
@@ -362,6 +362,8 @@ spec:
           strategy: {}
           template:
             metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
               labels:
                 control-plane: controller-manager
             spec:
@@ -370,14 +372,20 @@ spec:
                 - --secure-listen-address=0.0.0.0:8443
                 - --upstream=http://127.0.0.1:8080/
                 - --logtostderr=true
-                - --v=10
+                - --v=0
                 image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
                 name: kube-rbac-proxy
                 ports:
                 - containerPort: 8443
                   name: https
                   protocol: TCP
-                resources: {}
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
               - args:
                 - --health-probe-bind-address=:8081
                 - --metrics-bind-address=127.0.0.1:8080
@@ -412,11 +420,11 @@ spec:
                   periodSeconds: 10
                 resources:
                   limits:
-                    cpu: 200m
+                    cpu: 500m
                     memory: 256Mi
                   requests:
                     cpu: 100m
-                    memory: 20Mi
+                    memory: 64Mi
                 securityContext:
                   allowPrivilegeEscalation: false
                   capabilities:
@@ -428,7 +436,7 @@ spec:
                 runAsGroup: 65532
                 runAsNonRoot: true
                 runAsUser: 65532
-              serviceAccountName: falcon-operator
+              serviceAccountName: falcon-operator-controller-manager
               terminationGracePeriodSeconds: 10
       permissions:
       - rules:
@@ -463,7 +471,7 @@ spec:
           verbs:
           - create
           - patch
-        serviceAccountName: falcon-operator
+        serviceAccountName: falcon-operator-controller-manager
     strategy: deployment
   installModes:
   - supported: true

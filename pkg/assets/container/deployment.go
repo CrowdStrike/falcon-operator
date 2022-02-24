@@ -100,7 +100,7 @@ func containerDeployment(dsName string, nsName string, falconcontainer *falconv1
 								},
 							},
 							ReadinessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconContainerProbePath,
 										Port:   intstr.IntOrString{IntVal: injectorPort},
@@ -114,7 +114,7 @@ func containerDeployment(dsName string, nsName string, falconcontainer *falconv1
 								FailureThreshold:    3,
 							},
 							LivenessProbe: &corev1.Probe{
-								Handler: corev1.Handler{
+								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   common.FalconContainerProbePath,
 										Port:   intstr.IntOrString{IntVal: injectorPort},
