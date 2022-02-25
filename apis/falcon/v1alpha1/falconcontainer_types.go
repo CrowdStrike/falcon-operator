@@ -6,6 +6,10 @@ import (
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+type FalconContainerInjectorSpec struct {
+	// Define annotations that will be passed down to injector service account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
+	SAAnnotations map[string]string `json:"sa_annotations,omitempty"`
+}
 
 // FalconContainerSpec defines the desired state of FalconContainer
 type FalconContainerSpec struct {
@@ -19,6 +23,9 @@ type FalconContainerSpec struct {
 
 	// InstallerArgs are passed directly down to the Falcon Container Installer. Users are advised to consult Falcon Container documentation to learn about available command line arguments at https://falcon.crowdstrike.com/documentation/146/falcon-container-sensor-for-linux
 	InstallerArgs []string `json:"installer_args,omitempty"`
+	// Injector represents additional configuration for Falcon Container Injector
+	Injector *FalconContainerInjectorSpec `json:"injector,omitempty"`
+
 	// Falcon Container Version. The latest version will be selected when version specifier is missing.
 	Version *string `json:"version,omitempty"`
 }

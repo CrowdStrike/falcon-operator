@@ -78,6 +78,18 @@ spec:
                 - client_secret
                 - cloud_region
                 type: object
+              injector:
+                description: Injector represents additional configuration for Falcon
+                  Container Injector
+                properties:
+                  sa_annotations:
+                    additionalProperties:
+                      type: string
+                    description: Define annotations that will be passed down to injector
+                      service account. This is useful for passing along AWS IAM Role
+                      or GCP Workload Identity.
+                    type: object
+                type: object
               installer_args:
                 description: InstallerArgs are passed directly down to the Falcon
                   Container Installer. Users are advised to consult Falcon Container
@@ -94,11 +106,6 @@ spec:
                     description: Azure Container Registry Name represents the name
                       of the ACR for the Falcon Container push. Only applicable to
                       Azure cloud.
-                    type: string
-                  ecr_iam_role_arn:
-                    description: EcrIamRoleArn allows injector to assume IAM role
-                      to access registry. Please consult documentation to learn more
-                      about this set-up.
                     type: string
                   tls:
                     description: TLS configures TLS connection for push of Falcon

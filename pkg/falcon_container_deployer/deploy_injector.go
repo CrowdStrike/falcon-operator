@@ -10,7 +10,7 @@ import (
 )
 
 func (d *FalconContainerDeployer) deployInjector(objects []runtime.Object) error {
-	if d.Instance.Spec.Registry.EcrIamRoleArn == nil {
+	if d.Instance.Spec.Injector == nil || d.Instance.Spec.Injector.SAAnnotations == nil || len(d.Instance.Spec.Injector.SAAnnotations) == 0 {
 		return k8s_utils.Create(d.Ctx, d.Client, objects, d.Log)
 	}
 
@@ -38,9 +38,11 @@ func (d *FalconContainerDeployer) patchInjectorServiceAccount() error {
 	if sa.ObjectMeta.Annotations == nil {
 		sa.ObjectMeta.Annotations = map[string]string{}
 	}
-	sa.ObjectMeta.Annotations["eks.amazonaws.com/role-arn"] = *d.Instance.Spec.Registry.EcrIamRoleArn
+	for k, v := range d.Instance.Spec.Injector.SAAnnotations {
+		d.Log.Info("Patching injector service account: adding annotation", k, v)
+		sa.ObjectMeta.Annotations[k] = v
+	}
 
-	d.Log.Info("Patching injector service account: adding ECR Role", "EcrRoleArn", *d.Instance.Spec.Registry.EcrIamRoleArn)
 	return d.Client.Patch(d.Ctx, sa, patch)
 }
 
