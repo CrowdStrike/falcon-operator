@@ -1,6 +1,7 @@
 package falcon_container_deployer
 
 import (
+	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -53,7 +54,7 @@ func (d *FalconContainerDeployer) finalizeDeleteObjects() {
 		d.Log.Error(err, "Could not find Falcon Container Installer pod for deletion")
 		return
 	}
-	yaml, err := k8s_utils.GetPodLog(d.Ctx, d.RestConfig, pod)
+	yaml, err := k8s_utils.GetPodLog(d.Ctx, d.RestConfig, pod, common.FalconInstallerJobContainerName)
 	if err != nil {
 		d.Log.Error(err, "Could not fetch logs of Falcon Container Installer")
 		return

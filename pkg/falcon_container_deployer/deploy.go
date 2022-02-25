@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 )
 
@@ -144,7 +145,7 @@ func (d *FalconContainerDeployer) PhaseConfiguring() (ctrl.Result, error) {
 	}
 
 	// (Step 6) obtain job output
-	_, err = k8s_utils.GetPodLog(d.Ctx, d.RestConfig, pod)
+	_, err = k8s_utils.GetPodLog(d.Ctx, d.RestConfig, pod, common.FalconInstallerJobContainerName)
 	if err != nil {
 		return d.Error("Failed to get pod relevant to configure job", err)
 	}
@@ -164,7 +165,7 @@ func (d *FalconContainerDeployer) PhaseDeploying() (ctrl.Result, error) {
 		return d.Error("Failed to get pod relevant to configure job", err)
 	}
 
-	yaml, err := k8s_utils.GetPodLog(d.Ctx, d.RestConfig, pod)
+	yaml, err := k8s_utils.GetPodLog(d.Ctx, d.RestConfig, pod, common.FalconInstallerJobContainerName)
 	if err != nil {
 		return d.Error("Failed to get pod relevant to configure job", err)
 	}
