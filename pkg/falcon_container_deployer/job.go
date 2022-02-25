@@ -12,6 +12,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
@@ -119,7 +120,7 @@ func (d *FalconContainerDeployer) installerContainer() (*corev1.Container, error
 	falseP := false
 	trueP := true
 	return &corev1.Container{
-		Name:  "installer",
+		Name:  common.FalconInstallerJobContainerName,
 		Image: imageUri,
 		SecurityContext: &corev1.SecurityContext{
 			AllowPrivilegeEscalation: &falseP,

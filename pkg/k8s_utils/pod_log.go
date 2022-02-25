@@ -11,8 +11,10 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func GetPodLog(ctx context.Context, config *rest.Config, pod *corev1.Pod) (string, error) {
-	podLogOpts := corev1.PodLogOptions{}
+func GetPodLog(ctx context.Context, config *rest.Config, pod *corev1.Pod, containerName string) (string, error) {
+	podLogOpts := corev1.PodLogOptions{
+		Container: containerName,
+	}
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return "", fmt.Errorf("Cannot build kubernetes go client: %w", err)
