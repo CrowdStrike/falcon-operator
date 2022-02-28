@@ -56,3 +56,16 @@ func CCID(ctx context.Context, client *client.CrowdStrikeAPISpecification) (stri
 	return payload.Resources[0], nil
 
 }
+
+func FalconCID(ctx context.Context, cid *string, fa *falcon.ApiConfig) (string, error) {
+	fa.Context = ctx
+	if cid != nil {
+		return *cid, nil
+	}
+
+	client, err := falcon.NewClient(fa)
+	if err != nil {
+		return "", err
+	}
+	return CCID(ctx, client)
+}

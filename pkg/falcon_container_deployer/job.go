@@ -16,7 +16,6 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
-	"github.com/crowdstrike/gofalcon/falcon"
 )
 
 const (
@@ -131,7 +130,7 @@ func (d *FalconContainerDeployer) installerContainer() (*corev1.Container, error
 }
 
 func (d *FalconContainerDeployer) installerCmd(imageUri string) ([]string, error) {
-	cid, err := d.getCCID()
+	cid, err := falcon_api.FalconCID(d.Ctx, d.Instance.Spec.FalconAPI.CID, d.falconApiConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -151,17 +150,6 @@ func (d *FalconContainerDeployer) installerCmd(imageUri string) ([]string, error
 	}
 
 	return append(installCmd, d.Instance.Spec.InstallerArgs...), nil
-}
-
-func (d *FalconContainerDeployer) getCCID() (string, error) {
-	if d.Instance.Spec.FalconAPI.CID != nil {
-		return *d.Instance.Spec.FalconAPI.CID, nil
-	}
-	client, err := falcon.NewClient(d.falconApiConfig())
-	if err != nil {
-		return "", err
-	}
-	return falcon_api.CCID(d.Ctx, client)
 }
 
 func (d *FalconContainerDeployer) pulltokenBase64() (string, error) {
