@@ -5,7 +5,6 @@ const (
 	FalconHostInstallDir     = "/opt"
 	FalconDataDir            = "/opt/CrowdStrike"
 	FalconStoreFile          = "/opt/CrowdStrike/falconstore"
-	FalconDefaultImage       = "falcon-node-sensor:latest"
 	FalconContainerProbePath = "/live"
 	FalconServiceHTTPSName   = "https"
 	FalconServiceHTTPSPort   = 443

@@ -1,6 +1,8 @@
 package node
 
 import (
+	"context"
+
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	appsv1 "k8s.io/api/apps/v1"
@@ -18,7 +20,7 @@ func getTermGracePeriod(node *falconv1alpha1.FalconNodeSensor) *int64 {
 
 }
 
-func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
+func Daemonset(ctx context.Context, dsName string, node *falconv1alpha1.FalconNodeSensor) (*appsv1.DaemonSet, error) {
 	privileged := true
 	escalation := true
 	readOnlyFs := false
@@ -28,6 +30,11 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 	runAs := int64(0)
 	pathTypeUnset := corev1.HostPathUnset
 	pathDirCreate := corev1.HostPathDirectoryOrCreate
+
+	image, err := common.GetFalconImage(ctx, node)
+	if err != nil {
+		return nil, err
+	}
 
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -81,7 +88,7 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 					InitContainers: []corev1.Container{
 						{
 							Name:    "init-falconstore",
-							Image:   common.GetFalconImage(node),
+							Image:   image,
 							Command: common.FalconShellCommand,
 							Args:    common.InitContainerArgs(),
 							VolumeMounts: []corev1.VolumeMount{
@@ -101,7 +108,7 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 								AllowPrivilegeEscalation: &escalation,
 							},
 							Name:            "falcon-node-sensor",
-							Image:           common.GetFalconImage(node),
+							Image:           image,
 							ImagePullPolicy: node.Spec.Node.ImagePullPolicy,
 							EnvFrom: []corev1.EnvFromSource{
 								{
@@ -143,5 +150,5 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 				},
 			},
 		},
-	}
+	}, nil
 }

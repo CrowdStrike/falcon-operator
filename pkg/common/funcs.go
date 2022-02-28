@@ -1,11 +1,14 @@
 package common
 
 import (
+	"context"
 	"encoding/base64"
+	"fmt"
 	"strconv"
 	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	sprigcrypto "github.com/crowdstrike/falcon-operator/pkg/sprig"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
@@ -21,11 +24,31 @@ func InitContainerArgs() []string {
 	}
 }
 
-func GetFalconImage(nodesensor *falconv1alpha1.FalconNodeSensor) string {
-	if nodesensor.Spec.Node.Image == "" {
-		return FalconDefaultImage
+func GetFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) (string, error) {
+	if nodesensor.Spec.Node.Image != "" {
+		return nodesensor.Spec.Node.Image, nil
 	}
-	return nodesensor.Spec.Node.Image
+
+	if nodesensor.Spec.FalconAPI == nil {
+		return "", fmt.Errorf("Missing falcon_api configuration")
+	}
+
+	cloud, err := nodesensor.Spec.FalconAPI.FalconCloud(ctx)
+	if err != nil {
+		return "", err
+	}
+	imageUri := falcon_registry.ImageURI(cloud)
+
+	registry, err := falcon_registry.NewFalconRegistry(ctx, nodesensor.Spec.FalconAPI.ApiConfig())
+	if err != nil {
+		return "", err
+	}
+	imageTag, err := registry.LastNodeTag(ctx, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s:%s", imageUri, imageTag), nil
 }
 
 func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor) map[string]string {
