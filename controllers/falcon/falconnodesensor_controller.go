@@ -2,16 +2,19 @@ package falcon
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/assets/node"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -82,6 +85,11 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 	if updated {
 		logger.Info("Configmap was updated")
+	}
+
+	err = r.handleCrowdStrikeSecrets(ctx, nodesensor, logger)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// Check if the daemonset already exists, if not create a new one
@@ -177,6 +185,64 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 	}
 
 	return confCm, updated, nil
+}
+
+const (
+	SECRET_NAME        = "crowdstrike-falcon-pull-secret"
+	SECRET_LABEL       = "crowdstrike.com/provider"
+	SECRET_LABEL_VALUE = "crowdstrike"
+)
+
+// handleCrowdStrikeSecrets creates and updates the image pull secrets for the nodesensor
+func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
+	if nodesensor.Spec.Node.Image != "" {
+		return nil
+	}
+	if nodesensor.Spec.FalconAPI == nil {
+		return fmt.Errorf("Missing falcon_api configuration")
+	}
+
+	secret := corev1.Secret{}
+	err := r.Client.Get(ctx, types.NamespacedName{Name: SECRET_NAME, Namespace: nodesensor.Namespace}, &secret)
+	if err == nil || !errors.IsNotFound(err) {
+		return err
+	}
+	pulltoken, err := pulltoken.CrowdStrike(ctx, nodesensor.Spec.FalconAPI.ApiConfig())
+	if err != nil {
+		return err
+	}
+
+	secret = corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      SECRET_NAME,
+			Namespace: nodesensor.Namespace,
+			Labels: map[string]string{
+				SECRET_LABEL: SECRET_LABEL_VALUE,
+			},
+		},
+		Data: map[string][]byte{
+			".dockerconfigjson": pulltoken,
+		},
+		Type: corev1.SecretTypeDockerConfigJson,
+	}
+	err = ctrl.SetControllerReference(nodesensor, &secret, r.Scheme)
+	if err != nil {
+		logger.Error(err, "Unable to assign Controller Reference to the Pull Secret")
+	}
+	err = r.Client.Create(ctx, &secret)
+	if err != nil {
+		if !errors.IsAlreadyExists(err) {
+			logger.Error(err, "Failed to create new Pull Secret", "Secret.Namespace", nodesensor.Namespace, "Secret.Name", SECRET_NAME)
+			return err
+		}
+	} else {
+		logger.Info("Created a new Pull Secret", "Secret.Namespace", nodesensor.Namespace, "Secret.Name", SECRET_NAME)
+	}
+	return nil
 }
 
 func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name string, nodesensor *falconv1alpha1.FalconNodeSensor) (*corev1.ConfigMap, error) {
