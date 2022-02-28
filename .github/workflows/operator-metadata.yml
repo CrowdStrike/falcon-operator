@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        go-version: [1.16.x]
+        go-version: [1.17.x]
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -41,10 +41,10 @@ jobs:
         make manifests generate
         make bundle
         rm deploy/falcon-operator.yaml && make deploy/falcon-operator.yaml
-        find ./bundle* -type f -exec sed -i -e 's/operator-sdk-v1.7.1+git/operator-sdk-v1.8.0/g' {} \;
+        find ./bundle* -type f -exec sed -i -e 's/operator-sdk-v1.16.0+git/operator-sdk-v1.17.0/g' {} \;
 
         if [[ -n $(git status -s) ]] ; then
-          echo "Generating manifests leaves tracked fiels in a modified state."
+          echo "Generating manifests leaves tracked fields in a modified state."
           echo "Ensure to include updated manifests in this PR."
           echo "This is usually done by running 'make manifests generate' and running 'git add ...' for the files that was modified by generating manifests."
           git status -s
