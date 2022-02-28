@@ -33,6 +33,8 @@ type FalconNodeSensorSpec struct {
 
 	Node   FalconNodeSensorConfig `json:"node"`
 	Falcon FalconSensor           `json:"falcon"`
+	// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
+	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 }
 
 // CrowdStrike Falcon Sensor configuration settings.

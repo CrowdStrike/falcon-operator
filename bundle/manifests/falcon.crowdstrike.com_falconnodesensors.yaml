@@ -81,6 +81,36 @@ spec:
                 required:
                 - cid
                 type: object
+              falcon_api:
+                description: FalconAPI configures connection from your local Falcon
+                  operator to CrowdStrike Falcon platform.
+                properties:
+                  cid:
+                    description: Falcon Customer ID (CID) Override (optional, default
+                      is derived from the API Key pair)
+                    pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
+                    type: string
+                  client_id:
+                    description: Falcon OAuth2 API Client ID
+                    type: string
+                  client_secret:
+                    description: Falcon OAuth2 API Client Secret
+                    type: string
+                  cloud_region:
+                    description: CloudRegion defines CrowdStrike Falcon Cloud Region
+                      to which the operator will connect to
+                    enum:
+                    - autodiscover
+                    - us-1
+                    - us-2
+                    - eu-1
+                    - us-gov-1
+                    type: string
+                required:
+                - client_id
+                - client_secret
+                - cloud_region
+                type: object
               node:
                 description: FalconNodeSensorConfig defines aspects about how the
                   daemonset works.
