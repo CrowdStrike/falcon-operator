@@ -159,12 +159,14 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 	} else if err != nil {
 		logger.Error(err, "error getting Configmap")
 		return nil, updated, err
-	} else {
-		configmap, err := r.nodeSensorConfigmap(cmName, nodesensor)
-		if err != nil {
-			logger.Error(err, "Failed to format Configmap for update", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
-			return nil, updated, err
-		}
+	}
+
+	configmap, err := r.nodeSensorConfigmap(cmName, nodesensor)
+	if err != nil {
+		logger.Error(err, "Failed to format existing Configmap", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
+		return nil, updated, err
+	}
+	if !reflect.DeepEqual(confCm.Data, configmap.Data) {
 		err = r.Update(ctx, configmap)
 		if err != nil {
 			logger.Error(err, "Failed to update Configmap", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
