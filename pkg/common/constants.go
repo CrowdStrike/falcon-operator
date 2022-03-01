@@ -20,4 +20,6 @@ const (
 	FalconProviderValue = "crowdstrike"
 
 	FalconInstallerJobContainerName = "installer"
+
+	FalconPullSecretName = "crowdstrike-falcon-pull-secret"
 )

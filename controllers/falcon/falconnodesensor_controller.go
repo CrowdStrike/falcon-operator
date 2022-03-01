@@ -199,10 +199,6 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 	return confCm, updated, nil
 }
 
-const (
-	SECRET_NAME = "crowdstrike-falcon-pull-secret"
-)
-
 // handleCrowdStrikeSecrets creates and updates the image pull secrets for the nodesensor
 func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
 	if nodesensor.Spec.Node.Image != "" {
@@ -213,7 +209,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 	}
 
 	secret := corev1.Secret{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: SECRET_NAME, Namespace: nodesensor.Namespace}, &secret)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: nodesensor.Namespace}, &secret)
 	if err == nil || !errors.IsNotFound(err) {
 		return err
 	}
@@ -228,7 +224,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 			Kind:       "Secret",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      SECRET_NAME,
+			Name:      common.FalconPullSecretName,
 			Namespace: nodesensor.Namespace,
 			Labels: map[string]string{
 				common.FalconProviderKey: common.FalconProviderValue,
@@ -246,11 +242,11 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 	err = r.Client.Create(ctx, &secret)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
-			logger.Error(err, "Failed to create new Pull Secret", "Secret.Namespace", nodesensor.Namespace, "Secret.Name", SECRET_NAME)
+			logger.Error(err, "Failed to create new Pull Secret", "Secret.Namespace", nodesensor.Namespace, "Secret.Name", common.FalconPullSecretName)
 			return err
 		}
 	} else {
-		logger.Info("Created a new Pull Secret", "Secret.Namespace", nodesensor.Namespace, "Secret.Name", SECRET_NAME)
+		logger.Info("Created a new Pull Secret", "Secret.Namespace", nodesensor.Namespace, "Secret.Name", common.FalconPullSecretName)
 	}
 	return nil
 }

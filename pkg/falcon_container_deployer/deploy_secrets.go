@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	SECRET_NAME              = "crowdstrike-falcon-pull-secret"
 	INJECTION_LABEL          = "sensor.falcon-system.crowdstrike.com/injection"
 	INJECTION_LABEL_DISABLED = "disabled"
 )
@@ -46,7 +45,7 @@ func (d *FalconContainerDeployer) createCrowdstrikeSecret(namespace string, pull
 			Kind:       "Secret",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      SECRET_NAME,
+			Name:      common.FalconPullSecretName,
 			Namespace: namespace,
 			Labels: map[string]string{
 				common.FalconProviderKey: common.FalconProviderValue,
@@ -64,11 +63,11 @@ func (d *FalconContainerDeployer) createCrowdstrikeSecret(namespace string, pull
 	err = d.Client.Create(d.Ctx, secret)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
-			d.Log.Error(err, "Failed to schedule new Pull Secret", "Secret.Namespace", namespace, "Secret.Name", SECRET_NAME)
+			d.Log.Error(err, "Failed to schedule new Pull Secret", "Secret.Namespace", namespace, "Secret.Name", common.FalconPullSecretName)
 			return err
 		}
 	} else {
-		d.Log.Info("Created a new Pull Secret", "Secret.Namespace", namespace, "Secret.Name", SECRET_NAME)
+		d.Log.Info("Created a new Pull Secret", "Secret.Namespace", namespace, "Secret.Name", common.FalconPullSecretName)
 	}
 	return nil
 }
