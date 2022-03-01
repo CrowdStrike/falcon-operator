@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/assets/node"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
@@ -14,7 +15,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -218,23 +218,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 		return err
 	}
 
-	secret = corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "Secret",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      common.FalconPullSecretName,
-			Namespace: nodesensor.Namespace,
-			Labels: map[string]string{
-				common.FalconProviderKey: common.FalconProviderValue,
-			},
-		},
-		Data: map[string][]byte{
-			".dockerconfigjson": pulltoken,
-		},
-		Type: corev1.SecretTypeDockerConfigJson,
-	}
+	secret = assets.PullSecret(nodesensor.Namespace, pulltoken)
 	err = ctrl.SetControllerReference(nodesensor, &secret, r.Scheme)
 	if err != nil {
 		logger.Error(err, "Unable to assign Controller Reference to the Pull Secret")

@@ -3,10 +3,10 @@ package falcon_container_deployer
 import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/crowdstrike/falcon-operator/pkg/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
@@ -39,28 +39,12 @@ func (d *FalconContainerDeployer) UpsertCrowdStrikeSecrets() error {
 }
 
 func (d *FalconContainerDeployer) createCrowdstrikeSecret(namespace string, pulltoken []byte) error {
-	secret := &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "Secret",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      common.FalconPullSecretName,
-			Namespace: namespace,
-			Labels: map[string]string{
-				common.FalconProviderKey: common.FalconProviderValue,
-			},
-		},
-		Data: map[string][]byte{
-			".dockerconfigjson": pulltoken,
-		},
-		Type: corev1.SecretTypeDockerConfigJson,
-	}
-	err := ctrl.SetControllerReference(d.Instance, secret, d.Scheme)
+	secret := assets.PullSecret(namespace, pulltoken)
+	err := ctrl.SetControllerReference(d.Instance, &secret, d.Scheme)
 	if err != nil {
 		d.Log.Error(err, "Unable to assign Controller Reference to the Pull Secret")
 	}
-	err = d.Client.Create(d.Ctx, secret)
+	err = d.Client.Create(d.Ctx, &secret)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
 			d.Log.Error(err, "Failed to schedule new Pull Secret", "Secret.Namespace", namespace, "Secret.Name", common.FalconPullSecretName)
