@@ -201,7 +201,6 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 
 const (
 	SECRET_NAME        = "crowdstrike-falcon-pull-secret"
-	SECRET_LABEL       = "crowdstrike.com/provider"
 	SECRET_LABEL_VALUE = "crowdstrike"
 )
 
@@ -233,7 +232,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 			Name:      SECRET_NAME,
 			Namespace: nodesensor.Namespace,
 			Labels: map[string]string{
-				SECRET_LABEL: SECRET_LABEL_VALUE,
+				common.FalconProviderKey: SECRET_LABEL_VALUE,
 			},
 		},
 		Data: map[string][]byte{

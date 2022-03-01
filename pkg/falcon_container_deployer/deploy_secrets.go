@@ -7,13 +7,13 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 )
 
 const (
 	SECRET_NAME              = "crowdstrike-falcon-pull-secret"
-	SECRET_LABEL             = "crowdstrike.com/provider"
 	SECRET_LABEL_VALUE       = "crowdstrike"
 	INJECTION_LABEL          = "sensor.falcon-system.crowdstrike.com/injection"
 	INJECTION_LABEL_DISABLED = "disabled"
@@ -50,7 +50,7 @@ func (d *FalconContainerDeployer) createCrowdstrikeSecret(namespace string, pull
 			Name:      SECRET_NAME,
 			Namespace: namespace,
 			Labels: map[string]string{
-				SECRET_LABEL: SECRET_LABEL_VALUE,
+				common.FalconProviderKey: SECRET_LABEL_VALUE,
 			},
 		},
 		Data: map[string][]byte{
@@ -104,7 +104,7 @@ func (d *FalconContainerDeployer) namespacesMissingSecrets() (map[string]void, e
 }
 
 func (d *FalconContainerDeployer) listCrowdStrikeSecrets() (*corev1.SecretList, error) {
-	return k8s_utils.QuerySecrets(d.Client, client.MatchingLabels(map[string]string{SECRET_LABEL: SECRET_LABEL_VALUE}))(d.Ctx)
+	return k8s_utils.QuerySecrets(d.Client, client.MatchingLabels(map[string]string{common.FalconProviderKey: SECRET_LABEL_VALUE}))(d.Ctx)
 }
 
 type void struct{}
