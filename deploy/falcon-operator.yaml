@@ -352,7 +352,6 @@ spec:
                   daemonset works.
                 properties:
                   image:
-                    default: falcon-node-sensor:latest
                     description: Name of the Falcon Sensor container to pull. Format
                       should be repository/namespace/name:tag
                     type: string

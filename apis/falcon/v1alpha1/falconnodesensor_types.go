@@ -71,7 +71,6 @@ type FalconNodeSensorConfig struct {
 	// +kubebuilder:default=Always
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Name of the Falcon Sensor container to pull. Format should be repository/namespace/name:tag
-	// +kubebuilder:default="falcon-node-sensor:latest"
 	Image string `json:"image,omitempty"`
 	// Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.
 	// +kubebuilder:default=30
