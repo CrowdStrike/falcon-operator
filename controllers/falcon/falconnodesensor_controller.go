@@ -200,8 +200,7 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 }
 
 const (
-	SECRET_NAME        = "crowdstrike-falcon-pull-secret"
-	SECRET_LABEL_VALUE = "crowdstrike"
+	SECRET_NAME = "crowdstrike-falcon-pull-secret"
 )
 
 // handleCrowdStrikeSecrets creates and updates the image pull secrets for the nodesensor
@@ -232,7 +231,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 			Name:      SECRET_NAME,
 			Namespace: nodesensor.Namespace,
 			Labels: map[string]string{
-				common.FalconProviderKey: SECRET_LABEL_VALUE,
+				common.FalconProviderKey: common.FalconProviderValue,
 			},
 		},
 		Data: map[string][]byte{

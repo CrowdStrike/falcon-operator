@@ -17,5 +17,7 @@ const (
 	FalconProviderKey     = "crowdstrike.com/provider"
 	FalconControllerKey   = "crowdstrike.com/created-by"
 
+	FalconProviderValue = "crowdstrike"
+
 	FalconInstallerJobContainerName = "installer"
 )

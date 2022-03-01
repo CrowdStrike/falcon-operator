@@ -21,7 +21,7 @@ func containerConfigMap(dsname string, nsname string, falconContainer *falconv1a
 				common.FalconInstanceKey:     "kernel_sensor",
 				common.FalconComponentKey:    "kernel_sensor",
 				common.FalconManagedByKey:    dsname,
-				common.FalconProviderKey:     "CrowdStrike",
+				common.FalconProviderKey:     common.FalconProviderValue,
 				common.FalconPartOfKey:       "Falcon",
 				common.FalconControllerKey:   "controller-manager",
 			},

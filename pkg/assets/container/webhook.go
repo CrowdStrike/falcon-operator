@@ -30,7 +30,7 @@ func containerMutatingWebhook(dsName string, nsName string, falconContainer *fal
 				common.FalconInstanceKey:     "container_sensor",
 				common.FalconComponentKey:    "container_sensor",
 				common.FalconManagedByKey:    dsName,
-				common.FalconProviderKey:     "CrowdStrike",
+				common.FalconProviderKey:     common.FalconProviderValue,
 				common.FalconPartOfKey:       "Falcon",
 				common.FalconControllerKey:   "controller-manager",
 			},
