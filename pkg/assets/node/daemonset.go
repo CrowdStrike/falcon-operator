@@ -1,8 +1,6 @@
 package node
 
 import (
-	"context"
-
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	appsv1 "k8s.io/api/apps/v1"
@@ -20,7 +18,7 @@ func getTermGracePeriod(node *falconv1alpha1.FalconNodeSensor) *int64 {
 
 }
 
-func Daemonset(ctx context.Context, dsName string, node *falconv1alpha1.FalconNodeSensor) (*appsv1.DaemonSet, error) {
+func Daemonset(dsName, image string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
 	privileged := true
 	escalation := true
 	readOnlyFs := false
@@ -30,11 +28,6 @@ func Daemonset(ctx context.Context, dsName string, node *falconv1alpha1.FalconNo
 	runAs := int64(0)
 	pathTypeUnset := corev1.HostPathUnset
 	pathDirCreate := corev1.HostPathDirectoryOrCreate
-
-	image, err := common.GetFalconImage(ctx, node)
-	if err != nil {
-		return nil, err
-	}
 
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -150,5 +143,5 @@ func Daemonset(ctx context.Context, dsName string, node *falconv1alpha1.FalconNo
 				},
 			},
 		},
-	}, nil
+	}
 }

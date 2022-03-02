@@ -92,16 +92,18 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	image, err := common.GetFalconImage(ctx, nodesensor)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// Check if the daemonset already exists, if not create a new one
 	daemonset := &appsv1.DaemonSet{}
 
 	err = r.Get(ctx, types.NamespacedName{Name: nodesensor.Name, Namespace: nodesensor.Namespace}, daemonset)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new daemonset
-		ds, err := r.nodeSensorDaemonset(ctx, nodesensor.Name, nodesensor, logger)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+		ds := r.nodeSensorDaemonset(nodesensor.Name, image, nodesensor, logger)
 
 		err = r.Create(ctx, ds)
 		if err != nil {
@@ -121,19 +123,10 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		dsUpdate := daemonset.DeepCopy()
 
 		// Objects to check for updates to re-spin pods
-		imgUpdate, err := updateDaemonSetImages(ctx, dsUpdate, nodesensor, logger)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+		imgUpdate := updateDaemonSetImages(dsUpdate, image, nodesensor, logger)
 		tolsUpdate := updateDaemonSetTolerations(dsUpdate, nodesensor, logger)
-		containerVolUpdate, err := updateDaemonSetContainerVolumes(ctx, dsUpdate, nodesensor, logger)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		volumeUpdates, err := updateDaemonSetVolumes(ctx, dsUpdate, nodesensor, logger)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+		containerVolUpdate := updateDaemonSetContainerVolumes(dsUpdate, image, nodesensor, logger)
+		volumeUpdates := updateDaemonSetVolumes(dsUpdate, image, nodesensor, logger)
 
 		// Update the daemonset and re-spin pods with changes
 		if imgUpdate || tolsUpdate || containerVolUpdate || volumeUpdates || updated {
@@ -245,20 +238,17 @@ func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name string, nodesensor
 	return cm, nil
 }
 
-func (r *FalconNodeSensorReconciler) nodeSensorDaemonset(ctx context.Context, name string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (*appsv1.DaemonSet, error) {
-	ds, err := node.Daemonset(ctx, name, nodesensor)
-	if err != nil {
-		return nil, err
-	}
+func (r *FalconNodeSensorReconciler) nodeSensorDaemonset(name, image string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) *appsv1.DaemonSet {
+	ds := node.Daemonset(name, image, nodesensor)
 
 	// NOTE: calling SetControllerReference, and setting owner references in
 	// general, is important as it allows deleted objects to be garbage collected.
-	err = controllerutil.SetControllerReference(nodesensor, ds, r.Scheme)
+	err := controllerutil.SetControllerReference(nodesensor, ds, r.Scheme)
 	if err != nil {
 		logger.Error(err, "unable to set controller reference")
 	}
 
-	return ds, nil
+	return ds
 }
 
 // If an update is needed, this will update the tolerations from the given DaemonSet
@@ -274,11 +264,8 @@ func updateDaemonSetTolerations(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1
 }
 
 // If an update is needed, this will update the containervolumes from the given DaemonSet
-func updateDaemonSetContainerVolumes(ctx context.Context, ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
-	origDS, err := node.Daemonset(ctx, ds.Name, nodesensor)
-	if err != nil {
-		return true, err
-	}
+func updateDaemonSetContainerVolumes(ds *appsv1.DaemonSet, image string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+	origDS := node.Daemonset(ds.Name, image, nodesensor)
 
 	containerVolumeMounts := &ds.Spec.Template.Spec.Containers[0].VolumeMounts
 	containerVolumeMountsUpdates := !reflect.DeepEqual(*containerVolumeMounts, origDS.Spec.Template.Spec.Containers[0].VolumeMounts)
@@ -287,15 +274,12 @@ func updateDaemonSetContainerVolumes(ctx context.Context, ds *appsv1.DaemonSet, 
 		*containerVolumeMounts = origDS.Spec.Template.Spec.Containers[0].VolumeMounts
 	}
 
-	return containerVolumeMountsUpdates, nil
+	return containerVolumeMountsUpdates
 }
 
 // If an update is needed, this will update the volumes from the given DaemonSet
-func updateDaemonSetVolumes(ctx context.Context, ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
-	origDS, err := node.Daemonset(ctx, ds.Name, nodesensor)
-	if err != nil {
-		return true, err
-	}
+func updateDaemonSetVolumes(ds *appsv1.DaemonSet, image string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+	origDS := node.Daemonset(ds.Name, image, nodesensor)
 	volumeMounts := &ds.Spec.Template.Spec.Volumes
 	volumeMountsUpdates := !reflect.DeepEqual(*volumeMounts, origDS.Spec.Template.Spec.Volumes)
 	if volumeMountsUpdates {
@@ -303,16 +287,12 @@ func updateDaemonSetVolumes(ctx context.Context, ds *appsv1.DaemonSet, nodesenso
 		*volumeMounts = origDS.Spec.Template.Spec.Volumes
 	}
 
-	return volumeMountsUpdates, nil
+	return volumeMountsUpdates
 }
 
 // If an update is needed, this will update the InitContainer image reference from the given DaemonSet
-func updateDaemonSetImages(ctx context.Context, ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
+func updateDaemonSetImages(ds *appsv1.DaemonSet, origImg string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
 	initImage := &ds.Spec.Template.Spec.InitContainers[0].Image
-	origImg, err := common.GetFalconImage(ctx, nodesensor)
-	if err != nil {
-		return false, err
-	}
 	imgUpdate := *initImage != origImg
 	if imgUpdate {
 		logger.Info("Updating FalconNodeSensor DaemonSet InitContainer image", "Original Image", origImg, "Current Image", initImage)
@@ -326,5 +306,5 @@ func updateDaemonSetImages(ctx context.Context, ds *appsv1.DaemonSet, nodesensor
 		*image = origImg
 	}
 
-	return imgUpdate, nil
+	return imgUpdate
 }
