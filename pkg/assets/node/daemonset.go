@@ -29,6 +29,15 @@ func Daemonset(dsName, image string, node *falconv1alpha1.FalconNodeSensor) *app
 	pathTypeUnset := corev1.HostPathUnset
 	pathDirCreate := corev1.HostPathDirectoryOrCreate
 
+	var pullSecrets []corev1.LocalObjectReference = nil
+	if node.Spec.Node.Image == "" {
+		pullSecrets = []corev1.LocalObjectReference{
+			{
+				Name: common.FalconPullSecretName,
+			},
+		}
+	}
+
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
@@ -78,6 +87,7 @@ func Daemonset(dsName, image string, node *falconv1alpha1.FalconNodeSensor) *app
 					HostIPC:                       hostipc,
 					HostNetwork:                   hostnetwork,
 					TerminationGracePeriodSeconds: getTermGracePeriod(node),
+					ImagePullSecrets:              pullSecrets,
 					InitContainers: []corev1.Container{
 						{
 							Name:    "init-falconstore",
