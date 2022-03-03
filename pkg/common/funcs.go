@@ -37,7 +37,7 @@ func GetFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 	if err != nil {
 		return "", err
 	}
-	imageUri := falcon_registry.ImageURI(cloud)
+	imageUri := falcon_registry.ImageURINode(cloud)
 
 	registry, err := falcon_registry.NewFalconRegistry(ctx, nodesensor.Spec.FalconAPI.ApiConfig())
 	if err != nil {
