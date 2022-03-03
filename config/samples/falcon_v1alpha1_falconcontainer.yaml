@@ -2,7 +2,7 @@
 #
 # REQUIRED: Please fill in your CrowdStrike Falcon credentials bellow.
 #
-# To learn more about FaclonContainer resource please consult documentation at
+# To learn more about FalconContainer resource please consult documentation at
 # https://github.com/CrowdStrike/falcon-operator/tree/main/docs/container
 
 apiVersion: falcon.crowdstrike.com/v1alpha1
