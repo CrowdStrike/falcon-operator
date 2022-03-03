@@ -351,9 +351,9 @@ spec:
                 description: FalconNodeSensorConfig defines aspects about how the
                   daemonset works.
                 properties:
-                  image:
-                    description: Name of the Falcon Sensor container to pull. Format
-                      should be repository/namespace/name:tag
+                  image_override:
+                    description: Location of the Falcon Sensor image. Use only in
+                      cases when you mirror the original image to your repository/name:tag
                     type: string
                   imagePullPolicy:
                     default: Always

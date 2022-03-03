@@ -35,7 +35,7 @@ spec:
 | Spec                                | Description                                                                                                                               |
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
 | falcon.cid                          | CrowdStrike Falcon CID                                                                                                                    |
-| node.image                          | Location of the CrowdStrike Daemonset image                                                                                               |
+| node.image_override                 | (optional) Location of the Falcon Sensor Image. Specify only when you mirror the original image to your own image repository              |
 
 ### Install Steps
 To install Falcon Node Sensor (assuming Falcon Operator is installed):

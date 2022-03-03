@@ -30,7 +30,7 @@ func Daemonset(dsName, image string, node *falconv1alpha1.FalconNodeSensor) *app
 	pathDirCreate := corev1.HostPathDirectoryOrCreate
 
 	var pullSecrets []corev1.LocalObjectReference = nil
-	if node.Spec.Node.Image == "" {
+	if node.Spec.Node.ImageOverride == "" {
 		pullSecrets = []corev1.LocalObjectReference{
 			{
 				Name: common.FalconPullSecretName,

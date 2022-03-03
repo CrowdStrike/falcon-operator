@@ -25,8 +25,8 @@ func InitContainerArgs() []string {
 }
 
 func GetFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) (string, error) {
-	if nodesensor.Spec.Node.Image != "" {
-		return nodesensor.Spec.Node.Image, nil
+	if nodesensor.Spec.Node.ImageOverride != "" {
+		return nodesensor.Spec.Node.ImageOverride, nil
 	}
 
 	if nodesensor.Spec.FalconAPI == nil {
