@@ -101,7 +101,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Check if the daemonset already exists, if not create a new one
 	daemonset := &appsv1.DaemonSet{}
 
-	err = r.Get(ctx, types.NamespacedName{Name: nodesensor.Name, Namespace: nodesensor.Namespace}, daemonset)
+	err = r.Get(ctx, types.NamespacedName{Name: nodesensor.Name, Namespace: nodesensor.TargetNs()}, daemonset)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new daemonset
 		ds := r.nodeSensorDaemonset(nodesensor.Name, image, nodesensor, logger)
@@ -155,16 +155,16 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 	cmName := nodesensor.Name + "-config"
 	confCm := &corev1.ConfigMap{}
 
-	err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: nodesensor.Namespace}, confCm)
+	err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: nodesensor.TargetNs()}, confCm)
 	if err != nil && errors.IsNotFound(err) {
 		// does not exist, create
 		configmap, err := r.nodeSensorConfigmap(cmName, nodesensor)
 		if err != nil {
-			logger.Error(err, "Failed to format new Configmap", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
+			logger.Error(err, "Failed to format new Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
 			return nil, updated, err
 		}
 		if err := r.Create(ctx, configmap); err != nil {
-			logger.Error(err, "Failed to create new Configmap", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
+			logger.Error(err, "Failed to create new Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
 			return nil, updated, err
 		}
 
@@ -177,13 +177,13 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 
 	configmap, err := r.nodeSensorConfigmap(cmName, nodesensor)
 	if err != nil {
-		logger.Error(err, "Failed to format existing Configmap", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
+		logger.Error(err, "Failed to format existing Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
 		return nil, updated, err
 	}
 	if !reflect.DeepEqual(confCm.Data, configmap.Data) {
 		err = r.Update(ctx, configmap)
 		if err != nil {
-			logger.Error(err, "Failed to update Configmap", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
+			logger.Error(err, "Failed to update Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
 			return nil, updated, err
 		}
 
@@ -203,7 +203,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 	}
 
 	secret := corev1.Secret{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: nodesensor.Namespace}, &secret)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: nodesensor.TargetNs()}, &secret)
 	if err == nil || !errors.IsNotFound(err) {
 		return err
 	}
@@ -212,7 +212,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 		return err
 	}
 
-	secret = assets.PullSecret(nodesensor.Namespace, pulltoken)
+	secret = assets.PullSecret(nodesensor.TargetNs(), pulltoken)
 	err = ctrl.SetControllerReference(nodesensor, &secret, r.Scheme)
 	if err != nil {
 		logger.Error(err, "Unable to assign Controller Reference to the Pull Secret")
@@ -220,17 +220,17 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 	err = r.Client.Create(ctx, &secret)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
-			logger.Error(err, "Failed to create new Pull Secret", "Secret.Namespace", nodesensor.Namespace, "Secret.Name", common.FalconPullSecretName)
+			logger.Error(err, "Failed to create new Pull Secret", "Secret.Namespace", nodesensor.TargetNs(), "Secret.Name", common.FalconPullSecretName)
 			return err
 		}
 	} else {
-		logger.Info("Created a new Pull Secret", "Secret.Namespace", nodesensor.Namespace, "Secret.Name", common.FalconPullSecretName)
+		logger.Info("Created a new Pull Secret", "Secret.Namespace", nodesensor.TargetNs(), "Secret.Name", common.FalconPullSecretName)
 	}
 	return nil
 }
 
 func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name string, nodesensor *falconv1alpha1.FalconNodeSensor) (*corev1.ConfigMap, error) {
-	cm := node.DaemonsetConfigMap(name, nodesensor.Namespace, &nodesensor.Spec.Falcon)
+	cm := node.DaemonsetConfigMap(name, nodesensor.TargetNs(), &nodesensor.Spec.Falcon)
 
 	err := controllerutil.SetControllerReference(nodesensor, cm, r.Scheme)
 	if err != nil {

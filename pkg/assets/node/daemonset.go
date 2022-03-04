@@ -41,7 +41,7 @@ func Daemonset(dsName, image string, node *falconv1alpha1.FalconNodeSensor) *app
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
-			Namespace: node.Namespace,
+			Namespace: node.TargetNs(),
 			Labels: map[string]string{
 				common.FalconInstanceNameKey: dsName,
 				common.FalconInstanceKey:     "kernel_sensor",
