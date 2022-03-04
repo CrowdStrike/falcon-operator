@@ -248,7 +248,7 @@ spec:
     listKind: FalconNodeSensorList
     plural: falconnodesensors
     singular: falconnodesensor
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1alpha1
     schema:

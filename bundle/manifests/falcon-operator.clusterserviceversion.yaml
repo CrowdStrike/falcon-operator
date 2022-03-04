@@ -29,8 +29,7 @@ metadata:
           "apiVersion": "falcon.crowdstrike.com/v1alpha1",
           "kind": "FalconNodeSensor",
           "metadata": {
-            "name": "falcon-node-sensor",
-            "namespace": "falcon-system"
+            "name": "falcon-node-sensor"
           },
           "spec": {
             "falcon": {

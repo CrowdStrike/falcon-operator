@@ -8,7 +8,6 @@ apiVersion: falcon.crowdstrike.com/v1alpha1
 kind: FalconNodeSensor
 metadata:
   name: falcon-node-sensor
-  namespace: falcon-system
 spec:
   # Add fields here
   falcon_api:

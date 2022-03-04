@@ -17,7 +17,6 @@ apiVersion: falcon.crowdstrike.com/v1alpha1
 kind: FalconNodeSensor
 metadata:
   name: falcon-node-sensor
-  namespace: falcon-system
 spec:
   falcon_api:
     client_id: PLEASE_FILL_IN
@@ -58,7 +57,7 @@ kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/
 To uninstall Falcon Node Sensor simply remove the FalconNodeSensor resource. The operator will uninstall the Falcon Sensor from the cluster.
 
 ```
-kubectl delete falconnodesensors.falcon.crowdstrike.com --all -A
+kubectl delete falconnodesensors.falcon.crowdstrike.com --all
 ```
 
 ### Troubleshooting
