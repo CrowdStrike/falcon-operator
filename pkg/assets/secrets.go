@@ -20,7 +20,7 @@ func PullSecret(namespace string, pulltoken []byte) corev1.Secret {
 			},
 		},
 		Data: map[string][]byte{
-			".dockerconfigjson": pulltoken,
+			corev1.DockerConfigJsonKey: common.CleanDecodedBase64(pulltoken),
 		},
 		Type: corev1.SecretTypeDockerConfigJson,
 	}

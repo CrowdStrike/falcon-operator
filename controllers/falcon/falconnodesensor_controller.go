@@ -36,6 +36,7 @@ func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&falconv1alpha1.FalconNodeSensor{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.DaemonSet{}).
+		Owns(&corev1.Secret{}).
 		Complete(r)
 }
 
