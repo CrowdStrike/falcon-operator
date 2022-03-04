@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -113,6 +114,15 @@ func EncodedBase64String(data string) []byte {
 	base64EncodedData := make([]byte, base64.StdEncoding.EncodedLen(len(data)))
 	base64.StdEncoding.Encode(base64EncodedData, []byte(data))
 	return base64EncodedData
+}
+
+func CleanDecodedBase64(s []byte) []byte {
+	re := regexp.MustCompile(`[\t|\n]*`)
+	b64byte, err := base64.StdEncoding.DecodeString(string(s))
+	if err != nil {
+		return []byte(re.ReplaceAllString(string(s), ""))
+	}
+	return []byte(re.ReplaceAllString(string(b64byte), ""))
 }
 
 func GetKubernetesVersion() *version.Info {
