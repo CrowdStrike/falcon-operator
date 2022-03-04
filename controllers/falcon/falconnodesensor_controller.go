@@ -15,6 +15,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -72,6 +73,13 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		// Error reading the object - requeue the request.
 		logger.Error(err, "Failed to get FalconNodeSensor")
 		return ctrl.Result{}, err
+	}
+	created, err := r.handleNamespace(ctx, nodesensor, logger)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if created {
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	sensorConf, updated, err := r.handleConfigMaps(ctx, nodesensor, logger)
@@ -147,6 +155,35 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// handleNamespace creates and updates the namespace
+func (r *FalconNodeSensorReconciler) handleNamespace(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
+	ns := corev1.Namespace{}
+	err := r.Client.Get(ctx, types.NamespacedName{Name: nodesensor.TargetNs()}, &ns)
+	if err == nil || (err != nil && !errors.IsNotFound(err)) {
+		return false, err
+	}
+
+	ns = corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Namespace",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nodesensor.TargetNs(),
+		},
+	}
+	err = ctrl.SetControllerReference(nodesensor, &ns, r.Scheme)
+	if err != nil {
+		logger.Error(err, "Unable to assign Controller Reference to the Namespace")
+	}
+	err = r.Client.Create(ctx, &ns)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		logger.Error(err, "Failed to create new namespace", "Namespace.Name", nodesensor.TargetNs())
+		return false, err
+	}
+	return true, nil
 }
 
 // handleConfigMaps creates and updates the node sensor configmap
