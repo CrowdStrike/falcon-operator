@@ -18,7 +18,7 @@ func getTermGracePeriod(node *falconv1alpha1.FalconNodeSensor) *int64 {
 
 }
 
-func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
+func Daemonset(dsName, image string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
 	privileged := true
 	escalation := true
 	readOnlyFs := false
@@ -29,6 +29,15 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 	pathTypeUnset := corev1.HostPathUnset
 	pathDirCreate := corev1.HostPathDirectoryOrCreate
 
+	var pullSecrets []corev1.LocalObjectReference = nil
+	if node.Spec.Node.ImageOverride == "" {
+		pullSecrets = []corev1.LocalObjectReference{
+			{
+				Name: common.FalconPullSecretName,
+			},
+		}
+	}
+
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
@@ -38,7 +47,7 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 				common.FalconInstanceKey:     "kernel_sensor",
 				common.FalconComponentKey:    "kernel_sensor",
 				common.FalconManagedByKey:    node.Name,
-				common.FalconProviderKey:     "CrowdStrike",
+				common.FalconProviderKey:     common.FalconProviderValue,
 				common.FalconPartOfKey:       "Falcon",
 				common.FalconControllerKey:   "controller-manager",
 			},
@@ -50,7 +59,7 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 					common.FalconInstanceKey:     "kernel_sensor",
 					common.FalconComponentKey:    "kernel_sensor",
 					common.FalconManagedByKey:    node.Name,
-					common.FalconProviderKey:     "CrowdStrike",
+					common.FalconProviderKey:     common.FalconProviderValue,
 					common.FalconPartOfKey:       "Falcon",
 					common.FalconControllerKey:   "controller-manager",
 				},
@@ -62,7 +71,7 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 						common.FalconInstanceKey:     "kernel_sensor",
 						common.FalconComponentKey:    "kernel_sensor",
 						common.FalconManagedByKey:    node.Name,
-						common.FalconProviderKey:     "CrowdStrike",
+						common.FalconProviderKey:     common.FalconProviderValue,
 						common.FalconPartOfKey:       "Falcon",
 						common.FalconControllerKey:   "controller-manager",
 					},
@@ -78,10 +87,11 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 					HostIPC:                       hostipc,
 					HostNetwork:                   hostnetwork,
 					TerminationGracePeriodSeconds: getTermGracePeriod(node),
+					ImagePullSecrets:              pullSecrets,
 					InitContainers: []corev1.Container{
 						{
 							Name:    "init-falconstore",
-							Image:   common.GetFalconImage(node),
+							Image:   image,
 							Command: common.FalconShellCommand,
 							Args:    common.InitContainerArgs(),
 							VolumeMounts: []corev1.VolumeMount{
@@ -101,7 +111,7 @@ func Daemonset(dsName string, node *falconv1alpha1.FalconNodeSensor) *appsv1.Dae
 								AllowPrivilegeEscalation: &escalation,
 							},
 							Name:            "falcon-node-sensor",
-							Image:           common.GetFalconImage(node),
+							Image:           image,
 							ImagePullPolicy: node.Spec.Node.ImagePullPolicy,
 							EnvFrom: []corev1.EnvFromSource{
 								{

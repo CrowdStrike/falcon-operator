@@ -62,7 +62,7 @@ func (d *FalconContainerDeployer) CreateJob() error {
 	if !d.imageMirroringEnabled() {
 		pullSecrets = []corev1.LocalObjectReference{
 			{
-				Name: SECRET_NAME,
+				Name: common.FalconPullSecretName,
 			},
 		}
 	}

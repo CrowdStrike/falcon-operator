@@ -77,7 +77,7 @@ func (reg *FalconRegistry) PullInfo(ctx context.Context, versionRequested *strin
 	if err != nil {
 		return
 	}
-	falconImage, err = imageReference(reg.imageUri(), falconTag)
+	falconImage, err = imageReference(reg.imageUriContainer(), falconTag)
 	if err != nil {
 		return
 	}
@@ -148,12 +148,4 @@ func (fr *FalconRegistry) username() (string, error) {
 	}
 	lowerCID := strings.ToLower(s[0])
 	return fmt.Sprintf("fc-%s", lowerCID), nil
-}
-
-func (fr *FalconRegistry) imageUri() string {
-	return ImageURI(fr.falconCloud)
-}
-
-func ImageURI(falconCloud falcon.CloudType) string {
-	return fmt.Sprintf("registry.crowdstrike.com/falcon-container/%s/release/falcon-sensor", falconCloud.String())
 }

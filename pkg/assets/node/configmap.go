@@ -19,7 +19,7 @@ func DaemonsetConfigMap(dsname string, nsname string, falconsensor *falconv1alph
 				common.FalconInstanceKey:     "kernel_sensor",
 				common.FalconComponentKey:    "kernel_sensor",
 				common.FalconManagedByKey:    dsname,
-				common.FalconProviderKey:     "CrowdStrike",
+				common.FalconProviderKey:     common.FalconProviderValue,
 				common.FalconPartOfKey:       "Falcon",
 				common.FalconControllerKey:   "controller-manager",
 			},

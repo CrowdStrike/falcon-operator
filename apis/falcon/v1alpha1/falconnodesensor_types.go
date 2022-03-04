@@ -33,6 +33,8 @@ type FalconNodeSensorSpec struct {
 
 	Node   FalconNodeSensorConfig `json:"node"`
 	Falcon FalconSensor           `json:"falcon"`
+	// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
+	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 }
 
 // CrowdStrike Falcon Sensor configuration settings.
@@ -68,9 +70,8 @@ type FalconNodeSensorConfig struct {
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// +kubebuilder:default=Always
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-	// Name of the Falcon Sensor container to pull. Format should be repository/namespace/name:tag
-	// +kubebuilder:default="falcon-node-sensor:latest"
-	Image string `json:"image,omitempty"`
+	// Location of the Falcon Sensor image. Use only in cases when you mirror the original image to your repository/name:tag
+	ImageOverride string `json:"image_override,omitempty"`
 	// Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.
 	// +kubebuilder:default=30
 	TerminationGracePeriod int64 `json:"terminationGracePeriod,omitempty"`

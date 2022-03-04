@@ -107,7 +107,7 @@ func (d *FalconContainerDeployer) registryUri() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return falcon_registry.ImageURI(cloud), nil
+		return falcon_registry.ImageURIContainer(cloud), nil
 	default:
 		return "", fmt.Errorf("Unrecognized registry type: %s", d.Instance.Spec.Registry.Type)
 	}

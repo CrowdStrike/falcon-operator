@@ -5,7 +5,6 @@ const (
 	FalconHostInstallDir     = "/opt"
 	FalconDataDir            = "/opt/CrowdStrike"
 	FalconStoreFile          = "/opt/CrowdStrike/falconstore"
-	FalconDefaultImage       = "falcon-node-sensor:latest"
 	FalconContainerProbePath = "/live"
 	FalconServiceHTTPSName   = "https"
 	FalconServiceHTTPSPort   = 443
@@ -18,5 +17,9 @@ const (
 	FalconProviderKey     = "crowdstrike.com/provider"
 	FalconControllerKey   = "crowdstrike.com/created-by"
 
+	FalconProviderValue = "crowdstrike"
+
 	FalconInstallerJobContainerName = "installer"
+
+	FalconPullSecretName = "crowdstrike-falcon-pull-secret"
 )

@@ -29,7 +29,8 @@ metadata:
           "apiVersion": "falcon.crowdstrike.com/v1alpha1",
           "kind": "FalconNodeSensor",
           "metadata": {
-            "name": "falcon-node-sensor"
+            "name": "falcon-node-sensor",
+            "namespace": "falcon-system"
           },
           "spec": {
             "falcon": {
@@ -43,6 +44,11 @@ metadata:
               "provisioning_token": null,
               "tags": null,
               "trace": "none"
+            },
+            "falcon_api": {
+              "client_id": "PLEASE_FILL_IN",
+              "client_secret": "PLEASE_FILL_IN",
+              "cloud_region": "autodiscover"
             },
             "node": {
               "terminationGracePeriod": 30
