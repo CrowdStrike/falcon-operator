@@ -23,7 +23,7 @@ func Daemonset(dsName, image string, node *falconv1alpha1.FalconNodeSensor) *app
 	escalation := true
 	readOnlyFs := false
 	hostpid := true
-	hostnetwork := false
+	hostnetwork := true
 	hostipc := true
 	runAs := int64(0)
 	pathTypeUnset := corev1.HostPathUnset
