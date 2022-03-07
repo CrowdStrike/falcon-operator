@@ -9,6 +9,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/assets/node"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/go-logr/logr"
@@ -82,7 +83,12 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	sensorConf, updated, err := r.handleConfigMaps(ctx, nodesensor, logger)
+	cid, err := falcon_api.FalconCID(ctx, nodesensor.Spec.Falcon.CID, nodesensor.Spec.FalconAPI.ApiConfig())
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	sensorConf, updated, err := r.handleConfigMaps(ctx, cid, nodesensor, logger)
 	if err != nil {
 		logger.Error(err, "error handling configmap")
 		return ctrl.Result{}, err
@@ -187,7 +193,7 @@ func (r *FalconNodeSensorReconciler) handleNamespace(ctx context.Context, nodese
 }
 
 // handleConfigMaps creates and updates the node sensor configmap
-func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (*corev1.ConfigMap, bool, error) {
+func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, cid string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (*corev1.ConfigMap, bool, error) {
 	var updated bool
 	cmName := nodesensor.Name + "-config"
 	confCm := &corev1.ConfigMap{}
@@ -195,7 +201,7 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 	err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: nodesensor.TargetNs()}, confCm)
 	if err != nil && errors.IsNotFound(err) {
 		// does not exist, create
-		configmap, err := r.nodeSensorConfigmap(cmName, nodesensor)
+		configmap, err := r.nodeSensorConfigmap(cmName, cid, nodesensor)
 		if err != nil {
 			logger.Error(err, "Failed to format new Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
 			return nil, updated, err
@@ -212,7 +218,7 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, nodes
 		return nil, updated, err
 	}
 
-	configmap, err := r.nodeSensorConfigmap(cmName, nodesensor)
+	configmap, err := r.nodeSensorConfigmap(cmName, cid, nodesensor)
 	if err != nil {
 		logger.Error(err, "Failed to format existing Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
 		return nil, updated, err
@@ -266,8 +272,8 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 	return nil
 }
 
-func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name string, nodesensor *falconv1alpha1.FalconNodeSensor) (*corev1.ConfigMap, error) {
-	cm := node.DaemonsetConfigMap(name, nodesensor.TargetNs(), &nodesensor.Spec.Falcon)
+func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name, cid string, nodesensor *falconv1alpha1.FalconNodeSensor) (*corev1.ConfigMap, error) {
+	cm := node.DaemonsetConfigMap(name, nodesensor.TargetNs(), cid, &nodesensor.Spec.Falcon)
 
 	err := controllerutil.SetControllerReference(nodesensor, cm, r.Scheme)
 	if err != nil {

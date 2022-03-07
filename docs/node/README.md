@@ -44,7 +44,7 @@ spec:
 | falcon_api.client_id                | CrowdStrike API Client ID                                                                                                                 |
 | falcon_api.client_secret            | CrowdStrike API Client Secret                                                                                                             |
 | falcon_api.client_region            | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                                       |
-| falcon.cid                          | CrowdStrike Falcon CID                                                                                                                    |
+| falcon.cid                          | (optional) CrowdStrike Falcon CID override                                                                                                |
 | node.image_override                 | (optional) Location of the Falcon Sensor Image. Specify only when you mirror the original image to your own image repository              |
 
 ### Install Steps

@@ -42,7 +42,7 @@ type FalconNodeSensorSpec struct {
 type FalconSensor struct {
 	// Falcon Customer ID (CID)
 	// +kubebuilder:validation:Pattern="^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$"
-	CID string `json:"cid"`
+	CID *string `json:"cid,omitempty"`
 	// Enable the App Proxy Port (APP). Uncommon in container-based deployments.
 	APD *bool `json:"apd,omitempty"`
 	// App Proxy Hostname (APH). Uncommon in container-based deployments.

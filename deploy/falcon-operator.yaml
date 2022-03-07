@@ -314,8 +314,6 @@ spec:
                     - info
                     - debug
                     type: string
-                required:
-                - cid
                 type: object
               falcon_api:
                 description: FalconAPI configures connection from your local Falcon
