@@ -22,19 +22,8 @@ spec:
     client_id: PLEASE_FILL_IN
     client_secret: PLEASE_FILL_IN
     cloud_region: autodiscover
-  node:
-    terminationGracePeriod: 30
-  falcon:
-    apd: null
-    aph: null
-    app: null
-    billing: null
-    cid: null
-    feature: null
-    message_log: null
-    provisioning_token: null
-    tags: null
-    trace: none
+  node: {}
+  falcon: {}
 ```
 
 ### FalconNodeSensor Reference Manual
