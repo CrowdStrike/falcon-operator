@@ -18,7 +18,7 @@ func getTermGracePeriod(node *falconv1alpha1.FalconNodeSensor) *int64 {
 
 }
 
-func Daemonset(dsName, image string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
+func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
 	privileged := true
 	escalation := true
 	readOnlyFs := false
@@ -102,7 +102,7 @@ func Daemonset(dsName, image string, node *falconv1alpha1.FalconNodeSensor) *app
 							},
 						},
 					},
-					ServiceAccountName: common.NodeServiceAccountName,
+					ServiceAccountName: serviceAccount,
 					Containers: []corev1.Container{
 						{
 							SecurityContext: &corev1.SecurityContext{

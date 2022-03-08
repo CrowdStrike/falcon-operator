@@ -18,6 +18,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -88,13 +89,18 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	created, err = r.handlePermissions(ctx, nodesensor, logger)
+	serviceAccount, err := r.isServiceAccountRequired(ctx, logger)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if created {
-		return ctrl.Result{Requeue: true}, nil
-
+	if serviceAccount != "" {
+		created, err = r.handlePermissions(ctx, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if created {
+			return ctrl.Result{Requeue: true}, nil
+		}
 	}
 
 	cid, err := falcon_api.FalconCID(ctx, nodesensor.Spec.Falcon.CID, nodesensor.Spec.FalconAPI.ApiConfig())
@@ -132,7 +138,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	err = r.Get(ctx, types.NamespacedName{Name: nodesensor.Name, Namespace: nodesensor.TargetNs()}, daemonset)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new daemonset
-		ds := r.nodeSensorDaemonset(nodesensor.Name, image, nodesensor, logger)
+		ds := r.nodeSensorDaemonset(nodesensor.Name, image, serviceAccount, nodesensor, logger)
 
 		err = r.Create(ctx, ds)
 		if err != nil {
@@ -154,8 +160,8 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		// Objects to check for updates to re-spin pods
 		imgUpdate := updateDaemonSetImages(dsUpdate, image, nodesensor, logger)
 		tolsUpdate := updateDaemonSetTolerations(dsUpdate, nodesensor, logger)
-		containerVolUpdate := updateDaemonSetContainerVolumes(dsUpdate, image, nodesensor, logger)
-		volumeUpdates := updateDaemonSetVolumes(dsUpdate, image, nodesensor, logger)
+		containerVolUpdate := updateDaemonSetContainerVolumes(dsUpdate, image, serviceAccount, nodesensor, logger)
+		volumeUpdates := updateDaemonSetVolumes(dsUpdate, image, serviceAccount, nodesensor, logger)
 
 		// Update the daemonset and re-spin pods with changes
 		if imgUpdate || tolsUpdate || containerVolUpdate || volumeUpdates || updated {
@@ -296,8 +302,8 @@ func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name, cid string, nodes
 	return cm, nil
 }
 
-func (r *FalconNodeSensorReconciler) nodeSensorDaemonset(name, image string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) *appsv1.DaemonSet {
-	ds := node.Daemonset(name, image, nodesensor)
+func (r *FalconNodeSensorReconciler) nodeSensorDaemonset(name, image, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) *appsv1.DaemonSet {
+	ds := node.Daemonset(name, image, serviceAccount, nodesensor)
 
 	// NOTE: calling SetControllerReference, and setting owner references in
 	// general, is important as it allows deleted objects to be garbage collected.
@@ -322,8 +328,8 @@ func updateDaemonSetTolerations(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1
 }
 
 // If an update is needed, this will update the containervolumes from the given DaemonSet
-func updateDaemonSetContainerVolumes(ds *appsv1.DaemonSet, image string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
-	origDS := node.Daemonset(ds.Name, image, nodesensor)
+func updateDaemonSetContainerVolumes(ds *appsv1.DaemonSet, image, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+	origDS := node.Daemonset(ds.Name, image, serviceAccount, nodesensor)
 
 	containerVolumeMounts := &ds.Spec.Template.Spec.Containers[0].VolumeMounts
 	containerVolumeMountsUpdates := !reflect.DeepEqual(*containerVolumeMounts, origDS.Spec.Template.Spec.Containers[0].VolumeMounts)
@@ -336,8 +342,8 @@ func updateDaemonSetContainerVolumes(ds *appsv1.DaemonSet, image string, nodesen
 }
 
 // If an update is needed, this will update the volumes from the given DaemonSet
-func updateDaemonSetVolumes(ds *appsv1.DaemonSet, image string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
-	origDS := node.Daemonset(ds.Name, image, nodesensor)
+func updateDaemonSetVolumes(ds *appsv1.DaemonSet, image, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+	origDS := node.Daemonset(ds.Name, image, serviceAccount, nodesensor)
 	volumeMounts := &ds.Spec.Template.Spec.Volumes
 	volumeMountsUpdates := !reflect.DeepEqual(*volumeMounts, origDS.Spec.Template.Spec.Volumes)
 	if volumeMountsUpdates {
@@ -382,6 +388,18 @@ func (r *FalconNodeSensorReconciler) handlePermissions(ctx context.Context, node
 		return created, err
 	}
 	return r.handleClusterRoleBinding(ctx, nodesensor, logger)
+}
+
+func (r *FalconNodeSensorReconciler) isServiceAccountRequired(ctx context.Context, logger logr.Logger) (string, error) {
+	scc := securityv1.SecurityContextConstraints{}
+	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeSccName}, &scc)
+	if err == nil || errors.IsNotFound(err) {
+		return common.NodeServiceAccountName, nil
+	}
+	if meta.IsNoMatchError(err) {
+		return "", nil
+	}
+	return common.NodeServiceAccountName, err
 }
 
 // handleScc creates and update SCC
