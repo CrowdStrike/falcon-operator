@@ -49,7 +49,6 @@ func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconnodesensors/finalizers,verbs=update
 //+kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,resourceNames=privileged,verbs=use
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;create;update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to

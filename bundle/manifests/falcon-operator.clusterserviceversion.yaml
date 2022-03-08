@@ -337,14 +337,6 @@ spec:
           - create
           - delete
         - apiGroups:
-          - security.openshift.io
-          resourceNames:
-          - privileged
-          resources:
-          - securitycontextconstraints
-          verbs:
-          - use
-        - apiGroups:
           - authentication.k8s.io
           resources:
           - tokenreviews
