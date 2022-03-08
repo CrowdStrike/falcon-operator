@@ -102,6 +102,7 @@ func Daemonset(dsName, image string, node *falconv1alpha1.FalconNodeSensor) *app
 							},
 						},
 					},
+					ServiceAccountName: common.NodeServiceAccountName,
 					Containers: []corev1.Container{
 						{
 							SecurityContext: &corev1.SecurityContext{

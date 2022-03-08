@@ -13,8 +13,10 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/go-logr/logr"
+	securityv1 "github.com/openshift/api/security/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -81,6 +83,15 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 	if created {
 		return ctrl.Result{Requeue: true}, nil
+	}
+
+	created, err = r.handlePermissions(ctx, nodesensor, logger)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if created {
+		return ctrl.Result{Requeue: true}, nil
+
 	}
 
 	cid, err := falcon_api.FalconCID(ctx, nodesensor.Spec.Falcon.CID, nodesensor.Spec.FalconAPI.ApiConfig())
@@ -351,4 +362,183 @@ func updateDaemonSetImages(ds *appsv1.DaemonSet, origImg string, nodesensor *fal
 	}
 
 	return imgUpdate
+}
+
+// handlePermissions creates and updates the service account, role and role binding
+func (r *FalconNodeSensorReconciler) handlePermissions(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
+	created, err := r.handleScc(ctx, nodesensor, logger)
+	if created || err != nil {
+		return created, err
+	}
+	created, err = r.handleServiceAccount(ctx, nodesensor, logger)
+	if created || err != nil {
+		return created, err
+	}
+	created, err = r.handleClusterRole(ctx, nodesensor, logger)
+	if created || err != nil {
+		return created, err
+	}
+	return r.handleClusterRoleBinding(ctx, nodesensor, logger)
+}
+
+// handleScc creates and update SCC
+func (r *FalconNodeSensorReconciler) handleScc(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
+	scc := securityv1.SecurityContextConstraints{}
+	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeSccName}, &scc)
+	if err == nil || (err != nil && !errors.IsNotFound(err)) {
+		return false, err
+	}
+	scc = securityv1.SecurityContextConstraints{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: securityv1.SchemeGroupVersion.String(),
+			Kind:       "ClusterRole",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: common.NodeClusterRoleBindingName,
+		},
+		AllowPrivilegedContainer: true,
+		RunAsUser:                securityv1.RunAsUserStrategyOptions{Type: securityv1.RunAsUserStrategyRunAsAny},
+		SELinuxContext:           securityv1.SELinuxContextStrategyOptions{Type: securityv1.SELinuxStrategyRunAsAny},
+		FSGroup:                  securityv1.FSGroupStrategyOptions{Type: securityv1.FSGroupStrategyRunAsAny},
+		SupplementalGroups:       securityv1.SupplementalGroupsStrategyOptions{Type: securityv1.SupplementalGroupsStrategyRunAsAny},
+		AllowHostDirVolumePlugin: true,
+		AllowHostIPC:             true,
+		AllowHostNetwork:         true,
+		AllowHostPID:             true,
+		AllowHostPorts:           true,
+		ReadOnlyRootFilesystem:   false,
+		RequiredDropCapabilities: []corev1.Capability{},
+		DefaultAddCapabilities:   []corev1.Capability{},
+		AllowedCapabilities:      []corev1.Capability{},
+		Groups:                   []string{},
+		Volumes: []securityv1.FSType{
+			securityv1.FSTypeConfigMap,
+			securityv1.FSTypeDownwardAPI,
+			securityv1.FSTypeEmptyDir,
+			securityv1.FSTypePersistentVolumeClaim,
+			securityv1.FSProjected,
+			securityv1.FSTypeSecret,
+		},
+	}
+	err = ctrl.SetControllerReference(nodesensor, &scc, r.Scheme)
+	if err != nil {
+		logger.Error(err, "Unable to assign Controller Reference to the ClusterRoleBinding")
+	}
+	logger.Info("Creating FalconNodeSensor ClusterRoleBinding")
+	err = r.Client.Create(ctx, &scc)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		logger.Error(err, "Failed to create new ClusterRoleBinding", "ClusteRoleBinding.Name", common.NodeClusterRoleBindingName)
+		return false, err
+	}
+	return true, nil
+}
+
+// handleRoleBinding creates and updates RoleBinding
+func (r *FalconNodeSensorReconciler) handleClusterRoleBinding(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
+	binding := rbacv1.ClusterRoleBinding{}
+	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeClusterRoleBindingName}, &binding)
+	if err == nil || (err != nil && !errors.IsNotFound(err)) {
+		return false, err
+	}
+	binding = rbacv1.ClusterRoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: rbacv1.SchemeGroupVersion.String(),
+			Kind:       "ClusterRoleBinding",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: common.NodeClusterRoleBindingName,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     common.NodeClusterRoleName,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      common.NodeServiceAccountName,
+				Namespace: nodesensor.TargetNs(),
+			},
+		},
+	}
+	err = ctrl.SetControllerReference(nodesensor, &binding, r.Scheme)
+	if err != nil {
+		logger.Error(err, "Unable to assign Controller Reference to the ClusterRoleBinding")
+	}
+	logger.Info("Creating FalconNodeSensor ClusterRoleBinding")
+	err = r.Client.Create(ctx, &binding)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		logger.Error(err, "Failed to create new ClusterRoleBinding", "ClusteRoleBinding.Name", common.NodeClusterRoleBindingName)
+		return false, err
+	}
+	return true, nil
+
+}
+
+// handleClusterRole creates and updates the ClusterRole
+func (r *FalconNodeSensorReconciler) handleClusterRole(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
+	role := rbacv1.ClusterRole{}
+	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeClusterRoleName}, &role)
+	if err == nil || (err != nil && !errors.IsNotFound(err)) {
+		return false, err
+	}
+	role = rbacv1.ClusterRole{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: rbacv1.SchemeGroupVersion.String(),
+			Kind:       "ClusterRole",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: nodesensor.TargetNs(),
+			Name:      common.NodeClusterRoleName,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				Verbs:         []string{"use"},
+				Resources:     []string{"securitycontextconstraints"},
+				ResourceNames: []string{common.NodeSccName},
+				APIGroups:     []string{"security.openshift.io"},
+			},
+		},
+	}
+	err = ctrl.SetControllerReference(nodesensor, &role, r.Scheme)
+	if err != nil {
+		logger.Error(err, "Unable to assign Controller Reference to the Role")
+	}
+	logger.Info("Creating FalconNodeSensor ClusterRole")
+	err = r.Client.Create(ctx, &role)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		logger.Error(err, "Failed to create new ClusterRole", "ClusterRole.Name", common.NodeClusterRoleName)
+		return false, err
+	}
+	return true, nil
+}
+
+// handleServiceAccount creates and updates the service account and grants necessary permissions to it
+func (r *FalconNodeSensorReconciler) handleServiceAccount(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
+	sa := corev1.ServiceAccount{}
+	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.TargetNs()}, &sa)
+	if err == nil || (err != nil && !errors.IsNotFound(err)) {
+		return false, err
+	}
+	sa = corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ServiceAccount",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: nodesensor.TargetNs(),
+			Name:      common.NodeServiceAccountName,
+		},
+	}
+	err = ctrl.SetControllerReference(nodesensor, &sa, r.Scheme)
+	if err != nil {
+		logger.Error(err, "Unable to assign Controller Reference to the ServiceAccount")
+	}
+	logger.Info("Creating FalconNodeSensor ServiceAccount")
+	err = r.Client.Create(ctx, &sa)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		logger.Error(err, "Failed to create new ServiceAccount", "Namespace.Name", nodesensor.TargetNs())
+		return false, err
+	}
+	return true, nil
 }
