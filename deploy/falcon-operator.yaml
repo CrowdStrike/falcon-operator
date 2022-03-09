@@ -248,7 +248,7 @@ spec:
     listKind: FalconNodeSensorList
     plural: falconnodesensors
     singular: falconnodesensor
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1alpha1
     schema:
@@ -314,8 +314,6 @@ spec:
                     - info
                     - debug
                     type: string
-                required:
-                - cid
                 type: object
               falcon_api:
                 description: FalconAPI configures connection from your local Falcon

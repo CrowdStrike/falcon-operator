@@ -52,10 +52,10 @@ func GetFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 	return fmt.Sprintf("%s:%s", imageUri, imageTag), nil
 }
 
-func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor) map[string]string {
+func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor, cid string) map[string]string {
 	sensorConfig := make(map[string]string)
-	if falconsensor.CID != "" {
-		sensorConfig["FALCONCTL_OPT_CID"] = falconsensor.CID
+	if cid != "" {
+		sensorConfig["FALCONCTL_OPT_CID"] = cid
 	}
 	if falconsensor.APD != nil {
 		sensorConfig["FALCONCTL_OPT_APD"] = strconv.FormatBool(*falconsensor.APD)

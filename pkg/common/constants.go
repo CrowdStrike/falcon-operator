@@ -21,5 +21,9 @@ const (
 
 	FalconInstallerJobContainerName = "installer"
 
-	FalconPullSecretName = "crowdstrike-falcon-pull-secret"
+	FalconPullSecretName       = "crowdstrike-falcon-pull-secret"
+	NodeServiceAccountName     = "crowdstrike-falcon-node-sensor"
+	NodeClusterRoleName        = "crowdstrike-falcon-node-sensor"
+	NodeClusterRoleBindingName = "crowdstrike-falcon-node-sensor"
+	NodeSccName                = "crowdstrike-falcon-node-sensor"
 )

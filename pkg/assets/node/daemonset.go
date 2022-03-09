@@ -18,12 +18,12 @@ func getTermGracePeriod(node *falconv1alpha1.FalconNodeSensor) *int64 {
 
 }
 
-func Daemonset(dsName, image string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
+func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
 	privileged := true
 	escalation := true
 	readOnlyFs := false
 	hostpid := true
-	hostnetwork := false
+	hostnetwork := true
 	hostipc := true
 	runAs := int64(0)
 	pathTypeUnset := corev1.HostPathUnset
@@ -41,7 +41,7 @@ func Daemonset(dsName, image string, node *falconv1alpha1.FalconNodeSensor) *app
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
-			Namespace: node.Namespace,
+			Namespace: node.TargetNs(),
 			Labels: map[string]string{
 				common.FalconInstanceNameKey: dsName,
 				common.FalconInstanceKey:     "kernel_sensor",
@@ -102,6 +102,7 @@ func Daemonset(dsName, image string, node *falconv1alpha1.FalconNodeSensor) *app
 							},
 						},
 					},
+					ServiceAccountName: serviceAccount,
 					Containers: []corev1.Container{
 						{
 							SecurityContext: &corev1.SecurityContext{

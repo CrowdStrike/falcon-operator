@@ -17,25 +17,13 @@ apiVersion: falcon.crowdstrike.com/v1alpha1
 kind: FalconNodeSensor
 metadata:
   name: falcon-node-sensor
-  namespace: falcon-system
 spec:
   falcon_api:
     client_id: PLEASE_FILL_IN
     client_secret: PLEASE_FILL_IN
     cloud_region: autodiscover
-  node:
-    terminationGracePeriod: 30
-  falcon:
-    apd: null
-    aph: null
-    app: null
-    billing: null
-    cid: null
-    feature: null
-    message_log: null
-    provisioning_token: null
-    tags: null
-    trace: none
+  node: {}
+  falcon: {}
 ```
 
 ### FalconNodeSensor Reference Manual
@@ -45,7 +33,7 @@ spec:
 | falcon_api.client_id                | CrowdStrike API Client ID                                                                                                                 |
 | falcon_api.client_secret            | CrowdStrike API Client Secret                                                                                                             |
 | falcon_api.client_region            | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                                       |
-| falcon.cid                          | CrowdStrike Falcon CID                                                                                                                    |
+| falcon.cid                          | (optional) CrowdStrike Falcon CID override                                                                                                |
 | node.image_override                 | (optional) Location of the Falcon Sensor Image. Specify only when you mirror the original image to your own image repository              |
 
 ### Install Steps
@@ -58,7 +46,7 @@ kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/
 To uninstall Falcon Node Sensor simply remove the FalconNodeSensor resource. The operator will uninstall the Falcon Sensor from the cluster.
 
 ```
-kubectl delete falconnodesensors.falcon.crowdstrike.com --all -A
+kubectl delete falconnodesensors.falcon.crowdstrike.com --all
 ```
 
 ### Troubleshooting

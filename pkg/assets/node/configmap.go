@@ -7,8 +7,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func DaemonsetConfigMap(dsname string, nsname string, falconsensor *falconv1alpha1.FalconSensor) *corev1.ConfigMap {
-	configData := common.FalconSensorConfig(falconsensor)
+func DaemonsetConfigMap(dsname string, nsname string, cid string, falconsensor *falconv1alpha1.FalconSensor) *corev1.ConfigMap {
+	configData := common.FalconSensorConfig(falconsensor, cid)
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

@@ -29,30 +29,16 @@ metadata:
           "apiVersion": "falcon.crowdstrike.com/v1alpha1",
           "kind": "FalconNodeSensor",
           "metadata": {
-            "name": "falcon-node-sensor",
-            "namespace": "falcon-system"
+            "name": "falcon-node-sensor"
           },
           "spec": {
-            "falcon": {
-              "apd": null,
-              "aph": null,
-              "app": null,
-              "billing": null,
-              "cid": null,
-              "feature": null,
-              "message_log": null,
-              "provisioning_token": null,
-              "tags": null,
-              "trace": "none"
-            },
+            "falcon": {},
             "falcon_api": {
               "client_id": "PLEASE_FILL_IN",
               "client_secret": "PLEASE_FILL_IN",
               "cloud_region": "autodiscover"
             },
-            "node": {
-              "terminationGracePeriod": 30
-            }
+            "node": {}
           }
         }
       ]
@@ -191,6 +177,7 @@ spec:
           resources:
           - serviceaccounts
           verbs:
+          - create
           - get
           - list
           - patch
@@ -330,6 +317,9 @@ spec:
           verbs:
           - create
           - delete
+          - get
+          - list
+          - watch
         - apiGroups:
           - rbac.authorization.k8s.io
           resources:
@@ -337,14 +327,19 @@ spec:
           verbs:
           - create
           - delete
+          - get
+          - list
+          - watch
         - apiGroups:
           - security.openshift.io
-          resourceNames:
-          - privileged
           resources:
           - securitycontextconstraints
           verbs:
+          - create
+          - get
+          - list
           - use
+          - watch
         - apiGroups:
           - authentication.k8s.io
           resources:

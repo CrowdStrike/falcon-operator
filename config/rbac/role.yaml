@@ -42,6 +42,7 @@ rules:
   resources:
   - serviceaccounts
   verbs:
+  - create
   - get
   - list
   - patch
@@ -181,6 +182,9 @@ rules:
   verbs:
   - create
   - delete
+  - get
+  - list
+  - watch
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
@@ -188,11 +192,16 @@ rules:
   verbs:
   - create
   - delete
+  - get
+  - list
+  - watch
 - apiGroups:
   - security.openshift.io
-  resourceNames:
-  - privileged
   resources:
   - securitycontextconstraints
   verbs:
+  - create
+  - get
+  - list
   - use
+  - watch
