@@ -56,6 +56,16 @@ To see the FalconNodeSensor resource on the cluster
 kubectl get falconnodesensors.falcon.crowdstrike.com -A
 ```
 
+To verify the existence of the daemonset object
+```
+kubectl get daemonsets.apps -n falcon-system
+```
+
+To verify the existence of the sensor objects
+```
+kubectl get pods -n falcon-system
+```
+
 To review the logs of Falcon Operator:
 ```
 kubectl -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
