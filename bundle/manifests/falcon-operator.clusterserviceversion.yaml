@@ -147,6 +147,9 @@ spec:
           verbs:
           - create
           - delete
+          - get
+          - list
+          - watch
         - apiGroups:
           - ""
           resources:
