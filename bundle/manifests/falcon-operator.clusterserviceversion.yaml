@@ -436,10 +436,7 @@ spec:
                     - ALL
                   privileged: false
               securityContext:
-                fsGroup: 65532
-                runAsGroup: 65532
                 runAsNonRoot: true
-                runAsUser: 65532
               serviceAccountName: falcon-operator-controller-manager
               terminationGracePeriodSeconds: 10
       permissions:
