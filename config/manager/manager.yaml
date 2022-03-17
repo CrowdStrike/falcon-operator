@@ -33,7 +33,6 @@ spec:
         - --leader-elect
         image: controller:latest
         name: manager
-        imagePullPolicy: IfNotPresent
         env:
           - name: WATCH_NAMESPACE
             valueFrom:
