@@ -2,8 +2,8 @@ package v1alpha1
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/gofalcon/falcon"
 )
 
@@ -64,10 +64,5 @@ func (fa *FalconAPI) ApiConfig() *falcon.ApiConfig {
 }
 
 func (fa *FalconAPI) FalconCloud(ctx context.Context) (falcon.CloudType, error) {
-	cloud := falcon.Cloud(fa.CloudRegion)
-	err := cloud.Autodiscover(ctx, fa.ClientId, fa.ClientSecret)
-	if err != nil {
-		return cloud, fmt.Errorf("Could not autodiscover Falcon Cloud Region. Please provide your cloud_region in FalconContainer Spec: %v", err)
-	}
-	return cloud, nil
+	return falcon_api.FalconCloud(ctx, fa.ApiConfig())
 }

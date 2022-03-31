@@ -73,3 +73,12 @@ func FalconCID(ctx context.Context, cid *string, fa *falcon.ApiConfig) (string, 
 	}
 	return CCID(ctx, client)
 }
+
+// FalconCloud returns user's Falcon Cloud based on supplied ApiConfig. This method will run cloud autodiscovery if 'autodiscover' is set in the ApiConfig
+func FalconCloud(ctx context.Context, fa *falcon.ApiConfig) (falcon.CloudType, error) {
+	err := fa.Cloud.Autodiscover(ctx, fa.ClientId, fa.ClientSecret)
+	if err != nil {
+		return fa.Cloud, fmt.Errorf("Could not autodiscover Falcon Cloud Region. Please provide your cloud_region in FalconContainer Spec: %v", err)
+	}
+	return fa.Cloud, nil
+}
