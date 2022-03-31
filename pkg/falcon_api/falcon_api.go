@@ -15,7 +15,7 @@ func RegistryToken(ctx context.Context, client *client.CrowdStrikeAPISpecificati
 		Context: ctx,
 	})
 	if err != nil {
-		return "", err
+		return "", errorHint(err, "")
 	}
 	payload := res.GetPayload()
 	if err = falcon.AssertNoError(payload.Errors); err != nil {
@@ -40,11 +40,7 @@ func CCID(ctx context.Context, client *client.CrowdStrikeAPISpecification) (stri
 		Context: ctx,
 	})
 	if err != nil {
-		switch err.(type) {
-		case *sensor_download.GetSensorInstallersCCIDByQueryForbidden:
-			return "", fmt.Errorf("Insufficient CrowdStrike privileges, please grant [Sensor Download: Read] to CrowdStrike API Key. Error was: %s", err)
-		}
-		return "", fmt.Errorf("Could not get CCID from CrowdStrike Falcon API: %v", err)
+		return "", errorHint(err, "Could not get CCID from CrowdStrike Falcon API")
 	}
 	payload := response.GetPayload()
 	if err = falcon.AssertNoError(payload.Errors); err != nil {
@@ -68,4 +64,13 @@ func FalconCID(ctx context.Context, cid *string, fa *falcon.ApiConfig) (string, 
 		return "", err
 	}
 	return CCID(ctx, client)
+}
+
+// FalconCloud returns user's Falcon Cloud based on supplied ApiConfig. This method will run cloud autodiscovery if 'autodiscover' is set in the ApiConfig
+func FalconCloud(ctx context.Context, fa *falcon.ApiConfig) (falcon.CloudType, error) {
+	err := fa.Cloud.Autodiscover(ctx, fa.ClientId, fa.ClientSecret)
+	if err != nil {
+		return fa.Cloud, errorHint(err, "Could not autodiscover Falcon Cloud Region. Please provide your cloud_region in FalconContainer Spec")
+	}
+	return fa.Cloud, nil
 }
