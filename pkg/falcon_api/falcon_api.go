@@ -15,6 +15,10 @@ func RegistryToken(ctx context.Context, client *client.CrowdStrikeAPISpecificati
 		Context: ctx,
 	})
 	if err != nil {
+		switch err.(type) {
+		case *falcon_container.GetCredentialsForbidden:
+			return "", fmt.Errorf("Insufficient CrowdStrike privileges, please grant [Falcon Images Download: Read] to CrowdStrike API Key. Error was: %s", err)
+		}
 		return "", err
 	}
 	payload := res.GetPayload()
