@@ -53,12 +53,6 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-# Since we use github.com/containers/image/v5 we need these tags to not break golang build
-TAGS=-tags 'exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp'
-
-# Handle ldflags
-LDFLAGS="-X 'github.com/crowdstrike/falcon-operator/version.Version=$(VERSION)'"
-
 .PHONY: all
 all: build
 
@@ -105,7 +99,11 @@ test: manifests generate fmt vet envtest ## Run tests.
 
 .PHONY: build
 build: generate fmt vet ## Build manager binary.
-	go build -a $(TAGS) -ldflags=$(LDFLAGS) -o bin/manager main.go
+	scripts/build.sh ${VERSION}
+
+.PHONY: container-build
+container-build: ## Build manager binary.
+	scripts/build.sh ${VERSION}
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
