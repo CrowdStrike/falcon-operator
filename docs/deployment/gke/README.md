@@ -25,6 +25,16 @@ This document will guide you through the installation of falcon-operator and dep
    bash -c 'source <(curl -s https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/gke/run)'
    ```
 
+  Note :
+   - By default, Falcon Container sensor injector is configured to monitor all namespaces. For GKE cluster/Node upgrade, explicitly label the kube-public and kube-system namespace to not be monitored by Crowdstrike. Also falcon-operator and falcon-system namespaces should be labeled to disabled.
+
+    kubectl label namespace falcon-operator sensor.falcon-system.crowdstrike.com/injection=disabled
+    kubectl label namespace falcon-system sensor.falcon-system.crowdstrike.com/injection=disabled
+    kubectl label namespace kube-system sensor.falcon-system.crowdstrike.com/injection=disabled
+    kubectl label namespace kube-public sensor.falcon-system.crowdstrike.com/injection=disabled
+
+    This will ensure that, any pod related to k8 control plane and Falcon are not forwarded to the injector
+
 ## Uninstall Steps
 
  - To uninstall Falcon Container simply remove FalconContainer resource. The operator will uninstall Falcon Container product from the cluster.
