@@ -6,27 +6,36 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
-	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
+	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
 )
 
 // ConfigCache holds config values for node sensor. Those values are either provided by user or fetched dynamically. That happens transparently to the caller.
 type ConfigCache struct {
-	cid string
-	imageUri string
+	cid        string
+	imageUri   string
+	nodesensor *falconv1alpha1.FalconNodeSensor
 }
 
 func (cc *ConfigCache) CID() string {
 	return cc.cid
 }
 
-
+func (cc *ConfigCache) GetImageURI(ctx context.Context) (string, error) {
+	var err error
+	if cc.imageUri == "" {
+		cc.imageUri, err = getFalconImage(ctx, cc.nodesensor)
+	}
+	return cc.imageUri, err
+}
 
 func NewConfigCache(ctx context.Context, logger logr.Logger, nodesensor *falconv1alpha1.FalconNodeSensor) (*ConfigCache, error) {
 	var apiConfig *falcon.ApiConfig
 	var err error
-	cache := ConfigCache{}
+	cache := ConfigCache{
+		nodesensor: nodesensor,
+	}
 
 	if nodesensor.Spec.FalconAPI != nil {
 		apiConfig = nodesensor.Spec.FalconAPI.ApiConfig()
@@ -45,7 +54,7 @@ func NewConfigCache(ctx context.Context, logger logr.Logger, nodesensor *falconv
 	return &cache, nil
 }
 
-func GetFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) (string, error) {
+func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) (string, error) {
 	if nodesensor.Spec.Node.ImageOverride != "" {
 		return nodesensor.Spec.Node.ImageOverride, nil
 	}
