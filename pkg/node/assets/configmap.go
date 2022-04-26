@@ -1,16 +1,13 @@
 package assets
 
 import (
-	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/node"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func DaemonsetConfigMap(dsname string, nsname string, config *node.ConfigCache, falconsensor *falconv1alpha1.FalconSensor) *corev1.ConfigMap {
-	configData := common.FalconSensorConfig(falconsensor, config.CID())
-
+func DaemonsetConfigMap(dsname string, nsname string, config *node.ConfigCache) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsname,
@@ -25,6 +22,6 @@ func DaemonsetConfigMap(dsname string, nsname string, config *node.ConfigCache, 
 				common.FalconControllerKey:   "controller-manager",
 			},
 		},
-		Data: configData,
+		Data: config.SensorEnvVars(),
 	}
 }

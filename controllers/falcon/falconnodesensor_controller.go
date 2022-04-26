@@ -289,7 +289,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 }
 
 func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name string, config *node.ConfigCache, nodesensor *falconv1alpha1.FalconNodeSensor) (*corev1.ConfigMap, error) {
-	cm := assets.DaemonsetConfigMap(name, nodesensor.TargetNs(), config, &nodesensor.Spec.Falcon)
+	cm := assets.DaemonsetConfigMap(name, nodesensor.TargetNs(), config)
 
 	err := controllerutil.SetControllerReference(nodesensor, cm, r.Scheme)
 	if err != nil {
