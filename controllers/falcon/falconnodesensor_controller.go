@@ -7,10 +7,10 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	common_assets "github.com/crowdstrike/falcon-operator/pkg/assets"
-	"github.com/crowdstrike/falcon-operator/pkg/node/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
+	"github.com/crowdstrike/falcon-operator/pkg/node"
+	"github.com/crowdstrike/falcon-operator/pkg/node/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/go-logr/logr"
 	securityv1 "github.com/openshift/api/security/v1"
@@ -104,12 +104,12 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	}
 
-	cid, err := falcon_api.FalconCID(ctx, nodesensor.Spec.Falcon.CID, nodesensor.Spec.FalconAPI.ApiConfig())
+	config, err := node.NewConfigCache(ctx, logger, nodesensor)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	sensorConf, updated, err := r.handleConfigMaps(ctx, cid, nodesensor, logger)
+	sensorConf, updated, err := r.handleConfigMaps(ctx, config.CID(), nodesensor, logger)
 	if err != nil {
 		logger.Error(err, "error handling configmap")
 		return ctrl.Result{}, err
