@@ -128,7 +128,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	image, err := common.GetFalconImage(ctx, nodesensor)
+	image, err := node.GetFalconImage(ctx, nodesensor)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
