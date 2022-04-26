@@ -18,6 +18,18 @@ func getTermGracePeriod(node *falconv1alpha1.FalconNodeSensor) *int64 {
 
 }
 
+func pullSecrets(node *falconv1alpha1.FalconNodeSensor) []corev1.LocalObjectReference {
+	if node.Spec.Node.ImageOverride == "" {
+		return []corev1.LocalObjectReference{
+			{
+				Name: common.FalconPullSecretName,
+			},
+		}
+	} else {
+		return node.Spec.Node.ImagePullSecrets
+	}
+}
+
 func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
 	privileged := true
 	escalation := true
@@ -28,15 +40,6 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 	runAs := int64(0)
 	pathTypeUnset := corev1.HostPathUnset
 	pathDirCreate := corev1.HostPathDirectoryOrCreate
-
-	var pullSecrets []corev1.LocalObjectReference = nil
-	if node.Spec.Node.ImageOverride == "" {
-		pullSecrets = []corev1.LocalObjectReference{
-			{
-				Name: common.FalconPullSecretName,
-			},
-		}
-	}
 
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -87,7 +90,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 					HostIPC:                       hostipc,
 					HostNetwork:                   hostnetwork,
 					TerminationGracePeriodSeconds: getTermGracePeriod(node),
-					ImagePullSecrets:              pullSecrets,
+					ImagePullSecrets:              pullSecrets(node),
 					InitContainers: []corev1.Container{
 						{
 							Name:    "init-falconstore",
