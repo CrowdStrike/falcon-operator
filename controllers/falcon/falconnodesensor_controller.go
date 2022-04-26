@@ -155,12 +155,13 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	} else {
 		// Copy Daemonset for updates
 		dsUpdate := daemonset.DeepCopy()
+		dsTarget := assets.Daemonset(dsUpdate.Name, image, serviceAccount, nodesensor)
 
 		// Objects to check for updates to re-spin pods
 		imgUpdate := updateDaemonSetImages(dsUpdate, image, nodesensor, logger)
 		tolsUpdate := updateDaemonSetTolerations(dsUpdate, nodesensor, logger)
-		containerVolUpdate := updateDaemonSetContainerVolumes(dsUpdate, image, serviceAccount, nodesensor, logger)
-		volumeUpdates := updateDaemonSetVolumes(dsUpdate, image, serviceAccount, nodesensor, logger)
+		containerVolUpdate := updateDaemonSetContainerVolumes(dsUpdate, dsTarget, logger)
+		volumeUpdates := updateDaemonSetVolumes(dsUpdate, dsTarget, logger)
 
 		// Update the daemonset and re-spin pods with changes
 		if imgUpdate || tolsUpdate || containerVolUpdate || volumeUpdates || updated {
@@ -324,9 +325,7 @@ func updateDaemonSetTolerations(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1
 }
 
 // If an update is needed, this will update the containervolumes from the given DaemonSet
-func updateDaemonSetContainerVolumes(ds *appsv1.DaemonSet, image, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
-	origDS := assets.Daemonset(ds.Name, image, serviceAccount, nodesensor)
-
+func updateDaemonSetContainerVolumes(ds, origDS *appsv1.DaemonSet, logger logr.Logger) bool {
 	containerVolumeMounts := &ds.Spec.Template.Spec.Containers[0].VolumeMounts
 	containerVolumeMountsUpdates := !reflect.DeepEqual(*containerVolumeMounts, origDS.Spec.Template.Spec.Containers[0].VolumeMounts)
 	if containerVolumeMountsUpdates {
@@ -338,8 +337,7 @@ func updateDaemonSetContainerVolumes(ds *appsv1.DaemonSet, image, serviceAccount
 }
 
 // If an update is needed, this will update the volumes from the given DaemonSet
-func updateDaemonSetVolumes(ds *appsv1.DaemonSet, image, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
-	origDS := assets.Daemonset(ds.Name, image, serviceAccount, nodesensor)
+func updateDaemonSetVolumes(ds, origDS *appsv1.DaemonSet, logger logr.Logger) bool {
 	volumeMounts := &ds.Spec.Template.Spec.Volumes
 	volumeMountsUpdates := !reflect.DeepEqual(*volumeMounts, origDS.Spec.Template.Spec.Volumes)
 	if volumeMountsUpdates {
