@@ -2,7 +2,6 @@ package falcon
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
@@ -11,7 +10,6 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/node"
 	"github.com/crowdstrike/falcon-operator/pkg/node/assets"
-	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/go-logr/logr"
 	securityv1 "github.com/openshift/api/security/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -123,7 +121,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		logger.Info("Configmap was updated")
 	}
 
-	err = r.handleCrowdStrikeSecrets(ctx, nodesensor, logger)
+	err = r.handleCrowdStrikeSecrets(ctx, config, nodesensor, logger)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -258,20 +256,17 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, cid s
 }
 
 // handleCrowdStrikeSecrets creates and updates the image pull secrets for the nodesensor
-func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
+func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Context, config *node.ConfigCache, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
 	if nodesensor.Spec.Node.ImageOverride != "" {
 		return nil
 	}
-	if nodesensor.Spec.FalconAPI == nil {
-		return fmt.Errorf("Missing falcon_api configuration")
-	}
-
 	secret := corev1.Secret{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: nodesensor.TargetNs()}, &secret)
 	if err == nil || !errors.IsNotFound(err) {
 		return err
 	}
-	pulltoken, err := pulltoken.CrowdStrike(ctx, nodesensor.Spec.FalconAPI.ApiConfig())
+
+	pulltoken, err := config.GetPullToken(ctx)
 	if err != nil {
 		return err
 	}

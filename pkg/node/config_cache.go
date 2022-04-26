@@ -7,6 +7,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
 )
@@ -28,6 +29,18 @@ func (cc *ConfigCache) GetImageURI(ctx context.Context) (string, error) {
 		cc.imageUri, err = getFalconImage(ctx, cc.nodesensor)
 	}
 	return cc.imageUri, err
+}
+
+func (cc *ConfigCache) GetPullToken(ctx context.Context) ([]byte, error) {
+	var err error
+	if cc.pullToken == nil {
+		if cc.nodesensor.Spec.FalconAPI == nil {
+			return nil, fmt.Errorf("Missing falcon_api configuration")
+		}
+		cc.pullToken, err = pulltoken.CrowdStrike(ctx, cc.nodesensor.Spec.FalconAPI.ApiConfig())
+
+	}
+	return cc.pullToken, err
 }
 
 func NewConfigCache(ctx context.Context, logger logr.Logger, nodesensor *falconv1alpha1.FalconNodeSensor) (*ConfigCache, error) {
