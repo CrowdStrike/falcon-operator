@@ -32,15 +32,10 @@ func (cc *ConfigCache) GetImageURI(ctx context.Context) (string, error) {
 }
 
 func (cc *ConfigCache) GetPullToken(ctx context.Context) ([]byte, error) {
-	var err error
-	if cc.pullToken == nil {
-		if cc.nodesensor.Spec.FalconAPI == nil {
-			return nil, fmt.Errorf("Missing falcon_api configuration")
-		}
-		cc.pullToken, err = pulltoken.CrowdStrike(ctx, cc.nodesensor.Spec.FalconAPI.ApiConfig())
-
+	if cc.nodesensor.Spec.FalconAPI == nil {
+		return nil, fmt.Errorf("Missing falcon_api configuration")
 	}
-	return cc.pullToken, err
+	return pulltoken.CrowdStrike(ctx, cc.nodesensor.Spec.FalconAPI.ApiConfig())
 }
 
 func NewConfigCache(ctx context.Context, logger logr.Logger, nodesensor *falconv1alpha1.FalconNodeSensor) (*ConfigCache, error) {
