@@ -1,4 +1,4 @@
-package node
+package assets
 
 import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"

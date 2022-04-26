@@ -6,8 +6,8 @@ import (
 	"reflect"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
-	"github.com/crowdstrike/falcon-operator/pkg/assets"
-	"github.com/crowdstrike/falcon-operator/pkg/assets/node"
+	common_assets "github.com/crowdstrike/falcon-operator/pkg/assets"
+	"github.com/crowdstrike/falcon-operator/pkg/node/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
@@ -276,7 +276,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 		return err
 	}
 
-	secret = assets.PullSecret(nodesensor.TargetNs(), pulltoken)
+	secret = common_assets.PullSecret(nodesensor.TargetNs(), pulltoken)
 	err = ctrl.SetControllerReference(nodesensor, &secret, r.Scheme)
 	if err != nil {
 		logger.Error(err, "Unable to assign Controller Reference to the Pull Secret")
@@ -294,7 +294,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 }
 
 func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name, cid string, nodesensor *falconv1alpha1.FalconNodeSensor) (*corev1.ConfigMap, error) {
-	cm := node.DaemonsetConfigMap(name, nodesensor.TargetNs(), cid, &nodesensor.Spec.Falcon)
+	cm := assets.DaemonsetConfigMap(name, nodesensor.TargetNs(), cid, &nodesensor.Spec.Falcon)
 
 	err := controllerutil.SetControllerReference(nodesensor, cm, r.Scheme)
 	if err != nil {
@@ -304,7 +304,7 @@ func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name, cid string, nodes
 }
 
 func (r *FalconNodeSensorReconciler) nodeSensorDaemonset(name, image, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) *appsv1.DaemonSet {
-	ds := node.Daemonset(name, image, serviceAccount, nodesensor)
+	ds := assets.Daemonset(name, image, serviceAccount, nodesensor)
 
 	// NOTE: calling SetControllerReference, and setting owner references in
 	// general, is important as it allows deleted objects to be garbage collected.
@@ -330,7 +330,7 @@ func updateDaemonSetTolerations(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1
 
 // If an update is needed, this will update the containervolumes from the given DaemonSet
 func updateDaemonSetContainerVolumes(ds *appsv1.DaemonSet, image, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
-	origDS := node.Daemonset(ds.Name, image, serviceAccount, nodesensor)
+	origDS := assets.Daemonset(ds.Name, image, serviceAccount, nodesensor)
 
 	containerVolumeMounts := &ds.Spec.Template.Spec.Containers[0].VolumeMounts
 	containerVolumeMountsUpdates := !reflect.DeepEqual(*containerVolumeMounts, origDS.Spec.Template.Spec.Containers[0].VolumeMounts)
@@ -344,7 +344,7 @@ func updateDaemonSetContainerVolumes(ds *appsv1.DaemonSet, image, serviceAccount
 
 // If an update is needed, this will update the volumes from the given DaemonSet
 func updateDaemonSetVolumes(ds *appsv1.DaemonSet, image, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
-	origDS := node.Daemonset(ds.Name, image, serviceAccount, nodesensor)
+	origDS := assets.Daemonset(ds.Name, image, serviceAccount, nodesensor)
 	volumeMounts := &ds.Spec.Template.Spec.Volumes
 	volumeMountsUpdates := !reflect.DeepEqual(*volumeMounts, origDS.Spec.Template.Spec.Volumes)
 	if volumeMountsUpdates {
