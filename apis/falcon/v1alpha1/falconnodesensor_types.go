@@ -72,6 +72,8 @@ type FalconNodeSensorConfig struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Location of the Falcon Sensor image. Use only in cases when you mirror the original image to your repository/name:tag
 	ImageOverride string `json:"image_override,omitempty"`
+	// ImagePullSecrets is an optional list of references to secrets in the falcon-system namespace to use for pulling image from image_override location.
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.
 	// +kubebuilder:default=30
 	TerminationGracePeriod int64 `json:"terminationGracePeriod,omitempty"`
