@@ -122,6 +122,20 @@ spec:
                     description: PullPolicy describes a policy for if/when to pull
                       a container image
                     type: string
+                  imagePullSecrets:
+                    description: ImagePullSecrets is an optional list of references
+                      to secrets in the falcon-system namespace to use for pulling
+                      image from image_override location.
+                    items:
+                      description: LocalObjectReference contains enough information
+                        to let you locate the referenced object inside the same namespace.
+                      properties:
+                        name:
+                          description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            TODO: Add other useful fields. apiVersion, kind, uid?'
+                          type: string
+                      type: object
+                    type: array
                   terminationGracePeriod:
                     default: 30
                     description: Kills pod after a specificed amount of time (in seconds).
