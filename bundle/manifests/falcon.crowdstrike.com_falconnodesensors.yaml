@@ -145,8 +145,10 @@ spec:
                   tolerations:
                     default:
                     - effect: NoSchedule
+                      key: node-role.kubernetes.io/master
                       operator: Exists
-                    - effect: NoExecute
+                    - effect: NoSchedule
+                      key: node-role.kubernetes.io/control-plane
                       operator: Exists
                     description: Specifies tolerations for custom taints. Defaults
                       to allowing scheduling on all nodes.

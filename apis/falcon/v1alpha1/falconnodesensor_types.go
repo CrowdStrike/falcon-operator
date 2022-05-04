@@ -66,7 +66,7 @@ type FalconSensor struct {
 // +k8s:openapi-gen=true
 type FalconNodeSensorConfig struct {
 	// Specifies tolerations for custom taints. Defaults to allowing scheduling on all nodes.
-	// +kubebuilder:default={{operator: "Exists", effect: "NoSchedule"}, {operator: "Exists", effect: "NoExecute"}}
+	// +kubebuilder:default={{key: "node-role.kubernetes.io/master", operator: "Exists", effect: "NoSchedule"}, {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"}}
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// +kubebuilder:default=Always
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
