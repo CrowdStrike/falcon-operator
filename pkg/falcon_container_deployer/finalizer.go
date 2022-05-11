@@ -51,7 +51,6 @@ func (d *FalconContainerDeployer) finalize() error {
 func (d *FalconContainerDeployer) finalizeDeleteObjects() {
 	pod, err := d.ConfigurePod()
 	if err != nil {
-		d.Log.Error(err, "Could not find Falcon Container Installer pod for deletion")
 		return
 	}
 	yaml, err := k8s_utils.GetPodLog(d.Ctx, d.RestConfig, pod, common.FalconInstallerJobContainerName)
@@ -72,9 +71,7 @@ func (d *FalconContainerDeployer) finalizeDeleteObjects() {
 
 func (d *FalconContainerDeployer) finalizeDeleteJob() {
 	pod, err := d.ConfigurePod()
-	if err != nil {
-		d.Log.Error(err, "Could not find Falcon Container Installer pod for deletion")
-	} else {
+	if err == nil {
 		err = d.k8s_delete(pod)
 		if err != nil {
 			d.Log.Error(err, "Could not delete Falcon Container Installer pod")

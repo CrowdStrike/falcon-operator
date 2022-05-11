@@ -1,15 +1,10 @@
 package common
 
 import (
-	"context"
 	"encoding/base64"
-	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 
-	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
-	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	sprigcrypto "github.com/crowdstrike/falcon-operator/pkg/sprig"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
@@ -23,63 +18,6 @@ func InitContainerArgs() []string {
 			" && " +
 			"touch " + FalconStoreFile,
 	}
-}
-
-func GetFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) (string, error) {
-	if nodesensor.Spec.Node.ImageOverride != "" {
-		return nodesensor.Spec.Node.ImageOverride, nil
-	}
-
-	if nodesensor.Spec.FalconAPI == nil {
-		return "", fmt.Errorf("Missing falcon_api configuration")
-	}
-
-	cloud, err := nodesensor.Spec.FalconAPI.FalconCloud(ctx)
-	if err != nil {
-		return "", err
-	}
-	imageUri := falcon_registry.ImageURINode(cloud)
-
-	registry, err := falcon_registry.NewFalconRegistry(ctx, nodesensor.Spec.FalconAPI.ApiConfig())
-	if err != nil {
-		return "", err
-	}
-	imageTag, err := registry.LastNodeTag(ctx, nil)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%s:%s", imageUri, imageTag), nil
-}
-
-func FalconSensorConfig(falconsensor *falconv1alpha1.FalconSensor, cid string) map[string]string {
-	sensorConfig := make(map[string]string)
-	if cid != "" {
-		sensorConfig["FALCONCTL_OPT_CID"] = cid
-	}
-	if falconsensor.APD != nil {
-		sensorConfig["FALCONCTL_OPT_APD"] = strconv.FormatBool(*falconsensor.APD)
-	}
-	if falconsensor.APH != "" {
-		sensorConfig["FALCONCTL_OPT_APH"] = falconsensor.APH
-	}
-	if falconsensor.APP != nil {
-		sensorConfig["FALCONCTL_OPT_APP"] = strconv.Itoa(*falconsensor.APP)
-	}
-	if falconsensor.Billing != "" {
-		sensorConfig["FALCONCTL_OPT_BILLING"] = falconsensor.Billing
-	}
-	if falconsensor.PToken != "" {
-		sensorConfig["FALCONCTL_OPT_PROVISIONING_TOKEN"] = falconsensor.PToken
-	}
-	if len(falconsensor.Tags) > 0 {
-		sensorConfig["FALCONCTL_OPT_TAGS"] = strings.Join(falconsensor.Tags, ",")
-	}
-	if falconsensor.Trace != "" {
-		sensorConfig["FALCONCTL_OPT_TRACE"] = falconsensor.Trace
-	}
-
-	return sensorConfig
 }
 
 func FCAdmissionReviewVersions() []string {

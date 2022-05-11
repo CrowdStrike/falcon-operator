@@ -10,7 +10,7 @@ This is may be an indication of the injector running with insufficient ECR privi
 when IAM role of Fargate nodes is not propagated to the pods. The following document describes remediation steps.
 
 
-## Assigning AWS AIM Role to Falcon Container Injector
+## Assigning AWS IAM Role to Falcon Container Injector
 
 Conceptually, the following tasks need to be done in order to enable ECR pull from the injector
 

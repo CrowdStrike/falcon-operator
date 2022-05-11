@@ -26,10 +26,6 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsGroup: 65532
-        runAsUser: 65532
-        fsGroup: 65532
-        runAsNonRoot: true
       containers:
       - command:
         - /manager
@@ -37,12 +33,9 @@ spec:
         - --leader-elect
         image: controller:latest
         name: manager
-        imagePullPolicy: IfNotPresent
         env:
           - name: WATCH_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
+            value: ""
           - name: POD_NAME
             valueFrom:
               fieldRef:

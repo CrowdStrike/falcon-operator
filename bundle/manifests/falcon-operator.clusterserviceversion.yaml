@@ -147,6 +147,9 @@ spec:
           verbs:
           - create
           - delete
+          - get
+          - list
+          - watch
         - apiGroups:
           - ""
           resources:
@@ -405,7 +408,6 @@ spec:
                 - name: OPERATOR_NAME
                   value: falcon-operator
                 image: quay.io/crowdstrike/falcon-operator:v0.5.1
-                imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -433,10 +435,7 @@ spec:
                     - ALL
                   privileged: false
               securityContext:
-                fsGroup: 65532
-                runAsGroup: 65532
                 runAsNonRoot: true
-                runAsUser: 65532
               serviceAccountName: falcon-operator-controller-manager
               terminationGracePeriodSeconds: 10
       permissions:

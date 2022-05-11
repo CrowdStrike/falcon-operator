@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Deploy falcon-operator using CloudFormation to existing EKS cluster"
+Metadata:
+  cfn-lint: { config: { ignore_checks: [W9002, W9003, W9004, W9006, E9007, E9008] } }
+Parameters:
+  KubeClusterName:
+    Type: String
+Resources:
+  KubeManifestURLExample:
+    Type: "AWSQS::Kubernetes::Resource"
+    Properties:
+      ClusterName: !Ref KubeClusterName
+      Namespace: falcon-operator
+      Url: https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml

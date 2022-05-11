@@ -30,11 +30,14 @@ spec:
 
 | Spec                                | Description                                                                                                                               |
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
-| falcon_api.client_id                | CrowdStrike API Client ID                                                                                                                 |
-| falcon_api.client_secret            | CrowdStrike API Client Secret                                                                                                             |
-| falcon_api.client_region            | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                                       |
+| falcon_api.client_id                | (optional) CrowdStrike API Client ID                                                                                                      |
+| falcon_api.client_secret            | (optional) CrowdStrike API Client Secret                                                                                                  |
+| falcon_api.client_region            | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                            |
 | falcon.cid                          | (optional) CrowdStrike Falcon CID override                                                                                                |
 | node.image_override                 | (optional) Location of the Falcon Sensor Image. Specify only when you mirror the original image to your own image repository              |
+| node.imagePullSecrets               | (optional) list of references to secrets in the falcon-system namespace to use for pulling image from image_override location.            |
+
+All arguments are optional, but successful deployment requires either falcon_id and falcon_secret **or** cid and image_override. In a former case container image and cid will be fetched from CrowdStrike Falcon API. While in the latter case the CID and image location is explicitly specified by the user.
 
 ### Install Steps
 To install Falcon Node Sensor (assuming Falcon Operator is installed):
@@ -54,6 +57,16 @@ kubectl delete falconnodesensors.falcon.crowdstrike.com --all
 To see the FalconNodeSensor resource on the cluster
 ```
 kubectl get falconnodesensors.falcon.crowdstrike.com -A
+```
+
+To verify the existence of the daemonset object
+```
+kubectl get daemonsets.apps -n falcon-system
+```
+
+To verify the existence of the sensor objects
+```
+kubectl get pods -n falcon-system
 ```
 
 To review the logs of Falcon Operator:

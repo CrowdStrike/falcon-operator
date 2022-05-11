@@ -40,7 +40,7 @@ jobs:
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v2
       with:
-        args: --timeout=3m12s
+        args: "--out-${NO_FUTURE}format colored-line-number --timeout=3m12s"
         skip-go-installation: true
         skip-pkg-cache: true
         skip-build-cache: true

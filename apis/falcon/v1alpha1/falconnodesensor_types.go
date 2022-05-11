@@ -66,12 +66,14 @@ type FalconSensor struct {
 // +k8s:openapi-gen=true
 type FalconNodeSensorConfig struct {
 	// Specifies tolerations for custom taints. Defaults to allowing scheduling on all nodes.
-	// +kubebuilder:default={{operator: "Exists", effect: "NoSchedule"}, {operator: "Exists", effect: "NoExecute"}}
+	// +kubebuilder:default={{key: "node-role.kubernetes.io/master", operator: "Exists", effect: "NoSchedule"}, {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"}}
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// +kubebuilder:default=Always
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Location of the Falcon Sensor image. Use only in cases when you mirror the original image to your repository/name:tag
 	ImageOverride string `json:"image_override,omitempty"`
+	// ImagePullSecrets is an optional list of references to secrets in the falcon-system namespace to use for pulling image from image_override location.
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.
 	// +kubebuilder:default=30
 	TerminationGracePeriod int64 `json:"terminationGracePeriod,omitempty"`
