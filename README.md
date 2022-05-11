@@ -40,7 +40,7 @@ Installation steps differ based on Operator Life-cycle Manager (OLM) availabilit
    ```
    OPERATOR_NAMESPACE=falcon-operator
    kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-   operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:v0.5.1 --namespace $OPERATOR_NAMESPACE
+   operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:v0.5.2 --namespace $OPERATOR_NAMESPACE
    ```
 
 After the installation concludes please proceed with deploying either [Falcon Container Sensor](docs/container) or [Falcon Node Sensor](docs/node).

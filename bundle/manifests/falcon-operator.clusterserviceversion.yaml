@@ -52,7 +52,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
-  name: falcon-operator.v0.5.1
+  name: falcon-operator.v0.5.2
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -407,7 +407,7 @@ spec:
                       fieldPath: metadata.name
                 - name: OPERATOR_NAME
                   value: falcon-operator
-                image: quay.io/crowdstrike/falcon-operator:v0.5.1
+                image: quay.io/crowdstrike/falcon-operator:v0.5.2
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -496,4 +496,4 @@ spec:
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
-  version: 0.5.1
+  version: 0.5.2
