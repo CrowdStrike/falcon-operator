@@ -23,4 +23,5 @@ testbin/*
 *.swp
 *.swo
 *~
+*.DS_Store
 /deploy/parts/crd-*.yaml
