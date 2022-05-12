@@ -175,6 +175,11 @@ To review the logs of Falcon Container Injector:
 kubectl logs -n falcon-system deploy/injector -f
 ```
 
+To review the currently deployed version of the operator
+```
+kubectl get deployments -n falcon-operator falcon-operator-controller-manager -o=jsonpath='{.spec.template.spec.containers[1].image}'
+```
+
 ### Additional Documentation
 End-to-end guides to install Falcon-operator together with FalconContainer resource.
 
