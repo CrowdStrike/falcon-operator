@@ -16,3 +16,6 @@ resources:
 - auth_proxy_role.yaml
 - auth_proxy_role_binding.yaml
 - auth_proxy_client_clusterrole.yaml
+
+# Add NodeSensor service account
+- nodesensor_service_account.yaml
