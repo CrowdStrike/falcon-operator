@@ -1,9 +1,13 @@
 name: Container Build
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - 'maint-*'
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+      - 'maint-*'
 
 jobs:
   build:
