@@ -19,3 +19,5 @@ resources:
 
 # Add NodeSensor service account
 - nodesensor_service_account.yaml
+- nodesensor_role.yaml
+- nodesensor_role_binding.yaml

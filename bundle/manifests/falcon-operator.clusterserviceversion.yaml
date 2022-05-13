@@ -253,7 +253,6 @@ spec:
           resources:
           - serviceaccounts
           verbs:
-          - create
           - get
           - list
           - patch
@@ -394,9 +393,6 @@ spec:
           verbs:
           - create
           - delete
-          - get
-          - list
-          - watch
         - apiGroups:
           - rbac.authorization.k8s.io
           resources:
@@ -404,19 +400,6 @@ spec:
           verbs:
           - create
           - delete
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - security.openshift.io
-          resources:
-          - securitycontextconstraints
-          verbs:
-          - create
-          - get
-          - list
-          - use
-          - watch
         - apiGroups:
           - authentication.k8s.io
           resources:
@@ -430,6 +413,16 @@ spec:
           verbs:
           - create
         serviceAccountName: falcon-operator-controller-manager
+      - rules:
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - privileged
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        serviceAccountName: falcon-operator-node-sensor
       deployments:
       - label:
           control-plane: controller-manager
