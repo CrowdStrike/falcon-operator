@@ -167,4 +167,5 @@ replace (
 	github.com/docker/distribution => github.com/docker/distribution v2.8.0+incompatible
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.3
+	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220511200225-c6db032c6c88
 )
