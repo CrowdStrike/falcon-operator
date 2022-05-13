@@ -184,7 +184,7 @@ func Daemonset(dsName string, image string, node *falconv1alpha1.FalconNodeSenso
 	}
 }
 
-func RemoveNodeDirDaemonset(dsName, image, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
+func RemoveNodeDirDaemonset(dsName string, image string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
 	privileged := true
 	escalation := true
 	readOnlyFs := false

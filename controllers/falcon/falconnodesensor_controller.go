@@ -52,10 +52,8 @@ func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;create;update
-//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;create;update
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;update
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
-//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,verbs=get;list;watch;create
-//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=get;list;watch;create
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -282,7 +280,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				// Run finalization logic for common.FalconFinalizer. If the
 				// finalization logic fails, don't remove the finalizer so
 				// that we can retry during the next reconciliation.
-				if err := r.finalizeDaemonset(ctx, image, serviceAccount, nodesensor, logger); err != nil {
+				if err := r.finalizeDaemonset(ctx, image, nodesensor, logger); err != nil {
 					return ctrl.Result{}, err
 				}
 			} else {
@@ -563,7 +561,7 @@ func (r *FalconNodeSensorReconciler) conditionsUpdate(condType string, status me
 }
 
 // finalizeDaemonset deletes the Daemonset running the Falcon Sensor and then runs a Daemonset to cleanup the /opt/CrowdStrike directory
-func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, image string, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
+func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, image string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
 	dsCleanupName := nodesensor.Name + "-cleanup"
 	daemonset := &appsv1.DaemonSet{}
 	pods := corev1.PodList{}
@@ -593,7 +591,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 	err := r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.TargetNs()}, daemonset)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new DS for cleanup
-		ds := assets.RemoveNodeDirDaemonset(dsCleanupName, image, serviceAccount, nodesensor)
+		ds := assets.RemoveNodeDirDaemonset(dsCleanupName, image, nodesensor)
 
 		// Create the cleanup DS
 		err = r.Create(ctx, ds)
