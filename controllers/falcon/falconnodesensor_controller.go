@@ -227,8 +227,18 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, confi
 			return nil, updated, err
 		}
 		if err := r.Create(ctx, configmap); err != nil {
-			logger.Error(err, "Failed to create new Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
-			return nil, updated, err
+			if errors.IsAlreadyExists(err) {
+				// We have got NotFound error during the Get(), but then we have got AlreadyExists error from Create(). Client cache is invalid.
+				err = r.Update(ctx, configmap)
+				if err != nil {
+					logger.Error(err, "Failed to update Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
+				}
+				return configmap, updated, nil
+			} else {
+				logger.Error(err, "Failed to create new Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
+				return nil, updated, err
+
+			}
 		}
 
 		logger.Info("Creating FalconNodeSensor Configmap")
