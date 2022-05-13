@@ -85,6 +85,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	setupLog.Info("setting up a mannager with", "watchNamespace", watchNamespace)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
