@@ -32,10 +32,13 @@ func (cc *ConfigCache) UsingCrowdStrikeRegistry() bool {
 	return cc.nodesensor.Spec.Node.ImageOverride == ""
 }
 
-func (cc *ConfigCache) GetImageURI(ctx context.Context) (string, error) {
+func (cc *ConfigCache) GetImageURI(ctx context.Context, logger logr.Logger) (string, error) {
 	var err error
 	if cc.imageUri == "" {
 		cc.imageUri, err = getFalconImage(ctx, cc.nodesensor)
+		if err == nil {
+			logger.Info("Identified Falcon Node Image", "reference", cc.imageUri)
+		}
 	}
 	return cc.imageUri, err
 }
