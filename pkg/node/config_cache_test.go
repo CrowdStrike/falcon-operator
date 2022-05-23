@@ -28,7 +28,8 @@ func TestUsingCrowdStrikeRegistry(t *testing.T) {
 }
 
 func TestGetImageURI(t *testing.T) {
-	want, err := config.GetImageURI(context.Background())
+	var logger logr.Logger
+	want, err := config.GetImageURI(context.Background(), logger)
 	if err != nil {
 		t.Errorf("GetImageURI() error: %v", err)
 	}
