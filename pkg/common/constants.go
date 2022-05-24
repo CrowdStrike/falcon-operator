@@ -16,6 +16,7 @@ const (
 	FalconPartOfKey       = "crowdstrike.com/part-of"
 	FalconProviderKey     = "crowdstrike.com/provider"
 	FalconControllerKey   = "crowdstrike.com/created-by"
+	FalconKernelSensor    = "kernel_sensor"
 
 	FalconProviderValue = "crowdstrike"
 

@@ -3,6 +3,7 @@ package k8s_utils
 import (
 	"context"
 
+	"github.com/crowdstrike/falcon-operator/pkg/common"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -30,7 +31,7 @@ func deleteDaemonSetPods(c client.Client, ctx context.Context, ds *appsv1.Daemon
 	var pods corev1.PodList
 
 	if err := c.List(ctx, &pods, &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labels.Set{"app": ds.Name}),
+		LabelSelector: labels.SelectorFromSet(labels.Set{common.FalconInstanceKey: common.FalconKernelSensor}),
 		Namespace:     ds.Namespace,
 	}); err != nil {
 		return err

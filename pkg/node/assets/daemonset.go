@@ -47,8 +47,8 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 			Namespace: node.TargetNs(),
 			Labels: map[string]string{
 				common.FalconInstanceNameKey: dsName,
-				common.FalconInstanceKey:     "kernel_sensor",
-				common.FalconComponentKey:    "kernel_sensor",
+				common.FalconInstanceKey:     common.FalconKernelSensor,
+				common.FalconComponentKey:    common.FalconKernelSensor,
 				common.FalconManagedByKey:    node.Name,
 				common.FalconProviderKey:     common.FalconProviderValue,
 				common.FalconPartOfKey:       "Falcon",
@@ -59,8 +59,8 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					common.FalconInstanceNameKey: dsName,
-					common.FalconInstanceKey:     "kernel_sensor",
-					common.FalconComponentKey:    "kernel_sensor",
+					common.FalconInstanceKey:     common.FalconKernelSensor,
+					common.FalconComponentKey:    common.FalconKernelSensor,
 					common.FalconManagedByKey:    node.Name,
 					common.FalconProviderKey:     common.FalconProviderValue,
 					common.FalconPartOfKey:       "Falcon",
@@ -71,8 +71,8 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						common.FalconInstanceNameKey: dsName,
-						common.FalconInstanceKey:     "kernel_sensor",
-						common.FalconComponentKey:    "kernel_sensor",
+						common.FalconInstanceKey:     common.FalconKernelSensor,
+						common.FalconComponentKey:    common.FalconKernelSensor,
 						common.FalconManagedByKey:    node.Name,
 						common.FalconProviderKey:     common.FalconProviderValue,
 						common.FalconPartOfKey:       "Falcon",
