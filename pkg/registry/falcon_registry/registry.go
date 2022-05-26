@@ -153,3 +153,12 @@ func registryFQDN(cloud falcon.CloudType) string {
 		return "registry.crowdstrike.com"
 	}
 }
+
+func registryCloud(cloud falcon.CloudType) string {
+	switch cloud {
+	case falcon.CloudUsGov1:
+		return "govcloud"
+	default:
+		return cloud.String()
+	}
+}

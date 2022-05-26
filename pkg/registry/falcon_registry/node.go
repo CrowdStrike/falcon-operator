@@ -22,7 +22,7 @@ func (reg *FalconRegistry) LastNodeTag(ctx context.Context, versionRequested *st
 }
 
 func ImageURINode(falconCloud falcon.CloudType) string {
-	return fmt.Sprintf("%s/falcon-sensor/%s/release/falcon-sensor", registryFQDN(falconCloud), falconCloud.String())
+	return fmt.Sprintf("%s/falcon-sensor/%s/release/falcon-sensor", registryFQDN(falconCloud), registryCloud(falconCloud))
 }
 
 func (fr *FalconRegistry) imageUriNode() string {
