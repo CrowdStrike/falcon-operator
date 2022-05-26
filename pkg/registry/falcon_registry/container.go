@@ -22,7 +22,7 @@ func (reg *FalconRegistry) LastContainerTag(ctx context.Context, versionRequeste
 }
 
 func ImageURIContainer(falconCloud falcon.CloudType) string {
-	return fmt.Sprintf("registry.crowdstrike.com/falcon-container/%s/release/falcon-sensor", falconCloud.String())
+	return fmt.Sprintf("%s/falcon-container/%s/release/falcon-sensor", registryFQDN(falconCloud), registryCloud(falconCloud))
 }
 
 func (fr *FalconRegistry) imageUriContainer() string {
