@@ -56,7 +56,7 @@ func (reg *FalconRegistry) Pulltoken() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	dockerfile, err := auth.Dockerfile("registry.crowdstrike.com", username, reg.token)
+	dockerfile, err := auth.Dockerfile(registryFQDN(reg.falconCloud), username, reg.token)
 	if err != nil {
 		return nil, err
 	}
@@ -143,4 +143,22 @@ func (fr *FalconRegistry) username() (string, error) {
 	}
 	lowerCID := strings.ToLower(s[0])
 	return fmt.Sprintf("fc-%s", lowerCID), nil
+}
+
+func registryFQDN(cloud falcon.CloudType) string {
+	switch cloud {
+	case falcon.CloudUsGov1:
+		return "registry.laggar.gcw.crowdstrike.com"
+	default:
+		return "registry.crowdstrike.com"
+	}
+}
+
+func registryCloud(cloud falcon.CloudType) string {
+	switch cloud {
+	case falcon.CloudUsGov1:
+		return "govcloud"
+	default:
+		return cloud.String()
+	}
 }
