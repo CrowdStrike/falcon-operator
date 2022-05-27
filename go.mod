@@ -167,7 +167,7 @@ replace (
 	github.com/containerd/containerd => github.com/containerd/containerd v1.5.10
 	github.com/docker/distribution => github.com/docker/distribution v2.8.0+incompatible
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.3-0.20211202193544-a5463b7f9c84
-	github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.3
+	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.2
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220511200225-c6db032c6c88
 	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.0-20220521103104-8f96da9f5d5e
 )
