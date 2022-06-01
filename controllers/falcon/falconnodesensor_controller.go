@@ -3,6 +3,7 @@ package falcon
 import (
 	"context"
 	"reflect"
+	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	common_assets "github.com/crowdstrike/falcon-operator/pkg/assets"
@@ -10,6 +11,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/node"
 	"github.com/crowdstrike/falcon-operator/pkg/node/assets"
+	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
 	securityv1 "github.com/openshift/api/security/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -80,6 +82,19 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		logger.Error(err, "Failed to get FalconNodeSensor")
 		return ctrl.Result{}, err
 	}
+
+	dsCondition := meta.FindStatusCondition(nodesensor.Status.Conditions, falconv1alpha1.ConditionSuccess)
+	if dsCondition == nil || dsCondition.ObservedGeneration != nodesensor.GetGeneration() {
+		err = r.conditionsUpdate(falconv1alpha1.ConditionPending,
+			metav1.ConditionFalse,
+			falconv1alpha1.ReasonReqNotMet,
+			"FalconNodeSensor progressing",
+			ctx, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
+	}
+
 	created, err := r.handleNamespace(ctx, nodesensor, logger)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -109,15 +124,43 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	sensorConf, updated, err := r.handleConfigMaps(ctx, config, nodesensor, logger)
 	if err != nil {
+		err = r.conditionsUpdate(falconv1alpha1.ConditionFailed,
+			metav1.ConditionFalse,
+			falconv1alpha1.ReasonInstallFailed,
+			"FalconNodeSensor ConfigMap failed to be installed",
+			ctx, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
 		logger.Error(err, "error handling configmap")
 		return ctrl.Result{}, err
 	}
 	if sensorConf == nil {
+		err = r.conditionsUpdate(falconv1alpha1.ConditionConfigMapReady,
+			metav1.ConditionTrue,
+			falconv1alpha1.ReasonInstallSucceeded,
+			"FalconNodeSensor ConfigMap has been successfully created",
+			ctx, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
 		// this just got created, so re-queue.
 		logger.Info("Configmap was just created. Re-queuing")
 		return ctrl.Result{Requeue: true}, nil
 	}
 	if updated {
+		err = r.conditionsUpdate(falconv1alpha1.ConditionConfigMapReady,
+			metav1.ConditionTrue,
+			falconv1alpha1.ReasonUpdateSucceeded,
+			"FalconNodeSensor ConfigMap has been successfully updated",
+
+			ctx, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
 		logger.Info("Configmap was updated")
 	}
 
@@ -141,7 +184,22 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 		err = r.Create(ctx, ds)
 		if err != nil {
+			err = r.conditionsUpdate(falconv1alpha1.ConditionFailed,
+				metav1.ConditionFalse,
+				falconv1alpha1.ReasonInstallFailed,
+				"FalconNodeSensor DaemonSet failed to be installed",
+				ctx, nodesensor, logger)
+
 			logger.Error(err, "Failed to create new DaemonSet", "DaemonSet.Namespace", ds.Namespace, "DaemonSet.Name", ds.Name)
+			return ctrl.Result{}, err
+		}
+
+		err = r.conditionsUpdate(falconv1alpha1.ConditionDaemonSetReady,
+			metav1.ConditionTrue,
+			falconv1alpha1.ReasonInstallSucceeded,
+			"FalconNodeSensor DaemonSet has been successfully installed",
+			ctx, nodesensor, logger)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -167,6 +225,15 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		if imgUpdate || tolsUpdate || containerVolUpdate || volumeUpdates || updated {
 			err = r.Update(ctx, dsUpdate)
 			if err != nil {
+				err = r.conditionsUpdate(falconv1alpha1.ConditionDaemonSetReady,
+					metav1.ConditionTrue,
+					falconv1alpha1.ReasonUpdateFailed,
+					"FalconNodeSensor DaemonSet update has failed",
+					ctx, nodesensor, logger)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+
 				logger.Error(err, "Failed to update DaemonSet", "DaemonSet.Namespace", dsUpdate.Namespace, "DaemonSet.Name", dsUpdate.Name)
 				return ctrl.Result{}, err
 			}
@@ -176,8 +243,45 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				logger.Error(err, "Failed to restart pods after DaemonSet configuration changed.")
 				return ctrl.Result{}, err
 			}
+
+			err = r.conditionsUpdate(falconv1alpha1.ConditionDaemonSetReady,
+				metav1.ConditionTrue,
+				falconv1alpha1.ReasonUpdateSucceeded,
+				"FalconNodeSensor DaemonSet has been successfully updated",
+
+				ctx, nodesensor, logger)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 			logger.Info("FalconNodeSensor DaemonSet configuration changed. Pods have been restarted.")
 		}
+	}
+
+	if nodesensor.Status.Sensor == nil {
+		nodesensor.Status.Sensor = &strings.Split(image, ":")[1]
+		err = r.Status().Update(ctx, nodesensor)
+		if err != nil {
+			log.Error(err, "Failed to update FalconNodeSensor status")
+			return ctrl.Result{}, err
+		}
+	}
+
+	if nodesensor.Status.Version == "" {
+		nodesensor.Status.Version = version.Get()
+		err = r.Status().Update(ctx, nodesensor)
+		if err != nil {
+			log.Error(err, "Failed to update FalconNodeSensor status")
+			return ctrl.Result{}, err
+		}
+	}
+
+	err = r.conditionsUpdate(falconv1alpha1.ConditionSuccess,
+		metav1.ConditionTrue,
+		falconv1alpha1.ReasonInstallSucceeded,
+		"FalconNodeSensor installation completed",
+		ctx, nodesensor, logger)
+	if err != nil {
+		return ctrl.Result{Requeue: true}, err
 	}
 
 	return ctrl.Result{}, nil
@@ -566,4 +670,22 @@ func (r *FalconNodeSensorReconciler) handleServiceAccount(ctx context.Context, n
 		return false, err
 	}
 	return true, nil
+}
+
+// statusUpdate updates the FalconNodeSensor CR conditions
+func (r *FalconNodeSensorReconciler) conditionsUpdate(condType string, status metav1.ConditionStatus, reason string, message string, ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
+	meta.SetStatusCondition(&nodesensor.Status.Conditions, metav1.Condition{
+		Status:             status,
+		Reason:             reason,
+		Message:            message,
+		Type:               condType,
+		ObservedGeneration: nodesensor.GetGeneration(),
+	})
+
+	if err := r.Status().Update(ctx, nodesensor); err != nil {
+		logger.Error(err, "Failed to update FalconNodeSensor status")
+		return err
+	}
+
+	return nil
 }
