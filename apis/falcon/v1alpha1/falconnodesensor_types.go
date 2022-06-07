@@ -8,21 +8,24 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type FalconNodeSensorStatusPhase string
-
 const (
-	NodePhaseInitializing FalconNodeSensorStatusPhase = "Initializing"
-	NodePhaseActive       FalconNodeSensorStatusPhase = "Active"
-	NodePhasePending      FalconNodeSensorStatusPhase = "Pending"
-	NodePhaseError        FalconNodeSensorStatusPhase = "Error"
-)
+	// Following strings are condition types
 
-type FalconNodeSensorCondition string
+	ConditionSuccess        string = "Success"
+	ConditionFailed         string = "Failed"
+	ConditionPending        string = "Pending"
+	ConditionConfigMapReady string = "ConfigMapReady"
+	ConditionDaemonSetReady string = "DaemonSetReady"
 
-const (
-	NodeConditionSucceeded FalconNodeSensorCondition = "Succeeded"
-	NodeConditionFailed    FalconNodeSensorCondition = "Failed"
-	NodeConditionErrored   FalconNodeSensorCondition = "Errored"
+	// Following strings are condition reasons
+
+	ReasonReqNotMet        string = "RequirementsNotMet"
+	ReasonInstallSucceeded string = "InstallSucceeded"
+	ReasonInstallFailed    string = "InstallFailed"
+	ReasonSucceeded        string = "Succeeded"
+	ReasonUpdateSucceeded  string = "UpdateSucceeded"
+	ReasonUpdateFailed     string = "UpdateFailed"
+	ReasonFailed           string = "Failed"
 )
 
 // FalconNodeSensorSpec defines the desired state of FalconNodeSensor
@@ -84,11 +87,23 @@ type FalconNodeSensorConfig struct {
 type FalconNodeSensorStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	// Phase or the status of the deployment
+
+	// Version of the CrowdStrike Falcon Sensor
+	Sensor *string `json:"sensor,omitempty"`
+
+	// Version of the CrowdStrike Falcon Operator
+	Version string `json:"version,omitempty"`
+
+	// Conditions represent the latest available observations of an object's state
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster
+//+kubebuilder:printcolumn:name="Falcon Sensor",type="string",JSONPath=".status.sensor"
+//+kubebuilder:printcolumn:name="Operator Version",type="string",JSONPath=".status.version"
 
 // FalconNodeSensor is the Schema for the falconnodesensors API
 // +k8s:openapi-gen=true
