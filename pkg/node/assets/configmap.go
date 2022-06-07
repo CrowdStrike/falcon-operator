@@ -14,8 +14,8 @@ func DaemonsetConfigMap(dsname string, nsname string, config *node.ConfigCache) 
 			Namespace: nsname,
 			Labels: map[string]string{
 				common.FalconInstanceNameKey: dsname,
-				common.FalconInstanceKey:     "kernel_sensor",
-				common.FalconComponentKey:    "kernel_sensor",
+				common.FalconInstanceKey:     common.FalconKernelSensor,
+				common.FalconComponentKey:    common.FalconKernelSensor,
 				common.FalconManagedByKey:    dsname,
 				common.FalconProviderKey:     common.FalconProviderValue,
 				common.FalconPartOfKey:       "Falcon",
