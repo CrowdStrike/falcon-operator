@@ -21,11 +21,103 @@ spec:
       displayName: Falcon Container
       kind: FalconContainer
       name: falconcontainers.falcon.crowdstrike.com
+      specDescriptors:
+      - description: Falcon OAuth2 API Client ID
+        displayName: Client ID
+        path: falcon_api.client_id
+      - description: Falcon OAuth2 API Client Secret
+        displayName: Client Secret
+        path: falcon_api.client_secret
+      - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
+          the operator will connect and register.
+        displayName: CrowdStrike Falcon Cloud Region
+        path: falcon_api.cloud_region
+      - description: Falcon Customer ID (CID) Override (optional, default is derived
+          from the API Key pair)
+        displayName: Falcon Customer ID (CID)
+        path: falcon_api.cid
       version: v1alpha1
     - description: FalconNodeSensor is the Schema for the falconnodesensors API
       displayName: Falcon Node Sensor
       kind: FalconNodeSensor
       name: falconnodesensors.falcon.crowdstrike.com
+      specDescriptors:
+      - description: Falcon Customer ID (CID)
+        displayName: Falcon Customer ID (CID)
+        path: falcon.cid
+      - description: "FalconAPI configures connection from your local Falcon operator
+          to CrowdStrike Falcon platform. \n When configured, it will pull the sensor
+          from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
+          \n If using the API is not desired, the sensor can be manually configured."
+        displayName: Falcon Platform API Configuration
+        path: falcon_api
+      - description: Falcon OAuth2 API Client ID
+        displayName: Client ID
+        path: falcon_api.client_id
+      - description: ImagePullSecrets is an optional list of references to secrets
+          in the falcon-system namespace to use for pulling image from image_override
+          location.
+        displayName: Image Pull Secrets
+        path: node.imagePullSecrets
+      - displayName: Falcon Sensor Configuration
+        path: falcon
+      - description: Installation token that prevents unauthorized hosts from being
+          accidentally or maliciously added to your customer ID (CID).
+        displayName: Provisioning Token
+        path: falcon.provisioning_token
+      - description: Falcon OAuth2 API Client Secret
+        displayName: Client Secret
+        path: falcon_api.client_secret
+      - description: Location of the Falcon Sensor image. Use only in cases when you
+          mirror the original image to your repository/name:tag
+        displayName: Image Override
+        path: node.image_override
+      - description: Disable the Falcon Sensor's use of a proxy.
+        displayName: Disable Falcon Proxy
+        path: falcon.apd
+      - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
+          the operator will connect and register.
+        displayName: CrowdStrike Falcon Cloud Region
+        path: falcon_api.cloud_region
+      - description: Various configuration for DaemonSet Deployment
+        displayName: DaemonSet Configuration
+        path: node
+      - displayName: Image Pull Policy
+        path: node.imagePullPolicy
+      - description: The application proxy host to use for Falcon sensor proxy configuration.
+        displayName: Disable Falcon Proxy Host
+        path: falcon.aph
+      - description: Falcon Customer ID (CID) Override (optional, default is derived
+          from the API Key pair)
+        displayName: Falcon Customer ID (CID)
+        path: falcon_api.cid
+      - description: Specifies tolerations for custom taints. Defaults to allowing
+          scheduling on all nodes.
+        displayName: Tolerations
+        path: node.tolerations
+      - description: The application proxy port to use for Falcon sensor proxy configuration.
+        displayName: Falcon Proxy Port
+        path: falcon.app
+      - description: Kills pod after a specificed amount of time (in seconds). Default
+          is 30 seconds.
+        displayName: Termination Grace Period
+        path: node.terminationGracePeriod
+      - description: 'Sensor grouping tags are optional, user-defined identifiers
+          that can used to group and filter hosts. Allowed characters: all alphanumerics,
+          ''/'', ''-'', and ''_''.'
+        displayName: Sensor Grouping Tags
+        path: falcon.tags
+      - description: Disables the cleanup of the sensor through DaemonSet on the nodes.
+          Disabling might have unintended consequences for certain operations such
+          as sensor downgrading.
+        displayName: Node Cleanup
+        path: node.disableCleanup
+      - description: Set sensor trace level.
+        displayName: Trace Level
+        path: falcon.trace
+      - description: Utilize default or Pay-As-You-Go billing.
+        displayName: Billing
+        path: falcon.billing
       version: v1alpha1
   description: |-
     The CrowdStrike Falcon Operator installs CrowdStrike Falcon Container Sensor or CrowdStrike Falcon Node Sensor on the cluster.
