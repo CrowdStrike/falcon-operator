@@ -26,6 +26,10 @@ func (cc *ConfigCache) CID() string {
 	return cc.cid
 }
 
+func (cc *ConfigCache) UsingCrowdStrikeRegistry() bool {
+	return cc.nodesensor.Spec.Node.ImageOverride == "" && os.Getenv("RELATED_IMAGE_NODE_SENSOR") == ""
+}
+
 func (cc *ConfigCache) GetImageURI(ctx context.Context) (string, error) {
 	var err error
 	if cc.imageUri == "" {

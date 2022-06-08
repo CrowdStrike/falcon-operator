@@ -372,7 +372,7 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, confi
 
 // handleCrowdStrikeSecrets creates and updates the image pull secrets for the nodesensor
 func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Context, config *node.ConfigCache, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
-	if nodesensor.Spec.Node.ImageOverride != "" {
+	if !config.UsingCrowdStrikeRegistry() {
 		return nil
 	}
 	secret := corev1.Secret{}
