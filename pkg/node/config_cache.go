@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -98,6 +99,11 @@ func NewConfigCache(ctx context.Context, logger logr.Logger, nodesensor *falconv
 func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) (string, error) {
 	if nodesensor.Spec.Node.ImageOverride != "" {
 		return nodesensor.Spec.Node.ImageOverride, nil
+	}
+
+	nodeImage := os.Getenv("RELATED_IMAGE_NODE_SENSOR")
+	if nodeImage != "" {
+		return nodeImage, nil
 	}
 
 	if nodesensor.Spec.FalconAPI == nil {
