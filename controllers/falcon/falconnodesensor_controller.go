@@ -290,11 +290,17 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	isDSMarkedToBeDeleted := nodesensor.GetDeletionTimestamp() != nil
 	if isDSMarkedToBeDeleted {
 		if controllerutil.ContainsFinalizer(nodesensor, common.FalconFinalizer) {
-			// Run finalization logic for common.FalconFinalizer. If the
-			// finalization logic fails, don't remove the finalizer so
-			// that we can retry during the next reconciliation.
-			if err := r.finalizeDaemonset(ctx, image, serviceAccount, nodesensor, logger); err != nil {
-				return ctrl.Result{}, err
+			logger.Info("Successfully finalized daemonset")
+			// Allows the cleanup to be disabled by disableCleanup option
+			if *nodesensor.Spec.Node.NodeCleanup != true {
+				// Run finalization logic for common.FalconFinalizer. If the
+				// finalization logic fails, don't remove the finalizer so
+				// that we can retry during the next reconciliation.
+				if err := r.finalizeDaemonset(ctx, image, serviceAccount, nodesensor, logger); err != nil {
+					return ctrl.Result{}, err
+				}
+			} else {
+				logger.Info("Skipping cleanup because it is disabled", "disableCleanup", *nodesensor.Spec.Node.NodeCleanup)
 			}
 
 			// Remove common.FalconFinalizer. Once all finalizers have been
