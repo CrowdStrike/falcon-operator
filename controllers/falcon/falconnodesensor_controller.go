@@ -292,7 +292,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		if controllerutil.ContainsFinalizer(nodesensor, common.FalconFinalizer) {
 			logger.Info("Successfully finalized daemonset")
 			// Allows the cleanup to be disabled by disableCleanup option
-			if *nodesensor.Spec.Node.NodeCleanup != true {
+			if !*nodesensor.Spec.Node.NodeCleanup {
 				// Run finalization logic for common.FalconFinalizer. If the
 				// finalization logic fails, don't remove the finalizer so
 				// that we can retry during the next reconciliation.
