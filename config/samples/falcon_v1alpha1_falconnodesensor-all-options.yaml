@@ -1,7 +1,7 @@
 # Falcon Node Sensor Installation.
 #
 # Example using all/many available options
-
+---
 apiVersion: falcon.crowdstrike.com/v1alpha1
 kind: FalconNodeSensor
 metadata:
@@ -11,32 +11,34 @@ spec:
     client_id: PLEASE_FILL_IN
     client_secret: PLEASE_FILL_IN
     cloud_region: autodiscover
-    cid: 00001111222233334444555566667777-12 #(optional, default is derived from the API Key pair)
+    # (optional, default is derived from the API Key pair)
+    cid: 00001111222233334444555566667777-12
   node:
-    image_override: repo.host.com:4000/name:tag # Use to not use falcon_api section above
+    # Use to not need falcon_api section above
+    image_override: repo.host.com:4000/name:tag
     imagePullPolicy: Always
-    imagePullSecrets: # secrets within the falcon-system namespace
-    - pullSecret1
-    - pullSecret2
+    # secrets within the falcon-system namespace
+    imagePullSecrets:
+      - pullSecret1
+      - pullSecret2
     terminationGracePeriod: 30
     tolerations:
-    - effect: NoSchedule
-      key: node-role.kubernetes.io/master
-      operator: Exists
-    - effect: NoSchedule
-      key: node-role.kubernetes.io/control-plane
-      operator: Exists
-  falcon: 
-    apd: False
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+  falcon:
+    apd: false
     aph: this.proxy.com
     app: 8080
     billing: metered
-    cid: 00001111222233334444555566667777-12 # Use to not use section falcon_api above
+    # Use to not need falcon_api section above
     provisioning_token: 00001111
-    tags: 
-    - test-cluster
-    - tags1
-    - tags2
+    cid: 00001111222233334444555566667777-12
+    tags:
+      - test-cluster
+      - tags1
+      - tags2
     trace: none
-
-

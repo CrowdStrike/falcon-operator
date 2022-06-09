@@ -1,7 +1,7 @@
 # Falcon Container Installation.
 #
 # Example using all/many available options
-
+---
 apiVersion: falcon.crowdstrike.com/v1alpha1
 kind: FalconContainer
 metadata:
@@ -11,7 +11,8 @@ spec:
     client_id: PLEASE_FILL_IN
     client_secret: PLEASE_FILL_IN
     cloud_region: autodiscover
-    cid: 00001111222233334444555566667777-12 #(optional, default is derived from the API Key pair)
+    # (optional, default is derived from the API Key pair)
+    cid: 00001111222233334444555566667777-12
   injector:
     sa_annotations:
       eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/iam-role-name
