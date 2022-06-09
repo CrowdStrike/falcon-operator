@@ -1,0 +1,42 @@
+# Falcon Node Sensor Installation.
+#
+# Example using all/many available options
+
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconNodeSensor
+metadata:
+  name: falcon-node-sensor
+spec:
+  falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
+    cloud_region: autodiscover
+    cid: 00001111222233334444555566667777-12 #(optional, default is derived from the API Key pair)
+  node:
+    image_override: repo.host.com:4000/name:tag # Use to not use falcon_api section above
+    imagePullPolicy: Always
+    imagePullSecrets: # secrets within the falcon-system namespace
+    - pullSecret1
+    - pullSecret2
+    terminationGracePeriod: 30
+    tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/master
+      operator: Exists
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/control-plane
+      operator: Exists
+  falcon: 
+    apd: False
+    aph: this.proxy.com
+    app: 8080
+    billing: metered
+    cid: 00001111222233334444555566667777-12 # Use to not use section falcon_api above
+    provisioning_token: 00001111
+    tags: 
+    - test-cluster
+    - tags1
+    - tags2
+    trace: none
+
+

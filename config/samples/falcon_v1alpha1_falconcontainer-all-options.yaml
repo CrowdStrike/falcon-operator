@@ -1,0 +1,28 @@
+# Falcon Container Installation.
+#
+# Example using all/many available options
+
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconContainer
+metadata:
+  name: default
+spec:
+  falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
+    cloud_region: autodiscover
+    cid: 00001111222233334444555566667777-12 #(optional, default is derived from the API Key pair)
+  injector:
+    sa_annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/iam-role-name
+      annotation2: annotation-value
+  registry:
+    type: acr
+    acr_name: falcon-sensor-repo
+    tls:
+      insecure_skip_verify: false
+  installer_args:
+    - '-falconctl-opts'
+    - '--tags=test-cluster,tags1,tags2 --apd=disabled'
+    - '-disable-default-ns-injection'
+  version: 1.2.3.tagname
