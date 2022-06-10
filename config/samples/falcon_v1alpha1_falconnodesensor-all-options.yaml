@@ -17,7 +17,8 @@ spec:
     # Use to not need falcon_api section above
     image_override: repo.host.com:4000/name:tag
     imagePullPolicy: Always
-    # secrets within the falcon-system namespace
+    # secret within the falcon-system namespace.
+    # Secret will only be used when image_override is present as well.
     imagePullSecrets:
       - pullSecret1
       - pullSecret2

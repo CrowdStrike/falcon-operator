@@ -15,7 +15,9 @@ spec:
     cid: 00001111222233334444555566667777-12
   injector:
     sa_annotations:
+      # These are just examples, you wouldn't combine AWS & GKE roles at once
       eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/iam-role-name
+      iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
       annotation2: annotation-value
   registry:
     type: acr
