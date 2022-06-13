@@ -80,6 +80,10 @@ type FalconNodeSensorConfig struct {
 	// Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.
 	// +kubebuilder:default=30
 	TerminationGracePeriod int64 `json:"terminationGracePeriod,omitempty"`
+	// Disables the cleanup of the sensor through DaemonSet on the nodes.
+	// Disabling might have unintended consequences for certain operations such as sensor downgrading.
+	// +kubebuilder:default=false
+	NodeCleanup *bool `json:"disableCleanup,omitempty"`
 }
 
 // FalconNodeSensorStatus defines the observed state of FalconNodeSensor

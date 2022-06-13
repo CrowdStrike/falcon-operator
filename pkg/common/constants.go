@@ -18,6 +18,7 @@ const (
 	FalconControllerKey   = "crowdstrike.com/created-by"
 	FalconKernelSensor    = "kernel_sensor"
 
+	FalconFinalizer     = "falcon.crowdstrike.com/finalizer"
 	FalconProviderValue = "crowdstrike"
 
 	FalconInstallerJobContainerName = "installer"

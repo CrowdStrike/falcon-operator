@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -282,6 +283,49 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		ctx, nodesensor, logger)
 	if err != nil {
 		return ctrl.Result{Requeue: true}, err
+	}
+
+	// Check if the FalconNodeSensor instance is marked to be deleted, which is
+	// indicated by the deletion timestamp being set.
+	isDSMarkedToBeDeleted := nodesensor.GetDeletionTimestamp() != nil
+	if isDSMarkedToBeDeleted {
+		if controllerutil.ContainsFinalizer(nodesensor, common.FalconFinalizer) {
+			logger.Info("Successfully finalized daemonset")
+			// Allows the cleanup to be disabled by disableCleanup option
+			if !*nodesensor.Spec.Node.NodeCleanup {
+				// Run finalization logic for common.FalconFinalizer. If the
+				// finalization logic fails, don't remove the finalizer so
+				// that we can retry during the next reconciliation.
+				if err := r.finalizeDaemonset(ctx, image, serviceAccount, nodesensor, logger); err != nil {
+					return ctrl.Result{}, err
+				}
+			} else {
+				logger.Info("Skipping cleanup because it is disabled", "disableCleanup", *nodesensor.Spec.Node.NodeCleanup)
+			}
+
+			// Remove common.FalconFinalizer. Once all finalizers have been
+			// removed, the object will be deleted.
+			controllerutil.RemoveFinalizer(nodesensor, common.FalconFinalizer)
+			err := r.Update(ctx, nodesensor)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			log.Info("Removing finalizer")
+
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Add finalizer for this CR
+	if !controllerutil.ContainsFinalizer(nodesensor, common.FalconFinalizer) {
+		controllerutil.AddFinalizer(nodesensor, common.FalconFinalizer)
+		err = r.Update(ctx, nodesensor)
+		if err != nil {
+			logger.Error(err, "Unable to update finalizer")
+			return ctrl.Result{}, err
+		}
+		log.Info("Adding finalizer")
+
 	}
 
 	return ctrl.Result{}, nil
@@ -687,5 +731,100 @@ func (r *FalconNodeSensorReconciler) conditionsUpdate(condType string, status me
 		return err
 	}
 
+	return nil
+}
+
+// finalizeDaemonset deletes the Daemonset running the Falcon Sensor and then runs a Daemonset to cleanup the /opt/CrowdStrike directory
+func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, image string, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
+	dsCleanupName := nodesensor.Name + "-cleanup"
+	daemonset := &appsv1.DaemonSet{}
+	pods := corev1.PodList{}
+	dsList := &appsv1.DaemonSetList{}
+	var nodeCount int32 = 0
+	var completedCount int32 = 0
+
+	// Get a list of DS and return the DS within the correct NS
+	if err := r.List(ctx, dsList, &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labels.Set{common.FalconInstanceKey: common.FalconKernelSensor}),
+		Namespace:     nodesensor.TargetNs(),
+	}); err != nil {
+		return err
+	}
+
+	// Set the nodeCount to the desired number of pods to be scheduled for cleanup
+	for _, dSet := range dsList.Items {
+		nodeCount = dSet.Status.DesiredNumberScheduled
+		logger.Info("Setting DaemonSet node count", "Number of nodes", nodeCount)
+	}
+
+	// Delete the Daemonset containing the sensor
+	if err := r.Delete(ctx,
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: nodesensor.Name, Namespace: nodesensor.TargetNs(),
+			},
+		}); err != nil && !errors.IsNotFound(err) {
+		logger.Error(err, "Failed to cleanup Falcon sensor DaemonSet pods")
+		return err
+	}
+
+	// Check if the cleanup DS is created. If not, create it.
+	err := r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.TargetNs()}, daemonset)
+	if err != nil && errors.IsNotFound(err) {
+		// Define a new DS for cleanup
+		ds := assets.RemoveNodeDirDaemonset(dsCleanupName, image, serviceAccount, nodesensor)
+
+		// Create the cleanup DS
+		err = r.Create(ctx, ds)
+		if err != nil {
+			logger.Error(err, "Failed to delete node directory with cleanup DaemonSet", "Path", common.FalconHostInstallDir)
+			return err
+		}
+
+		// Start inifite loop to check that all pods have either completed or are running in the DS
+		for {
+			// List all pods with the "cleanup" label in the appropriate NS
+			if err := r.List(ctx, &pods, &client.ListOptions{
+				LabelSelector: labels.SelectorFromSet(labels.Set{common.FalconInstanceKey: "cleanup"}),
+				Namespace:     nodesensor.TargetNs(),
+			}); err != nil {
+				return err
+			}
+
+			// When the pods have a status of completed or running, increment the count.
+			// The reason running is an acceptable value is because the pods should be running the sleep command and have already cleaned up /opt/CrowdStrike
+			for _, pod := range pods.Items {
+				if pod.Status.Phase == "Completed" || pod.Status.Phase == "Running" {
+					completedCount++
+					logger.Info("Waiting for cleanup pods to complete. Retrying....")
+				}
+			}
+
+			// Break out of the infinite loop for cleanup when the completed or running DS count reaches the desired node count
+			if completedCount == nodeCount {
+				logger.Info("Clean up pods should be done. Continuing deleting.")
+				break
+			}
+		}
+
+		// The cleanup DS should be completed so delete the cleanup DS
+		if err := r.Delete(ctx,
+			&appsv1.DaemonSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: dsCleanupName, Namespace: nodesensor.TargetNs(),
+				},
+			}); err != nil && !errors.IsNotFound(err) {
+			logger.Error(err, "Failed to cleanup Falcon sensor DaemonSet pods")
+			return err
+		}
+
+		// If we have gotten here, the cleanup should be successful
+		logger.Info("Successfully deleted node directory", "Path", common.FalconDataDir)
+	} else if err != nil {
+		logger.Error(err, "error getting the cleanup DaemonSet")
+		return err
+	}
+
+	logger.Info("Successfully finalized daemonset")
 	return nil
 }
