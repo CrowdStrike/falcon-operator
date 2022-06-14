@@ -370,6 +370,10 @@ spec:
                     default: Always
                     description: PullPolicy describes a policy for if/when to pull
                       a container image
+                    enum:
+                    - Always
+                    - IfNotPresent
+                    - Never
                     type: string
                   imagePullSecrets:
                     description: ImagePullSecrets is an optional list of references
