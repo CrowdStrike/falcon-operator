@@ -72,6 +72,7 @@ type FalconNodeSensorConfig struct {
 	// +kubebuilder:default={{key: "node-role.kubernetes.io/master", operator: "Exists", effect: "NoSchedule"}, {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"}}
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 	// +kubebuilder:default=Always
+	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Location of the Falcon Sensor image. Use only in cases when you mirror the original image to your repository/name:tag
 	ImageOverride string `json:"image_override,omitempty"`
