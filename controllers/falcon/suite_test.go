@@ -29,6 +29,7 @@ var cfg *rest.Config
 var _ = cfg
 var k8sClient client.Client
 var testEnv *envtest.Environment
+var err error
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -46,7 +47,7 @@ var _ = BeforeSuite(func() {
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crd", "bases")},
 	}
 
-	cfg, err := testEnv.Start()
+	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 

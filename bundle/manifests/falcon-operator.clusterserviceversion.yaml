@@ -48,7 +48,7 @@ metadata:
     createdAt: "2021-07-30T10:00:00Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     operatorframework.io/suggested-namespace: falcon-operator
-    operators.operatorframework.io/builder: operator-sdk-v1.17.0
+    operators.operatorframework.io/builder: operator-sdk-v1.21.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
@@ -326,7 +326,9 @@ spec:
           - create
         serviceAccountName: falcon-operator-controller-manager
       deployments:
-      - name: falcon-operator-controller-manager
+      - label:
+          control-plane: controller-manager
+        name: falcon-operator-controller-manager
         spec:
           replicas: 1
           selector:
@@ -346,7 +348,7 @@ spec:
                 - --upstream=http://127.0.0.1:8080/
                 - --logtostderr=true
                 - --v=0
-                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
+                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.11.0
                 name: kube-rbac-proxy
                 ports:
                 - containerPort: 8443
@@ -466,4 +468,7 @@ spec:
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
+  relatedImages:
+  - image: ""
+    name: node-sensor
   version: 0.6.0
