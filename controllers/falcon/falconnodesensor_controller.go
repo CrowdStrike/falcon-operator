@@ -262,7 +262,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		nodesensor.Status.Sensor = &strings.Split(image, ":")[1]
 		err = r.Status().Update(ctx, nodesensor)
 		if err != nil {
-			log.Error(err, "Failed to update FalconNodeSensor status")
+			log.Error(err, "Failed to update FalconNodeSensor status for nodesensor.Status.Sensor")
 			return ctrl.Result{}, err
 		}
 	}
@@ -271,7 +271,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		nodesensor.Status.Version = version.Get()
 		err = r.Status().Update(ctx, nodesensor)
 		if err != nil {
-			log.Error(err, "Failed to update FalconNodeSensor status")
+			log.Error(err, "Failed to update FalconNodeSensor status for nodesensor.Status.Version")
 			return ctrl.Result{}, err
 		}
 	}
@@ -727,7 +727,7 @@ func (r *FalconNodeSensorReconciler) conditionsUpdate(condType string, status me
 	})
 
 	if err := r.Status().Update(ctx, nodesensor); err != nil {
-		logger.Error(err, "Failed to update FalconNodeSensor status")
+		logger.Error(err, "Failed to update FalconNodeSensor status", "Failed to update the Condition at Reasoning", reason)
 		return err
 	}
 
