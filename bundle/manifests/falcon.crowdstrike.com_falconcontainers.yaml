@@ -63,8 +63,8 @@ spec:
                     description: Falcon OAuth2 API Client Secret
                     type: string
                   cloud_region:
-                    description: CloudRegion defines CrowdStrike Falcon Cloud Region
-                      to which the operator will connect to
+                    description: Cloud Region defines CrowdStrike Falcon Cloud Region
+                      to which the operator will connect and register.
                     enum:
                     - autodiscover
                     - us-1

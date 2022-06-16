@@ -46,19 +46,21 @@ spec:
                 description: CrowdStrike Falcon Sensor configuration settings.
                 properties:
                   apd:
-                    description: Enable the App Proxy Port (APP). Uncommon in container-based
-                      deployments.
+                    default: false
+                    description: Disable the Falcon Sensor's use of a proxy.
                     type: boolean
                   aph:
-                    description: App Proxy Hostname (APH). Uncommon in container-based
-                      deployments.
+                    description: The application proxy host to use for Falcon sensor
+                      proxy configuration.
                     type: string
                   app:
-                    description: App Proxy Port (APP). Uncommon in container-based
-                      deployments.
+                    description: The application proxy port to use for Falcon sensor
+                      proxy configuration.
+                    maximum: 65535
+                    minimum: 0
                     type: integer
                   billing:
-                    description: Utilize default or metered billing.
+                    description: Utilize default or Pay-As-You-Go billing.
                     enum:
                     - default
                     - metered
@@ -68,17 +70,21 @@ spec:
                     pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
                     type: string
                   provisioning_token:
-                    description: Provisioning token.
+                    description: Installation token that prevents unauthorized hosts
+                      from being accidentally or maliciously added to your customer
+                      ID (CID).
                     pattern: ^[0-9a-fA-F]{8}$
                     type: string
                   tags:
-                    description: 'List of tags for sensor grouping. Allowed characters:
-                      all alphanumerics, ''/'', ''-'', and ''_''.'
+                    description: 'Sensor grouping tags are optional, user-defined
+                      identifiers that can used to group and filter hosts. Allowed
+                      characters: all alphanumerics, ''/'', ''-'', and ''_''.'
                     items:
                       type: string
                     type: array
                   trace:
-                    description: Set trace level. Options are [none|err|warn|info|debug].
+                    default: none
+                    description: Set sensor trace level.
                     enum:
                     - none
                     - err
@@ -88,8 +94,11 @@ spec:
                     type: string
                 type: object
               falcon_api:
-                description: FalconAPI configures connection from your local Falcon
-                  operator to CrowdStrike Falcon platform.
+                description: "FalconAPI configures connection from your local Falcon
+                  operator to CrowdStrike Falcon platform. \n When configured, it
+                  will pull the sensor from registry.crowdstrike.com and deploy the
+                  appropriate sensor to the cluster. \n If using the API is not desired,
+                  the sensor can be manually configured."
                 properties:
                   cid:
                     description: Falcon Customer ID (CID) Override (optional, default
@@ -103,8 +112,8 @@ spec:
                     description: Falcon OAuth2 API Client Secret
                     type: string
                   cloud_region:
-                    description: CloudRegion defines CrowdStrike Falcon Cloud Region
-                      to which the operator will connect to
+                    description: Cloud Region defines CrowdStrike Falcon Cloud Region
+                      to which the operator will connect and register.
                     enum:
                     - autodiscover
                     - us-1
@@ -118,8 +127,7 @@ spec:
                 - cloud_region
                 type: object
               node:
-                description: FalconNodeSensorConfig defines aspects about how the
-                  daemonset works.
+                description: Various configuration for DaemonSet Deployment
                 properties:
                   disableCleanup:
                     default: false
