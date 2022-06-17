@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -102,15 +103,25 @@ type FalconNodeSensorConfig struct {
 	// ImagePullSecrets is an optional list of references to secrets in the falcon-system namespace to use for pulling image from image_override location.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	// Type of DaemonSet update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Update Strategy",order=5
+	DSUpdateStrategy FalconNodeUpdateStrategy `json:"updateStrategy,omitempty"`
 	// Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.
 	// +kubebuilder:default:=30
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=5
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=6
 	TerminationGracePeriod int64 `json:"terminationGracePeriod,omitempty"`
 	// Disables the cleanup of the sensor through DaemonSet on the nodes.
 	// Disabling might have unintended consequences for certain operations such as sensor downgrading.
 	// +kubebuilder:default=false
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=6
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=7
 	NodeCleanup *bool `json:"disableCleanup,omitempty"`
+}
+
+type FalconNodeUpdateStrategy struct {
+	// +kubebuilder:default=RollingUpdate
+	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
+	Type          appsv1.DaemonSetUpdateStrategyType `json:"type,omitempty"`
+	RollingUpdate appsv1.RollingUpdateDaemonSet      `json:"rollingUpdate,omitempty"`
 }
 
 // FalconNodeSensorStatus defines the observed state of FalconNodeSensor

@@ -30,6 +30,29 @@ func pullSecrets(node *falconv1alpha1.FalconNodeSensor) []corev1.LocalObjectRefe
 	}
 }
 
+func dsUpdateStrategy(node *falconv1alpha1.FalconNodeSensor) appsv1.DaemonSetUpdateStrategy {
+	rollingUpdateSettings := appsv1.RollingUpdateDaemonSet{}
+
+	/* Beta feature to enable later
+	if node.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxSurge != nil {
+		rollingUpdateSettings.MaxSurge = node.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxSurge
+	}
+	*/
+
+	if node.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxUnavailable != nil {
+		rollingUpdateSettings.MaxUnavailable = node.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxUnavailable
+	}
+
+	if node.Spec.Node.DSUpdateStrategy.Type == appsv1.RollingUpdateDaemonSetStrategyType {
+		return appsv1.DaemonSetUpdateStrategy{
+			Type:          appsv1.RollingUpdateDaemonSetStrategyType,
+			RollingUpdate: &rollingUpdateSettings,
+		}
+	}
+
+	return appsv1.DaemonSetUpdateStrategy{Type: appsv1.OnDeleteDaemonSetStrategyType}
+}
+
 func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
 	privileged := true
 	escalation := true
@@ -67,6 +90,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 					common.FalconControllerKey:   "controller-manager",
 				},
 			},
+			UpdateStrategy: dsUpdateStrategy(node),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
