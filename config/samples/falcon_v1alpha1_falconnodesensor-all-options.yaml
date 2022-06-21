@@ -30,6 +30,10 @@ spec:
       - effect: NoSchedule
         key: node-role.kubernetes.io/control-plane
         operator: Exists
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1
   falcon:
     apd: false
     aph: this.proxy.com
