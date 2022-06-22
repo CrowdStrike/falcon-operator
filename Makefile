@@ -242,7 +242,7 @@ catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
 OS_NAME=$(shell uname -s)
-SDK_VERSION?=v1.21.0
+SDK_VERSION?=v1.22.0
 ifeq ($(OS_NAME), Linux)
     OPERATOR_SDK_URL=https://github.com/operator-framework/operator-sdk/releases/download/$(SDK_VERSION)/operator-sdk_linux_amd64
 else ifeq ($(OS_NAME), Darwin)
