@@ -161,6 +161,18 @@ spec:
                           type: string
                       type: object
                     type: array
+                  serviceAccount:
+                    description: Add metadata to the DaemonSet Service Account for
+                      IAM roles.
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: Define annotations that will be passed down to
+                          the Service Account. This is useful for passing along AWS
+                          IAM Role or GCP Workload Identity.
+                        type: object
+                    type: object
                   terminationGracePeriod:
                     default: 30
                     description: Kills pod after a specificed amount of time (in seconds).

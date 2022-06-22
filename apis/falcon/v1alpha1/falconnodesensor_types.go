@@ -110,6 +110,9 @@ type FalconNodeSensorConfig struct {
 	// +kubebuilder:default:=30
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=6
 	TerminationGracePeriod int64 `json:"terminationGracePeriod,omitempty"`
+	// Add metadata to the DaemonSet Service Account for IAM roles.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServiceAccount FalconNodeServiceAccount `json:"serviceAccount,omitempty"`
 	// Disables the cleanup of the sensor through DaemonSet on the nodes.
 	// Disabling might have unintended consequences for certain operations such as sensor downgrading.
 	// +kubebuilder:default=false
@@ -120,8 +123,15 @@ type FalconNodeSensorConfig struct {
 type FalconNodeUpdateStrategy struct {
 	// +kubebuilder:default=RollingUpdate
 	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Type          appsv1.DaemonSetUpdateStrategyType `json:"type,omitempty"`
 	RollingUpdate appsv1.RollingUpdateDaemonSet      `json:"rollingUpdate,omitempty"`
+}
+
+type FalconNodeServiceAccount struct {
+	// Define annotations that will be passed down to the Service Account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // FalconNodeSensorStatus defines the observed state of FalconNodeSensor
