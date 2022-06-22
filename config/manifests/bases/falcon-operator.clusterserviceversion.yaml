@@ -122,6 +122,15 @@ spec:
       - description: Utilize default or Pay-As-You-Go billing.
         displayName: Billing
         path: falcon.billing
+      - description: Add metadata to the DaemonSet Service Account for IAM roles.
+        displayName: Service Account
+        path: node.serviceAccount
+      - description: Define annotations that will be passed down to the Service Account.
+          This is useful for passing along AWS IAM Role or GCP Workload Identity.
+        displayName: Annotations
+        path: node.serviceAccount.annotations
+      - displayName: Type
+        path: node.updateStrategy.type
       version: v1alpha1
   description: |-
     The CrowdStrike Falcon Operator installs CrowdStrike Falcon Container Sensor or CrowdStrike Falcon Node Sensor on the cluster.

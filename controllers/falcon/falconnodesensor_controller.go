@@ -52,7 +52,7 @@ func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;create;update
-//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;create
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;create;update
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 //+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;use
 //+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,verbs=get;list;watch;create
@@ -115,6 +115,13 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 		if created {
 			return ctrl.Result{Requeue: true}, nil
+		}
+	}
+
+	if nodesensor.Spec.Node.ServiceAccount.Annotations != nil {
+		err = r.handleSAAnnotations(ctx, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -714,6 +721,37 @@ func (r *FalconNodeSensorReconciler) handleServiceAccount(ctx context.Context, n
 		return false, err
 	}
 	return true, nil
+}
+
+// handleServiceAccount creates and updates the service account and grants necessary permissions to it
+func (r *FalconNodeSensorReconciler) handleSAAnnotations(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
+	sa := corev1.ServiceAccount{}
+	saAnnotations := nodesensor.Spec.Node.ServiceAccount.Annotations
+
+	err := r.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.TargetNs()}, &sa)
+	if err != nil && errors.IsNotFound(err) {
+		logger.Error(err, "Could not get FalconNodeSensor ServiceAccount")
+		return err
+	}
+
+	// If there are no existing annotations, go ahead and create a map
+	if sa.Annotations == nil {
+		sa.Annotations = make(map[string]string)
+	}
+
+	// Add the CR configured annotations to the service account
+	for key, value := range saAnnotations {
+		sa.Annotations[key] = value
+	}
+
+	err = r.Update(ctx, &sa)
+	if err != nil {
+		logger.Error(err, "Failed to update ServiceAccount Annotations", "ServiceAccount.Namespace", nodesensor.TargetNs(), "Annotations", saAnnotations)
+		return err
+	}
+	logger.Info("Updating FalconNodeSensor ServiceAccount Annotations", "Annotations", saAnnotations)
+
+	return nil
 }
 
 // statusUpdate updates the FalconNodeSensor CR conditions
