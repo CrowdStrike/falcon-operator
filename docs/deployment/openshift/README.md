@@ -21,12 +21,12 @@ This document will guide you through the installation of falcon-operator and dep
  
  - Add Falcon Operator subscription to the operator hub on the cluster (This is needed until falcon-operator is available through operatorhub.io)
    ```
-   operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace falcon-operator
+   operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:v0.5.3 --namespace falcon-operator
    ```
 
  - Deploy FalconContainer either through OpenShift web console or through `oc`
    ```
-   oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/falconcontainer-openshift.yaml --edit=true
+   oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/v0.5.3/docs/deployment/openshift/falconcontainer-openshift.yaml --edit=true
    ```
    
 ## Uninstall Steps

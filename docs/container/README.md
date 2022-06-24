@@ -109,7 +109,7 @@ Consult specific deployment guides to learn about the steps needed for image mir
 ### Install Steps
 To install Falcon Container (assuming Falcon Operator is installed):
 ```
-kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconcontainer.yaml --edit=true
+kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/v0.5.3/config/samples/falcon_v1alpha1_falconcontainer.yaml --edit=true
 ```
 
 ### Uninstall Steps

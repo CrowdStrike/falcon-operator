@@ -39,7 +39,7 @@ This document will guide you through the installation of falcon-operator and dep
    ```
  - To uninstall Falcon Operator that was installed without Operator Lifecycle manager
    ```
-   kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+   kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/v0.5.3/deploy/falcon-operator.yaml
    ```
 
 ## Manual installation of ACR push secret

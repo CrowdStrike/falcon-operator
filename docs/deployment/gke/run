@@ -68,10 +68,10 @@ if kubectl get crd catalogsources.operators.coreos.com > /dev/null 2>&1; then
     kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 
     if ! kubectl get catalogsources.operators.coreos.com  -n $OPERATOR_NAMESPACE falcon-operator-catalog > /dev/null 2>&1; then
-        operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
+        operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:v0.5.3 --namespace $OPERATOR_NAMESPACE
     fi
 else
-    kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+    kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/v0.5.3/deploy/falcon-operator.yaml
 fi
 
 kubectl wait --timeout=240s --for=condition=Available -n $OPERATOR_NAMESPACE deployment falcon-operator-controller-manager
@@ -99,7 +99,7 @@ if ! kubectl get secret builder -n $FALCON_SYSTEM_CONFIGURE > /dev/null 2>&1; th
 fi
 
 if ! kubectl get falconcontainers.falcon.crowdstrike.com default > /dev/null 2>&1; then
-    kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/gke/falconcontainer-gke.yaml --edit=true
+    kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/v0.5.3/docs/deployment/gke/falconcontainer-gke.yaml --edit=true
 fi
 
 kubectl -n $OPERATOR_NAMESPACE logs -f deploy/falcon-operator-controller-manager -c manager

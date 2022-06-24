@@ -43,7 +43,7 @@ All arguments are optional, but successful deployment requires either falcon_id 
 ### Install Steps
 To install Falcon Node Sensor (assuming Falcon Operator is installed):
 ```
-kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
+kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/v0.5.3/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
 ```
 
 ### Uninstall Steps

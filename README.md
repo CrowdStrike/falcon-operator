@@ -33,14 +33,14 @@ Installation steps differ based on the Operator Life-cycle Manager (OLM) availab
 
  - (option 1): In case your cluster **is not** using OLM (Operator Life-cycle Manager), run:
    ```
-   kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+   kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/v0.5.3/deploy/falcon-operator.yaml
    ```
 
  - (option 2): In case your cluster **is** using OLM, run:
    ```
    OPERATOR_NAMESPACE=falcon-operator
    kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-   operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
+   operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:v0.5.3 --namespace $OPERATOR_NAMESPACE
    ```
 
 After the installation concludes, please proceed with deploying either [Falcon Container Sensor](docs/container) or [Falcon Node Sensor](docs/node).
@@ -53,7 +53,7 @@ After the installation concludes, please proceed with deploying either [Falcon C
    ```
  - To uninstall Falcon Operator when OLM is not in use, run:
    ```
-   kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+   kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/v0.5.3/deploy/falcon-operator.yaml
    ```
 
 ## Getting Help

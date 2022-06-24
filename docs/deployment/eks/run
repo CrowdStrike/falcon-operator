@@ -146,11 +146,11 @@ if kubectl get crd catalogsources.operators.coreos.com > /dev/null 2>&1; then
     kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 
     if ! kubectl get catalogsources.operators.coreos.com  -n $OPERATOR_NAMESPACE falcon-operator-catalog > /dev/null 2>&1; then
-        operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
+        operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:v0.5.3 --namespace $OPERATOR_NAMESPACE
     fi
 else
     # cluster does not have OLM installed. Installation will proceed without it
-    kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+    kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/v0.5.3/deploy/falcon-operator.yaml
 fi
 
 # Wait for the operator pod to come up
@@ -158,7 +158,7 @@ kubectl wait --timeout=240s --for=condition=Available -n $OPERATOR_NAMESPACE dep
 
 # Let the user edit the falconcontainer configuration
 if ! kubectl get falconcontainers.falcon.crowdstrike.com default > /dev/null 2>&1; then
-    kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/eks/falconcontainer-ecr.yaml --edit=true
+    kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/v0.5.3/docs/deployment/eks/falconcontainer-ecr.yaml --edit=true
 fi
 
 # Let the user watch the operator logs

@@ -26,7 +26,7 @@ EKS cluster that runs Falcon Operator needs to have [IAM OIDC provider](https://
 
  - Install the operator & deploy Falcon Container Sensor
    ```
-   bash -c 'source <(curl -s https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/eks/run)'
+   bash -c 'source <(curl -s https://raw.githubusercontent.com/CrowdStrike/falcon-operator/v0.5.3/docs/deployment/eks/run)'
    ```
    Note this script should be run as in the cloud shell as it will attempt to install kubectl, eksctl and operator-sdk command-line tools if needed.
 
@@ -42,5 +42,5 @@ EKS cluster that runs Falcon Operator needs to have [IAM OIDC provider](https://
    ```
  - To uninstall Falcon Operator that was installed without Operator Lifecycle manager
    ```
-   kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+   kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/v0.5.3/deploy/falcon-operator.yaml
    ```
