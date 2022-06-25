@@ -5,7 +5,7 @@ WORKDIR /workspace
 
 COPY .git .git
 COPY .gitignore .gitignore
-COPY scripts scripts
+COPY hack hack
 COPY Makefile Makefile
 
 # Copy the Go Modules manifests

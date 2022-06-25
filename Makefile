@@ -110,11 +110,11 @@ test: manifests generate fmt vet envtest ## Run tests.
 
 .PHONY: build
 build: generate fmt vet ## Build manager binary.
-	scripts/build.sh ${VERSION}
+	hack/build.sh ${VERSION}
 
 .PHONY: container-build
 container-build: ## Build manager binary.
-	scripts/build.sh ${VERSION}
+	hack/build.sh ${VERSION}
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
