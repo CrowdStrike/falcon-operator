@@ -77,5 +77,5 @@ kubectl -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c 
 
 To review the currently deployed version of the operator
 ```
-kubectl get deployments -n falcon-operator falcon-operator-controller-manager -o=jsonpath='{.spec.template.spec.containers[1].image}'
+kubectl get deployments -n falcon-operator falcon-operator-controller-manager -o=jsonpath='{.spec.template.spec.containers[].image}'
 ```
