@@ -907,7 +907,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: quay.io/crowdstrike/falcon-operator:v0.5.2
+        image: quay.io/crowdstrike/falcon-operator:v0.5.4
         imagePullPolicy: Always
         env:
           - name: WATCH_NAMESPACE

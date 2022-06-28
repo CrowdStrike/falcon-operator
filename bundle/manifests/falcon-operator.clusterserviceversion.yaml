@@ -52,7 +52,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
-  name: falcon-operator.v0.5.3
+  name: falcon-operator.v0.5.4
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -485,7 +485,7 @@ spec:
                 - name: OPERATOR_NAME
                   value: falcon-operator
                 - name: RELATED_IMAGE_NODE_SENSOR
-                image: quay.io/crowdstrike/falcon-operator:v0.5.3
+                image: quay.io/crowdstrike/falcon-operator:v0.5.4
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -580,4 +580,4 @@ spec:
   relatedImages:
   - image: ""
     name: node-sensor
-  version: 0.5.3
+  version: 0.5.4
