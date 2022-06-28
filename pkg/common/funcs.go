@@ -20,6 +20,20 @@ func InitContainerArgs() []string {
 	}
 }
 
+func InitCleanupArgs() []string {
+	return []string{
+		"-c",
+		"rm -rf " + FalconDataDir,
+	}
+}
+
+func CleanupSleep() []string {
+	return []string{
+		"-c",
+		"sleep 10",
+	}
+}
+
 func FCAdmissionReviewVersions() []string {
 	kubeVersion := GetKubernetesVersion()
 	fcArv := []string{"v1"}

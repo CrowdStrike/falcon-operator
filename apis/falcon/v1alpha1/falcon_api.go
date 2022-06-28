@@ -9,15 +9,19 @@ import (
 
 // FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 type FalconAPI struct {
-	// CloudRegion defines CrowdStrike Falcon Cloud Region to which the operator will connect to
+	// Cloud Region defines CrowdStrike Falcon Cloud Region to which the operator will connect and register.
 	// +kubebuilder:validation:Enum=autodiscover;us-1;us-2;eu-1;us-gov-1
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="CrowdStrike Falcon Cloud Region",order=3
 	CloudRegion string `json:"cloud_region"`
 	// Falcon OAuth2 API Client ID
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Client ID",order=1
 	ClientId string `json:"client_id"`
 	// Falcon OAuth2 API Client Secret
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Client Secret",order=2
 	ClientSecret string `json:"client_secret"`
 	// Falcon Customer ID (CID) Override (optional, default is derived from the API Key pair)
 	// +kubebuilder:validation:Pattern="^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Customer ID (CID)",order=4
 	CID *string `json:"cid,omitempty"`
 }
 

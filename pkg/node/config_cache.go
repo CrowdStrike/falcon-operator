@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -23,6 +24,10 @@ type ConfigCache struct {
 
 func (cc *ConfigCache) CID() string {
 	return cc.cid
+}
+
+func (cc *ConfigCache) UsingCrowdStrikeRegistry() bool {
+	return cc.nodesensor.Spec.Node.ImageOverride == "" && os.Getenv("RELATED_IMAGE_NODE_SENSOR") == ""
 }
 
 func (cc *ConfigCache) GetImageURI(ctx context.Context) (string, error) {
@@ -98,6 +103,11 @@ func NewConfigCache(ctx context.Context, logger logr.Logger, nodesensor *falconv
 func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) (string, error) {
 	if nodesensor.Spec.Node.ImageOverride != "" {
 		return nodesensor.Spec.Node.ImageOverride, nil
+	}
+
+	nodeImage := os.Getenv("RELATED_IMAGE_NODE_SENSOR")
+	if nodeImage != "" {
+		return nodeImage, nil
 	}
 
 	if nodesensor.Spec.FalconAPI == nil {

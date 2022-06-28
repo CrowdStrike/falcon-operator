@@ -1,11 +1,11 @@
 # Build the manager binary
-FROM golang:1.17 as builder
+FROM golang:1.18 as builder
 
 WORKDIR /workspace
 
 COPY .git .git
 COPY .gitignore .gitignore
-COPY scripts scripts
+COPY hack hack
 COPY Makefile Makefile
 
 # Copy the Go Modules manifests

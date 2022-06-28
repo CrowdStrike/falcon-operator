@@ -48,7 +48,7 @@ metadata:
     createdAt: "2021-07-30T10:00:00Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     operatorframework.io/suggested-namespace: falcon-operator
-    operators.operatorframework.io/builder: operator-sdk-v1.17.0
+    operators.operatorframework.io/builder: operator-sdk-v1.22.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
@@ -62,18 +62,123 @@ spec:
       displayName: Falcon Container
       kind: FalconContainer
       name: falconcontainers.falcon.crowdstrike.com
+      specDescriptors:
+      - description: Falcon OAuth2 API Client ID
+        displayName: Client ID
+        path: falcon_api.client_id
+      - description: Falcon OAuth2 API Client Secret
+        displayName: Client Secret
+        path: falcon_api.client_secret
+      - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
+          the operator will connect and register.
+        displayName: CrowdStrike Falcon Cloud Region
+        path: falcon_api.cloud_region
+      - description: Falcon Customer ID (CID) Override (optional, default is derived
+          from the API Key pair)
+        displayName: Falcon Customer ID (CID)
+        path: falcon_api.cid
       version: v1alpha1
     - description: FalconNodeSensor is the Schema for the falconnodesensors API
       displayName: Falcon Node Sensor
       kind: FalconNodeSensor
       name: falconnodesensors.falcon.crowdstrike.com
+      specDescriptors:
+      - description: Falcon Customer ID (CID)
+        displayName: Falcon Customer ID (CID)
+        path: falcon.cid
+      - description: "FalconAPI configures connection from your local Falcon operator
+          to CrowdStrike Falcon platform. \n When configured, it will pull the sensor
+          from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
+          \n If using the API is not desired, the sensor can be manually configured."
+        displayName: Falcon Platform API Configuration
+        path: falcon_api
+      - description: Falcon OAuth2 API Client ID
+        displayName: Client ID
+        path: falcon_api.client_id
+      - description: ImagePullSecrets is an optional list of references to secrets
+          in the falcon-system namespace to use for pulling image from image_override
+          location.
+        displayName: Image Pull Secrets
+        path: node.imagePullSecrets
+      - displayName: Falcon Sensor Configuration
+        path: falcon
+      - description: Installation token that prevents unauthorized hosts from being
+          accidentally or maliciously added to your customer ID (CID).
+        displayName: Provisioning Token
+        path: falcon.provisioning_token
+      - description: Falcon OAuth2 API Client Secret
+        displayName: Client Secret
+        path: falcon_api.client_secret
+      - description: Location of the Falcon Sensor image. Use only in cases when you
+          mirror the original image to your repository/name:tag
+        displayName: Image Override
+        path: node.image_override
+      - description: Disable the Falcon Sensor's use of a proxy.
+        displayName: Disable Falcon Proxy
+        path: falcon.apd
+      - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
+          the operator will connect and register.
+        displayName: CrowdStrike Falcon Cloud Region
+        path: falcon_api.cloud_region
+      - description: Various configuration for DaemonSet Deployment
+        displayName: DaemonSet Configuration
+        path: node
+      - displayName: Image Pull Policy
+        path: node.imagePullPolicy
+      - description: The application proxy host to use for Falcon sensor proxy configuration.
+        displayName: Disable Falcon Proxy Host
+        path: falcon.aph
+      - description: Falcon Customer ID (CID) Override (optional, default is derived
+          from the API Key pair)
+        displayName: Falcon Customer ID (CID)
+        path: falcon_api.cid
+      - description: Specifies tolerations for custom taints. Defaults to allowing
+          scheduling on all nodes.
+        displayName: Tolerations
+        path: node.tolerations
+      - description: The application proxy port to use for Falcon sensor proxy configuration.
+        displayName: Falcon Proxy Port
+        path: falcon.app
+      - description: Type of DaemonSet update. Can be "RollingUpdate" or "OnDelete".
+          Default is RollingUpdate.
+        displayName: DaemonSet Update Strategy
+        path: node.updateStrategy
+      - description: 'Sensor grouping tags are optional, user-defined identifiers
+          that can used to group and filter hosts. Allowed characters: all alphanumerics,
+          ''/'', ''-'', and ''_''.'
+        displayName: Sensor Grouping Tags
+        path: falcon.tags
+      - description: Kills pod after a specificed amount of time (in seconds). Default
+          is 30 seconds.
+        displayName: Termination Grace Period
+        path: node.terminationGracePeriod
+      - description: Set sensor trace level.
+        displayName: Trace Level
+        path: falcon.trace
+      - description: Disables the cleanup of the sensor through DaemonSet on the nodes.
+          Disabling might have unintended consequences for certain operations such
+          as sensor downgrading.
+        displayName: Node Cleanup
+        path: node.disableCleanup
+      - description: Utilize default or Pay-As-You-Go billing.
+        displayName: Billing
+        path: falcon.billing
+      - description: Add metadata to the DaemonSet Service Account for IAM roles.
+        displayName: Service Account
+        path: node.serviceAccount
+      - description: Define annotations that will be passed down to the Service Account.
+          This is useful for passing along AWS IAM Role or GCP Workload Identity.
+        displayName: Annotations
+        path: node.serviceAccount.annotations
+      - displayName: Type
+        path: node.updateStrategy.type
       version: v1alpha1
   description: |-
-    Falcon Operator installs CrowdStrike Falcon Container Sensor or CrowdStrike Falcon Node Sensor on the cluster.
-    Falcon Operator is an open source project, not a CrowdStrike product. As such it carries no formal support, expressed or implied.
+    The CrowdStrike Falcon Operator installs CrowdStrike Falcon Container Sensor or CrowdStrike Falcon Node Sensor on the cluster.
+    The CrowdStrike Falcon Operator is an open source project and not a CrowdStrike product. As such, it carries no formal support, expressed, or implied.
 
-    ## About Falcon Operator
-    Falcon Operator deploys CrowdStrike Falcon Workload Protection to the cluster. The operator exposes 2 custom resources that allows you to deploy either Falcon Container Sensor or Falcon Node Sensor.
+    ## About the CrowdStrike Falcon Operator
+    The CrowdStrike Falcon Operator deploys CrowdStrike Falcon Workload Protection to the cluster. The operator exposes 2 custom resources that allows you to deploy either the Falcon Container Sensor or Falcon Node Sensor.
 
     ## About Custom Resources
 
@@ -82,46 +187,16 @@ spec:
     | [FalconContainer](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/container) | Manages installation of Falcon Container Sensor on the cluster   |
     | [FalconNodeSensor](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/node)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
 
-    ## Installation Steps
-
-    Installation steps differ based on Operator Life-cycle Manager (OLM) availability. You can determine whether your cluster is using OLM by running: `kubectl get crd catalogsources.operators.coreos.com`
-
-     - (option 1): In case your cluster **is not** using OLM (Operator Life-cycle Manager) run:
-       ```
-       kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
-       ```
-
-     - (option 2): In case your cluster **is** using OLM run:
-       ```
-       OPERATOR_NAMESPACE=falcon-operator
-       kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-       operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
-       ```
-
-    After the installation concludes please proceed with deploying either [Falcon Container Sensor](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/container) or [Falcon Node Sensor](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/node).
-
-    ## Uninstall Steps
-
-     - To uninstall Falcon Operator run (when installed using OLM)
-       ```
-       operator-sdk cleanup falcon-operator --namespace falcon-operator
-       ```
-     - To uninstall Falcon Operator run (when installed manually)
-       ```
-       kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
-       ```
-
     ## Getting Help
-    If you encounter any issues while using Falcon Operator, you can create an issue on our [Github repo](https://github.com/CrowdStrike/falcon-operator) for bugs, enhancements, or other requests.
+    If you encounter any issues while using the Falcon Operator, you can create an issue on our [Github repo](https://github.com/CrowdStrike/falcon-operator) for bugs, enhancements, or other requests.
 
     ## Contributing
     You can contribute by:
 
     * Raising any issues you find using Falcon Operator
     * Fixing issues by opening [Pull Requests](https://github.com/CrowdStrike/falcon-operator/pulls)
-    * Submitting a patch or opening a PR
     * Improving documentation
-    * Talking about Falcon Operator
+    * Talking about the CrowdStrike Falcon Operator
 
     All bugs, tasks or enhancements are tracked as [GitHub issues](https://github.com/CrowdStrike/falcon-operator/issues).
 
@@ -183,6 +258,7 @@ spec:
           - get
           - list
           - patch
+          - update
           - watch
         - apiGroups:
           - ""
@@ -356,7 +432,9 @@ spec:
           - create
         serviceAccountName: falcon-operator-controller-manager
       deployments:
-      - name: falcon-operator-controller-manager
+      - label:
+          control-plane: controller-manager
+        name: falcon-operator-controller-manager
         spec:
           replicas: 1
           selector:
@@ -376,7 +454,7 @@ spec:
                 - --upstream=http://127.0.0.1:8080/
                 - --logtostderr=true
                 - --v=0
-                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
+                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.12.0
                 name: kube-rbac-proxy
                 ports:
                 - containerPort: 8443
@@ -406,6 +484,7 @@ spec:
                       fieldPath: metadata.name
                 - name: OPERATOR_NAME
                   value: falcon-operator
+                - name: RELATED_IMAGE_NODE_SENSOR
                 image: quay.io/crowdstrike/falcon-operator:v0.5.3
                 livenessProbe:
                   httpGet:
@@ -484,6 +563,9 @@ spec:
   keywords:
   - security
   - runtime-protection
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/os.linux: supported
   links:
   - name: Falcon Operator
     url: https://github.com/CrowdStrike/falcon-operator
@@ -495,4 +577,7 @@ spec:
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
+  relatedImages:
+  - image: ""
+    name: node-sensor
   version: 0.5.3

@@ -30,6 +30,29 @@ func pullSecrets(node *falconv1alpha1.FalconNodeSensor) []corev1.LocalObjectRefe
 	}
 }
 
+func dsUpdateStrategy(node *falconv1alpha1.FalconNodeSensor) appsv1.DaemonSetUpdateStrategy {
+	if node.Spec.Node.DSUpdateStrategy.Type == appsv1.RollingUpdateDaemonSetStrategyType || node.Spec.Node.DSUpdateStrategy.Type == "" {
+		rollingUpdateSettings := appsv1.RollingUpdateDaemonSet{}
+
+		/* Beta feature to enable later
+		if node.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxSurge != nil {
+			rollingUpdateSettings.MaxSurge = node.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxSurge
+		}
+		*/
+
+		if node.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxUnavailable != nil {
+			rollingUpdateSettings.MaxUnavailable = node.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxUnavailable
+		}
+
+		return appsv1.DaemonSetUpdateStrategy{
+			Type:          appsv1.RollingUpdateDaemonSetStrategyType,
+			RollingUpdate: &rollingUpdateSettings,
+		}
+	}
+
+	return appsv1.DaemonSetUpdateStrategy{Type: appsv1.OnDeleteDaemonSetStrategyType}
+}
+
 func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
 	privileged := true
 	escalation := true
@@ -47,8 +70,8 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 			Namespace: node.TargetNs(),
 			Labels: map[string]string{
 				common.FalconInstanceNameKey: dsName,
-				common.FalconInstanceKey:     "kernel_sensor",
-				common.FalconComponentKey:    "kernel_sensor",
+				common.FalconInstanceKey:     common.FalconKernelSensor,
+				common.FalconComponentKey:    common.FalconKernelSensor,
 				common.FalconManagedByKey:    node.Name,
 				common.FalconProviderKey:     common.FalconProviderValue,
 				common.FalconPartOfKey:       "Falcon",
@@ -59,20 +82,21 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					common.FalconInstanceNameKey: dsName,
-					common.FalconInstanceKey:     "kernel_sensor",
-					common.FalconComponentKey:    "kernel_sensor",
+					common.FalconInstanceKey:     common.FalconKernelSensor,
+					common.FalconComponentKey:    common.FalconKernelSensor,
 					common.FalconManagedByKey:    node.Name,
 					common.FalconProviderKey:     common.FalconProviderValue,
 					common.FalconPartOfKey:       "Falcon",
 					common.FalconControllerKey:   "controller-manager",
 				},
 			},
+			UpdateStrategy: dsUpdateStrategy(node),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						common.FalconInstanceNameKey: dsName,
-						common.FalconInstanceKey:     "kernel_sensor",
-						common.FalconComponentKey:    "kernel_sensor",
+						common.FalconInstanceKey:     common.FalconKernelSensor,
+						common.FalconComponentKey:    common.FalconKernelSensor,
 						common.FalconManagedByKey:    node.Name,
 						common.FalconProviderKey:     common.FalconProviderValue,
 						common.FalconPartOfKey:       "Falcon",
@@ -150,6 +174,110 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: common.FalconHostInstallDir,
 									Type: &pathDirCreate,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
+	privileged := true
+	escalation := true
+	readOnlyFs := false
+	runAs := int64(0)
+
+	return &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dsName,
+			Namespace: node.TargetNs(),
+			Labels: map[string]string{
+				common.FalconInstanceNameKey: dsName,
+				common.FalconInstanceKey:     "cleanup",
+				common.FalconComponentKey:    "kernel_sensor",
+				common.FalconManagedByKey:    node.Name,
+				common.FalconProviderKey:     common.FalconProviderValue,
+				common.FalconPartOfKey:       "Falcon",
+				common.FalconControllerKey:   "controller-manager",
+			},
+		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					common.FalconInstanceNameKey: dsName,
+					common.FalconInstanceKey:     "cleanup",
+					common.FalconComponentKey:    "kernel_sensor",
+					common.FalconManagedByKey:    node.Name,
+					common.FalconProviderKey:     common.FalconProviderValue,
+					common.FalconPartOfKey:       "Falcon",
+					common.FalconControllerKey:   "controller-manager",
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						common.FalconInstanceNameKey: dsName,
+						common.FalconInstanceKey:     "cleanup",
+						common.FalconComponentKey:    "kernel_sensor",
+						common.FalconManagedByKey:    node.Name,
+						common.FalconProviderKey:     common.FalconProviderValue,
+						common.FalconPartOfKey:       "Falcon",
+						common.FalconControllerKey:   "controller-manager",
+					},
+					Annotations: map[string]string{
+						common.FalconContainerInjection: "disabled",
+					},
+				},
+				Spec: corev1.PodSpec{
+					// NodeSelector is set to linux until windows containers are supported for the Falcon sensor
+					NodeSelector:                  common.NodeSelector,
+					Tolerations:                   node.Spec.Node.Tolerations,
+					TerminationGracePeriodSeconds: getTermGracePeriod(node),
+					ImagePullSecrets:              pullSecrets(node),
+					InitContainers: []corev1.Container{
+						{
+							Name:    "cleanup-opt-crowdstrike",
+							Image:   image,
+							Command: common.FalconShellCommand,
+							Args:    common.InitCleanupArgs(),
+							SecurityContext: &corev1.SecurityContext{
+								Privileged:               &privileged,
+								RunAsUser:                &runAs,
+								ReadOnlyRootFilesystem:   &readOnlyFs,
+								AllowPrivilegeEscalation: &escalation,
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "opt-crowdstrike",
+									MountPath: common.FalconHostInstallDir,
+								},
+							},
+						},
+					},
+					ServiceAccountName: serviceAccount,
+					Containers: []corev1.Container{
+						{
+							SecurityContext: &corev1.SecurityContext{
+								Privileged:               &privileged,
+								RunAsUser:                &runAs,
+								ReadOnlyRootFilesystem:   &readOnlyFs,
+								AllowPrivilegeEscalation: &escalation,
+							},
+							Name:    "cleanup-sleep",
+							Image:   image,
+							Command: common.FalconShellCommand,
+							Args:    common.CleanupSleep(),
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "opt-crowdstrike",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: common.FalconHostInstallDir,
 								},
 							},
 						},

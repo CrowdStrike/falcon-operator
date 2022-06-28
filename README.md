@@ -11,12 +11,12 @@
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator)
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator-bundle/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator-bundle)
 
-Falcon Operator installs CrowdStrike Falcon Container Sensor or CrowdStrike Falcon Node Sensor on the cluster.
+The CrowdStrike Falcon Operator installs CrowdStrike Falcon Container Sensor or CrowdStrike Falcon Node Sensor on the cluster.
 
-Falcon Operator is an open source project, not a CrowdStrike product. As such it carries no formal support, expressed or implied.
+The CrowdStrike Falcon Operator is an open source project and not a CrowdStrike product. As such, it carries no formal support, expressed, or implied.
 
-## About Falcon Operator
-Falcon Operator deploys CrowdStrike Falcon Workload Protection to the cluster. The operator exposes 2 custom resources that allows you to deploy either Falcon Container Sensor or Falcon Node Sensor.
+## About the CrowdStrike Falcon Operator
+The CrowdStrike Falcon Operator deploys CrowdStrike Falcon Workload Protection to the cluster. The operator exposes 2 custom resources that allows you to deploy either the Falcon Container Sensor or Falcon Node Sensor.
 
 ## About Custom Resources
 
@@ -29,44 +29,43 @@ Additional information can be found in [FAQ document](docs/faq.md)
 
 ## Installation Steps
 
-Installation steps differ based on Operator Life-cycle Manager (OLM) availability. You can determine whether your cluster is using OLM by running: `kubectl get crd catalogsources.operators.coreos.com`
+Installation steps differ based on the Operator Life-cycle Manager (OLM) availability. You can determine whether your cluster is using OLM by running: `kubectl get crd catalogsources.operators.coreos.com`
 
- - (option 1): In case your cluster **is not** using OLM (Operator Life-cycle Manager) run:
+ - (option 1): In case your cluster **is not** using OLM (Operator Life-cycle Manager), run:
    ```
    kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/maint-0.5/deploy/falcon-operator.yaml
    ```
 
- - (option 2): In case your cluster **is** using OLM run:
+ - (option 2): In case your cluster **is** using OLM, run:
    ```
    OPERATOR_NAMESPACE=falcon-operator
    kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
    operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:v0.5.3 --namespace $OPERATOR_NAMESPACE
    ```
 
-After the installation concludes please proceed with deploying either [Falcon Container Sensor](docs/container) or [Falcon Node Sensor](docs/node).
+After the installation concludes, please proceed with deploying either [Falcon Container Sensor](docs/container) or [Falcon Node Sensor](docs/node).
 
 ## Uninstall Steps
 
- - To uninstall Falcon Operator run (when installed using OLM)
+ - To uninstall Falcon Operator when OLM is installed, run:
    ```
    operator-sdk cleanup falcon-operator --namespace falcon-operator
    ```
- - To uninstall Falcon Operator run (when installed manually)
+ - To uninstall Falcon Operator when OLM is not in use, run:
    ```
    kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
    ```
 
 ## Getting Help
-If you encounter any issues while using Falcon Operator, you can create an issue on our [Github repo](https://github.com/CrowdStrike/falcon-operator) for bugs, enhancements, or other requests.
+If you encounter any issues while using the Falcon Operator, you can create an issue on our [Github repo](https://github.com/CrowdStrike/falcon-operator) for bugs, enhancements, or other requests.
 
 ## Contributing
 You can contribute by:
 
 * Raising any issues you find using Falcon Operator
 * Fixing issues by opening [Pull Requests](https://github.com/CrowdStrike/falcon-operator/pulls)
-* Submitting a patch or opening a PR
 * Improving documentation
-* Talking about Falcon Operator
+* Talking about the CrowdStrike Falcon Operator
 
 All bugs, tasks or enhancements are tracked as [GitHub issues](https://github.com/CrowdStrike/falcon-operator/issues).
 

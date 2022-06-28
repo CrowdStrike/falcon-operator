@@ -3,6 +3,7 @@ package falcon
 import (
 	"context"
 	"reflect"
+	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	common_assets "github.com/crowdstrike/falcon-operator/pkg/assets"
@@ -10,6 +11,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/node"
 	"github.com/crowdstrike/falcon-operator/pkg/node/assets"
+	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
 	securityv1 "github.com/openshift/api/security/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -18,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,7 +52,7 @@ func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;create;update
-//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;create
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;create;update
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 //+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;use
 //+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,verbs=get;list;watch;create
@@ -80,6 +83,19 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		logger.Error(err, "Failed to get FalconNodeSensor")
 		return ctrl.Result{}, err
 	}
+
+	dsCondition := meta.FindStatusCondition(nodesensor.Status.Conditions, falconv1alpha1.ConditionSuccess)
+	if dsCondition == nil || dsCondition.ObservedGeneration != nodesensor.GetGeneration() {
+		err = r.conditionsUpdate(falconv1alpha1.ConditionPending,
+			metav1.ConditionFalse,
+			falconv1alpha1.ReasonReqNotMet,
+			"FalconNodeSensor progressing",
+			ctx, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
+	}
+
 	created, err := r.handleNamespace(ctx, nodesensor, logger)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -102,6 +118,13 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	}
 
+	if nodesensor.Spec.Node.ServiceAccount.Annotations != nil {
+		err = r.handleSAAnnotations(ctx, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	config, err := node.NewConfigCache(ctx, logger, nodesensor)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -109,15 +132,43 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	sensorConf, updated, err := r.handleConfigMaps(ctx, config, nodesensor, logger)
 	if err != nil {
+		err = r.conditionsUpdate(falconv1alpha1.ConditionFailed,
+			metav1.ConditionFalse,
+			falconv1alpha1.ReasonInstallFailed,
+			"FalconNodeSensor ConfigMap failed to be installed",
+			ctx, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
 		logger.Error(err, "error handling configmap")
 		return ctrl.Result{}, err
 	}
 	if sensorConf == nil {
+		err = r.conditionsUpdate(falconv1alpha1.ConditionConfigMapReady,
+			metav1.ConditionTrue,
+			falconv1alpha1.ReasonInstallSucceeded,
+			"FalconNodeSensor ConfigMap has been successfully created",
+			ctx, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
 		// this just got created, so re-queue.
 		logger.Info("Configmap was just created. Re-queuing")
 		return ctrl.Result{Requeue: true}, nil
 	}
 	if updated {
+		err = r.conditionsUpdate(falconv1alpha1.ConditionConfigMapReady,
+			metav1.ConditionTrue,
+			falconv1alpha1.ReasonUpdateSucceeded,
+			"FalconNodeSensor ConfigMap has been successfully updated",
+
+			ctx, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
 		logger.Info("Configmap was updated")
 	}
 
@@ -141,7 +192,22 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 		err = r.Create(ctx, ds)
 		if err != nil {
+			err = r.conditionsUpdate(falconv1alpha1.ConditionFailed,
+				metav1.ConditionFalse,
+				falconv1alpha1.ReasonInstallFailed,
+				"FalconNodeSensor DaemonSet failed to be installed",
+				ctx, nodesensor, logger)
+
 			logger.Error(err, "Failed to create new DaemonSet", "DaemonSet.Namespace", ds.Namespace, "DaemonSet.Name", ds.Name)
+			return ctrl.Result{}, err
+		}
+
+		err = r.conditionsUpdate(falconv1alpha1.ConditionDaemonSetReady,
+			metav1.ConditionTrue,
+			falconv1alpha1.ReasonInstallSucceeded,
+			"FalconNodeSensor DaemonSet has been successfully installed",
+			ctx, nodesensor, logger)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -167,6 +233,15 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		if imgUpdate || tolsUpdate || containerVolUpdate || volumeUpdates || updated {
 			err = r.Update(ctx, dsUpdate)
 			if err != nil {
+				err = r.conditionsUpdate(falconv1alpha1.ConditionDaemonSetReady,
+					metav1.ConditionTrue,
+					falconv1alpha1.ReasonUpdateFailed,
+					"FalconNodeSensor DaemonSet update has failed",
+					ctx, nodesensor, logger)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+
 				logger.Error(err, "Failed to update DaemonSet", "DaemonSet.Namespace", dsUpdate.Namespace, "DaemonSet.Name", dsUpdate.Name)
 				return ctrl.Result{}, err
 			}
@@ -176,8 +251,88 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				logger.Error(err, "Failed to restart pods after DaemonSet configuration changed.")
 				return ctrl.Result{}, err
 			}
+
+			err = r.conditionsUpdate(falconv1alpha1.ConditionDaemonSetReady,
+				metav1.ConditionTrue,
+				falconv1alpha1.ReasonUpdateSucceeded,
+				"FalconNodeSensor DaemonSet has been successfully updated",
+
+				ctx, nodesensor, logger)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 			logger.Info("FalconNodeSensor DaemonSet configuration changed. Pods have been restarted.")
 		}
+	}
+
+	if nodesensor.Status.Sensor == nil {
+		nodesensor.Status.Sensor = &strings.Split(image, ":")[1]
+		err = r.Status().Update(ctx, nodesensor)
+		if err != nil {
+			log.Error(err, "Failed to update FalconNodeSensor status for nodesensor.Status.Sensor")
+			return ctrl.Result{}, err
+		}
+	}
+
+	if nodesensor.Status.Version == "" {
+		nodesensor.Status.Version = version.Get()
+		err = r.Status().Update(ctx, nodesensor)
+		if err != nil {
+			log.Error(err, "Failed to update FalconNodeSensor status for nodesensor.Status.Version")
+			return ctrl.Result{}, err
+		}
+	}
+
+	err = r.conditionsUpdate(falconv1alpha1.ConditionSuccess,
+		metav1.ConditionTrue,
+		falconv1alpha1.ReasonInstallSucceeded,
+		"FalconNodeSensor installation completed",
+		ctx, nodesensor, logger)
+	if err != nil {
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	// Check if the FalconNodeSensor instance is marked to be deleted, which is
+	// indicated by the deletion timestamp being set.
+	isDSMarkedToBeDeleted := nodesensor.GetDeletionTimestamp() != nil
+	if isDSMarkedToBeDeleted {
+		if controllerutil.ContainsFinalizer(nodesensor, common.FalconFinalizer) {
+			logger.Info("Successfully finalized daemonset")
+			// Allows the cleanup to be disabled by disableCleanup option
+			if !*nodesensor.Spec.Node.NodeCleanup {
+				// Run finalization logic for common.FalconFinalizer. If the
+				// finalization logic fails, don't remove the finalizer so
+				// that we can retry during the next reconciliation.
+				if err := r.finalizeDaemonset(ctx, image, serviceAccount, nodesensor, logger); err != nil {
+					return ctrl.Result{}, err
+				}
+			} else {
+				logger.Info("Skipping cleanup because it is disabled", "disableCleanup", *nodesensor.Spec.Node.NodeCleanup)
+			}
+
+			// Remove common.FalconFinalizer. Once all finalizers have been
+			// removed, the object will be deleted.
+			controllerutil.RemoveFinalizer(nodesensor, common.FalconFinalizer)
+			err := r.Update(ctx, nodesensor)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			log.Info("Removing finalizer")
+
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Add finalizer for this CR
+	if !controllerutil.ContainsFinalizer(nodesensor, common.FalconFinalizer) {
+		controllerutil.AddFinalizer(nodesensor, common.FalconFinalizer)
+		err = r.Update(ctx, nodesensor)
+		if err != nil {
+			logger.Error(err, "Unable to update finalizer")
+			return ctrl.Result{}, err
+		}
+		log.Info("Adding finalizer")
+
 	}
 
 	return ctrl.Result{}, nil
@@ -268,7 +423,7 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, confi
 
 // handleCrowdStrikeSecrets creates and updates the image pull secrets for the nodesensor
 func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Context, config *node.ConfigCache, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
-	if nodesensor.Spec.Node.ImageOverride != "" {
+	if !config.UsingCrowdStrikeRegistry() {
 		return nil
 	}
 	secret := corev1.Secret{}
@@ -566,4 +721,148 @@ func (r *FalconNodeSensorReconciler) handleServiceAccount(ctx context.Context, n
 		return false, err
 	}
 	return true, nil
+}
+
+// handleServiceAccount creates and updates the service account and grants necessary permissions to it
+func (r *FalconNodeSensorReconciler) handleSAAnnotations(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
+	sa := corev1.ServiceAccount{}
+	saAnnotations := nodesensor.Spec.Node.ServiceAccount.Annotations
+
+	err := r.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.TargetNs()}, &sa)
+	if err != nil && errors.IsNotFound(err) {
+		logger.Error(err, "Could not get FalconNodeSensor ServiceAccount")
+		return err
+	}
+
+	// If there are no existing annotations, go ahead and create a map
+	if sa.Annotations == nil {
+		sa.Annotations = make(map[string]string)
+	}
+
+	// Add the CR configured annotations to the service account
+	for key, value := range saAnnotations {
+		sa.Annotations[key] = value
+	}
+
+	err = r.Update(ctx, &sa)
+	if err != nil {
+		logger.Error(err, "Failed to update ServiceAccount Annotations", "ServiceAccount.Namespace", nodesensor.TargetNs(), "Annotations", saAnnotations)
+		return err
+	}
+	logger.Info("Updating FalconNodeSensor ServiceAccount Annotations", "Annotations", saAnnotations)
+
+	return nil
+}
+
+// statusUpdate updates the FalconNodeSensor CR conditions
+func (r *FalconNodeSensorReconciler) conditionsUpdate(condType string, status metav1.ConditionStatus, reason string, message string, ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
+	meta.SetStatusCondition(&nodesensor.Status.Conditions, metav1.Condition{
+		Status:             status,
+		Reason:             reason,
+		Message:            message,
+		Type:               condType,
+		ObservedGeneration: nodesensor.GetGeneration(),
+	})
+
+	if err := r.Status().Update(ctx, nodesensor); err != nil {
+		logger.Error(err, "Failed to update FalconNodeSensor status", "Failed to update the Condition at Reasoning", reason)
+		return err
+	}
+
+	return nil
+}
+
+// finalizeDaemonset deletes the Daemonset running the Falcon Sensor and then runs a Daemonset to cleanup the /opt/CrowdStrike directory
+func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, image string, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
+	dsCleanupName := nodesensor.Name + "-cleanup"
+	daemonset := &appsv1.DaemonSet{}
+	pods := corev1.PodList{}
+	dsList := &appsv1.DaemonSetList{}
+	var nodeCount int32 = 0
+	var completedCount int32 = 0
+
+	// Get a list of DS and return the DS within the correct NS
+	if err := r.List(ctx, dsList, &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labels.Set{common.FalconInstanceKey: common.FalconKernelSensor}),
+		Namespace:     nodesensor.TargetNs(),
+	}); err != nil {
+		return err
+	}
+
+	// Set the nodeCount to the desired number of pods to be scheduled for cleanup
+	for _, dSet := range dsList.Items {
+		nodeCount = dSet.Status.DesiredNumberScheduled
+		logger.Info("Setting DaemonSet node count", "Number of nodes", nodeCount)
+	}
+
+	// Delete the Daemonset containing the sensor
+	if err := r.Delete(ctx,
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: nodesensor.Name, Namespace: nodesensor.TargetNs(),
+			},
+		}); err != nil && !errors.IsNotFound(err) {
+		logger.Error(err, "Failed to cleanup Falcon sensor DaemonSet pods")
+		return err
+	}
+
+	// Check if the cleanup DS is created. If not, create it.
+	err := r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.TargetNs()}, daemonset)
+	if err != nil && errors.IsNotFound(err) {
+		// Define a new DS for cleanup
+		ds := assets.RemoveNodeDirDaemonset(dsCleanupName, image, serviceAccount, nodesensor)
+
+		// Create the cleanup DS
+		err = r.Create(ctx, ds)
+		if err != nil {
+			logger.Error(err, "Failed to delete node directory with cleanup DaemonSet", "Path", common.FalconHostInstallDir)
+			return err
+		}
+
+		// Start inifite loop to check that all pods have either completed or are running in the DS
+		for {
+			// List all pods with the "cleanup" label in the appropriate NS
+			if err := r.List(ctx, &pods, &client.ListOptions{
+				LabelSelector: labels.SelectorFromSet(labels.Set{common.FalconInstanceKey: "cleanup"}),
+				Namespace:     nodesensor.TargetNs(),
+			}); err != nil {
+				return err
+			}
+
+			// When the pods have a status of completed or running, increment the count.
+			// The reason running is an acceptable value is because the pods should be running the sleep command and have already cleaned up /opt/CrowdStrike
+			for _, pod := range pods.Items {
+				if pod.Status.Phase == "Completed" || pod.Status.Phase == "Running" {
+					completedCount++
+					logger.Info("Waiting for cleanup pods to complete. Retrying....")
+				}
+			}
+
+			// Break out of the infinite loop for cleanup when the completed or running DS count reaches the desired node count
+			if completedCount == nodeCount {
+				logger.Info("Clean up pods should be done. Continuing deleting.")
+				break
+			}
+		}
+
+		// The cleanup DS should be completed so delete the cleanup DS
+		if err := r.Delete(ctx,
+			&appsv1.DaemonSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: dsCleanupName, Namespace: nodesensor.TargetNs(),
+				},
+			}); err != nil && !errors.IsNotFound(err) {
+			logger.Error(err, "Failed to cleanup Falcon sensor DaemonSet pods")
+			return err
+		}
+
+		// If we have gotten here, the cleanup should be successful
+		logger.Info("Successfully deleted node directory", "Path", common.FalconDataDir)
+	} else if err != nil {
+		logger.Error(err, "error getting the cleanup DaemonSet")
+		return err
+	}
+
+	logger.Info("Successfully finalized daemonset")
+	return nil
 }
