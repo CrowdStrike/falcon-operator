@@ -28,4 +28,6 @@ const (
 	NodeClusterRoleName        = "crowdstrike-falcon-node-sensor"
 	NodeClusterRoleBindingName = "crowdstrike-falcon-node-sensor"
 	NodeSccName                = "crowdstrike-falcon-node-sensor"
+
+	OptimisticLockErrorMsg = "the object has been modified; please apply your changes to the latest version and try again"
 )

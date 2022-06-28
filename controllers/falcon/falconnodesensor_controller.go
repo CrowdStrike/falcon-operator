@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 	"strings"
+	"time"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	common_assets "github.com/crowdstrike/falcon-operator/pkg/assets"
@@ -92,6 +93,10 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			"FalconNodeSensor progressing",
 			ctx, nodesensor, logger)
 		if err != nil {
+			if strings.Contains(err.Error(), common.OptimisticLockErrorMsg) {
+				return ctrl.Result{RequeueAfter: time.Second * 1}, nil
+			}
+
 			return ctrl.Result{Requeue: true}, err
 		}
 	}
@@ -765,6 +770,11 @@ func (r *FalconNodeSensorReconciler) conditionsUpdate(condType string, status me
 	})
 
 	if err := r.Status().Update(ctx, nodesensor); err != nil {
+		if strings.Contains(err.Error(), common.OptimisticLockErrorMsg) {
+			// do manual retry without error
+			return err
+		}
+
 		logger.Error(err, "Failed to update FalconNodeSensor status", "Failed to update the Condition at Reasoning", reason)
 		return err
 	}
