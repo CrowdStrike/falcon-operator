@@ -531,9 +531,6 @@ spec:
                         type: string
                     type: object
                 type: object
-            required:
-            - falcon
-            - node
             type: object
           status:
             description: FalconNodeSensorStatus defines the observed state of FalconNodeSensor
