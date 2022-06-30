@@ -167,7 +167,7 @@ require (
 
 replace (
 	// github.com/containerd/containerd => github.com/containerd/containerd v1.6.6
-	// github.com/docker/distribution => github.com/docker/distribution v2.8.0+incompatible
+	github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.3-0.20211202193544-a5463b7f9c84
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.2
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220511200225-c6db032c6c88
