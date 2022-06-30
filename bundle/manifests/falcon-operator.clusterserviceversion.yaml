@@ -32,13 +32,11 @@ metadata:
             "name": "falcon-node-sensor"
           },
           "spec": {
-            "falcon": {},
             "falcon_api": {
               "client_id": "PLEASE_FILL_IN",
               "client_secret": "PLEASE_FILL_IN",
               "cloud_region": "autodiscover"
-            },
-            "node": {}
+            }
           }
         }
       ]
