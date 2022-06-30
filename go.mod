@@ -59,7 +59,7 @@ require (
 	github.com/containers/storage v1.38.3 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/docker/distribution v2.8.0+incompatible // indirect
+	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/docker v20.10.12+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
@@ -175,7 +175,7 @@ require (
 
 replace (
 	// github.com/containerd/containerd => github.com/containerd/containerd v1.6.6
-	github.com/docker/distribution => github.com/docker/distribution v2.8.0+incompatible
+	// github.com/docker/distribution => github.com/docker/distribution v2.8.0+incompatible
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.3-0.20211202193544-a5463b7f9c84
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.2
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220511200225-c6db032c6c88
