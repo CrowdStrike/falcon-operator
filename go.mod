@@ -95,6 +95,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.15.7 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
@@ -139,7 +140,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
-	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
+	golang.org/x/net v0.0.0-20220630215102-69896b714898 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
 	golang.org/x/sys v0.0.0-20220627191245-f75cf1eec38b // indirect
@@ -169,7 +170,7 @@ replace (
 	github.com/containerd/containerd => github.com/containerd/containerd v1.6.6
 	github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
 	github.com/opencontainers/image-spec => github.com/opencontainers/image-spec v1.0.3-0.20211202193544-a5463b7f9c84
-	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.2
+	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.3
 	golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220511200225-c6db032c6c88
 	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.0-20220521103104-8f96da9f5d5e
 )
