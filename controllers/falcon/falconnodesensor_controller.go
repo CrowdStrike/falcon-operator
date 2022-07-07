@@ -845,7 +845,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 			}
 			err = r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.TargetNs()}, daemonset)
 			if err != nil && errors.IsNotFound(err) {
-				logger.Info("Clean-up daemonset disappeared")
+				logger.Info("Clean-up daemonset has been removed")
 				break
 			}
 		}
