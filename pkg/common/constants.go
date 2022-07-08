@@ -17,4 +17,5 @@ const (
 	FalconPartOfKey       = "crowdstrike.com/part-of"
 	FalconProviderKey     = "crowdstrike.com/provider"
 	FalconControllerKey   = "crowdstrike.com/created-by"
+	FalconPullSecret      = "crowdstrike-falcon-pull-secret"
 )

@@ -15,3 +15,8 @@ resources:
 - auth_proxy_role.yaml
 - auth_proxy_role_binding.yaml
 - auth_proxy_client_clusterrole.yaml
+
+# Add MyCustomObject service account
+- mycustomobject_service_account.yaml
+- mycustomobject_role.yaml
+- mycustomobject_role_binding.yaml

@@ -49,6 +49,183 @@ spec:
           spec:
             description: FalconContainerSpec defines the desired state of FalconContainer
             properties:
+              container:
+                description: FalconContainerSensorConfig defines aspects about how
+                  the Falcon Container sensor and injector work.
+                properties:
+                  azure:
+                    default: false
+                    description: Enable using the Azure config file if running in
+                      Azure AKS
+                    type: boolean
+                  azureConfig:
+                    default: /etc/kubernetes/azure.json
+                    description: Path to the Kubernetes Azure config file on worker
+                      nodes (e.g. /etc/kubernetes/azure.json)
+                    type: string
+                  certExpiration:
+                    default: 3650
+                    description: Certificate validity duration in number of days
+                    type: integer
+                  containerDaemonSocket:
+                    description: The path which the container runtime daemon socket
+                      can be found on worker node. This will mount the socket in the
+                      sensor container
+                    type: string
+                  disableNSInjection:
+                    default: false
+                    description: Disable injection for all Namespaces
+                    type: boolean
+                  disablePodInjection:
+                    default: false
+                    description: Disable injection for all Pods
+                    type: boolean
+                  enablePullSecrets:
+                    default: false
+                    description: Set to true if connecting to a registry that requires
+                      authentication
+                    type: boolean
+                  image:
+                    description: Name of the Falcon Sensor container to pull. Format
+                      should be repository/namespace/name:tag
+                    type: string
+                  imagePullPolicy:
+                    default: Always
+                    description: Image Pull Policy
+                    type: string
+                  injectorPort:
+                    default: 4433
+                    description: Port Falcon Injector listens on
+                    format: int32
+                    type: integer
+                  namespaces:
+                    description: Configure the list of namespaces that should have
+                      access to pull the Falcon sensor from a registry that requires
+                      authentication.
+                    items:
+                      type: string
+                    type: array
+                  registryPullSecret:
+                    default: ""
+                    description: Custom registry pull secret (in base64) to pull authenticate
+                      to an external registry.
+                    type: string
+                  replicas:
+                    default: 1
+                    description: Configure number of replicas for the injector deployment
+                    format: int32
+                    type: integer
+                  resources:
+                    description: Configure the requests and limits of the injector.
+                      Please note that setting limits can have an affect on how effective
+                      the sensor is depending on cluster load.
+                    properties:
+                      limits:
+                        description: Configure the resource limits of the injector
+                          pod or container sidecar sensor
+                        properties:
+                          cpu:
+                            type: string
+                          memory:
+                            type: string
+                        type: object
+                      requests:
+                        description: Configure the resources requests of the injector
+                          pod
+                        properties:
+                          cpu:
+                            default: 10m
+                            type: string
+                          memory:
+                            default: 20Mi
+                            type: string
+                        required:
+                        - cpu
+                        - memory
+                        type: object
+                    required:
+                    - requests
+                    type: object
+                  timeout:
+                    default: 30
+                    description: Kills pod after a specificed amount of time (in seconds).
+                      Default is 30 seconds.
+                    format: int32
+                    type: integer
+                  url:
+                    default: ""
+                    description: Use URL instead of a service definition for the MutatingWebhook
+                      configuration
+                    type: string
+                required:
+                - azure
+                - azureConfig
+                - certExpiration
+                - disableNSInjection
+                - disablePodInjection
+                - imagePullPolicy
+                - injectorPort
+                - replicas
+                - timeout
+                type: object
+              falcon:
+                description: CrowdStrike Falcon Sensor configuration settings.
+                properties:
+                  apd:
+                    description: Enable the App Proxy Port (APP). Uncommon in container-based
+                      deployments.
+                    type: boolean
+                  aph:
+                    description: App Proxy Hostname (APH). Uncommon in container-based
+                      deployments.
+                    type: string
+                  app:
+                    description: App Proxy Port (APP). Uncommon in container-based
+                      deployments.
+                    type: integer
+                  billing:
+                    description: Utilize default or metered billing.
+                    type: string
+                  cid:
+                    description: Falcon Customer ID (CID)
+                    type: string
+                  provisioning_token:
+                    description: Provisioning token.
+                    type: string
+                  resources:
+                    description: Configure the requests and limits of the container
+                      sidecar sensor. Please note that setting limits can have an
+                      affect on how effective the sensor is depending on cluster load.
+                    properties:
+                      limits:
+                        description: Configure the resource limits of the injector
+                          pod or container sidecar sensor
+                        properties:
+                          cpu:
+                            type: string
+                          memory:
+                            type: string
+                        type: object
+                      requests:
+                        description: Configure the resources requests of the container
+                          sidecar sensor
+                        properties:
+                          cpu:
+                            type: string
+                          memory:
+                            type: string
+                        type: object
+                    type: object
+                  tags:
+                    description: 'List of tags for sensor grouping. Allowed characters:
+                      all alphanumerics, ''/'', ''-'', and ''_''.'
+                    items:
+                      type: string
+                    type: array
+                  trace:
+                    description: Set trace level. Options are [none|err|warn|info|debug].
+                    type: string
+                type: object
               falcon_api:
                 description: FalconAPI configures connection from your local Falcon
                   operator to CrowdStrike Falcon platform.
@@ -65,6 +242,7 @@ spec:
                     description: Falcon OAuth2 API Client Secret
                     type: string
                   cloud_region:
+                    default: autodiscover
                     description: CloudRegion defines CrowdStrike Falcon Cloud Region
                       to which the operator will connect to
                     enum:
@@ -123,6 +301,8 @@ spec:
                   selected when version specifier is missing.
                 type: string
             required:
+            - container
+            - falcon
             - falcon_api
             type: object
           status:

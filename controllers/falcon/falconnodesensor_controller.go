@@ -77,8 +77,8 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 	if sensorConf == nil {
 		// this just got created, so re-queue.
-		logger.Info("Configmap was just created. Re-queuing")
-		return ctrl.Result{Requeue: true}, nil
+		logger.Info("Configmap was just created.")
+		//return ctrl.Result{Requeue: true}, nil
 	}
 	if updated {
 		logger.Info("Configmap was updated")

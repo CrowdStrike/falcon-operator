@@ -3,6 +3,9 @@ module github.com/crowdstrike/falcon-operator
 go 1.15
 
 require (
+	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
+	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/Microsoft/hcsshim v0.9.1 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.11.2
@@ -15,6 +18,8 @@ require (
 	github.com/docker/distribution v2.8.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.0 // indirect
 	github.com/go-logr/logr v0.4.0
+	github.com/huandu/xstrings v1.3.2 // indirect
+	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/moby/sys/mountinfo v0.5.0 // indirect
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.16.0

@@ -9,22 +9,23 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func ContainerMutatingWebhook(dsName string, nsName string, falconContainer *falconv1alpha1.FalconContainer) *arv1.MutatingWebhookConfiguration {
+func ContainerMutatingWebhook(name string, namespace string, falconContainer *falconv1alpha1.FalconContainer) *arv1.MutatingWebhookConfiguration {
 	sideEffectNone := arv1.SideEffectClassNone
 	failurePolicy := arv1.Fail
 	url := falconContainer.Spec.FalconContainerSensorConfig.URL
 	timeoutSeconds := falconContainer.Spec.FalconContainerSensorConfig.TimeoutSeconds
 	disableNSInjection := falconContainer.Spec.FalconContainerSensorConfig.DisableNSInjection
+	webhookName := fmt.Sprintf("%s.%s.svc", name, namespace)
 
 	return &arv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      dsName,
-			Namespace: nsName,
+			Name:      name,
+			Namespace: namespace,
 			Labels: map[string]string{
-				common.FalconInstanceNameKey: dsName,
+				common.FalconInstanceNameKey: name,
 				common.FalconInstanceKey:     "container_sensor",
 				common.FalconComponentKey:    "container_sensor",
-				common.FalconManagedByKey:    dsName,
+				common.FalconManagedByKey:    name,
 				common.FalconProviderKey:     "CrowdStrike",
 				common.FalconPartOfKey:       "Falcon",
 				common.FalconControllerKey:   "controller-manager",
@@ -32,13 +33,13 @@ func ContainerMutatingWebhook(dsName string, nsName string, falconContainer *fal
 		},
 		Webhooks: []arv1.MutatingWebhook{
 			{
-				Name:                    dsName + ".local.svc",
+				Name:                    webhookName,
 				AdmissionReviewVersions: common.FCAdmissionReviewVersions(),
 				SideEffects:             &sideEffectNone,
 				FailurePolicy:           &failurePolicy,
-				ClientConfig:            webhookClientConfig(dsName, url),
+				ClientConfig:            webhookClientConfig(name, namespace, url),
 				TimeoutSeconds:          &timeoutSeconds,
-				NamespaceSelector:       webhookMatchExpressions(disableNSInjection, dsName),
+				NamespaceSelector:       webhookMatchExpressions(disableNSInjection, namespace),
 				Rules: []arv1.RuleWithOperations{
 					{
 						Operations: []arv1.OperationType{arv1.Create},
@@ -54,11 +55,12 @@ func ContainerMutatingWebhook(dsName string, nsName string, falconContainer *fal
 	}
 }
 
-func webhookClientConfig(namespace string, url string) arv1.WebhookClientConfig {
-	webhookConfig := arv1.WebhookClientConfig{
-		CABundle: common.EncodedBase64String(common.CA.Cert),
-	}
+func webhookClientConfig(name string, namespace string, url string) arv1.WebhookClientConfig {
 	path := "/mutate"
+
+	webhookConfig := arv1.WebhookClientConfig{
+		CABundle: []byte(common.CertAuth.Cert),
+	}
 
 	if len(url) > 0 {
 		url := fmt.Sprintf("https://%s:%d/mutate", url, common.FalconServiceHTTPSPort)
@@ -66,7 +68,7 @@ func webhookClientConfig(namespace string, url string) arv1.WebhookClientConfig 
 	} else {
 		webhookConfig.Service = &arv1.ServiceReference{
 			Namespace: namespace,
-			Name:      namespace + "-injector",
+			Name:      name,
 			Path:      &path,
 		}
 	}

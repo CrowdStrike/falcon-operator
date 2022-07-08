@@ -11,6 +11,12 @@ metadata:
             "name": "default"
           },
           "spec": {
+            "container": {
+              "image": "falcon-sensor:latest"
+            },
+            "falcon": {
+              "cid": "1234567890ABCDEF1234567890ABCDEF-12"
+            },
             "falcon_api": {
               "client_id": "PLEASE_FILL_IN",
               "client_secret": "PLEASE_FILL_IN",
@@ -37,7 +43,7 @@ metadata:
               "aph": null,
               "app": null,
               "billing": null,
-              "cid": null,
+              "cid": "5DDB0407BEF249C19C7A975F17979A1F-90",
               "feature": null,
               "message_log": null,
               "provisioning_token": null,
@@ -56,7 +62,7 @@ metadata:
     createdAt: "2021-07-30T10:00:00Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     operatorframework.io/suggested-namespace: falcon-operator
-    operators.operatorframework.io/builder: operator-sdk-v1.8.0
+    operators.operatorframework.io/builder: operator-sdk-v1.18.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
@@ -155,6 +161,9 @@ spec:
           verbs:
           - create
           - delete
+          - get
+          - list
+          - watch
         - apiGroups:
           - ""
           resources:
@@ -179,6 +188,7 @@ spec:
           - delete
           - get
           - list
+          - update
           - watch
         - apiGroups:
           - ""
@@ -187,6 +197,10 @@ spec:
           verbs:
           - create
           - delete
+          - get
+          - list
+          - update
+          - watch
         - apiGroups:
           - admissionregistration.k8s.io
           resources:
@@ -194,6 +208,10 @@ spec:
           verbs:
           - create
           - delete
+          - get
+          - list
+          - update
+          - watch
         - apiGroups:
           - apps
           resources:
@@ -213,6 +231,10 @@ spec:
           verbs:
           - create
           - delete
+          - get
+          - list
+          - update
+          - watch
         - apiGroups:
           - batch
           resources:
@@ -315,6 +337,10 @@ spec:
           verbs:
           - create
           - delete
+          - get
+          - list
+          - update
+          - watch
         - apiGroups:
           - rbac.authorization.k8s.io
           resources:
@@ -322,6 +348,10 @@ spec:
           verbs:
           - create
           - delete
+          - get
+          - list
+          - update
+          - watch
         - apiGroups:
           - security.openshift.io
           resourceNames:
@@ -342,7 +372,7 @@ spec:
           - subjectaccessreviews
           verbs:
           - create
-        serviceAccountName: falcon-operator
+        serviceAccountName: default
       deployments:
       - name: falcon-operator-controller-manager
         spec:
@@ -375,7 +405,19 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
+                env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: OPERATOR_NAME
+                  value: falcon-operator
                 image: quay.io/crowdstrike/falcon-operator:latest
+                imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -407,7 +449,7 @@ spec:
                 runAsGroup: 65532
                 runAsNonRoot: true
                 runAsUser: 65532
-              serviceAccountName: falcon-operator
+              serviceAccountName: default
               terminationGracePeriodSeconds: 10
       permissions:
       - rules:
@@ -442,7 +484,7 @@ spec:
           verbs:
           - create
           - patch
-        serviceAccountName: falcon-operator
+        serviceAccountName: default
     strategy: deployment
   installModes:
   - supported: true

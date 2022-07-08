@@ -14,6 +14,11 @@ spec:
     client_id: PLEASE_FILL_IN
     client_secret: PLEASE_FILL_IN
     cloud_region: autodiscover
+  falcon:
+    cid: 1234567890ABCDEF1234567890ABCDEF-12
+  container:
+    image: falcon-sensor:latest
+
   registry:
     type: crowdstrike
   installer_args:

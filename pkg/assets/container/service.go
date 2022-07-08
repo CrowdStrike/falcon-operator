@@ -8,16 +8,16 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func ContainerService(dsName string, nsName string, falconContainer *falconv1alpha1.FalconContainer) *corev1.Service {
+func ContainerService(name string, namespace string, falconContainer *falconv1alpha1.FalconContainer) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      dsName,
-			Namespace: nsName,
+			Name:      name,
+			Namespace: namespace,
 			Labels: map[string]string{
-				common.FalconInstanceNameKey: dsName,
+				common.FalconInstanceNameKey: name,
 				common.FalconInstanceKey:     "container_sensor",
 				common.FalconComponentKey:    "container_sensor",
-				common.FalconManagedByKey:    dsName,
+				common.FalconManagedByKey:    name,
 				common.FalconProviderKey:     "CrowdStrike",
 				common.FalconPartOfKey:       "Falcon",
 				common.FalconControllerKey:   "controller-manager",
@@ -25,12 +25,11 @@ func ContainerService(dsName string, nsName string, falconContainer *falconv1alp
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				common.FalconInstanceNameKey: dsName,
+				"app":                        name,
+				common.FalconInstanceNameKey: namespace,
 				common.FalconInstanceKey:     "container_sensor",
 				common.FalconComponentKey:    "container_sensor",
 				common.FalconProviderKey:     "CrowdStrike",
-				common.FalconPartOfKey:       "Falcon",
-				common.FalconControllerKey:   "controller-manager",
 			},
 			Ports: []corev1.ServicePort{
 				{

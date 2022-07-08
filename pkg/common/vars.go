@@ -12,8 +12,19 @@ var (
 	FalconOperatorNamespace = "falcon-operator"
 	FalconInjectorCommand   = []string{"injector"}
 	Validity                = 3650
-	CA                      = GenCA(FalconOperatorNamespace, Validity)
+	CertAuth                = CAcert{}
+	altDNSSuffixList        = []string{"svc", "svc.cluster.local"}
 )
+
+type CAcert struct {
+	Cert string
+	Key  string
+}
+
+type Certs struct {
+	Cert string
+	Key  string
+}
 
 func init() {
 	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")

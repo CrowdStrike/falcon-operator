@@ -66,8 +66,8 @@ type FalconContainerSpec struct {
 	// Registry configures container image registry to which the Falcon Container image will be pushed
 	Registry RegistrySpec `json:"registry,omitempty"`
 
-	FalconContainerSensor       `json:"falcon,omitempty"`
-	FalconContainerSensorConfig `json:"container,omitempty"`
+	FalconContainerSensor       `json:"falcon"`
+	FalconContainerSensorConfig `json:"container"`
 
 	// InstallerArgs are passed directly down to the Falcon Container Installer. Users are advised to consult Falcon Container documentation to learn about available command line arguments at https://falcon.crowdstrike.com/documentation/146/falcon-container-sensor-for-linux
 	InstallerArgs []string `json:"installer_args,omitempty"`
@@ -80,15 +80,14 @@ type FalconContainerSpec struct {
 type FalconContainerSensorConfig struct {
 	// Image Pull Policy
 	// +kubebuilder:default=Always
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy"`
 
 	// Name of the Falcon Sensor container to pull. Format should be repository/namespace/name:tag
-	// +kubebuilder:default="falcon-sensor:latest"
 	Image string `json:"image,omitempty"`
 
 	// Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.
 	// +kubebuilder:default=30
-	TimeoutSeconds int32 `json:"timeout,omitempty"`
+	TimeoutSeconds int32 `json:"timeout"`
 
 	// Configure number of replicas for the injector deployment
 	// +kubebuilder:default=1
@@ -112,7 +111,7 @@ type FalconContainerSensorConfig struct {
 	// +kubebuilder:default=""
 	ContainerRegistryPullSecret string `json:"registryPullSecret,omitempty"`
 
-	// Enable if running in Azure AKS
+	// Enable using the Azure config file if running in Azure AKS
 	// +kubebuilder:default=false
 	AzureEnable bool `json:"azure"`
 
@@ -169,13 +168,13 @@ type FalconContainerSensor struct {
 	// Falcon Customer ID (CID)
 	CID string `json:"cid,omitempty"`
 	// Enable the App Proxy Port (APP). Uncommon in container-based deployments.
-	APD bool `json:"apd,omitempty"`
+	APD *bool `json:"apd,omitempty"`
 	// App Proxy Hostname (APH). Uncommon in container-based deployments.
 	APH string `json:"aph,omitempty"`
 	// App Proxy Port (APP). Uncommon in container-based deployments.
-	APP string `json:"app,omitempty"`
+	APP *int `json:"app,omitempty"`
 	// Utilize default or metered billing.
-	Billing bool `json:"billing,omitempty"`
+	Billing string `json:"billing,omitempty"`
 	// Provisioning token.
 	PToken string `json:"provisioning_token,omitempty"`
 	// List of tags for sensor grouping. Allowed characters: all alphanumerics, '/', '-', and '_'.

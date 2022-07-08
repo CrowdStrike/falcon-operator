@@ -13,6 +13,9 @@ rules:
   verbs:
   - create
   - delete
+  - get
+  - list
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -37,6 +40,7 @@ rules:
   - delete
   - get
   - list
+  - update
   - watch
 - apiGroups:
   - ""
@@ -45,6 +49,10 @@ rules:
   verbs:
   - create
   - delete
+  - get
+  - list
+  - update
+  - watch
 - apiGroups:
   - admissionregistration.k8s.io
   resources:
@@ -52,6 +60,10 @@ rules:
   verbs:
   - create
   - delete
+  - get
+  - list
+  - update
+  - watch
 - apiGroups:
   - apps
   resources:
@@ -71,6 +83,10 @@ rules:
   verbs:
   - create
   - delete
+  - get
+  - list
+  - update
+  - watch
 - apiGroups:
   - batch
   resources:
@@ -173,6 +189,10 @@ rules:
   verbs:
   - create
   - delete
+  - get
+  - list
+  - update
+  - watch
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
@@ -180,6 +200,10 @@ rules:
   verbs:
   - create
   - delete
+  - get
+  - list
+  - update
+  - watch
 - apiGroups:
   - security.openshift.io
   resourceNames:

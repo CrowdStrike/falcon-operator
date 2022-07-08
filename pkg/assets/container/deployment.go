@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func ContainerDeployment(dsName string, nsName string, falconContainer *falconv1alpha1.FalconContainer) *appsv1.Deployment {
+func ContainerDeployment(name string, namespace string, falconContainer *falconv1alpha1.FalconContainer) *appsv1.Deployment {
 	replicas := falconContainer.Spec.FalconContainerSensorConfig.Replicas
 	runNonRoot := true
 	injectorPort := falconContainer.Spec.FalconContainerSensorConfig.InjectorPort
@@ -25,10 +25,10 @@ func ContainerDeployment(dsName string, nsName string, falconContainer *falconv1
 	enablePullSecrets := falconContainer.Spec.FalconContainerSensorConfig.EnablePullSecrets
 
 	labels := map[string]string{
-		common.FalconInstanceNameKey: dsName,
+		common.FalconInstanceNameKey: name,
 		common.FalconInstanceKey:     "container_sensor",
 		common.FalconComponentKey:    "container_sensor",
-		common.FalconManagedByKey:    dsName,
+		common.FalconManagedByKey:    name,
 		common.FalconProviderKey:     "CrowdStrike",
 		common.FalconPartOfKey:       "Falcon",
 		common.FalconControllerKey:   "controller-manager",
@@ -36,18 +36,30 @@ func ContainerDeployment(dsName string, nsName string, falconContainer *falconv1
 
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      dsName,
-			Namespace: nsName,
+			Name:      name,
+			Namespace: namespace,
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: map[string]string{
+					"app":                        name,
+					common.FalconInstanceNameKey: namespace,
+					common.FalconInstanceKey:     "container_sensor",
+					common.FalconComponentKey:    "container_sensor",
+					common.FalconProviderKey:     "CrowdStrike",
+				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
+					Labels: map[string]string{
+						"app":                        name,
+						common.FalconInstanceNameKey: namespace,
+						common.FalconInstanceKey:     "container_sensor",
+						common.FalconComponentKey:    "container_sensor",
+						common.FalconProviderKey:     "CrowdStrike",
+					},
 				},
 				Spec: corev1.PodSpec{
 					Affinity: &corev1.Affinity{
@@ -74,11 +86,11 @@ func ContainerDeployment(dsName string, nsName string, falconContainer *falconv1
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsNonRoot: &runNonRoot,
 					},
-					ImagePullSecrets: imagePullSecret(dsName, enablePullSecrets),
-					InitContainers:   initContainer(dsName, image, azure, pullPolicy),
+					ImagePullSecrets: imagePullSecret(name, enablePullSecrets),
+					InitContainers:   initContainer(name, image, azure, pullPolicy),
 					Containers: []corev1.Container{
 						{
-							Name:            dsName + "-falcon-sensor",
+							Name:            name + "-falcon-sensor",
 							Image:           image,
 							ImagePullPolicy: pullPolicy,
 							Command:         common.FalconInjectorCommand,
@@ -86,18 +98,18 @@ func ContainerDeployment(dsName string, nsName string, falconContainer *falconv1
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: dsName + "-config",
+											Name: name + "-config",
 										},
 									},
 								},
 							},
 							Ports: []corev1.ContainerPort{
 								{
-									ContainerPort: injectorPort,
 									Name:          common.FalconServiceHTTPSName,
+									ContainerPort: injectorPort,
 								},
 							},
-							VolumeMounts: volumeMounts(dsName, azure),
+							VolumeMounts: volumeMounts(name, azure),
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -132,7 +144,7 @@ func ContainerDeployment(dsName string, nsName string, falconContainer *falconv1
 							},
 						},
 					},
-					Volumes: volumes(dsName, azurePath, azure),
+					Volumes: volumes(name, azurePath, azure),
 				},
 			},
 		},
@@ -152,19 +164,19 @@ func resources(cpu string, mem string) corev1.ResourceList {
 	return res
 }
 
-func imagePullSecret(dsName string, enable bool) []corev1.LocalObjectReference {
+func imagePullSecret(name string, enable bool) []corev1.LocalObjectReference {
 	if !enable {
 		return nil
 	}
 
 	return []corev1.LocalObjectReference{
 		{
-			Name: dsName + "-pull-secret",
+			Name: name,
 		},
 	}
 }
 
-func initContainer(dsName string, image string, azure bool, pullPolicy corev1.PullPolicy) []corev1.Container {
+func initContainer(name string, image string, azure bool, pullPolicy corev1.PullPolicy) []corev1.Container {
 	runNonRoot := false
 	runAsUser := int64(0)
 	privileged := false
@@ -175,7 +187,7 @@ func initContainer(dsName string, image string, azure bool, pullPolicy corev1.Pu
 
 	return []corev1.Container{
 		{
-			Name:            dsName + "-init-container",
+			Name:            name + "-init-container",
 			Image:           image,
 			ImagePullPolicy: pullPolicy,
 			Command:         []string{"bash", "-c", "cp /run/azure.json /tmp/CrowdStrike/; chmod a+r /tmp/CrowdStrike/azure.json"},
@@ -186,12 +198,12 @@ func initContainer(dsName string, image string, azure bool, pullPolicy corev1.Pu
 			},
 			VolumeMounts: []corev1.VolumeMount{
 				{
-					Name:      dsName + "-volume",
+					Name:      name + "-volume",
 					MountPath: "/tmp/CrowdStrike",
 					ReadOnly:  true,
 				},
 				{
-					Name:      dsName + "-azure-config",
+					Name:      name + "-azure-config",
 					MountPath: "/run/azure.json",
 					ReadOnly:  true,
 				},
@@ -200,11 +212,11 @@ func initContainer(dsName string, image string, azure bool, pullPolicy corev1.Pu
 	}
 }
 
-func volumeMounts(dsName string, azure bool) []corev1.VolumeMount {
+func volumeMounts(name string, azure bool) []corev1.VolumeMount {
 	if !azure {
 		return []corev1.VolumeMount{
 			{
-				Name:      dsName + "-tls-certs",
+				Name:      name + "-tls-certs",
 				MountPath: "/run/secrets/tls",
 				ReadOnly:  true,
 			},
@@ -213,12 +225,12 @@ func volumeMounts(dsName string, azure bool) []corev1.VolumeMount {
 
 	return []corev1.VolumeMount{
 		{
-			Name:      dsName + "-tls-certs",
+			Name:      name + "-tls-certs",
 			MountPath: "/run/secrets/tls",
 			ReadOnly:  true,
 		},
 		{
-			Name:      dsName + "-volume",
+			Name:      name + "-volume",
 			MountPath: "/tmp/CrowdStrike",
 			ReadOnly:  true,
 		},
@@ -226,16 +238,16 @@ func volumeMounts(dsName string, azure bool) []corev1.VolumeMount {
 
 }
 
-func volumes(dsName string, azurePath string, azure bool) []corev1.Volume {
+func volumes(name string, azurePath string, azure bool) []corev1.Volume {
 	pathTypeFile := corev1.HostPathFile
 
 	if !azure {
 		return []corev1.Volume{
 			{
-				Name: dsName + "-tls-certs",
+				Name: name + "-tls-certs",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: dsName + "-tls",
+						SecretName: name + "-tls",
 					},
 				},
 			},
@@ -244,21 +256,21 @@ func volumes(dsName string, azurePath string, azure bool) []corev1.Volume {
 
 	return []corev1.Volume{
 		{
-			Name: dsName + "-tls-certs",
+			Name: name + "-tls-certs",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: dsName + "-tls",
+					SecretName: name + "-tls",
 				},
 			},
 		},
 		{
-			Name: dsName + "-volume",
+			Name: name + "-volume",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		},
 		{
-			Name: dsName + "-azure-config",
+			Name: name + "-azure-config",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: azurePath,
