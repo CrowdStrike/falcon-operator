@@ -843,6 +843,11 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 				logger.Info("Clean up pods should be done. Continuing deleting.")
 				break
 			}
+			err = r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.TargetNs()}, daemonset)
+			if err != nil && errors.IsNotFound(err) {
+				logger.Info("Clean-up daemonset has been removed")
+				break
+			}
 		}
 
 		// The cleanup DS should be completed so delete the cleanup DS
