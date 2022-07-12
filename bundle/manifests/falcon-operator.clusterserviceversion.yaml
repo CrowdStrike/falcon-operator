@@ -110,7 +110,7 @@ spec:
       - description: Location of the Falcon Sensor image. Use only in cases when you
           mirror the original image to your repository/name:tag
         displayName: Image Override
-        path: node.image_override
+        path: node.image
       - description: Disable the Falcon Sensor's use of a proxy.
         displayName: Disable Falcon Proxy
         path: falcon.apd
