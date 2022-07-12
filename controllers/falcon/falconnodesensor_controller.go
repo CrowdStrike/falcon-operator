@@ -85,7 +85,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	dsCondition := meta.FindStatusCondition(nodesensor.Status.Conditions, falconv1alpha1.ConditionSuccess)
-	if dsCondition == nil || dsCondition.ObservedGeneration != nodesensor.GetGeneration() {
+	if dsCondition == nil {
 		err = r.conditionsUpdate(falconv1alpha1.ConditionPending,
 			metav1.ConditionFalse,
 			falconv1alpha1.ReasonReqNotMet,
@@ -197,7 +197,6 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				falconv1alpha1.ReasonInstallFailed,
 				"FalconNodeSensor DaemonSet failed to be installed",
 				ctx, nodesensor, logger)
-
 			logger.Error(err, "Failed to create new DaemonSet", "DaemonSet.Namespace", ds.Namespace, "DaemonSet.Name", ds.Name)
 			return ctrl.Result{}, err
 		}
@@ -238,10 +237,6 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 					falconv1alpha1.ReasonUpdateFailed,
 					"FalconNodeSensor DaemonSet update has failed",
 					ctx, nodesensor, logger)
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-
 				logger.Error(err, "Failed to update DaemonSet", "DaemonSet.Namespace", dsUpdate.Namespace, "DaemonSet.Name", dsUpdate.Name)
 				return ctrl.Result{}, err
 			}
@@ -256,7 +251,6 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				metav1.ConditionTrue,
 				falconv1alpha1.ReasonUpdateSucceeded,
 				"FalconNodeSensor DaemonSet has been successfully updated",
-
 				ctx, nodesensor, logger)
 			if err != nil {
 				return ctrl.Result{}, err
@@ -756,17 +750,19 @@ func (r *FalconNodeSensorReconciler) handleSAAnnotations(ctx context.Context, no
 
 // statusUpdate updates the FalconNodeSensor CR conditions
 func (r *FalconNodeSensorReconciler) conditionsUpdate(condType string, status metav1.ConditionStatus, reason string, message string, ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
-	meta.SetStatusCondition(&nodesensor.Status.Conditions, metav1.Condition{
-		Status:             status,
-		Reason:             reason,
-		Message:            message,
-		Type:               condType,
-		ObservedGeneration: nodesensor.GetGeneration(),
-	})
+	if !meta.IsStatusConditionPresentAndEqual(nodesensor.Status.Conditions, condType, status) {
+		meta.SetStatusCondition(&nodesensor.Status.Conditions, metav1.Condition{
+			Status:             status,
+			Reason:             reason,
+			Message:            message,
+			Type:               condType,
+			ObservedGeneration: nodesensor.GetGeneration(),
+		})
 
-	if err := r.Status().Update(ctx, nodesensor); err != nil {
-		logger.Error(err, "Failed to update FalconNodeSensor status", "Failed to update the Condition at Reasoning", reason)
-		return err
+		if err := r.Status().Update(ctx, nodesensor); err != nil {
+			logger.Error(err, "Failed to update FalconNodeSensor status", "Failed to update the Condition at Reasoning", reason)
+			return err
+		}
 	}
 
 	return nil
