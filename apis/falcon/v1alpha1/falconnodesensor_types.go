@@ -118,6 +118,9 @@ type FalconNodeSensorConfig struct {
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=7
 	NodeCleanup *bool `json:"disableCleanup,omitempty"`
+
+	// Version of the sensor to be installed. The latest version will be selected when this version specifier is missing.
+	Version *string `json:"version,omitempty"`
 }
 
 type FalconNodeUpdateStrategy struct {

@@ -530,6 +530,10 @@ spec:
                         - OnDelete
                         type: string
                     type: object
+                  version:
+                    description: Version of the sensor to be installed. The latest
+                      version will be selected when this version specifier is missing.
+                    type: string
                 type: object
             type: object
           status:
