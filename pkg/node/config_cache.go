@@ -124,7 +124,7 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 	if err != nil {
 		return "", err
 	}
-	imageTag, err := registry.LastNodeTag(ctx, nil)
+	imageTag, err := registry.LastNodeTag(ctx, nodesensor.Spec.Node.Version)
 	if err != nil {
 		return "", err
 	}
