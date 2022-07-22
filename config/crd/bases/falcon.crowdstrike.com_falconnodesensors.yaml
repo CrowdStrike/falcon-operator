@@ -13,7 +13,7 @@ spec:
     listKind: FalconNodeSensorList
     plural: falconnodesensors
     singular: falconnodesensor
-  scope: Cluster
+  scope: Namespaced
   versions:
   - additionalPrinterColumns:
     - jsonPath: .status.sensor

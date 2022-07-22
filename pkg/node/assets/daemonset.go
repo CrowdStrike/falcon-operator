@@ -67,7 +67,7 @@ func Daemonset(dsName string, image string, node *falconv1alpha1.FalconNodeSenso
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
-			Namespace: node.TargetNs(),
+			Namespace: node.Namespace,
 			Labels: map[string]string{
 				common.FalconInstanceNameKey: dsName,
 				common.FalconInstanceKey:     common.FalconKernelSensor,
@@ -193,7 +193,7 @@ func RemoveNodeDirDaemonset(dsName string, image string, node *falconv1alpha1.Fa
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
-			Namespace: node.TargetNs(),
+			Namespace: node.Namespace,
 			Labels: map[string]string{
 				common.FalconInstanceNameKey: dsName,
 				common.FalconInstanceKey:     "cleanup",

@@ -156,7 +156,7 @@ type FalconNodeSensorStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
+//+kubebuilder:resource:scope=Namespaced
 //+kubebuilder:printcolumn:name="Falcon Sensor",type="string",JSONPath=".status.sensor"
 //+kubebuilder:printcolumn:name="Operator Version",type="string",JSONPath=".status.version"
 
