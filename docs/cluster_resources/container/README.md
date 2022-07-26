@@ -74,7 +74,7 @@ Once the FalconContainer resource is pushed to the cluster the operator will sta
 | registry.acr_name                   | (optional) Name of ACR for the Falcon Container push. Only applicable to Azure cloud. (`registry.type="acr"`)                            |
 | registry.ecr_iam_role_arn           | (optional) ARN of AWS IAM Role to be assigned to the Injector (only needed when injector runs on EKS Fargate)
 | installer_args                      | (optional) Additional arguments to Falcon Container Installer (see [Product Documentation](https://falcon.crowdstrike.com/documentation/146/falcon-container-sensor-for-linux)) |
-| version                             | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                        | 
+| version                             | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                        |
 
 | Status                              | Description                                                                                                                               |
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -110,8 +110,9 @@ Supported registries are: acr, ecr, gcr, and openshift. Each registry type requi
 Consult specific deployment guides to learn about the steps needed for image mirroring.
 
  - [Deployment Guide for AKS/ACR](../../docs/deployment/azure/README.md)
- - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md) ([Fargate Considerations](../deployment/eks-fargate/README.md))
- - [Deployment Guide for GKE/GCR](../../docs/deployment/gke/README.md) ([GCP Workload Identity Considerations](../deployment/gke/gcp-workload-identity.md))
+ - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md)
+ - [Deployment Guide for EKS Fargate](../../deployment/eks-fargate/README.md)
+ - [Deployment Guide for GKE/GCR](../../docs/deployment/gke/README.md)
  - [Deployment Guide for OpenShift](../../docs/deployment/openshift/README.md)
 
 ### Install Steps
@@ -191,7 +192,8 @@ kubectl get deployments -n falcon-operator falcon-operator-controller-manager -o
 ### Additional Documentation
 End-to-end guides to install Falcon-operator together with FalconContainer resource.
 
- - [Deployment Guide for AKS/ACR](../../docs/deployment/azure/README.md)
- - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md) ([Fargate Considerations](../deployment/eks-fargate/README.md))
- - [Deployment Guide for GKE/GCR](../../docs/deployment/gke/README.md) ([GCP Workload Identity Considerations](../deployment/gke/gcp-workload-identity.md))
- - [Deployment Guide for OpenShift](../../docs/deployment/openshift/README.md)
+ - [Deployment Guide for AKS/ACR](../../deployment/azure/README.md)
+ - [Deployment Guide for EKS/ECR](../../deployment/eks/README.md)
+ - [Deployment Guide for EKS Fargate](../../deployment/eks-fargate/README.md)
+ - [Deployment Guide for GKE/GCR](../../deployment/gke/README.md)
+ - [Deployment Guide for OpenShift](../../deployment/openshift/README.md)

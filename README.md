@@ -11,7 +11,7 @@
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator)
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator-bundle/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator-bundle)
 
-The CrowdStrike Falcon Operator installs CrowdStrike Falcon Container Sensor or CrowdStrike Falcon Node Sensor on the cluster.
+The CrowdStrike Falcon Operator installs the CrowdStrike Falcon Container Sensor or CrowdStrike Falcon Node Sensor on a Kubernetes cluster.
 
 The CrowdStrike Falcon Operator is an open source project and not a CrowdStrike product. As such, it carries no formal support, expressed, or implied.
 
@@ -20,41 +20,14 @@ The CrowdStrike Falcon Operator deploys CrowdStrike Falcon Workload Protection t
 
 ## About Custom Resources
 
-| Custom Resource                   | Description                                                      |
-| :--------                         | :------------                                                    |
-| [FalconContainer](docs/container) | Manages installation of Falcon Container Sensor on the cluster   |
-| [FalconNodeSensor](docs/node)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
+| Custom Resource                                               | Description                                                      |
+| :--------                                                     | :------------                                                    |
+| [FalconContainer](docs/cluster_resources/container/README.md) | Manages installation of Falcon Container Sensor on the cluster   |
+| [FalconNodeSensor](docs/cluster_resources/node/README.md)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
 
-Additional information can be found in [FAQ document](docs/faq.md)
+## Installation and Deployment
 
-## Installation Steps
-
-Installation steps differ based on the Operator Life-cycle Manager (OLM) availability. You can determine whether your cluster is using OLM by running: `kubectl get crd catalogsources.operators.coreos.com`
-
- - (option 1): In case your cluster **is not** using OLM (Operator Life-cycle Manager), run:
-   ```
-   kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
-   ```
-
- - (option 2): In case your cluster **is** using OLM, run:
-   ```
-   OPERATOR_NAMESPACE=falcon-operator
-   kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-   operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
-   ```
-
-After the installation concludes, please proceed with deploying either [Falcon Container Sensor](docs/container) or [Falcon Node Sensor](docs/node).
-
-## Uninstall Steps
-
- - To uninstall Falcon Operator when OLM is installed, run:
-   ```
-   operator-sdk cleanup falcon-operator --namespace falcon-operator
-   ```
- - To uninstall Falcon Operator when OLM is not in use, run:
-   ```
-   kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
-   ```
+For installation and deployment of the CrowdStrike Falcon Operator and its Custom Resources, please read the [Installation and Deployment Guide](./docs/install_guide.md) and choose the deployment method that is right for your target environment.
 
 ## Getting Help
 If you encounter any issues while using the Falcon Operator, you can create an issue on our [Github repo](https://github.com/CrowdStrike/falcon-operator) for bugs, enhancements, or other requests.
