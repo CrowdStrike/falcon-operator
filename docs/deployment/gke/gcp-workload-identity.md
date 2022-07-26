@@ -37,9 +37,9 @@ The following step-by-step guide uses `gcloud`, and `kubectl` command-line tools
    ```
    gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
        --member "serviceAccount:$GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
-       --role roles/containerregistry.ServiceAgent 
+       --role roles/containerregistry.ServiceAgent
    ```
-   
+
  - Allow Falcon Injector to use the newly created GCP Service Account
    ```
    gcloud iam service-accounts add-iam-policy-binding \
@@ -63,7 +63,7 @@ The following step-by-step guide uses `gcloud`, and `kubectl` command-line tools
         annotations:
           iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
   ```
-  
+
   (don't forget to replace the service account name template with actual name)
   ```
   echo "$GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com"

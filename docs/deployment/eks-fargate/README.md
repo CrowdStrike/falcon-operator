@@ -84,7 +84,7 @@ The following step-by-step guide uses `aws`, `eksctl` and `kubectl` command-line
   ```
   kubectl get sa -n falcon-system default -o=jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}'
   ```
- 
+
 - Re-deploy (delete & create) FalconContainer with the above IAM Role in the spec:
   ```
   kubectl delete falconcontainers --all
@@ -97,7 +97,7 @@ The following step-by-step guide uses `aws`, `eksctl` and `kubectl` command-line
         annotations:
           eks.amazonaws.com/role-arn: arn:aws:iam::12345678910:role/eksctl-demo-cluster-addon-iamservic-Role1-J78KUNY32R1
   ```
-  and then re-deploy 
+  and then re-deploy
   ```
   kubectl create -f ./my-falcon-container.yaml
   ```
