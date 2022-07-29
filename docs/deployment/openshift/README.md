@@ -8,7 +8,8 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 
 ## Prerequisites
 
-- CrowdStrike CWP subscription with Falcon Container
+- CrowdStrike CWP subscription
+- OpenShift 4.8 or greater is supported
 - If your are installing the CrowdStrike Sensor via the Crowdstrike API, you need to create a new CrowdStrike API key pair with the following permissions:
   - Falcon Images Download: Read
   - Sensor Download: Read
