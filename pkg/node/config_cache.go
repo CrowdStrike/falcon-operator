@@ -106,7 +106,7 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 	}
 
 	nodeImage := os.Getenv("RELATED_IMAGE_NODE_SENSOR")
-	if nodeImage != "" {
+	if nodeImage != "" && nodesensor.Spec.FalconAPI == nil {
 		return nodeImage, nil
 	}
 
