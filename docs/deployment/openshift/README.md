@@ -155,33 +155,33 @@ Once the operator has deployed, you can now deploy the FalconNodeSensor.
 ### Deploying the Node Sensor to a custom Namespace
 
 If desired, the FalconNodeSensor can be deployed to a namespace of your choosing instead of deploying to the operator namespace.
-To deploy to a custom namespace (replacing `mynamespace` as desired):
+To deploy to a custom namespace (replacing `falcon-system` as desired):
 
 - Create a new project
   ```
-  oc new-project mynamespace
+  oc new-project falcon-system
   ```
 
 - Create the service account in the new namespace
   ```
-  oc create sa falcon-operator-node-sensor -n mynamespace
+  oc create sa falcon-operator-node-sensor -n falcon-system
   ```
 
 - Add the service account to the privileged SCC
   ```
-  oc adm policy add-scc-to-user privileged system:serviceaccount:mynamespace:falcon-operator-node-sensor
+  oc adm policy add-scc-to-user privileged system:serviceaccount:falcon-system:falcon-operator-node-sensor
   ```
 
 - Deploy FalconNodeSensor to the custom namespace:
   ```
-  oc create -n mynamespace -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
+  oc create -n falcon-system -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
 
 ### Deploy the Sidecar Sensor
 
 - Deploy FalconContainer through the cli using the `oc` command:
   ```
-  oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/falconcontainer-openshift.yaml --edit=true
+  oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/falconcontainer.yaml --edit=true
   ```
 
 ## Uninstalling
@@ -205,7 +205,7 @@ This will insure proper cleanup of the resources.
 
    ![OpenShift CrowdStrike Node Sensor Uninstall](images/ocp-nodedel.png)
 
-#### Uninstall the Sidecar Sensor)
+#### Uninstall the Sidecar Sensor
 
 - Click on the `CrowdStrike Falcon Platform - Operator` listing, followed by clicking on the `Falcon Container` tab.
 
@@ -229,9 +229,8 @@ This will insure proper cleanup of the resources.
 
 - To uninstall the node sensor, simply remove the FalconNodeSensor resource.
   ```
-  oc delete falconnodesensor falcon-node-sensor -n falcon-operator
+  oc delete falconnodesensor -A --all
   ```
-  If using a custom namespace, change `-n falcon-operator` to `-n mynamespace`.
 
 #### Uninstall the Sidecar Sensor
 
