@@ -24,28 +24,35 @@ It is important to understand that when your cluster uses the Operator Life-cycl
 
 Installation steps differ based on the Operator Life-cycle Manager (OLM) availability. You can determine whether your cluster is using OLM by running: `kubectl get crd catalogsources.operators.coreos.com`
 
- - (option 1): In case your cluster **is not** using OLM (Operator Life-cycle Manager), run:
+##### Non-OLM Installation
+ - If your cluster **is not** using OLM (Operator Life-cycle Manager), run:
    ```
    kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
    ```
 
- - (option 2): In case your cluster **is** using OLM, run:
+##### Operator Life-cycle Manager (OLM) Installation
+ - If your cluster **is** using OLM, run:
    ```
    OPERATOR_NAMESPACE=falcon-operator
    kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
    operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
    ```
 
-After the installation concludes, please proceed with deploying either the [Falcon Container Sensor](docs/container) or [Falcon Node Sensor](docs/node) Custom Resource.
+After the installation concludes, please proceed with deploying either the [Falcon Container Sensor](./cluster_resources/container/README.md) or [Falcon Node Sensor](./cluster_resources/node/README.md) Custom Resource.
 
 #### Uninstall Steps
 
 Before removing Falcon Operator from the cluster, make sure to remove the custom resources first.
 
+##### Operator Life-cycle Manager (OLM) Uninstall
+
  - To uninstall Falcon Operator when OLM is installed, run:
    ```
    operator-sdk cleanup falcon-operator --namespace falcon-operator
    ```
+
+##### Non-OLM Uninstall
+
  - To uninstall Falcon Operator when OLM is not in use, run:
    ```
    kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
