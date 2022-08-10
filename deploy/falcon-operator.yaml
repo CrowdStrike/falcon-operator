@@ -853,6 +853,12 @@ metadata:
   name: falcon-operator
   namespace: falcon-operator
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: falcon-operator-node-sensor
+  namespace: falcon-operator
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
