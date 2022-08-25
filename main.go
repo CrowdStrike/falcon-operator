@@ -7,8 +7,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
+	"net/http/pprof"
 	"os"
 	"strings"
+	"time"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -48,9 +51,13 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
+	var profileAddr string
+	var enableProfiling bool
 	var ver bool
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.StringVar(&profileAddr, "profile-bind-address", "localhost:8082", "The address the profiling endpoint binds to.")
+	flag.BoolVar(&enableProfiling, "profile", false, "Enable profiling.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -125,6 +132,22 @@ func main() {
 	if err := mgr.AddReadyzCheck("check", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
+	}
+
+	if enableProfiling {
+		setupLog.Info("Establishing profile endpoint.")
+		go func() {
+			http.HandleFunc("/debug/pprof/", pprof.Index)
+			http.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+			http.HandleFunc("/debug/pprof/profile", pprof.Profile)
+			http.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+			http.HandleFunc("/debug/pprof/trace", pprof.Trace)
+			srv := &http.Server{Addr: profileAddr, ReadHeaderTimeout: time.Second * 10, ReadTimeout: time.Second * 60, WriteTimeout: time.Second * 10}
+			err := srv.ListenAndServe()
+			if err != nil {
+				setupLog.Error(err, "unable to establish profile endpoint")
+			}
+		}()
 	}
 
 	setupLog.Info("starting manager")
