@@ -137,12 +137,13 @@ func main() {
 	if enableProfiling {
 		setupLog.Info("Establishing profile endpoint.")
 		go func() {
-			http.HandleFunc("/debug/pprof/", pprof.Index)
-			http.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-			http.HandleFunc("/debug/pprof/profile", pprof.Profile)
-			http.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-			http.HandleFunc("/debug/pprof/trace", pprof.Trace)
-			srv := &http.Server{Addr: profileAddr, ReadHeaderTimeout: time.Second * 10, ReadTimeout: time.Second * 60, WriteTimeout: time.Second * 10}
+			pprofMux := http.NewServeMux()
+			pprofMux.HandleFunc("/debug/pprof/", pprof.Index)
+			pprofMux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+			pprofMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+			pprofMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+			pprofMux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+			srv := &http.Server{Addr: profileAddr, ReadHeaderTimeout: time.Second * 10, ReadTimeout: time.Second * 60, WriteTimeout: time.Second * 10, Handler: pprofMux}
 			err := srv.ListenAndServe()
 			if err != nil {
 				setupLog.Error(err, "unable to establish profile endpoint")
