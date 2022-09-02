@@ -263,8 +263,7 @@ spec:
                               by the daemonset on any given node can double if the
                               readiness check fails, and so resource intensive daemonsets
                               should take into account that they may cause evictions
-                              during disruption. This is beta field and enabled/disabled
-                              by DaemonSetUpdateSurge feature gate.'
+                              during disruption.'
                             x-kubernetes-int-or-string: true
                           maxUnavailable:
                             anyOf:
@@ -311,8 +310,8 @@ spec:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
                     use as an array at the field path .status.conditions.  For example,
-                    type FooStatus struct{ // Represents the observations of a foo's
-                    current state. // Known .status.conditions.type are: \"Available\",
+                    \n type FooStatus struct{ // Represents the observations of a
+                    foo's current state. // Known .status.conditions.type are: \"Available\",
                     \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
                     // +listType=map // +listMapKey=type Conditions []metav1.Condition
                     `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
