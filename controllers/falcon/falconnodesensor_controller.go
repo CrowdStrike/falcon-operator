@@ -241,7 +241,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				return ctrl.Result{}, err
 			}
 
-			err := k8s_utils.RestartDeamonSet(ctx, r.Client, dsUpdate)
+			err := k8s_utils.RestartDaemonSet(ctx, r.Client, dsUpdate)
 			if err != nil {
 				logger.Error(err, "Failed to restart pods after DaemonSet configuration changed.")
 				return ctrl.Result{}, err
