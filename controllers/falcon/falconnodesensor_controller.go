@@ -775,7 +775,6 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 	pods := corev1.PodList{}
 	dsList := &appsv1.DaemonSetList{}
 	var nodeCount int32 = 0
-	var completedCount int32 = 0
 
 	// Get a list of DS and return the DS within the correct NS
 	if err := r.List(ctx, dsList, &client.ListOptions{
@@ -783,12 +782,6 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 		Namespace:     nodesensor.TargetNs(),
 	}); err != nil {
 		return err
-	}
-
-	// Set the nodeCount to the desired number of pods to be scheduled for cleanup
-	for _, dSet := range dsList.Items {
-		nodeCount = dSet.Status.DesiredNumberScheduled
-		logger.Info("Setting DaemonSet node count", "Number of nodes", nodeCount)
 	}
 
 	// Delete the Daemonset containing the sensor
@@ -824,13 +817,19 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 			}); err != nil {
 				return err
 			}
+			// Reset completedCount each loop, to ensure we don't count the same node(s) multiple times
+			var completedCount int32 = 0
+			// Reset the nodeCount to the desired number of pods to be scheduled for cleanup each loop, in case the cluster has scaled down
+			for _, dSet := range dsList.Items {
+				nodeCount = dSet.Status.DesiredNumberScheduled
+				logger.Info("Setting DaemonSet node count", "Number of nodes", nodeCount)
+			}
 
 			// When the pods have a status of completed or running, increment the count.
 			// The reason running is an acceptable value is because the pods should be running the sleep command and have already cleaned up /opt/CrowdStrike
 			for _, pod := range pods.Items {
 				if pod.Status.Phase == "Completed" || pod.Status.Phase == "Running" || pod.Status.Phase == "CrashLoopBackOff" {
 					completedCount++
-					logger.Info("Waiting for cleanup pods to complete. Retrying....")
 				}
 			}
 
@@ -838,6 +837,8 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 			if completedCount == nodeCount {
 				logger.Info("Clean up pods should be done. Continuing deleting.")
 				break
+			} else {
+				logger.Info("Waiting for cleanup pods to complete. Retrying....", "Number of nodes still processing task", nodeCount-completedCount)
 			}
 			err = r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.TargetNs()}, daemonset)
 			if err != nil && errors.IsNotFound(err) {
