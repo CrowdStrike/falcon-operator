@@ -46,6 +46,8 @@ func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete;deletecollection
+
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconnodesensors,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconnodesensors/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconnodesensors/finalizers,verbs=update
