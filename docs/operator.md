@@ -45,6 +45,7 @@ Please note that the following settings should not be configured when using the 
     source: community-operators
     sourceNamespace: openshift-marketplace
     startingCSV: falcon-operator.v0.5.4
+  EOF
   ```
 
 - Deploy the operator
