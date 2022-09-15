@@ -41,6 +41,14 @@ spec:
     - '--tags=test-cluster'
 ```
 
+Note: to provide multiple arguments to `-falconctl-opts`, you need to provide them as a one line string:
+
+```
+  installer_args:
+    - `-falconctl-opts`
+    - `--tags=test-cluster,tags1,tags2 --apd=disabled`
+```
+
 ### Installation Phases
 
 Once the FalconContainer resource is pushed to the cluster the operator will start an installation process. The installation process consists of the following 5 phases
@@ -177,7 +185,7 @@ kubectl logs -n falcon-system deploy/injector -f
 
 To review the currently deployed version of the operator
 ```
-kubectl get deployments -n falcon-operator falcon-operator-controller-manager -o=jsonpath='{.spec.template.spec.containers[1].image}'
+kubectl get deployments -n falcon-operator falcon-operator-controller-manager -o=jsonpath='{.spec.template.spec.containers[].image}'
 ```
 
 ### Additional Documentation

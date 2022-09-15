@@ -46,6 +46,8 @@ func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+// +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete;deletecollection
+
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconnodesensors,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconnodesensors/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconnodesensors/finalizers,verbs=update
@@ -85,7 +87,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	dsCondition := meta.FindStatusCondition(nodesensor.Status.Conditions, falconv1alpha1.ConditionSuccess)
-	if dsCondition == nil || dsCondition.ObservedGeneration != nodesensor.GetGeneration() {
+	if dsCondition == nil {
 		err = r.conditionsUpdate(falconv1alpha1.ConditionPending,
 			metav1.ConditionFalse,
 			falconv1alpha1.ReasonReqNotMet,
@@ -197,7 +199,6 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				falconv1alpha1.ReasonInstallFailed,
 				"FalconNodeSensor DaemonSet failed to be installed",
 				ctx, nodesensor, logger)
-
 			logger.Error(err, "Failed to create new DaemonSet", "DaemonSet.Namespace", ds.Namespace, "DaemonSet.Name", ds.Name)
 			return ctrl.Result{}, err
 		}
@@ -238,15 +239,11 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 					falconv1alpha1.ReasonUpdateFailed,
 					"FalconNodeSensor DaemonSet update has failed",
 					ctx, nodesensor, logger)
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-
 				logger.Error(err, "Failed to update DaemonSet", "DaemonSet.Namespace", dsUpdate.Namespace, "DaemonSet.Name", dsUpdate.Name)
 				return ctrl.Result{}, err
 			}
 
-			err := k8s_utils.RestartDeamonSet(ctx, r.Client, dsUpdate)
+			err := k8s_utils.RestartDaemonSet(ctx, r.Client, dsUpdate)
 			if err != nil {
 				logger.Error(err, "Failed to restart pods after DaemonSet configuration changed.")
 				return ctrl.Result{}, err
@@ -256,7 +253,6 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				metav1.ConditionTrue,
 				falconv1alpha1.ReasonUpdateSucceeded,
 				"FalconNodeSensor DaemonSet has been successfully updated",
-
 				ctx, nodesensor, logger)
 			if err != nil {
 				return ctrl.Result{}, err
@@ -756,17 +752,19 @@ func (r *FalconNodeSensorReconciler) handleSAAnnotations(ctx context.Context, no
 
 // statusUpdate updates the FalconNodeSensor CR conditions
 func (r *FalconNodeSensorReconciler) conditionsUpdate(condType string, status metav1.ConditionStatus, reason string, message string, ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
-	meta.SetStatusCondition(&nodesensor.Status.Conditions, metav1.Condition{
-		Status:             status,
-		Reason:             reason,
-		Message:            message,
-		Type:               condType,
-		ObservedGeneration: nodesensor.GetGeneration(),
-	})
+	if !meta.IsStatusConditionPresentAndEqual(nodesensor.Status.Conditions, condType, status) {
+		meta.SetStatusCondition(&nodesensor.Status.Conditions, metav1.Condition{
+			Status:             status,
+			Reason:             reason,
+			Message:            message,
+			Type:               condType,
+			ObservedGeneration: nodesensor.GetGeneration(),
+		})
 
-	if err := r.Status().Update(ctx, nodesensor); err != nil {
-		logger.Error(err, "Failed to update FalconNodeSensor status", "Failed to update the Condition at Reasoning", reason)
-		return err
+		if err := r.Status().Update(ctx, nodesensor); err != nil {
+			logger.Error(err, "Failed to update FalconNodeSensor status", "Failed to update the Condition at Reasoning", reason)
+			return err
+		}
 	}
 
 	return nil
@@ -779,7 +777,6 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 	pods := corev1.PodList{}
 	dsList := &appsv1.DaemonSetList{}
 	var nodeCount int32 = 0
-	var completedCount int32 = 0
 
 	// Get a list of DS and return the DS within the correct NS
 	if err := r.List(ctx, dsList, &client.ListOptions{
@@ -787,12 +784,6 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 		Namespace:     nodesensor.TargetNs(),
 	}); err != nil {
 		return err
-	}
-
-	// Set the nodeCount to the desired number of pods to be scheduled for cleanup
-	for _, dSet := range dsList.Items {
-		nodeCount = dSet.Status.DesiredNumberScheduled
-		logger.Info("Setting DaemonSet node count", "Number of nodes", nodeCount)
 	}
 
 	// Delete the Daemonset containing the sensor
@@ -828,19 +819,32 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 			}); err != nil {
 				return err
 			}
+			// Reset completedCount each loop, to ensure we don't count the same node(s) multiple times
+			var completedCount int32 = 0
+			// Reset the nodeCount to the desired number of pods to be scheduled for cleanup each loop, in case the cluster has scaled down
+			for _, dSet := range dsList.Items {
+				nodeCount = dSet.Status.DesiredNumberScheduled
+				logger.Info("Setting DaemonSet node count", "Number of nodes", nodeCount)
+			}
 
 			// When the pods have a status of completed or running, increment the count.
 			// The reason running is an acceptable value is because the pods should be running the sleep command and have already cleaned up /opt/CrowdStrike
 			for _, pod := range pods.Items {
-				if pod.Status.Phase == "Completed" || pod.Status.Phase == "Running" {
+				if pod.Status.Phase == "Completed" || pod.Status.Phase == "Running" || pod.Status.Phase == "CrashLoopBackOff" {
 					completedCount++
-					logger.Info("Waiting for cleanup pods to complete. Retrying....")
 				}
 			}
 
 			// Break out of the infinite loop for cleanup when the completed or running DS count reaches the desired node count
 			if completedCount == nodeCount {
 				logger.Info("Clean up pods should be done. Continuing deleting.")
+				break
+			} else {
+				logger.Info("Waiting for cleanup pods to complete. Retrying....", "Number of nodes still processing task", nodeCount-completedCount)
+			}
+			err = r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.TargetNs()}, daemonset)
+			if err != nil && errors.IsNotFound(err) {
+				logger.Info("Clean-up daemonset has been removed")
 				break
 			}
 		}

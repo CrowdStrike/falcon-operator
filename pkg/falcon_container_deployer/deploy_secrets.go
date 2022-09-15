@@ -63,7 +63,7 @@ func (d *FalconContainerDeployer) namespacesMissingSecrets() (map[string]void, e
 		return nil, err
 	}
 	for _, ns := range nsList.Items {
-		if ns.Name == "default" || ns.Name == "kube-system" {
+		if ns.Name == "default" || ns.Name == "kube-system" || ns.Name == "kube-public" {
 			continue
 		}
 		if ns.Annotations != nil && ns.Annotations[INJECTION_LABEL] == INJECTION_LABEL_DISABLED {

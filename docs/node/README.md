@@ -36,7 +36,8 @@ spec:
 | falcon.cid                          | (optional) CrowdStrike Falcon CID override                                                                                                |
 | node.image_override                 | (optional) Location of the Falcon Sensor Image. Specify only when you mirror the original image to your own image repository              |
 | node.imagePullSecrets               | (optional) list of references to secrets in the falcon-system namespace to use for pulling image from image_override location.            |
-| node.disableCleanup                 | Cleans up `/opt/CrowdStrike` on the nodes by deleting the files and directory.
+| node.disableCleanup                 | (optional) Cleans up `/opt/CrowdStrike` on the nodes by deleting the files and directory.                                                 |
+| node.version                        | (optional) Enforce particular Falcon Sensor version to be installed (example: "6.35", "6.35.0-13207")                                     |
 
 All arguments are optional, but successful deployment requires either falcon_id and falcon_secret **or** cid and image_override. In a former case container image and cid will be fetched from CrowdStrike Falcon API. While in the latter case the CID and image location is explicitly specified by the user.
 
@@ -77,5 +78,5 @@ kubectl -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c 
 
 To review the currently deployed version of the operator
 ```
-kubectl get deployments -n falcon-operator falcon-operator-controller-manager -o=jsonpath='{.spec.template.spec.containers[1].image}'
+kubectl get deployments -n falcon-operator falcon-operator-controller-manager -o=jsonpath='{.spec.template.spec.containers[].image}'
 ```

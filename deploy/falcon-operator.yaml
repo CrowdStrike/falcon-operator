@@ -530,10 +530,11 @@ spec:
                         - OnDelete
                         type: string
                     type: object
+                  version:
+                    description: Version of the sensor to be installed. The latest
+                      version will be selected when this version specifier is missing.
+                    type: string
                 type: object
-            required:
-            - falcon
-            - node
             type: object
           status:
             description: FalconNodeSensorStatus defines the observed state of FalconNodeSensor
@@ -651,6 +652,7 @@ rules:
   - pods
   verbs:
   - delete
+  - deletecollection
   - get
   - list
   - watch
