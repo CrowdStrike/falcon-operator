@@ -107,15 +107,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&falconcontrollers.FalconContainerReconciler{
-		Client:     mgr.GetClient(),
-		Log:        ctrl.Log.WithName("controllers").WithName("falcon").WithName("FalconContainer"),
-		Scheme:     mgr.GetScheme(),
-		RestConfig: mgr.GetConfig(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "FalconContainer")
-		os.Exit(1)
-	}
 	if err = (&falconcontrollers.FalconNodeSensorReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),

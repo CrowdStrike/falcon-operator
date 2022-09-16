@@ -13,4 +13,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: quay.io/crowdstrike/falcon-operator
-  newTag: latest
+  newTag: v0.6.0

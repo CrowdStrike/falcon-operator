@@ -6,27 +6,6 @@ metadata:
       [
         {
           "apiVersion": "falcon.crowdstrike.com/v1alpha1",
-          "kind": "FalconContainer",
-          "metadata": {
-            "name": "default"
-          },
-          "spec": {
-            "falcon_api": {
-              "client_id": "PLEASE_FILL_IN",
-              "client_secret": "PLEASE_FILL_IN",
-              "cloud_region": "autodiscover"
-            },
-            "installer_args": [
-              "-falconctl-opts",
-              "--tags=test-cluster"
-            ],
-            "registry": {
-              "type": "crowdstrike"
-            }
-          }
-        },
-        {
-          "apiVersion": "falcon.crowdstrike.com/v1alpha1",
           "kind": "FalconNodeSensor",
           "metadata": {
             "name": "falcon-node-sensor"
@@ -56,26 +35,6 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: FalconContainer is the Schema for the falconcontainers API
-      displayName: Falcon Container
-      kind: FalconContainer
-      name: falconcontainers.falcon.crowdstrike.com
-      specDescriptors:
-      - description: Falcon OAuth2 API Client ID
-        displayName: Client ID
-        path: falcon_api.client_id
-      - description: Falcon OAuth2 API Client Secret
-        displayName: Client Secret
-        path: falcon_api.client_secret
-      - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
-          the operator will connect and register.
-        displayName: CrowdStrike Falcon Cloud Region
-        path: falcon_api.cloud_region
-      - description: Falcon Customer ID (CID) Override (optional, default is derived
-          from the API Key pair)
-        displayName: Falcon Customer ID (CID)
-        path: falcon_api.cid
-      version: v1alpha1
     - description: FalconNodeSensor is the Schema for the falconnodesensors API
       displayName: Falcon Node Sensor
       kind: FalconNodeSensor
