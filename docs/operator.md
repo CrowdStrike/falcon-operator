@@ -38,13 +38,13 @@ Please note that the following settings should not be configured when using the 
   apiVersion: operators.coreos.com/v1alpha1
   kind: Subscription
   metadata:
-    name: falcon-operator-v0-5-4-sub
+    name: falcon-operator-v0-5-5-sub
   spec:
     channel: alpha
     name: falcon-operator
     source: community-operators
     sourceNamespace: openshift-marketplace
-    startingCSV: falcon-operator.v0.5.4
+    startingCSV: falcon-operator.v0.5.5
   EOF
   ```
 
