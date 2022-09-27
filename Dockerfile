@@ -27,8 +27,16 @@ RUN make container-build
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+FROM registry.access.redhat.com/ubi8/ubi-minimal
 WORKDIR /
+LABEL name="CrowdStrike Falcon Operator" \
+      description="The CrowdStrike Falcon Operator deploys the CrowdStrike Falcon Sensor to protect Kubernetes clusters." \
+      maintainer="integrations@crowdstrike.com" \
+      summary="The CrowdStrike Falcon Operator" \
+      release="0" \
+      vendor="CrowdStrike, Inc" \
+      version="0.6.0"
+COPY LICENSE /licenses/
 COPY --from=builder /workspace/manager .
 USER 65532:65532
 
