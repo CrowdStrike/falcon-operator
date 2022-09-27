@@ -9,10 +9,6 @@ There are several ways to install and deploy the Falcon Operator. The guides bel
 
 The following are the preferred methods for installing for specific Kubernetes Distributions. Please use these over other methods installations.
 
- - [Deployment Guide for AKS/ACR](./deployment/azure/README.md)
- - [Deployment Guide for EKS/ECR](./deployment/eks/README.md)
- - [Deployment Guide for EKS Fargate](./deployment/eks-fargate/README.md))
- - [Deployment Guide for GKE/GCR](./deployment/gke/README.md)
  - [Deployment Guide for OpenShift](./deployment/openshift/README.md)
 
 ### Generic Installation and Deployment (Alternate)
@@ -38,7 +34,7 @@ Installation steps differ based on the Operator Life-cycle Manager (OLM) availab
    operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
    ```
 
-After the installation concludes, please proceed with deploying either the [Falcon Container Sensor](./cluster_resources/container/README.md) or [Falcon Node Sensor](./cluster_resources/node/README.md) Custom Resource.
+After the installation concludes, please proceed with deploying the [Falcon Node Sensor](./cluster_resources/node/README.md) Custom Resource.
 
 #### Uninstall Steps
 
@@ -113,32 +109,3 @@ and add something similar to the following lines:
             value: "falcon-operator"
 ```
 
-#### FalconContainer is stuck in the CONFIGURING Phase
-
-Make sure that the `WATCH_NAMESPACE` variable is correctly configured to be cluster-scoped and not namespace-scoped. If the
-controller manager's deployment has the following configuration:
-```
-        env:
-          - name: WATCH_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-```
-the operator is configured to be namespace-scoped and not cluster-scoped which is required for the FalconContainer CR.
-This problem can be fixed by running:
-```
-kubectl edit deployment falcon-operator-controller-manager -n falcon-operator
-```
-and changing `WATCH_NAMESPACE` to the following lines:
-```
-        env:
-          - name: WATCH_NAMESPACE
-            value: ''
-          - name: POD_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.name
-          - name: OPERATOR_NAME
-            value: "falcon-operator"
-```
-Once a new version of the controller manager has deployed, you may have to delete and recreate the FalconContainer CR.

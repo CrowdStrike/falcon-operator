@@ -1,6 +1,5 @@
 # Deployment Guide for OpenShift
-This document will guide you through the installation of falcon-operator and deployment of either the:
-- [FalconContainer](../../cluster_resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
+This document will guide you through the installation of falcon-operator and deployment of the:
 - [FalconNodeSensor](../../cluster_resources/node/README.md) custom resource to the cluster.
 
 You can choose to install the operator and custom resources through the [web console (GUI)](#installing-the-operator-through-the-web-console-gui) or through the [CLI](#installing-the-operator-through-the-cli).
@@ -55,22 +54,6 @@ If you want to automate the deployment of the operator, the CLI method is recomm
    3. Click `Create` to deploy the FalconNodeSensor Kind
 
 - If more configuration is needed for your organization or deployment, `Falcon Sensor Configuration` will provide additional ways to configure the CrowdStrike Falcon Sensor. `DaemonSet Configuration` provides more ways to configure deployment and behavior of the DaemonSet including the ability to deploy the sensor without having to use the CrowdStrike API.
-
-### Deploy the Sidecar Sensor
-
-- To deploy the Falon Sidecar Sensor, click `Create Instance` for the `Falcon Container` Kind under the `Provided APIs` for the Falcon Operator.
-
-   ![OpenShift CrowdStrike Falcon Sidecar Sensor](images/ocp-fcs.png)
-
-- If using the CrowdStrike API method which connects to the CrowdStrike cloud and will attempt to discover your Falcon Customer ID as well as download the Falcon Sensor container image, make sure that you have a new [CrowdStrike API key pair](#prerequisites) before continuing.
-
-   ![OpenShift CrowdStrike Falcon Sidecar Sensor](images/ocp-fcsinstall.png)
-
-   1. Replace with your CrowdStrike API Client ID value
-   2. Replace with your CrowdStrike API Client Secret value
-   3. Click `Create` to deploy the FalconContainer Kind
-
-- If more configuration is needed for your organization or deployment, `Installer Args` will provide additional ways to configure and deploy the CrowdStrike Falcon Sensor.
 
 ## Installing the operator through the CLI
 
@@ -176,13 +159,6 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
   oc create -n falcon-system -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
 
-### Deploy the Sidecar Sensor
-
-- Deploy FalconContainer through the cli using the `oc` command:
-  ```
-  oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/falconcontainer.yaml --edit=true
-  ```
-
 ## Uninstalling
 
 When uninstalling the operator, it is important to make sure to uninstall the deployed custom resources first *before* you uninstall the operator.
@@ -204,16 +180,6 @@ This will insure proper cleanup of the resources.
 
    ![OpenShift CrowdStrike Node Sensor Uninstall](images/ocp-nodedel.png)
 
-#### Uninstall the Sidecar Sensor
-
-- Click on the `CrowdStrike Falcon Platform - Operator` listing, followed by clicking on the `Falcon Container` tab.
-
-   ![OpenShift CrowdStrike Sidecar Uninstall](images/ocp-containertab.png)
-
-- On the deployed `FalconContainer` Kind, click the 3 vertical dot action menu on the far right, and click `Delete FalconContainer`.
-
-   ![OpenShift CrowdStrike Sidecar Uninstall](images/ocp-containerdel.png)
-
 #### Uninstall the Operator
 
 - In the list of `Installed Operators`, click the 3 vertical dot action menu on the far right of the `CrowdStrike Falcon Platform - Operator` listing, and click `Uninstall Operator`.
@@ -229,13 +195,6 @@ This will insure proper cleanup of the resources.
 - To uninstall the node sensor, simply remove the FalconNodeSensor resource.
   ```
   oc delete falconnodesensor -A --all
-  ```
-
-#### Uninstall the Sidecar Sensor
-
-- To uninstall Falcon Container simply remove FalconContainer resource. The operator will uninstall Falcon Container product from the cluster.
-  ```
-  oc delete falconcontainers.falcon.crowdstrike.com default
   ```
 
 #### Uninstall the Operator

@@ -11,18 +11,17 @@
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator)
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator-bundle/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator-bundle)
 
-The CrowdStrike Falcon Operator installs the CrowdStrike Falcon Container Sensor or CrowdStrike Falcon Node Sensor on a Kubernetes cluster.
+The CrowdStrike Falcon Operator installs the CrowdStrike Falcon Node Sensor on a Kubernetes cluster.
 
 The CrowdStrike Falcon Operator is an open source project and not a CrowdStrike product. As such, it carries no formal support, expressed, or implied.
 
 ## About the CrowdStrike Falcon Operator
-The CrowdStrike Falcon Operator deploys CrowdStrike Falcon Workload Protection to the cluster. The operator exposes 2 custom resources that allows you to deploy either the Falcon Container Sensor or Falcon Node Sensor.
+The CrowdStrike Falcon Operator deploys CrowdStrike Falcon Workload Protection to the cluster. The operator exposes 2 custom resources that allows you to deploy the Falcon Falcon Node Sensor.
 
 ## About Custom Resources
 
 | Custom Resource                                               | Description                                                      |
 | :--------                                                     | :------------                                                    |
-| [FalconContainer](docs/cluster_resources/container/README.md) | Manages installation of Falcon Container Sensor on the cluster   |
 | [FalconNodeSensor](docs/cluster_resources/node/README.md)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
 
 ## Installation and Deployment
@@ -46,5 +45,4 @@ All bugs, tasks or enhancements are tracked as [GitHub issues](https://github.co
  - CrowdStrike Container Security: [Product Page](https://www.crowdstrike.com/products/cloud-security/falcon-cloud-workload-protection/container-security/)
  - So You Think Your Containers Are Secure? Four Steps to Ensure a Secure Container Deployment: [Blog Post](https://www.crowdstrike.com/blog/four-steps-to-ensure-a-secure-containter-deployment/)
  - Container Security With CrowdStrike: [Blog Post](https://www.crowdstrike.com/blog/tech-center/container-security/)
- - To learn more about Falcon Container Sensor for Linux: [Deployment Guide](https://falcon.crowdstrike.com/support/documentation/146/falcon-container-sensor-for-linux), [Release Notes](https://falcon.crowdstrike.com/support/news/release-notes-falcon-container-sensor-for-linux)
  - [Developer Documentation](docs/developer_guide.md)
