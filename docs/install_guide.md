@@ -27,7 +27,7 @@ Installation steps differ based on the Operator Life-cycle Manager (OLM) availab
 ##### Non-OLM Installation
  - If your cluster **is not** using OLM (Operator Life-cycle Manager), run:
    ```
-   kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+   kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
    ```
 
 ##### Operator Life-cycle Manager (OLM) Installation
@@ -55,7 +55,7 @@ Before removing Falcon Operator from the cluster, make sure to remove the custom
 
  - To uninstall Falcon Operator when OLM is not in use, run:
    ```
-   kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+   kubectl delete -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
    ```
 
 ### Other Installation Methods (Alternate)
@@ -87,6 +87,15 @@ kubectl -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c 
 ```
 
 ### Operator Issues
+
+#### Resources stuck in PodInitializing state indefinitely
+
+If a cluster-wide nodeSelector policy is in place, this must be disabled in the namespaces that the sensors are deployed.
+
+For example, on OpenShift:
+```
+oc annotate ns falcon-operator openshift.io/node-selector=""
+```
 
 #### ERROR setup failed to get watch namespace
 

@@ -80,6 +80,11 @@ If you want to automate the deployment of the operator, the CLI method is recomm
   oc login --token=sha256~abcde-ABCDE-1 --server=https://openshift.example.com
   ```
 
+- If you are not installing the Falcon Operator in the `openshift-operators` namespace, create either the `falcon-operator` namespace or a desired custom namespace:
+  ```
+  oc new-project falcon-operator
+  ```
+
 - Verify that the Falcon Operator exists in the cluster's OperatorHub
   ```
   oc get packagemanifests -n openshift-marketplace | grep falcon
@@ -96,9 +101,29 @@ If you want to automate the deployment of the operator, the CLI method is recomm
   Important information from the package manifest output such as the `defaultChannel`, `catalogSource`, `catalogSourceNamespace`, and `currentCSV` are used to create a `Subscription` Kind in a yaml file (next steps) to have OpenShift install the operator from the cluster's marketplace.
   You can install either the [Community version of the Operator](#installing-the-community-operator-from-the-local-operatorhub) or the official [Red Hat Marketplace certified version of the operator](#installing-the-red-hat-marketplace-operator-from-the-local-operatorhub).
 
+### Creating an OperatorGroup
+
+- If using a custom namespace or the `falcon-operator` namespace, you will need to create an `OperatorGroup`:
+  ```
+  cat << EOF >> operatorgroup.yaml
+  apiVersion: operators.coreos.com/v1
+  kind: OperatorGroup
+  metadata:
+    name: falcon-operator
+  spec:
+    targetNamespaces:
+    - MYNAMESPACE
+  EOF
+  ```
+  Replace `MYNAMESPACE` with the namespace that you will be deploying the node sensor. See [Deploying the Node Sensor to a custom Namespace](#deploying-the-node-sensor-to-a-custom-namespace). Otherwise, replace `MYNAMESPACE` with the `falcon-operator` namespace and create the OperatorGroup.
+  ```
+  oc create -f operatorgroup.yaml -n falcon-operator
+  ```
+  An [example OperatorGroup for you to modify is available](https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/operatorgroup.yaml)
+
 ### Installing the Red Hat Marketplace Operator from the Console OperatorHub
 
-- Create a subscription `yaml` file to install the official Red Hat Marketplace certified operator (`redhat-marketplace`). In this example, version 0.5.4 of the certified operator will be installed via the `Subscription` Kind:
+- Create a subscription `yaml` file to install the official Red Hat Marketplace certified operator (`redhat-marketplace`). In this example, version 0.6.0 of the certified operator will be installed via the `Subscription` Kind:
   ```
   cat << EOF >> subscription.yaml
   apiVersion: operators.coreos.com/v1alpha1
@@ -107,17 +132,17 @@ If you want to automate the deployment of the operator, the CLI method is recomm
     name: falcon-operator
   spec:
     channel: alpha
-    name: falcon-operator
+    name: falcon-operator-rhmp
     source: redhat-marketplace
     sourceNamespace: openshift-marketplace
-    startingCSV: falcon-operator.v0.5.4
+    startingCSV: falcon-operator.v0.6.0
   EOF
   ```
-  An [example subscription of the official Red Hat Marketplace certified operator is available](https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/redhat-marketplace.yaml) to use and modify as appropriate for your cluster. Make sure to update the `startingCSV: falcon-operator.v0.5.4` for the version that is listed locally on your cluster.
+  An [example subscription of the official Red Hat Marketplace certified operator is available](https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/redhat-marketplace.yaml) to use and modify as appropriate for your cluster. Make sure to update the `startingCSV: falcon-operator.v0.6.0` for the version that is listed locally on your cluster.
 
 ### Installing the Community Operator from the Console OperatorHub
 
-- Create a subscription `yaml` file to install the Community operator (`community-operators`). In this example, version 0.5.4 of the community operator will be installed via the `Subscription` Kind:
+- Create a subscription `yaml` file to install the Community operator (`community-operators`). In this example, version 0.5.5 of the community operator will be installed via the `Subscription` Kind:
   ```
   cat << EOF >> subscription.yaml
   apiVersion: operators.coreos.com/v1alpha1
@@ -129,10 +154,10 @@ If you want to automate the deployment of the operator, the CLI method is recomm
     name: falcon-operator
     source: community-operators
     sourceNamespace: openshift-marketplace
-    startingCSV: falcon-operator.v0.5.4
+    startingCSV: falcon-operator.v0.5.5
   EOF
   ```
-  An [example subscription of the community operator is available](https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/community-subscription.yaml) to use and modify as appropriate for your cluster. Make sure to update the `startingCSV: falcon-operator.v0.5.4` for the version that is listed locally on your cluster.
+  An [example subscription of the community operator is available](https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/community-subscription.yaml) to use and modify as appropriate for your cluster. Make sure to update the `startingCSV: falcon-operator.v0.5.5` for the version that is listed locally on your cluster.
 
 ### Deploy the operator
 

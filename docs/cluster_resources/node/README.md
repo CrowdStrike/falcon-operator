@@ -49,7 +49,7 @@ spec:
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
 | falcon_api.client_id                | (optional) CrowdStrike API Client ID                                                                                                      |
 | falcon_api.client_secret            | (optional) CrowdStrike API Client Secret                                                                                                  |
-| falcon_api.client_region            | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                            |
+| falcon_api.cloud_region             | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                            |
 | falcon_api.cid                      | (optional) CrowdStrike Falcon CID API override                                                                                            |
 
 #### Node Configuration Settings

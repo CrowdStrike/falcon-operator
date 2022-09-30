@@ -15,7 +15,7 @@ This document will guide you through the installation of falcon-operator and dep
 - Either spin up an GKE Kubernetes cluster or use one that already exists.
 - Install the operator
   ```
-  kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+  kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
 
 ### Deploy the Node Sensor
@@ -128,7 +128,7 @@ This will insure proper cleanup of the resources.
 
 - To uninstall Falcon Operator, delete the deployment:
   ```
-  kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+  kubectl delete -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
 
 ## GKE Node Upgrades
