@@ -16,6 +16,7 @@ data:
 kind: ConfigMap
 metadata:
   name: falcon-operator
+  namespace: falcon-operator
 ---
 apiVersion: apps/v1
 kind: Deployment
