@@ -22,20 +22,72 @@ spec:
       kind: FalconContainer
       name: falconcontainers.falcon.crowdstrike.com
       specDescriptors:
+      - description: FalconAPI configures connection from your local Falcon operator
+          to CrowdStrike Falcon platform.
+        displayName: Falcon Platform API Configuration
+        path: falcon_api
       - description: Falcon OAuth2 API Client ID
         displayName: Client ID
         path: falcon_api.client_id
+      - description: Define annotations that will be passed down to injector service
+          account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
+        displayName: Service Account Configuration
+        path: injector.serviceAccount
+      - description: Define annotations that will be passed down to the Service Account.
+          This is useful for passing along AWS IAM Role or GCP Workload Identity.
+        displayName: Service Account Name
+        path: injector.serviceAccount.name
+      - displayName: Falcon Container Injector TLS Validity Length (days)
+        path: injector.tls.validity
       - description: Falcon OAuth2 API Client Secret
         displayName: Client Secret
         path: falcon_api.client_secret
+      - displayName: Falcon Container Injector Listen Port
+        path: injector.listenPort
+      - displayName: Falcon Container Injector TLS Verification
+        path: injector.tls.insecureSkipVerify
+      - description: Registry configures container image registry to which the Falcon
+          Container image will be pushed
+        displayName: Falcon Container Image Registry Configuration
+        path: registry
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falcon_api.cloud_region
+      - description: Injector represents additional configuration for Falcon Container
+          Injector
+        displayName: Falcon Container Injector Configuration
+        path: injector
+      - displayName: Falcon Container Injector TLS Configuration
+        path: injector.tls
       - description: Falcon Customer ID (CID) Override (optional, default is derived
           from the API Key pair)
         displayName: Falcon Customer ID (CID)
         path: falcon_api.cid
+      - displayName: Falcon Container Image Pull Policy
+        path: injector.imagePullPolicy
+      - description: Falcon Container Version. The latest version will be selected
+          when version specifier is missing.
+        displayName: Falcon Container Image Version
+        path: version
+      - displayName: Falcon Container Image Pull Secret Name
+        path: injector.imagePullSecret
+      - displayName: Falcon Container Shared Log Volume
+        path: injector.logVolume
+      - displayName: Falcon Container Injector Resources
+        path: injector.resources
+      - displayName: Falcon Container Sensor Resources
+        path: injector.sensorResources
+      - displayName: Falconctl Opts options
+        path: injector.falconctlOpts
+      - displayName: Falcon Container Additional Environment Variables
+        path: injector.additionalEnvironmentVariables
+      - displayName: Disable Default Namespace Injection
+        path: injector.disableDefaultNamespaceInjection
+      - displayName: Disable Default Pod Injection
+        path: injector.disableDefaultPodInjection
+      - displayName: Annotations
+        path: injector.serviceAccount.annotations
       version: v1alpha1
     - description: FalconNodeSensor is the Schema for the falconnodesensors API
       displayName: Falcon Node Sensor

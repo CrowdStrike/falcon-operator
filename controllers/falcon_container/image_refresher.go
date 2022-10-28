@@ -1,6 +1,4 @@
-package falcon_container
-
-// TODO: logging
+package falcon
 
 import (
 	"context"

@@ -1,11 +1,13 @@
 package common
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"regexp"
 	"strings"
 
-	sprigcrypto "github.com/crowdstrike/falcon-operator/pkg/sprig"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -46,38 +48,6 @@ func FCAdmissionReviewVersions() []string {
 	return fcArv
 }
 
-func GenCert(cn string, ips []interface{}, alternateDNS []interface{}, validity int, ca sprigcrypto.Certificate) sprigcrypto.Certificate {
-	certs, err := sprigcrypto.GenerateSignedCertificate(cn, ips, alternateDNS, validity, ca)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	return certs
-}
-
-func GenCA(cn string, validity int) sprigcrypto.Certificate {
-	ca, err := sprigcrypto.GenerateCertificateAuthority(cn, validity)
-	if err != nil {
-		panic(err.Error())
-	}
-	return ca
-}
-
-func EncodedBase64String(data string) []byte {
-	base64EncodedData := make([]byte, base64.StdEncoding.EncodedLen(len(data)))
-	base64.StdEncoding.Encode(base64EncodedData, []byte(data))
-	return base64EncodedData
-}
-
-func CleanDecodedBase64(s []byte) []byte {
-	re := regexp.MustCompile(`[\t|\n]*`)
-	b64byte, err := base64.StdEncoding.DecodeString(string(s))
-	if err != nil {
-		return []byte(re.ReplaceAllString(string(s), ""))
-	}
-	return []byte(re.ReplaceAllString(string(b64byte), ""))
-}
-
 func GetKubernetesVersion() *version.Info {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
@@ -96,4 +66,38 @@ func GetKubernetesVersion() *version.Info {
 	}
 
 	return version
+}
+
+func EncodedBase64String(data string) []byte {
+	base64EncodedData := make([]byte, base64.StdEncoding.EncodedLen(len(data)))
+	base64.StdEncoding.Encode(base64EncodedData, []byte(data))
+	return base64EncodedData
+}
+
+func EncodeBase64Interface(i interface{}) (string, error) {
+	buf := bytes.Buffer{}
+	b64enc := base64.NewEncoder(base64.StdEncoding, &buf)
+	if err := json.NewEncoder(b64enc).Encode(i); err != nil {
+		return "", fmt.Errorf("failed to convert to base64 encoding: %v", err)
+	}
+	if err := b64enc.Close(); err != nil {
+		return "", fmt.Errorf("failed to close base64 encoder: %v", err)
+	}
+	return buf.String(), nil
+}
+
+func CleanDecodedBase64(s []byte) []byte {
+	re := regexp.MustCompile(`[\t|\n]*`)
+	b64byte, err := base64.StdEncoding.DecodeString(string(s))
+	if err != nil {
+		return []byte(re.ReplaceAllString(string(s), ""))
+	}
+	return []byte(re.ReplaceAllString(string(b64byte), ""))
+}
+
+func MapCopy(src map[string]string, dst map[string]string) map[string]string {
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
 }
