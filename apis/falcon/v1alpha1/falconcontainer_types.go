@@ -95,10 +95,13 @@ type FalconContainerInjectorTLS struct {
 	// +kubebuilder:validation:Pattern="^[0-9]{1-4}$"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Injector TLS Validity Length (days)",order=1
 	Validity *int `json:"validity,omitempty"`
-	// +kubebuilder:default=false
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Injector TLS Verification",order=2
-	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
 }
+
+const (
+	PhaseReconciling FalconContainerStatusPhase = "RECONCILING"
+	PhaseError       FalconContainerStatusPhase = "ERROR"
+	PhaseDone        FalconContainerStatusPhase = "DONE"
+)
 
 // Represents the status of Falcon deployment
 type FalconContainerStatusPhase string

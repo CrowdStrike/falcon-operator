@@ -66,20 +66,23 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	r.Log.Info("Reconciling Namespace")
 	if _, err = r.reconcileNamespace(ctx, falconContainer); err != nil {
-		return ctrl.Result{}, err
+		r.Error(ctx, falconContainer, fmt.Sprintf("failed to reconcile namespace: %v", err))
+		return ctrl.Result{}, fmt.Errorf("failed to reconcile namespace: %v", err)
 	}
 
 	switch falconContainer.Spec.Registry.Type {
 	case v1alpha1.RegistryTypeECR:
 		r.Log.Info("Reconciling ECR Repository")
 		if _, err := r.UpsertECRRepo(ctx); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to create ECR repository: %v", err)
+			r.Error(ctx, falconContainer, fmt.Sprintf("failed to reconcile ECR repository: %v", err))
+			return ctrl.Result{}, fmt.Errorf("failed to reconcile ECR repository: %v", err)
 		}
 	case v1alpha1.RegistryTypeOpenshift:
 		r.Log.Info("Reconciling Image Stream")
 		stream, err := r.reconcileImageStream(ctx, falconContainer)
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to create Image Stream")
+			r.Error(ctx, falconContainer, fmt.Sprintf("failed to reconcile Image Stream: %v", err))
+			return ctrl.Result{}, fmt.Errorf("failed to reconcile Image Stream")
 		}
 		if stream == nil {
 			return ctrl.Result{}, nil
@@ -88,6 +91,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if r.imageMirroringEnabled(falconContainer) {
 		r.Log.Info("Verifying image availability in remote registry")
 		if err = r.PushImage(ctx, falconContainer); err != nil {
+			r.Error(ctx, falconContainer, fmt.Sprintf("failed to refresh Falcon Container image: %v", err))
 			return ctrl.Result{}, fmt.Errorf("cannot refresh Falcon Container image: %v", err)
 		}
 	} else {
@@ -97,64 +101,77 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{}, nil
 		}
 		if err != nil {
+			r.Error(ctx, falconContainer, fmt.Sprintf("failed to verify CrowdStrike Container Image Registry access: %v", err))
 			return ctrl.Result{}, fmt.Errorf("failed to verify CrowdStrike Container Image Registry access")
 		}
 		r.Log.Info("Reconciling Container Registry pull token Secrets")
 		if _, err = r.reconcileRegistrySecrets(ctx, falconContainer); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to create Falcon registry pull token Secrets: %v", err)
+			r.Error(ctx, falconContainer, fmt.Sprintf("failed to reconcile Falcon registry pull token Secrets: %v", err))
+			return ctrl.Result{}, fmt.Errorf("failed to reconcile Falcon registry pull token Secrets: %v", err)
 		}
 	}
 
 	r.Log.Info("Reconciling ServiceAccount")
 	if _, err = r.reconcileServiceAccount(ctx, falconContainer); err != nil {
+		r.Error(ctx, falconContainer, fmt.Sprintf("failed to reconcile Service Account: %v", err))
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile Service Account: %v", err)
 	}
 
 	r.Log.Info("Reconciling Cluster Role")
 	if _, err = r.reconcileClusterRole(ctx, falconContainer); err != nil {
+		r.Error(ctx, falconContainer, fmt.Sprintf("failed to reconcile Cluster Role: %v", err))
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile Cluster Role: %v", err)
 	}
 
 	r.Log.Info("Reconciling Cluster Role Binding")
 	if _, err = r.reconcileClusterRoleBinding(ctx, falconContainer); err != nil {
+		r.Error(ctx, falconContainer, fmt.Sprintf("failed to reconcile Cluster Role Binding: %v", err))
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile Cluster Role Binding: %v", err)
 	}
 
 	r.Log.Info("Reconciling injector webhook TLS Secret")
 	injectorTLS, err := r.reconcileInjectorTLSSecret(ctx, falconContainer)
 	if err != nil {
+		r.Error(ctx, falconContainer, fmt.Sprintf("failed to reconcile injector TLS Secret: %v", err))
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile injector TLS Secret: %v", err)
 	}
 	caBundle := injectorTLS.Data["ca.crt"]
 	if caBundle == nil {
+		r.Error(ctx, falconContainer, fmt.Sprintf("CA bundle not present in injector TLS Secret"))
 		return ctrl.Result{}, fmt.Errorf("CA bundle not present in injector TLS Secret")
 	}
 
 	r.Log.Info("Reconciling injector ConfigMap")
 	if _, err = r.reconcileConfigMap(ctx, falconContainer); err != nil {
+		r.Error(ctx, falconContainer, fmt.Sprintf("failed to reconcile injector ConfigMap: %v", err))
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile injector ConfigMap: %v", err)
 	}
 
 	r.Log.Info("Reconciling injector Deployment")
 	if _, err = r.reconcileDeployment(ctx, falconContainer); err != nil {
+		r.Error(ctx, falconContainer, fmt.Sprintf("failed to reconcile injector Deployment: %v", err))
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile injector Deployment: %v", err)
 	}
 
 	r.Log.Info("Reconciling injector Service")
 	if _, err = r.reconcileService(ctx, falconContainer); err != nil {
+		r.Error(ctx, falconContainer, fmt.Sprintf("failed to reconcile injector Service: %v", err))
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile injector Service: %v", err)
 	}
 
 	r.Log.Info("Ensuring injector pod is in Ready state")
 	if _, err = r.injectorPodReady(ctx, falconContainer); err != nil {
+		r.Error(ctx, falconContainer, fmt.Sprintf("failed to find Ready injector pod: %v", err))
 		return ctrl.Result{}, fmt.Errorf("failed to find Ready injector pod: %v", err)
 	}
 
 	r.Log.Info("Reconciling injector Mutating Webhook Configuration")
 	if _, err = r.reconcileWebhook(ctx, falconContainer, caBundle); err != nil {
+		r.Error(ctx, falconContainer, fmt.Sprintf("failed to reconcile injector MutatingWebhookConfiguration: %v", err))
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile injector MutatingWebhookConfiguration: %v", err)
 	}
 
+	r.UpdateStatus(ctx, falconContainer, v1alpha1.PhaseDone)
 	return ctrl.Result{}, nil
 
 }
@@ -164,9 +181,11 @@ func (r *FalconContainerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.FalconContainer{}).
 		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.Namespace{}).
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
+		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&arv1.MutatingWebhookConfiguration{}).

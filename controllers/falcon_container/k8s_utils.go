@@ -22,6 +22,7 @@ func (r *FalconContainerReconciler) Create(ctx context.Context, falconContainer 
 		}
 		gvk := t.GetObjectKind().GroupVersionKind()
 		r.Log.Info(fmt.Sprintf("Creating Falcon Container object %s %s in namespace %s", gvk.Kind, name, namespace))
+		r.UpdateStatus(ctx, falconContainer, v1alpha1.PhaseReconciling)
 		err := r.Client.Create(ctx, t)
 		if err != nil {
 			if errors.IsAlreadyExists(err) {
@@ -52,6 +53,7 @@ func (r *FalconContainerReconciler) Update(ctx context.Context, falconContainer 
 		}
 		gvk := t.GetObjectKind().GroupVersionKind()
 		r.Log.Info(fmt.Sprintf("Updating Falcon Container object %s %s in namespace %s", gvk.Kind, name, namespace))
+		r.UpdateStatus(ctx, falconContainer, v1alpha1.PhaseReconciling)
 		err := r.Client.Update(ctx, t)
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -81,6 +83,7 @@ func (r *FalconContainerReconciler) Delete(ctx context.Context, falconContainer 
 		}
 		gvk := t.GetObjectKind().GroupVersionKind()
 		r.Log.Info(fmt.Sprintf("Deleting Falcon Container object %s %s in namespace %s", gvk.Kind, name, namespace))
+		r.UpdateStatus(ctx, falconContainer, v1alpha1.PhaseReconciling)
 		err := r.Client.Delete(ctx, t)
 		if err != nil {
 			if errors.IsNotFound(err) {
