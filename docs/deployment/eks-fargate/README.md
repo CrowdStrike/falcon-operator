@@ -93,8 +93,9 @@ The following step-by-step guide uses `aws`, `eksctl` and `kubectl` command-line
   Add Role ARN to your FalconContainer yaml file:
   ```
     injector:
-      sa_annotations:
-        eks.amazonaws.com/role-arn: arn:aws:iam::12345678910:role/eksctl-demo-cluster-addon-iamservic-Role1-J78KUNY32R1
+      serviceAccount:
+        annotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::12345678910:role/eksctl-demo-cluster-addon-iamservic-Role1-J78KUNY32R1
   ```
   and then re-deploy 
   ```

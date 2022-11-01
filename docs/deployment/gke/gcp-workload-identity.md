@@ -59,8 +59,9 @@ The following step-by-step guide uses `gcloud`, and `kubectl` command-line tools
   ```
   spec:
     injector:
-      sa_annotations:
-        iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
+      serviceAccount:
+        annotations:
+          iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
   ```
   
   (don't forget to replace the service account name template with actual name)
