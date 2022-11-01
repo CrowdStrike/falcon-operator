@@ -82,7 +82,7 @@ func TestDsUpdateStrategy(t *testing.T) {
 
 func TestDaemonset(t *testing.T) {
 	falconNode := v1alpha1.FalconNodeSensor{}
-	falconNode.Namespace = "test"
+	falconNode.Namespace = "falcon-system"
 	falconNode.Name = "test"
 	image := "testImage"
 	dsName := "test-DaemonSet"
@@ -100,7 +100,7 @@ func TestDaemonset(t *testing.T) {
 	want := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-DaemonSet",
-			Namespace: "test",
+			Namespace: falconNode.Namespace,
 			Labels: map[string]string{
 				common.FalconInstanceNameKey: "test-DaemonSet",
 				common.FalconInstanceKey:     common.FalconKernelSensor,
@@ -126,8 +126,6 @@ func TestDaemonset(t *testing.T) {
 			UpdateStrategy: dsUpdateStrategy(&falconNode),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "",
-					Namespace: "",
 					Labels: map[string]string{
 						common.FalconInstanceNameKey: "test-DaemonSet",
 						common.FalconInstanceKey:     common.FalconKernelSensor,
@@ -224,7 +222,7 @@ func TestDaemonset(t *testing.T) {
 
 func TestRemoveNodeDirDaemonset(t *testing.T) {
 	falconNode := v1alpha1.FalconNodeSensor{}
-	falconNode.Namespace = "test"
+	falconNode.Namespace = "falcon-system"
 	falconNode.Name = "test"
 	image := "testImage"
 	dsName := "test-DaemonSet"
