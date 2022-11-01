@@ -14,18 +14,29 @@ spec:
     # (optional, default is derived from the API Key pair)
     cid: 00001111222233334444555566667777-12
   injector:
-    sa_annotations:
-      # These are just examples, you wouldn't combine AWS & GKE roles at once
-      eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/iam-role-name
-      iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
-      annotation2: annotation-value
+    serviceAccount:
+      name: default
+      annotations:
+        # These are just examples, you wouldn't combine AWS & GKE roles at once
+        eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/iam-role-name
+        iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
+        annotation2: annotation-value
+    falconctlOpts: '--apd=disabled --tags=test-cluster,tags1,tags2'
+    disableDefaultNamespaceInjection: true
+    disableDefaultPodInjection: false
+    imagePullPolicy: Always
+    imagePullSecret: your-pre-created-secret
+    listenPort: 4433
+    sensorResources:
+      limits:
+        cpu: 500m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 50Mi
   registry:
     type: acr
     acr_name: falcon-sensor-repo
     tls:
       insecure_skip_verify: false
-  installer_args:
-    - '-falconctl-opts'
-    - '--tags=test-cluster,tags1,tags2 --apd=disabled'
-    - '-disable-default-ns-injection'
   version: 1.2.3.tagname
