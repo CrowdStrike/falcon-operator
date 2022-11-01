@@ -10,6 +10,7 @@ require (
 	github.com/crowdstrike/gofalcon v0.2.21
 	github.com/go-logr/logr v1.2.3
 	github.com/onsi/ginkgo v1.16.5
+	github.com/onsi/ginkgo/v2 v2.1.3
 	github.com/onsi/gomega v1.19.0
 	github.com/openshift/api v0.0.0-20220630121623-32f1d77b9f50
 	k8s.io/api v0.24.2
