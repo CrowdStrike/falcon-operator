@@ -37,9 +37,12 @@ jobs:
     - name: Get Go dependencies
       run: go get -v -t -d ./...
 
+    - name: Run tests
+      run: make test
+
     - name: Build
       run: |
-        make all
+        make build
 
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v3
