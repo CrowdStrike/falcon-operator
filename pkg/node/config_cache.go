@@ -27,7 +27,10 @@ func (cc *ConfigCache) CID() string {
 }
 
 func (cc *ConfigCache) UsingCrowdStrikeRegistry() bool {
-	return cc.nodesensor.Spec.Node.ImageOverride == "" && os.Getenv("RELATED_IMAGE_NODE_SENSOR") == ""
+	if cc.nodesensor.Spec.Node.ImageOverride == "" && cc.nodesensor.Spec.FalconAPI == nil {
+		return os.Getenv("RELATED_IMAGE_NODE_SENSOR") == ""
+	}
+	return cc.nodesensor.Spec.Node.ImageOverride == ""
 }
 
 func (cc *ConfigCache) GetImageURI(ctx context.Context) (string, error) {
@@ -106,7 +109,7 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 	}
 
 	nodeImage := os.Getenv("RELATED_IMAGE_NODE_SENSOR")
-	if nodeImage != "" {
+	if nodeImage != "" && nodesensor.Spec.FalconAPI == nil {
 		return nodeImage, nil
 	}
 
@@ -130,4 +133,12 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 	}
 
 	return fmt.Sprintf("%s:%s", imageUri, imageTag), nil
+}
+
+func ConfigCacheTest(cid string, imageUri string, nodeTest *falconv1alpha1.FalconNodeSensor) *ConfigCache {
+	return &ConfigCache{
+		cid:        cid,
+		imageUri:   imageUri,
+		nodesensor: nodeTest,
+	}
 }
