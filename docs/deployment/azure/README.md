@@ -49,8 +49,8 @@ Image push secret is used by the operator to mirror Falcon Container image from 
  - Create kubernetes namespace for falcon-operator
 
    ```
-   export FALCON_SYSTEM_CONFIGURE=falcon-system-configure
-   kubectl create ns $FALCON_SYSTEM_CONFIGURE --dry-run=client -o yaml | kubectl apply -f -
+   export FALCON_SYSTEM=falcon-system
+   kubectl create ns $FALCON_SYSTEM --dry-run=client -o yaml | kubectl apply -f -
    ```
 
  - Create service principal in Azure for falcon-operator
@@ -70,7 +70,7 @@ Image push secret is used by the operator to mirror Falcon Container image from 
    # TODO backup docker config
    docker login ... # TODO: script login to your ACR registry
 
-   kubectl create secret generic builder --from-file=.dockerconfigjson=$HOME/.docker/config.json --type=kubernetes.io/dockerconfigjson -n $FALCON_SYSTEM_CONFIGURE
+   kubectl create secret generic builder --from-file=.dockerconfigjson=$HOME/.docker/config.json --type=kubernetes.io/dockerconfigjson -n $FALCON_SYSTEM
 
    # TODO restore docker config from the backup
    ```
