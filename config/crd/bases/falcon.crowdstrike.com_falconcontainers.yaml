@@ -1710,9 +1710,6 @@ spec:
                     type: object
                   tls:
                     properties:
-                      insecureSkipVerify:
-                        default: false
-                        type: boolean
                       validity:
                         pattern: ^[0-9]{1-4}$
                         type: integer

@@ -44,8 +44,6 @@ spec:
         path: falcon_api.client_secret
       - displayName: Falcon Container Injector Listen Port
         path: injector.listenPort
-      - displayName: Falcon Container Injector TLS Verification
-        path: injector.tls.insecureSkipVerify
       - description: Registry configures container image registry to which the Falcon
           Container image will be pushed
         displayName: Falcon Container Image Registry Configuration
