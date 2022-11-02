@@ -21,8 +21,11 @@ import (
 
 const (
 	injectorName          = "injector"
+	initContainerName     = "crowdstrike-falcon-init-container"
 	injectorConfigMapName = "injector-config"
 	injectorTLSSecretName = "injector-tls"
+	falconVolumeName      = "crowdstrike-falcon-volume"
+	falconVolumePath      = "/tmp/CrowdStrike"
 )
 
 var (
@@ -113,6 +116,9 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, fal
 
 func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContainer *v1alpha1.FalconContainer) *appsv1.Deployment {
 	imagePullSecrets := []corev1.LocalObjectReference{{Name: common.FalconPullSecretName}}
+	azureVolumeName := "azure-config"
+	azureVolumePath := "/run/azure.json"
+	hostPathFile := corev1.HostPathFile
 	if common.FalconPullSecretName != falconContainer.Spec.Injector.ImagePullSecretName {
 		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: falconContainer.Spec.Injector.ImagePullSecretName})
 	}
@@ -121,8 +127,59 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 		resources = falconContainer.Spec.Injector.Resources
 	}
 	var replicas int32 = 1
+	var rootUid int64 = 0
 	runNonRoot := true
-
+	initRunAsNonRoot := false
+	volumes := []corev1.Volume{
+		{
+			Name: injectorTLSSecretName,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: injectorTLSSecretName,
+				},
+			},
+		},
+		{
+			Name: falconVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+	}
+	initContainers := []corev1.Container{}
+	if falconContainer.Spec.Injector.AzureConfigPath != "" {
+		initContainers = append(initContainers, corev1.Container{
+			Name:            initContainerName,
+			ImagePullPolicy: falconContainer.Spec.Injector.ImagePullPolicy,
+			Image:           imageUri,
+			Command: []string{
+				"bash",
+				"-c",
+				"cp /run/azure.json /tmp/CrowdStrike/; chmod a+r /tmp/CrowdStrike/azure.json",
+			},
+			SecurityContext: &corev1.SecurityContext{
+				RunAsUser:    &rootUid,
+				RunAsNonRoot: &initRunAsNonRoot,
+				Privileged:   &initRunAsNonRoot,
+			},
+			VolumeMounts: []corev1.VolumeMount{{
+				Name:      falconVolumeName,
+				MountPath: falconVolumePath,
+			}, {
+				Name:      azureVolumeName,
+				MountPath: azureVolumePath,
+				ReadOnly:  true,
+			}},
+		})
+		volumes = append(volumes, corev1.Volume{
+			Name: azureVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: falconContainer.Spec.Injector.AzureConfigPath,
+					Type: &hostPathFile,
+				},
+			}})
+	}
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: appsv1.SchemeGroupVersion.String(),
@@ -168,6 +225,7 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsNonRoot: &runNonRoot,
 					},
+					InitContainers: initContainers,
 					Containers: []corev1.Container{
 						{
 							Name:            "falcon-sensor",
@@ -193,6 +251,11 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 								{
 									Name:      injectorTLSSecretName,
 									MountPath: "/run/secrets/tls",
+									ReadOnly:  true,
+								},
+								{
+									Name:      falconVolumeName,
+									MountPath: falconVolumePath,
 									ReadOnly:  true,
 								},
 							},
@@ -227,16 +290,7 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 							Resources: *resources,
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: injectorTLSSecretName,
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: injectorTLSSecretName,
-								},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 		},

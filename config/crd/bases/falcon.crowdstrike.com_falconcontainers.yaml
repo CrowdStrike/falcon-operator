@@ -88,6 +88,8 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  azureConfigPath:
+                    type: string
                   disableDefaultNamespaceInjection:
                     default: false
                     type: boolean

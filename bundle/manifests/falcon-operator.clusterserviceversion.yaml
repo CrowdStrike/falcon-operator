@@ -122,6 +122,8 @@ spec:
         path: injector.disableDefaultNamespaceInjection
       - displayName: Disable Default Pod Injection
         path: injector.disableDefaultPodInjection
+      - displayName: Azure Config file path
+        path: injector.azureConfigPath
       - displayName: Annotations
         path: injector.serviceAccount.annotations
       version: v1alpha1

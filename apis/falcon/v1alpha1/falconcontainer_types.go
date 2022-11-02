@@ -79,6 +79,9 @@ type FalconContainerInjectorSpec struct {
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Disable Default Pod Injection",order=12
 	DisableDefaultPodInjection bool `json:"disableDefaultPodInjection,omitempty"`
+
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Azure Config file path",order=13
+	AzureConfigPath string `json:"azureConfigPath,omitempty"`
 }
 
 type FalconContainerServiceAccount struct {
