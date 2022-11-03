@@ -47,26 +47,26 @@ func (r *FalconContainerReconciler) PushImage(ctx context.Context, falconContain
 }
 
 func (r *FalconContainerReconciler) verifyCrowdStrikeRegistry(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (bool, error) {
-	conditionName := "ImageReady"
-	condition := falconContainer.Status.GetCondition(conditionName)
-	if condition != nil && condition.Status == metav1.ConditionTrue {
-		return false, nil
+	if _, err := r.setImageTag(ctx, falconContainer); err != nil {
+		return false, fmt.Errorf("Cannot set Falcon Registry Tag: %s", err)
+	}
+	r.Log.Info("Skipping push of Falcon Container image to local registry. Remote CrowdStrike registry will be used.")
+
+	imageUri, err := r.imageUri(ctx, falconContainer)
+	if err != nil {
+		return false, fmt.Errorf("Cannot find Falcon Registry URI: %s", err)
 	}
 
-	r.Log.Info("Skipping push of Falcon Container image to local registry. Remote CrowdStrike registry will be user.")
-	registryUri, err := r.registryUri(ctx, falconContainer)
-	if err != nil {
-		return false, err
-	}
-	_, err = r.imageTag(ctx, falconContainer)
-	if err != nil {
-		return false, fmt.Errorf("Cannot find Falcon Registry Tag: %s", err)
+	conditionName := "ImageReady"
+	condition := falconContainer.Status.GetCondition(conditionName)
+	if condition != nil && condition.Status == metav1.ConditionTrue && condition.Message == imageUri {
+		return false, nil
 	}
 
 	falconContainer.Status.SetCondition(&metav1.Condition{
 		Type:    "ImageReady",
 		Status:  metav1.ConditionTrue,
-		Message: registryUri,
+		Message: imageUri,
 		Reason:  "Discovered",
 	})
 
@@ -83,7 +83,7 @@ func (r *FalconContainerReconciler) registryUri(ctx context.Context, falconConta
 			return "", err
 		}
 		if imageStream.Status.DockerImageRepository == "" {
-			return "", fmt.Errorf("Unable to find route to OpenShift on-cluster registry. Please verify that OpenShift on-cluster registry is up and running")
+			return "", fmt.Errorf("Unable to find route to OpenShift on-cluster registry. Please verify that OpenShift on-cluster registry is up and running.")
 		}
 
 		return imageStream.Status.DockerImageRepository, nil
@@ -122,17 +122,21 @@ func (r *FalconContainerReconciler) imageUri(ctx context.Context, falconContaine
 		return "", err
 	}
 
-	imageTag, err := r.imageTag(ctx, falconContainer)
+	imageTag, err := r.getImageTag(ctx, falconContainer)
 	if err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("%s:%s", registryUri, imageTag), nil
 }
 
-func (r *FalconContainerReconciler) imageTag(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (string, error) {
+func (r *FalconContainerReconciler) getImageTag(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (string, error) {
 	if falconContainer.Status.Version != nil && *falconContainer.Status.Version != "" {
 		return *falconContainer.Status.Version, nil
 	}
+	return "", fmt.Errorf("Unable to get falcon container version")
+}
+
+func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (string, error) {
 	registry, err := falcon_registry.NewFalconRegistry(ctx, r.falconApiConfig(ctx, falconContainer))
 	if err != nil {
 		return "", err
