@@ -23,7 +23,7 @@ func (r *FalconContainerReconciler) reconcileConfigMap(ctx context.Context, falc
 		return configMap, fmt.Errorf("unable to render expected configmap: %v", err)
 	}
 	existingConfigMap := &corev1.ConfigMap{}
-	err = r.Client.Get(ctx, types.NamespacedName{Name: injectorName, Namespace: r.Namespace()}, existingConfigMap)
+	err = r.Client.Get(ctx, types.NamespacedName{Name: injectorConfigMapName, Namespace: r.Namespace()}, existingConfigMap)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, configMap, r.Scheme); err != nil {
@@ -31,7 +31,7 @@ func (r *FalconContainerReconciler) reconcileConfigMap(ctx context.Context, falc
 			}
 			return configMap, r.Create(ctx, falconContainer, configMap)
 		}
-		return &corev1.ConfigMap{}, fmt.Errorf("unable to query existing config map %s: %v", injectorName, err)
+		return &corev1.ConfigMap{}, fmt.Errorf("unable to query existing config map %s: %v", injectorConfigMapName, err)
 	}
 	if reflect.DeepEqual(configMap.Data, existingConfigMap.Data) {
 		return existingConfigMap, nil

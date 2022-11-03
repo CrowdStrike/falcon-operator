@@ -119,9 +119,7 @@ func main() {
 				&rbacv1.ClusterRoleBinding{}: {
 					Label: labels.SelectorFromSet(containercontroller.FcLabels),
 				},
-				&corev1.ServiceAccount{}: {
-					Label: labels.SelectorFromSet(containercontroller.FcLabels),
-				},
+				&corev1.ServiceAccount{}: {},
 				&corev1.Service{}: {
 					Label: labels.SelectorFromSet(containercontroller.FcLabels),
 				},

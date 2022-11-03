@@ -78,7 +78,7 @@ func (r *FalconContainerReconciler) reconcileClusterRole(ctx context.Context, fa
 func (r *FalconContainerReconciler) reconcileClusterRoleBinding(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*rbacv1.ClusterRoleBinding, error) {
 	clusterRoleBinding := r.newClusterRoleBinding(falconContainer)
 	existingClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorClusterRoleName}, existingClusterRoleBinding)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorClusterRoleBindingName}, existingClusterRoleBinding)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, clusterRoleBinding, r.Scheme); err != nil {
@@ -86,7 +86,7 @@ func (r *FalconContainerReconciler) reconcileClusterRoleBinding(ctx context.Cont
 			}
 			return clusterRoleBinding, r.Create(ctx, falconContainer, clusterRoleBinding)
 		}
-		return &rbacv1.ClusterRoleBinding{}, fmt.Errorf("unable to query existing cluster role binding %s: %v", injectorClusterRoleName, err)
+		return &rbacv1.ClusterRoleBinding{}, fmt.Errorf("unable to query existing cluster role binding %s: %v", injectorClusterRoleBindingName, err)
 	}
 	// If the RoleRef changes, we need to re-create it
 	if !reflect.DeepEqual(clusterRoleBinding.RoleRef, existingClusterRoleBinding.RoleRef) {
@@ -94,11 +94,11 @@ func (r *FalconContainerReconciler) reconcileClusterRoleBinding(ctx context.Cont
 			return &rbacv1.ClusterRoleBinding{}, fmt.Errorf("unable to set controller reference on cluster role binding %s: %v", clusterRoleBinding.ObjectMeta.Name, err)
 		}
 		if err = r.Delete(ctx, falconContainer, existingClusterRoleBinding); err != nil {
-			return &rbacv1.ClusterRoleBinding{}, fmt.Errorf("unable to delete existing cluster role binding %s: %v", injectorClusterRoleName, err)
+			return &rbacv1.ClusterRoleBinding{}, fmt.Errorf("unable to delete existing cluster role binding %s: %v", injectorClusterRoleBindingName, err)
 		}
 		return clusterRoleBinding, r.Create(ctx, falconContainer, clusterRoleBinding)
 		// If RoleRef is the same but Subjects have changed, update the object and post to k8s api
-	} else if reflect.DeepEqual(clusterRoleBinding.Subjects, existingClusterRoleBinding.Subjects) {
+	} else if !reflect.DeepEqual(clusterRoleBinding.Subjects, existingClusterRoleBinding.Subjects) {
 		existingClusterRoleBinding.Subjects = clusterRoleBinding.Subjects
 		return existingClusterRoleBinding, r.Update(ctx, falconContainer, existingClusterRoleBinding)
 	}
