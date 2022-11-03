@@ -139,7 +139,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	caBundle := injectorTLS.Data["ca.crt"]
 	if caBundle == nil {
-		r.Error(ctx, req, falconContainer, fmt.Sprintf("CA bundle not present in injector TLS Secret"))
+		r.Error(ctx, req, falconContainer, "CA bundle not present in injector TLS Secret")
 		return ctrl.Result{}, fmt.Errorf("CA bundle not present in injector TLS Secret")
 	}
 
