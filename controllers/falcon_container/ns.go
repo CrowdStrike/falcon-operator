@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/common"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,8 +20,8 @@ const (
 
 var (
 	namespaceLabels = map[string]string{
-		"sensor.falcon-system.crowdstrike.com/injection": "disabled",
-		"kubernetes.io/metadata.name":                    "falcon-system",
+		common.FalconContainerInjection: "disabled",
+		"kubernetes.io/metadata.name":   "falcon-system",
 	}
 )
 
