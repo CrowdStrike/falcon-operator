@@ -1752,6 +1752,11 @@ spec:
                 description: Falcon Container Version. The latest version will be
                   selected when version specifier is missing.
                 type: string
+              versionPinning:
+                default: true
+                description: Falcon Container Version Pinning. If not set to false,
+                  once a sensor version is set, it is used until manually adjusted.
+                type: boolean
             required:
             - falcon_api
             type: object

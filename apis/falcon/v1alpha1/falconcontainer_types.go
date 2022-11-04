@@ -27,8 +27,13 @@ type FalconContainerSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Injector Configuration",order=3
 	Injector FalconContainerInjectorSpec `json:"injector,omitempty"`
 
+	// Falcon Container Version Pinning. If not set to false, once a sensor version is set, it is used until manually adjusted.
+	// +kubebuilder:default:=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version Pinning",order=4
+	VersionPinning bool `json:"versionPinning,omitempty"`
+
 	// Falcon Container Version. The latest version will be selected when version specifier is missing.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=4
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=5
 	Version *string `json:"version,omitempty"`
 }
 

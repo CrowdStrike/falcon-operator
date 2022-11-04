@@ -30,7 +30,12 @@ func (r *FalconContainerReconciler) PushImage(ctx context.Context, falconContain
 
 	r.Log.Info("Found secret for image push", "Secret.Name", pushAuth.Name())
 	image := NewImageRefresher(ctx, r.Log, r.falconApiConfig(ctx, falconContainer), pushAuth, falconContainer.Spec.Registry.TLS.InsecureSkipVerify)
-	falconImageTag, err := image.Refresh(registryUri, falconContainer.Spec.Version)
+	version := falconContainer.Spec.Version
+	// If we have version pinning enabled (as it is by deault), use the already configured version if present
+	if falconContainer.Spec.VersionPinning && falconContainer.Status.Version != nil && *falconContainer.Status.Version != "" {
+		version = falconContainer.Status.Version
+	}
+	falconImageTag, err := image.Refresh(registryUri, version)
 	if err != nil {
 		return err
 	}
@@ -137,6 +142,11 @@ func (r *FalconContainerReconciler) getImageTag(ctx context.Context, falconConta
 }
 
 func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (string, error) {
+	if falconContainer.Spec.VersionPinning {
+		if tag, err := r.getImageTag(ctx, falconContainer); err == nil {
+			return tag, err
+		}
+	}
 	registry, err := falcon_registry.NewFalconRegistry(ctx, r.falconApiConfig(ctx, falconContainer))
 	if err != nil {
 		return "", err
