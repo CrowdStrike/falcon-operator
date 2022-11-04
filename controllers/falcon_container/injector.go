@@ -81,7 +81,7 @@ func (r *FalconContainerReconciler) newInjectorTLSSecret(c []byte, k []byte, b [
 			"tls.key": k,
 			"ca.crt":  b,
 		},
-		Type: corev1.SecretTypeOpaque,
+		Type: corev1.SecretTypeTLS,
 	}
 }
 
