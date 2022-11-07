@@ -21,8 +21,8 @@ metadata:
       ]
     capabilities: Basic Install
     categories: Security,Monitoring
-    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:23b98d425ec656e041beb4c0e17a2629af3d5fedc70a76a9ad465ebd7fae2274
-    createdAt: "2022-09-20T16:56:02Z"
+    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:73183f965dea7e420874d1e77102c5def117d1837dace8affc264b003fa3abcb
+    createdAt: "2022-10-24T16:56:02Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     marketplace.openshift.io/remote-workflow: https://marketplace.redhat.com/en-us/operators/falcon-operator-rhmp/pricing?utm_source=openshift_console
     marketplace.openshift.io/support-workflow: https://marketplace.redhat.com/en-us/operators/falcon-operator-rhmp/support?utm_source=openshift_console
@@ -32,7 +32,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: registry.connect.redhat.com/crowdstrike/falcon-operator
     support: CrowdStrike
-  name: falcon-operator.v0.6.0
+  name: falcon-operator.v0.6.2
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -437,8 +437,8 @@ spec:
                 - name: OPERATOR_NAME
                   value: falcon-operator
                 - name: RELATED_IMAGE_NODE_SENSOR
-                  value: registry.crowdstrike.com/falcon-sensor/us-1/release/falcon-sensor@sha256:ffdc91f66ef8570bd7612cf19145563a787f552656f5eec43cd80ef9caca0398
-                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:23b98d425ec656e041beb4c0e17a2629af3d5fedc70a76a9ad465ebd7fae2274
+                  value: registry.crowdstrike.com/falcon-sensor/us-1/release/falcon-sensor@sha256:3af3831f08474b3df6516b4e0efd37c5db972f3b791125e10ae3b79097f8ef6d
+                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:73183f965dea7e420874d1e77102c5def117d1837dace8affc264b003fa3abcb
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -533,6 +533,6 @@ spec:
     name: CrowdStrike
     url: https://crowdStrike.com
   relatedImages:
-  - image: registry.crowdstrike.com/falcon-sensor/us-1/release/falcon-sensor@sha256:ffdc91f66ef8570bd7612cf19145563a787f552656f5eec43cd80ef9caca0398
+  - image: registry.crowdstrike.com/falcon-sensor/us-1/release/falcon-sensor@sha256:3af3831f08474b3df6516b4e0efd37c5db972f3b791125e10ae3b79097f8ef6d
     name: node-sensor
-  version: 0.6.0
+  version: 0.6.2

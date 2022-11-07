@@ -35,9 +35,11 @@ LABEL name="CrowdStrike Falcon Operator" \
       summary="The CrowdStrike Falcon Operator" \
       release="0" \
       vendor="CrowdStrike, Inc" \
-      version="0.6.0"
+      version="0.6.1"
 COPY LICENSE /licenses/
 COPY --from=builder /workspace/manager .
+
+RUN microdnf update -y && microdnf clean all && rm -rf /var/cache/yum/*
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]
