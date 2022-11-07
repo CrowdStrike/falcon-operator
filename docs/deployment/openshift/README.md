@@ -75,12 +75,12 @@ If you want to automate the deployment of the operator, the CLI method is recomm
   ```
   oc get packagemanifests -n openshift-marketplace falcon-operator -o yaml
   ```
-  Important information from the package manifest output such as the `defaultChannel`, `catalogSource`, `catalogSourceNamespace`, and `currentCSV` are used to create a `Subscription` Kind in a yaml file (next steps) to have OpenShift install the operator from the cluster's marketplace.
-  You can install either the [Community version of the Operator](#installing-the-community-operator-from-the-local-operatorhub) or the official [Red Hat Marketplace certified version of the operator](#installing-the-red-hat-marketplace-operator-from-the-local-operatorhub).
+  Important information from the package manifest output such as the `defaultChannel`, `catalogSource`, `catalogSourceNamespace`, and `currentCSV` (optional) are used to create a `Subscription` Kind in a yaml file (next steps) to have OpenShift install the operator from the cluster's marketplace.
+  You can install either the [Community version of the Operator](#installing-the-community-operator-from-the-console-operatorhub) or the official [Red Hat Marketplace certified version of the operator](#installing-the-red-hat-marketplace-operator-from-the-console-operatorhub).
 
 ### Installing the Red Hat Marketplace Operator from the Console OperatorHub
 
-- Create a subscription `yaml` file to install the official Red Hat Marketplace certified operator (`redhat-marketplace`). In this example, version 0.5.4 of the certified operator will be installed via the `Subscription` Kind:
+- Create a subscription `yaml` file to install the official Red Hat Marketplace certified operator (`redhat-marketplace`). In this example, the certified operator will be installed via the `Subscription` Kind:
   ```
   cat << EOF >> subscription.yaml
   apiVersion: operators.coreos.com/v1alpha1
@@ -92,14 +92,15 @@ If you want to automate the deployment of the operator, the CLI method is recomm
     name: falcon-operator
     source: redhat-marketplace
     sourceNamespace: openshift-marketplace
-    startingCSV: falcon-operator.v0.5.4
   EOF
   ```
-  An [example subscription of the official Red Hat Marketplace certified operator is available](https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/redhat-marketplace.yaml) to use and modify as appropriate for your cluster. Make sure to update the `startingCSV: falcon-operator.v0.5.4` for the version that is listed locally on your cluster.
+  An [example subscription of the official Red Hat Marketplace certified operator is available](redhat-subscription.yaml) to use and modify as appropriate for your cluster. In this example, the install version is specified via `startingCSV`. Make sure to either delete the `startingCSV` or update the `startingCSV: falcon-operator.v0.5.4` for the version that is listed locally on your cluster.
 
 ### Installing the Community Operator from the Console OperatorHub
 
-- Create a subscription `yaml` file to install the Community operator (`community-operators`). In this example, version 0.5.4 of the community operator will be installed via the `Subscription` Kind:
+This installation method should not be used for Red Hat OpenShift. Use the certified version instead as the certified version is officially recognized by Red Hat.
+
+- Create a subscription `yaml` file to install the Community operator (`community-operators`). In this example, the community operator will be installed via the `Subscription` Kind:
   ```
   cat << EOF >> subscription.yaml
   apiVersion: operators.coreos.com/v1alpha1
@@ -111,14 +112,13 @@ If you want to automate the deployment of the operator, the CLI method is recomm
     name: falcon-operator
     source: community-operators
     sourceNamespace: openshift-marketplace
-    startingCSV: falcon-operator.v0.5.4
   EOF
   ```
-  An [example subscription of the community operator is available](https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/community-subscription.yaml) to use and modify as appropriate for your cluster. Make sure to update the `startingCSV: falcon-operator.v0.5.4` for the version that is listed locally on your cluster.
+  An [example subscription of the community operator is available](community-subscription.yaml) to use and modify as appropriate for your cluster. In this example, the install version is specified via `startingCSV`. Make sure to either delete the `startingCSV` or update the `startingCSV: falcon-operator.v0.5.4` for the version that is listed locally on your cluster.
 
 ### Deploy the operator
 
-Once you have choosen to deploy either the [Community version](#installing-the-community-operator-from-the-local-operatorhub) or the [Red Hat Marketplace certified operator](#installing-the-red-hat-marketplace-operator-from-the-local-operatorhub), you need to deploy the `subscription.yaml` that you create to the cluster for the operator to install.
+Once you have choosen to deploy either the [Community version](#installing-the-community-operator-from-the-console-operatorhub) or the [Red Hat Marketplace certified operator](#installing-the-red-hat-marketplace-operator-from-the-console-operatorhub), you need to deploy the `subscription.yaml` that you create to the cluster for the operator to install.
 
 - Deploy the operator using the `subscription.yaml`
   ```
@@ -131,7 +131,7 @@ Once the operator has deployed, you can now deploy the FalconNodeSensor.
 
 - Deploy FalconNodeSensor through the cli using the `oc` command:
   ```
-  oc create -n falcon-operator -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
+  oc create -n falcon-operator -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/certified-0.6/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
 
 ### Deploying the Node Sensor to a custom Namespace
@@ -156,7 +156,7 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
 
 - Deploy FalconNodeSensor to the custom namespace:
   ```
-  oc create -n falcon-system -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
+  oc create -n falcon-system -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/certified-0.6/docs/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
 
 ## Uninstalling
