@@ -84,7 +84,7 @@ func (r *FalconContainerReconciler) Delete(ctx context.Context, falconContainer 
 		err := r.Client.Delete(ctx, t)
 		if err != nil {
 			if errors.IsNotFound(err) {
-				r.Log.Info(fmt.Sprintf("Falcon Container object %s %s already exists in namespace %s", gvk.Kind, name, namespace))
+				r.Log.Info(fmt.Sprintf("Falcon Container object %s %s already removed from namespace %s", gvk.Kind, name, namespace))
 			}
 			return fmt.Errorf("Cannot delete object %s %s in namespace %s: %v", gvk.Kind, name, namespace, err)
 		}
