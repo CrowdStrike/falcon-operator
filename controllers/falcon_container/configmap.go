@@ -63,16 +63,18 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, falconCont
 	cid, err := falcon_api.FalconCID(ctx, falconContainer.Spec.FalconAPI.CID, falconContainer.Spec.FalconAPI.ApiConfig())
 	if err != nil {
 		return &corev1.ConfigMap{}, fmt.Errorf("unable to determine falcon customer ID (CID): %v", err)
+	} else {
+		data["FALCONCTL_OPT_CID"] = cid
 	}
-	data["FALCONCTL_OPT_CID"] = cid
 
 	if falconContainer.Spec.Injector.LogVolume != nil {
 
 		vol, err := common.EncodeBase64Interface(*falconContainer.Spec.Injector.LogVolume)
 		if err != nil {
 			r.Log.Error(err, "unable to base64 encode log volume")
+		} else {
+			data["FALCON_LOG_VOLUME"] = vol
 		}
-		data["FALCON_LOG_VOLUME"] = vol
 	}
 
 	if falconContainer.Spec.Injector.SensorResources != nil {
@@ -80,8 +82,9 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, falconCont
 		resources, err := common.EncodeBase64Interface(*falconContainer.Spec.Injector.SensorResources)
 		if err != nil {
 			r.Log.Error(err, "unable to base64 encode falcon resources")
+		} else {
+			data["FALCON_RESOURCES"] = resources
 		}
-		data["FALCON_RESOURCES"] = resources
 	}
 
 	if falconContainer.Spec.Injector.FalconctlOpts != "" {
