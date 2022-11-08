@@ -32,8 +32,12 @@ type FalconContainerSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version Pinning",order=4
 	VersionPinning bool `json:"versionPinning,omitempty"`
 
-	// Falcon Container Version. The latest version will be selected when version specifier is missing.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=5
+	// +kubebuilder:validation:Pattern="^.*:.*$"
+	// +operator-sdk:cv:customresourcedefinitions:type=spec,displayName="Falcon Container Image URI",order=5
+	Image *string `json:"image,omitempty"`
+
+	// Falcon Container Version. The latest version will be selected when version specifier is missing; ignored when Image is set.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=6
 	Version *string `json:"version,omitempty"`
 }
 
@@ -128,8 +132,6 @@ type FalconContainerStatus struct {
 
 	Version *string `json:"version,omitempty"`
 
-	// RetryAttempt is number of previous failed attempts. Valid values: 0-5
-	RetryAttempt *uint8 `json:"retryAttempt,omitempty"`
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }

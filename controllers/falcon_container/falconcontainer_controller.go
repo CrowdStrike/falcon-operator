@@ -72,44 +72,54 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile namespace: %v", err)
 	}
 
-	switch falconContainer.Spec.Registry.Type {
-	case v1alpha1.RegistryTypeECR:
-		r.Log.Info("Reconciling ECR Repository")
-		if _, err := r.UpsertECRRepo(ctx); err != nil {
-			r.Error(ctx, req, falconContainer, fmt.Sprintf("failed to reconcile ECR repository: %v", err))
-			return ctrl.Result{}, fmt.Errorf("failed to reconcile ECR repository: %v", err)
+	// Image being set will override other image based settings
+	if falconContainer.Spec.Image != nil && *falconContainer.Spec.Image != "" {
+		if _, err := r.getImageTag(ctx, falconContainer); err != nil {
+			if _, err := r.setImageTag(ctx, falconContainer); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to set Falcon Container Image version: %v", err)
+			}
 		}
-	case v1alpha1.RegistryTypeOpenshift:
-		r.Log.Info("Reconciling Image Stream")
-		stream, err := r.reconcileImageStream(ctx, falconContainer)
-		if err != nil {
-			r.Error(ctx, req, falconContainer, fmt.Sprintf("failed to reconcile Image Stream: %v", err))
-			return ctrl.Result{}, fmt.Errorf("failed to reconcile Image Stream")
-		}
-		if stream == nil {
-			return ctrl.Result{}, nil
-		}
-	}
-	if r.imageMirroringEnabled(falconContainer) {
-		r.Log.Info("Verifying image availability in remote registry")
-		if err := r.PushImage(ctx, falconContainer); err != nil {
-			r.Error(ctx, req, falconContainer, fmt.Sprintf("failed to refresh Falcon Container image: %v", err))
-			return ctrl.Result{}, fmt.Errorf("cannot refresh Falcon Container image: %v", err)
-		}
+
 	} else {
-		r.Log.Info("Verifying access to CrowdStrike Container Image Registry")
-		updated, err := r.verifyCrowdStrikeRegistry(ctx, falconContainer)
-		if updated {
-			return ctrl.Result{}, nil
+		switch falconContainer.Spec.Registry.Type {
+		case v1alpha1.RegistryTypeECR:
+			r.Log.Info("Reconciling ECR Repository")
+			if _, err := r.UpsertECRRepo(ctx); err != nil {
+				r.Error(ctx, req, falconContainer, fmt.Sprintf("failed to reconcile ECR repository: %v", err))
+				return ctrl.Result{}, fmt.Errorf("failed to reconcile ECR repository: %v", err)
+			}
+		case v1alpha1.RegistryTypeOpenshift:
+			r.Log.Info("Reconciling Image Stream")
+			stream, err := r.reconcileImageStream(ctx, falconContainer)
+			if err != nil {
+				r.Error(ctx, req, falconContainer, fmt.Sprintf("failed to reconcile Image Stream: %v", err))
+				return ctrl.Result{}, fmt.Errorf("failed to reconcile Image Stream")
+			}
+			if stream == nil {
+				return ctrl.Result{}, nil
+			}
 		}
-		if err != nil {
-			r.Error(ctx, req, falconContainer, fmt.Sprintf("failed to verify CrowdStrike Container Image Registry access: %v", err))
-			return ctrl.Result{}, fmt.Errorf("failed to verify CrowdStrike Container Image Registry access")
-		}
-		r.Log.Info("Reconciling Container Registry pull token Secrets")
-		if _, err = r.reconcileRegistrySecrets(ctx, falconContainer); err != nil {
-			r.Error(ctx, req, falconContainer, fmt.Sprintf("failed to reconcile Falcon registry pull token Secrets: %v", err))
-			return ctrl.Result{}, fmt.Errorf("failed to reconcile Falcon registry pull token Secrets: %v", err)
+		if r.imageMirroringEnabled(falconContainer) {
+			r.Log.Info("Verifying image availability in remote registry")
+			if err := r.PushImage(ctx, falconContainer); err != nil {
+				r.Error(ctx, req, falconContainer, fmt.Sprintf("failed to refresh Falcon Container image: %v", err))
+				return ctrl.Result{}, fmt.Errorf("cannot refresh Falcon Container image: %v", err)
+			}
+		} else {
+			r.Log.Info("Verifying access to CrowdStrike Container Image Registry")
+			updated, err := r.verifyCrowdStrikeRegistry(ctx, falconContainer)
+			if updated {
+				return ctrl.Result{}, nil
+			}
+			if err != nil {
+				r.Error(ctx, req, falconContainer, fmt.Sprintf("failed to verify CrowdStrike Container Image Registry access: %v", err))
+				return ctrl.Result{}, fmt.Errorf("failed to verify CrowdStrike Container Image Registry access")
+			}
+			r.Log.Info("Reconciling Container Registry pull token Secrets")
+			if _, err = r.reconcileRegistrySecrets(ctx, falconContainer); err != nil {
+				r.Error(ctx, req, falconContainer, fmt.Sprintf("failed to reconcile Falcon registry pull token Secrets: %v", err))
+				return ctrl.Result{}, fmt.Errorf("failed to reconcile Falcon registry pull token Secrets: %v", err)
+			}
 		}
 	}
 

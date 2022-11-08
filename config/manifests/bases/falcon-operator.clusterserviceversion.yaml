@@ -70,12 +70,12 @@ spec:
         path: versionPinning
       - displayName: Falcon Container Image Pull Secret Name
         path: injector.imagePullSecret
-      - description: Falcon Container Version. The latest version will be selected
-          when version specifier is missing.
-        displayName: Falcon Container Image Version
-        path: version
       - displayName: Falcon Container Shared Log Volume
         path: injector.logVolume
+      - description: Falcon Container Version. The latest version will be selected
+          when version specifier is missing; ignored when Image is set.
+        displayName: Falcon Container Image Version
+        path: version
       - displayName: Falcon Container Injector Resources
         path: injector.resources
       - displayName: Falcon Container Sensor Resources

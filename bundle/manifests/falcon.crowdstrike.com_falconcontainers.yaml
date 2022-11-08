@@ -77,6 +77,9 @@ spec:
                 - client_secret
                 - cloud_region
                 type: object
+              image:
+                pattern: ^.*:.*$
+                type: string
               injector:
                 default:
                   imagePullPolicy: Always
@@ -1750,7 +1753,8 @@ spec:
                 type: object
               version:
                 description: Falcon Container Version. The latest version will be
-                  selected when version specifier is missing.
+                  selected when version specifier is missing; ignored when Image is
+                  set.
                 type: string
               versionPinning:
                 default: true
@@ -1839,10 +1843,6 @@ spec:
               phase:
                 description: Phase or the status of the deployment
                 type: string
-              retryAttempt:
-                description: 'RetryAttempt is number of previous failed attempts.
-                  Valid values: 0-5'
-                type: integer
               version:
                 type: string
             type: object

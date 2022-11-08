@@ -49,39 +49,48 @@ Note: to provide multiple arguments to `falconctlOpts`, you need to provide them
 
 ### FalconContainer Reference Manual
 
-| Spec                                | Description                                                                                                                              |
-| :---------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------|
-| falcon_api.client_id                | CrowdStrike API Client ID                                                                                                                |
-| falcon_api.client_secret            | CrowdStrike API Client Secret                                                                                                            |
-| falcon_api.client_region            | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                                      |
-| registry.type                       | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift)                                             |
-| registry.tls.insecure_skip_verify   | (optional) Skip TLS check when pushing Falcon Container to target registry (only for demoing purposes on self-signed openshift clusters) |
-| registry.acr_name                   | (optional) Name of ACR for the Falcon Container push. Only applicable to Azure cloud. (`registry.type="acr"`)                            |
-| registry.ecr_iam_role_arn           | (optional) ARN of AWS IAM Role to be assigned to the Injector (only needed when injector runs on EKS Fargate)                            |
-| injector.serviceAccount.name              | (optional) Name of Service Account to create in falcon-system namespace                                                                                                         |
-| injector.serviceAccount.annotations       | (optional) Annotations that should be added to the Service Account (e.g. for IAM role association)                                                                              |
-| injector.listenPort                       | (optional) Override the default Injector Listen Port of 4433                                                                                                                    |
-| injector.tls.validity                     | (optional) Override the default Injector CA validity of 3650 days                                                                                                               |
-| injector.imagePullPolicy                  | (optional) Override the default Falcon Container image pull policy of Always                                                                                                    |
-| injector.imagePullSecretName              | (optional) Provide a secret containing an alternative pull token for the Falcon Container image                                                                                 |
-| injector.logVolume                        | (optional) Provide a volume for Falcon Container logs                                                                                                                           |
-| injector.resources                        | (optional) Provide a set of kubernetes resource requirements for the Falcon Injector                                                                                            |
-| injector.sensorResources                  | (optional) Provide a set of kubernetes resource requirements for the Falcon Container Sensor container                                                                          |
-| injector.falconctlOpts                    | (optional) Provide additional arguments to falconctl (e.g. '--tags myTestCluster')                                                                                              |
-| injector.additionalEnvironmentVariables   | (optional) Provide additional environment variables for Falcon Container                                                                                                        |
-| injector.disableDefaultNamespaceInjection | (optional) If set to true, disables default Falcon Container injection at the namespace scope; namespaces requiring injection will need to be labeled as specified below        |
-| injector.disableDefaultPodInjection       | (optional) If set to true, disables default Falcon Container injection at the pod scope; pods requiring injection will need to be annotated as specified below                  |
-| version                                   | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                                                               |
+| Spec                                      | Description                                                                                                                                                                                                             |
+| :----------------------------------       | :----------------------------------------------------------------------------------------------------------------------------------------                                                                               |
+| falcon_api.client_id                      | CrowdStrike API Client ID                                                                                                                                                                                               |
+| falcon_api.client_secret                  | CrowdStrike API Client Secret                                                                                                                                                                                           |
+| falcon_api.client_region                  | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                                                                                                                     |
+| image                                     | (optional) Leverage a Falcon Container Sensor image that is not managed by the operator; typically used with custom repositories; overrides all registry settings; might require injector.imagePullSecretName to be set |
+| version                                   | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                                                                                                       |
+| versionPinning                            | (optional) Enable/Disable version pinning; if disabled, new image versions (matching any specified version string) will be leveraged for future pod injections upon controller reconciliation (default: true)
+| registry.type                             | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift)                                                                                                                             |
+| registry.tls.insecure_skip_verify         | (optional) Skip TLS check when pushing Falcon Container to target registry (only for demoing purposes on self-signed openshift clusters)                                                                                |
+| registry.acr_name                         | (optional) Name of ACR for the Falcon Container push. Only applicable to Azure cloud. (`registry.type="acr"`)                                                                                                           |
+| registry.ecr_iam_role_arn                 | (optional) ARN of AWS IAM Role to be assigned to the Injector (only needed when injector runs on EKS Fargate)                                                                                                           |
+| injector.serviceAccount.name              | (optional) Name of Service Account to create in falcon-system namespace                                                                                                                                                 |
+| injector.serviceAccount.annotations       | (optional) Annotations that should be added to the Service Account (e.g. for IAM role association)                                                                                                                      |
+| injector.listenPort                       | (optional) Override the default Injector Listen Port of 4433                                                                                                                                                            |
+| injector.tls.validity                     | (optional) Override the default Injector CA validity of 3650 days                                                                                                                                                       |
+| injector.imagePullPolicy                  | (optional) Override the default Falcon Container image pull policy of Always                                                                                                                                            |
+| injector.imagePullSecretName              | (optional) Provide a secret containing an alternative pull token for the Falcon Container image                                                                                                                         |
+| injector.logVolume                        | (optional) Provide a volume for Falcon Container logs                                                                                                                                                                   |
+| injector.resources                        | (optional) Provide a set of kubernetes resource requirements for the Falcon Injector                                                                                                                                    |
+| injector.sensorResources                  | (optional) Provide a set of kubernetes resource requirements for the Falcon Container Sensor container                                                                                                                  |
+| injector.falconctlOpts                    | (optional) Provide additional arguments to falconctl (e.g. '--tags myTestCluster')                                                                                                                                      |
+| injector.additionalEnvironmentVariables   | (optional) Provide additional environment variables for Falcon Container                                                                                                                                                |
+| injector.disableDefaultNamespaceInjection | (optional) If set to true, disables default Falcon Container injection at the namespace scope; namespaces requiring injection will need to be labeled as specified below                                                |
+| injector.disableDefaultPodInjection       | (optional) If set to true, disables default Falcon Container injection at the pod scope; pods requiring injection will need to be annotated as specified below                                                          |
 
 | Status                              | Description                                                                                                                               |
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
 | phase                               | Current phase of the deployment; either RECONCILING, ERROR, or DONE
-| errormsg                            | Displays the last notable error. Must be empty on successful deployment.                                                                  |
-| version                             | Version of Falcon Container that is currently deployed                                                                                    |
-| retry_attempt                       | Number of previous failed attempts (valid values: 0-5)                                                                                    |
-| conditions.["ImageReady"]           | Informs about readiness of Falcon Container image. Custom message refers to image URI that will be used during the deployment             |
-| conditions.["InstallerComplete"]    | Informs about completion of Falcon Container Installer. Users can review the installer Job/Pod in `falcon-system-configure` namespace     |
-| conditions.["Complete"]             | Informs about the completion of the deployment of Falcon Container                                                                        |
+| errormsg                                         | Displays the last notable error. Must be empty on successful deployment.                                                                                             |
+| version                                          | Version of Falcon Container that is currently deployed                                                                                                               |
+| conditions.["NamespaceReady"]                    | Displays the most recent reconciliation operation for the Namespace used by the Falcon Container Sensor (Created, Updated, Deleted)                                  |
+| conditions.["ImageReady"]                        | Informs about readiness of Falcon Container image. Custom message refers to image URI that will be used during the deployment (Pushed, Discovered)                   |
+| conditions.["ImageStreamReady"]                  | Displays the most recent successful reconciliation operation for the image stream used by the falcon container in openshift environments (created, updated, deleted) |
+| conditions.["ServiceAccountReady"]               | Displays the most recent sucreconciliation operation for the service account used by the falcon container (created, updated, deleted)                                   |
+| conditions.["ClusterRoleReady"]                  | Displays the most recent sucreconciliation operation for the cluster role used by the falcon container sensor (created, updated, deleted)                               |
+| conditions.["ClusterRoleBindingReady"]           | Displays the most recent sucreconciliation operation for the cluster role binding used by the falcon container sensor (created, updated, deleted)                       |
+| conditions.["SecretReady"]                       | Displays the most recent sucreconciliation operation for the secrets used by the falcon container sensor (created, updated, deleted)                                    |
+| conditions.["ConfigMapReady"]                    | Displays the most recent sucreconciliation operation for the config map used by the falcon container sensor (created, updated, deleted)                                 |
+| conditions.["DeploymentReady"]                   | Displays the most recent sucreconciliation operation for the deployment used by the falcon container sensor injector (created, updated, deleted)                        |
+| conditions.["ServiceReady"]                      | Displays the most recent sucreconciliation operation for the service used by the falcon container sensor injector (created, updated, deleted)                           |
+| conditions.["MutatingWebhookConfigurationReady"] | Displays the most recent sucreconciliation operation for the mutating webhook configuration used by the falcon container sensor injector (created, updated, deleted)    |
 
 ### Enabling and Disabling Falcon Container injection
 
@@ -128,6 +137,15 @@ Consult specific deployment guides to learn about the steps needed for image mir
  - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md) ([Fargate Considerations](../deployment/eks-fargate/README.md))
  - [Deployment Guide for GKE/GCR](../../docs/deployment/gke/README.md) ([GCP Workload Identity Considerations](../deployment/gke/gcp-workload-identity.md))
  - [Deployment Guide for OpenShift](../../docs/deployment/openshift/README.md)
+
+#### (Option 3) Use a custom Image URI
+
+Image must be available at the specified URI; setting the image attribute will cause registry settings to be ignored.  No image mirroring will be leveraged, and version pinning is implied.
+
+Example:
+```
+image: myprivateregistry.internal.lan/falcon-container/falcon-sensor:6.47.0-3003.container.x86_64.Release.US-1
+```
 
 ### Install Steps
 To install Falcon Container (assuming Falcon Operator is installed):

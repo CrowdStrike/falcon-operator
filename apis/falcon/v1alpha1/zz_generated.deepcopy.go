@@ -391,6 +391,11 @@ func (in *FalconContainerSpec) DeepCopyInto(out *FalconContainerSpec) {
 	in.FalconAPI.DeepCopyInto(&out.FalconAPI)
 	in.Registry.DeepCopyInto(&out.Registry)
 	in.Injector.DeepCopyInto(&out.Injector)
+	if in.Image != nil {
+		in, out := &in.Image, &out.Image
+		*out = new(string)
+		**out = **in
+	}
 	if in.Version != nil {
 		in, out := &in.Version, &out.Version
 		*out = new(string)
@@ -414,11 +419,6 @@ func (in *FalconContainerStatus) DeepCopyInto(out *FalconContainerStatus) {
 	if in.Version != nil {
 		in, out := &in.Version, &out.Version
 		*out = new(string)
-		**out = **in
-	}
-	if in.RetryAttempt != nil {
-		in, out := &in.RetryAttempt, &out.RetryAttempt
-		*out = new(uint8)
 		**out = **in
 	}
 	if in.Conditions != nil {
