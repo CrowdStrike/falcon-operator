@@ -33,8 +33,8 @@ func (r *FalconContainerReconciler) reconcileService(ctx context.Context, falcon
 		existingService.Spec.Selector = service.Spec.Selector
 		updated = true
 	}
-	if !reflect.DeepEqual(service.Spec.Selector, existingService.Spec.Selector) {
-		existingService.Spec.Selector = service.Spec.Selector
+	if !reflect.DeepEqual(service.Spec.Ports, existingService.Spec.Ports) {
+		existingService.Spec.Ports = service.Spec.Ports
 		updated = true
 	}
 	if updated {
