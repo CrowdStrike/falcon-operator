@@ -111,15 +111,13 @@ func main() {
 		Namespace:              watchNamespace, // namespaced-scope when the value is not an empty string
 		NewCache: cache.BuilderWithOptions(cache.Options{
 			SelectorsByObject: cache.SelectorsByObject{
-				&v1alpha1.FalconContainer{}: {},
-				&corev1.Namespace{}:         {},
-				&rbacv1.ClusterRole{}: {
-					Label: labels.SelectorFromSet(containercontroller.FcLabels),
-				},
-				&rbacv1.ClusterRoleBinding{}: {
-					Label: labels.SelectorFromSet(containercontroller.FcLabels),
-				},
-				&corev1.ServiceAccount{}: {},
+				&v1alpha1.FalconContainer{}:              {},
+				&corev1.Namespace{}:                      {},
+				&rbacv1.ClusterRole{}:                    {},
+				&rbacv1.ClusterRoleBinding{}:             {},
+				&corev1.ServiceAccount{}:                 {},
+				&securityv1.SecurityContextConstraints{}: {},
+				&imagev1.ImageStream{}:                   {},
 				&corev1.Service{}: {
 					Label: labels.SelectorFromSet(containercontroller.FcLabels),
 				},
