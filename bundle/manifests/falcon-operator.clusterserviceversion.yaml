@@ -413,6 +413,14 @@ spec:
         - apiGroups:
           - falcon.crowdstrike.com
           resources:
+          - falconcontainers/finalizers
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - falcon.crowdstrike.com
+          resources:
           - falconcontainers/status
           verbs:
           - get
