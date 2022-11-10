@@ -42,7 +42,10 @@ func (r *FalconContainerReconciler) reconcileWebhook(ctx context.Context, falcon
 }
 func (r *FalconContainerReconciler) newWebhook(webhookName string, caBundle []byte, disableNSInjection bool, falconContainer *v1alpha1.FalconContainer) *arv1.MutatingWebhookConfiguration {
 	sideEffects := arv1.SideEffectClassNone
+	reinvocationPolicy := arv1.NeverReinvocationPolicy
 	failurePolicy := arv1.Fail
+	matchPolicy := arv1.Equivalent
+	scope := arv1.AllScopes
 	var timeoutSeconds int32 = 30
 	path := "/mutate"
 	operatorSelector := metav1.LabelSelectorOpNotIn
@@ -68,6 +71,9 @@ func (r *FalconContainerReconciler) newWebhook(webhookName string, caBundle []by
 				AdmissionReviewVersions: common.FCAdmissionReviewVersions(),
 				SideEffects:             &sideEffects,
 				FailurePolicy:           &failurePolicy,
+				ReinvocationPolicy:      &reinvocationPolicy,
+				ObjectSelector:          &metav1.LabelSelector{},
+				MatchPolicy:             &matchPolicy,
 				ClientConfig: arv1.WebhookClientConfig{
 					CABundle: caBundle,
 					Service: &arv1.ServiceReference{
@@ -85,6 +91,10 @@ func (r *FalconContainerReconciler) newWebhook(webhookName string, caBundle []by
 							Operator: operatorSelector,
 							Values:   operatorValues,
 						},
+						{
+							Key:      "control-plane",
+							Operator: metav1.LabelSelectorOpDoesNotExist,
+						},
 					},
 				},
 				Rules: []arv1.RuleWithOperations{
@@ -94,6 +104,7 @@ func (r *FalconContainerReconciler) newWebhook(webhookName string, caBundle []by
 							APIGroups:   []string{""},
 							APIVersions: []string{"v1"},
 							Resources:   []string{"pods"},
+							Scope:       &scope,
 						},
 					},
 				},

@@ -61,6 +61,7 @@ func (r *FalconContainerReconciler) newService(falconContainer *v1alpha1.FalconC
 				{
 					Name:       common.FalconServiceHTTPSName,
 					Port:       *falconContainer.Spec.Injector.ListenPort,
+					Protocol:   corev1.ProtocolTCP,
 					TargetPort: intstr.FromString(common.FalconServiceHTTPSName),
 				},
 			},

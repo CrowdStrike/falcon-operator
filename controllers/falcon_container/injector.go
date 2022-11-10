@@ -128,6 +128,7 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 	}
 	var replicas int32 = 1
 	var rootUid int64 = 0
+	var readMode int32 = 420
 	runNonRoot := true
 	initRunAsNonRoot := false
 	volumes := []corev1.Volume{
@@ -135,7 +136,8 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 			Name: injectorTLSSecretName,
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: injectorTLSSecretName,
+					SecretName:  injectorTLSSecretName,
+					DefaultMode: &readMode,
 				},
 			},
 		},
