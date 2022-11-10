@@ -151,6 +151,14 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
+  - falconcontainers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
   - falconnodesensors
   verbs:
   - create

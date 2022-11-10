@@ -36,14 +36,15 @@ func (r *FalconContainerReconciler) PushImage(ctx context.Context, falconContain
 	if falconContainer.Spec.VersionPinning && falconContainer.Status.Version != nil && *falconContainer.Status.Version != "" {
 		return nil
 	}
-	_, err = image.Refresh(registryUri, version)
+	tag, err := image.Refresh(registryUri, version)
 	if err != nil {
 		return fmt.Errorf("Cannot push Falcon Container Image: %v", err)
 	}
-	r.Log.Info("Falcon Container Image pushed successfully")
+	r.Log.Info("Falcon Container Image pushed successfully", "Image.Tag", tag)
+	falconContainer.Status.Version = &tag
 	imageUri, err := r.imageUri(ctx, falconContainer)
 	if err != nil {
-		return fmt.Errorf("Cannot push Falcon Container Image: %v", err)
+		return fmt.Errorf("Cannot identify Falcon Container Image: %v", err)
 	}
 	falconContainer.Status.SetCondition(&metav1.Condition{
 		Type:    "ImageReady",
@@ -156,8 +157,8 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 	}
 	// If an Image URI is set, use it for our version
 	if falconContainer.Spec.Image != nil && *falconContainer.Spec.Image != "" {
-		*falconContainer.Status.Version = strings.Split(*falconContainer.Spec.Image, ":")[1]
-		return *falconContainer.Status.Version, nil
+		falconContainer.Status.Version = &strings.Split(*falconContainer.Spec.Image, ":")[1]
+		return *falconContainer.Status.Version, r.Client.Status().Update(ctx, falconContainer)
 	} else {
 		// Otherwise, get the newest version matching the requested version string
 		registry, err := falcon_registry.NewFalconRegistry(ctx, r.falconApiConfig(ctx, falconContainer))

@@ -28,6 +28,7 @@ type FalconContainerReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconcontainers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconcontainers/status,verbs=get;update;patch
 
 // +kubebuilder:rbac:groups=image.openshift.io,resources=imagestreams,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;delete
@@ -74,6 +75,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Image being set will override other image based settings
 	if falconContainer.Spec.Image != nil && *falconContainer.Spec.Image != "" {
+		r.Log.Info("Using Image set in Custom Resource")
 		if _, err := r.getImageTag(ctx, falconContainer); err != nil {
 			if _, err := r.setImageTag(ctx, falconContainer); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to set Falcon Container Image version: %v", err)
