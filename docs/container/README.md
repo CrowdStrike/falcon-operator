@@ -160,9 +160,13 @@ To uninstall Falcon Container simply remove the FalconContainer resource. The op
 kubectl delete falconcontainers.falcon.crowdstrike.com --all
 ```
 
-### Upgrades
+### Sensor Upgrades
 
-The current version of the operator does not automatically update Falcon Container sensor. Users are advised to remove & re-add FalconContainer resource to uninstall Falcon Container and to install the newest version.
+The current version of the operator will update the Falcon Container Sensor version upon Operator Reconciliation, if Version Pinning is disabled.  Note that this will only impact future Sensor injections, and will not cause any changes to running pods.  Version Pinning is enabled by default. 
+
+### Operator Upgrades
+
+The current version of the operator does not support in place upgrades.  Users are advised to remove any FalconContainer or FalconNodeSensor Custom Resources, allow the operator to clean up previously deployed resources, uninstall the operator and install the target version, before updating their Custom Resource(s) to reflect any changes introduced ([see Release Notes](../../RELEASE.md)).
 
 ### Namespace Reference
 
