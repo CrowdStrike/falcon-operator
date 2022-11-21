@@ -7,7 +7,7 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 
 ## Prerequisites
 
-- CrowdStrike CWP subscription with Falcon Container
+- A CrowdStrike Cloud Workload Protection (CWP) subscription
 - If your are installing the CrowdStrike Sensor via the Crowdstrike API, you need to create a new CrowdStrike API key pair with the following permissions:
   - Falcon Images Download: Read
   - Sensor Download: Read
@@ -24,26 +24,26 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 
 - Enter `crowdstrike` into the search bar, and click on the `CrowdStrike Falcon Platform - Operator` tile.
 
-   ![OpenShift Search](images/ocp-optile.png)
+   ![OpenShift Search](images/cert/ocp-cert-optile.png)
 
 - In the side menu, click the `Install` button.
 
-   ![OpenShift CrowdStrike Operator Install](images/ocp-opinstall.png)
+   ![OpenShift CrowdStrike Operator Install](images/cert/ocp-cert-opinstall.png)
 
 - Make any necessary changes as desired to the `InstallPlan` before installing the operator. You can set the update approval to `Automatic` which is the default or `Manual`. If you set to `Manual`, updates require approval before an operator will update.
   Click the `Install` button to begin the install.
 
-   ![OpenShift CrowdStrike Operator Install](images/ocp-opinstall2.png)
+   ![OpenShift CrowdStrike Operator Install](images/cert/ocp-cert-opinstall2.png)
 
 - Once the operator has completed installation, you can now deploy the custom resources the operator provides.
 
-   ![OpenShift CrowdStrike Operator](images/ocp-opresources.png)
+   ![OpenShift CrowdStrike Operator](images/cert/ocp-cert-opresources.png)
 
 ### Deploy the Node Sensor
 
 - To deploy the Falcon Node Sensor, click `Create Instance` for the `Falcon Node Sensor` Kind under the `Provided APIs` for the Falcon Operator.
 
-   ![OpenShift CrowdStrike Falcon Node Sensor](images/ocp-fns.png)
+   ![OpenShift CrowdStrike Falcon Node Sensor](images/cert/ocp-cert-fns.png)
 
 - If using the CrowdStrike API method which connects to the CrowdStrike cloud and will attempt to discover your Falcon Customer ID as well as download the Falcon Sensor container image, make sure that you have a new [CrowdStrike API key pair](#prerequisites) before continuing.
 
@@ -69,16 +69,34 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 
 - You can view the package manifest by running the following command:
   ```
-  oc describe packagemanifests falcon-operator -n openshift-marketplace
+  oc describe packagemanifests falcon-operator-rhmp -n openshift-marketplace
   ```
   or to get the package manifest in yaml form:
   ```
-  oc get packagemanifests -n openshift-marketplace falcon-operator -o yaml
+  oc get packagemanifests -n openshift-marketplace falcon-operator-rhmp -o yaml
   ```
-  Important information from the package manifest output such as the `defaultChannel`, `catalogSource`, `catalogSourceNamespace`, and `currentCSV` (optional) are used to create a `Subscription` Kind in a yaml file (next steps) to have OpenShift install the operator from the cluster's marketplace.
-  You can install either the [Community version of the Operator](#installing-the-community-operator-from-the-console-operatorhub) or the official [Red Hat Marketplace certified version of the operator](#installing-the-red-hat-marketplace-operator-from-the-console-operatorhub).
+
+  Important information from the package manifest output such as the `defaultChannel`, `catalogSource`, `catalogSourceNamespace`, and `currentCSV` are used to create a `Subscription` Kind in a yaml file (next steps) to have OpenShift install the operator from the cluster's marketplace.
+  You can now install the official [Red Hat Marketplace certified version of the operator](#installing-the-red-hat-marketplace-operator-from-the-console-operatorhub).
 
 ### Installing the Red Hat Marketplace Operator from the Console OperatorHub
+
+- Create an operatorgroup `yaml` file:
+  ```
+  cat << EOF >> og.yaml
+  apiVersion: operators.coreos.com/v1
+  kind: OperatorGroup
+  metadata:
+    name: falcon-operator
+    namespace: falcon-operator
+  spec:
+    targetNamespaces:
+    - falcon-operator
+  ```
+  and deploy the operatorgroup
+  ```
+  oc create -f og.yaml
+  ```
 
 - Create a subscription `yaml` file to install the official Red Hat Marketplace certified operator (`redhat-marketplace`). In this example, the certified operator will be installed via the `Subscription` Kind:
   ```
@@ -89,36 +107,16 @@ If you want to automate the deployment of the operator, the CLI method is recomm
     name: falcon-operator
   spec:
     channel: alpha
-    name: falcon-operator
+    name: falcon-operator-rhmp
     source: redhat-marketplace
     sourceNamespace: openshift-marketplace
   EOF
   ```
   An [example subscription of the official Red Hat Marketplace certified operator is available](redhat-subscription.yaml) to use and modify as appropriate for your cluster. In this example, the install version is specified via `startingCSV`. Make sure to either delete the `startingCSV` or update the `startingCSV: falcon-operator.v0.5.4` for the version that is listed locally on your cluster.
 
-### Installing the Community Operator from the Console OperatorHub
-
-This installation method should not be used for Red Hat OpenShift. Use the certified version instead as the certified version is officially recognized by Red Hat.
-
-- Create a subscription `yaml` file to install the Community operator (`community-operators`). In this example, the community operator will be installed via the `Subscription` Kind:
-  ```
-  cat << EOF >> subscription.yaml
-  apiVersion: operators.coreos.com/v1alpha1
-  kind: Subscription
-  metadata:
-    name: falcon-operator
-  spec:
-    channel: alpha
-    name: falcon-operator
-    source: community-operators
-    sourceNamespace: openshift-marketplace
-  EOF
-  ```
-  An [example subscription of the community operator is available](community-subscription.yaml) to use and modify as appropriate for your cluster. In this example, the install version is specified via `startingCSV`. Make sure to either delete the `startingCSV` or update the `startingCSV: falcon-operator.v0.5.4` for the version that is listed locally on your cluster.
-
 ### Deploy the operator
 
-Once you have choosen to deploy either the [Community version](#installing-the-community-operator-from-the-console-operatorhub) or the [Red Hat Marketplace certified operator](#installing-the-red-hat-marketplace-operator-from-the-console-operatorhub), you need to deploy the `subscription.yaml` that you create to the cluster for the operator to install.
+Deploy the `subscription.yaml` that you create to the cluster for the operator to install.
 
 - Deploy the operator using the `subscription.yaml`
   ```
@@ -174,11 +172,11 @@ This will insure proper cleanup of the resources.
 
 - Click on the `CrowdStrike Falcon Platform - Operator` listing, followed by clicking on the `Falcon Node Sensor` tab.
 
-   ![OpenShift CrowdStrike Node Sensor Uninstall](images/ocp-nodetab.png)
+   ![OpenShift CrowdStrike Node Sensor Uninstall](images/cert/ocp-cert-nodetab.png)
 
 - On the deployed `FalconNodeSensor` Kind, click the 3 vertical dot action menu on the far right, and click `Delete FalconNodeSensor`.
 
-   ![OpenShift CrowdStrike Node Sensor Uninstall](images/ocp-nodedel.png)
+   ![OpenShift CrowdStrike Node Sensor Uninstall](images/cert/ocp-cert-nodedel.png)
 
 #### Uninstall the Operator
 
@@ -216,5 +214,10 @@ This will insure proper cleanup of the resources.
 
 - Remove the ClusterServiceVersion for the operator. In this example, version 0.5.4 will be removed:
   ```
-  oc delete csv falcon-operator.v0.5.4 -n falcon-operator
+  oc delete csv falcon-operator.v0.6.2 -n falcon-operator
+  ```
+
+- Delete the OperatorGroup:
+  ```
+  oc delete operatorgroup falcon-operator -n falcon-operator
   ```
