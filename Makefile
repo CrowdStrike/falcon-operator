@@ -265,5 +265,5 @@ deploy/parts/crd-falconcontainers.yaml: bundle/manifests/falcon.crowdstrike.com_
 deploy/parts/crd-falconnodesensors.yaml: bundle/manifests/falcon.crowdstrike.com_falconnodesensors.yaml
 	(echo "---"; cat $^ ) > $@
 
-deploy/falcon-operator.yaml: deploy/parts/crd-falconcontainers.yaml deploy/parts/crd-falconnodesensors.yaml deploy/parts/ns.yaml deploy/parts/role.yaml deploy/parts/service_account.yaml deploy/parts/role_binding.yaml deploy/parts/operator.yaml
+deploy/falcon-operator.yaml: deploy/parts/ns.yaml deploy/parts/crd-falconcontainers.yaml deploy/parts/crd-falconnodesensors.yaml deploy/parts/role.yaml deploy/parts/service_account.yaml deploy/parts/role_binding.yaml deploy/parts/operator.yaml
 	cat $^ > $@
