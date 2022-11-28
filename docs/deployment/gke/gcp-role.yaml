@@ -1,0 +1,9 @@
+title: "Falcon Operator Container Push Agent"
+description: "Role that enables pushing to GCR"
+stage: "ALPHA"
+includedPermissions:
+- storage.buckets.get
+- storage.objects.create
+- storage.objects.delete
+- storage.objects.get
+- storage.objects.list
