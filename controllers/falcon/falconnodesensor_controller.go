@@ -13,10 +13,8 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/node/assets"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
-	securityv1 "github.com/openshift/api/security/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,11 +52,8 @@ func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;create;update
-//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;create;update
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;update
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
-//+kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;use
-//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,verbs=get;list;watch;create
-//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=get;list;watch;create
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -95,28 +90,6 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			ctx, nodesensor, logger)
 		if err != nil {
 			return ctrl.Result{Requeue: true}, err
-		}
-	}
-
-	created, err := r.handleNamespace(ctx, nodesensor, logger)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if created {
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-	serviceAccount, err := r.isServiceAccountRequired(ctx, logger)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if serviceAccount != "" {
-		created, err = r.handlePermissions(ctx, nodesensor, logger)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		if created {
-			return ctrl.Result{Requeue: true}, nil
 		}
 	}
 
@@ -187,10 +160,10 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Check if the daemonset already exists, if not create a new one
 	daemonset := &appsv1.DaemonSet{}
 
-	err = r.Get(ctx, types.NamespacedName{Name: nodesensor.Name, Namespace: nodesensor.TargetNs()}, daemonset)
+	err = r.Get(ctx, types.NamespacedName{Name: nodesensor.Name, Namespace: nodesensor.Namespace}, daemonset)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new daemonset
-		ds := r.nodeSensorDaemonset(nodesensor.Name, image, serviceAccount, nodesensor, logger)
+		ds := r.nodeSensorDaemonset(nodesensor.Name, image, nodesensor, logger)
 
 		err = r.Create(ctx, ds)
 		if err != nil {
@@ -222,10 +195,10 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	} else {
 		// Copy Daemonset for updates
 		dsUpdate := daemonset.DeepCopy()
-		dsTarget := assets.Daemonset(dsUpdate.Name, image, serviceAccount, nodesensor)
+		dsTarget := assets.Daemonset(dsUpdate.Name, image, nodesensor)
 
 		// Objects to check for updates to re-spin pods
-		imgUpdate := updateDaemonSetImages(dsUpdate, image, nodesensor, logger)
+		imgUpdate := updateDaemonSetImages(dsUpdate, image, logger)
 		tolsUpdate := updateDaemonSetTolerations(dsUpdate, nodesensor, logger)
 		containerVolUpdate := updateDaemonSetContainerVolumes(dsUpdate, dsTarget, logger)
 		volumeUpdates := updateDaemonSetVolumes(dsUpdate, dsTarget, logger)
@@ -299,7 +272,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				// Run finalization logic for common.FalconFinalizer. If the
 				// finalization logic fails, don't remove the finalizer so
 				// that we can retry during the next reconciliation.
-				if err := r.finalizeDaemonset(ctx, image, serviceAccount, nodesensor, logger); err != nil {
+				if err := r.finalizeDaemonset(ctx, image, nodesensor, logger); err != nil {
 					return ctrl.Result{}, err
 				}
 			} else {
@@ -334,47 +307,18 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	return ctrl.Result{}, nil
 }
 
-// handleNamespace creates and updates the namespace
-func (r *FalconNodeSensorReconciler) handleNamespace(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
-	ns := corev1.Namespace{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: nodesensor.TargetNs()}, &ns)
-	if err == nil || (err != nil && !errors.IsNotFound(err)) {
-		return false, err
-	}
-
-	ns = corev1.Namespace{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "Namespace",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: nodesensor.TargetNs(),
-		},
-	}
-	err = ctrl.SetControllerReference(nodesensor, &ns, r.Scheme)
-	if err != nil {
-		logger.Error(err, "Unable to assign Controller Reference to the Namespace")
-	}
-	err = r.Client.Create(ctx, &ns)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		logger.Error(err, "Failed to create new namespace", "Namespace.Name", nodesensor.TargetNs())
-		return false, err
-	}
-	return true, nil
-}
-
 // handleConfigMaps creates and updates the node sensor configmap
 func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, config *node.ConfigCache, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (*corev1.ConfigMap, bool, error) {
 	var updated bool
 	cmName := nodesensor.Name + "-config"
 	confCm := &corev1.ConfigMap{}
 
-	err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: nodesensor.TargetNs()}, confCm)
+	err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: nodesensor.Namespace}, confCm)
 	if err != nil && errors.IsNotFound(err) {
 		// does not exist, create
 		configmap, err := r.nodeSensorConfigmap(cmName, config, nodesensor)
 		if err != nil {
-			logger.Error(err, "Failed to format new Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
+			logger.Error(err, "Failed to format new Configmap", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
 			return nil, updated, err
 		}
 		if err := r.Create(ctx, configmap); err != nil {
@@ -382,11 +326,11 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, confi
 				// We have got NotFound error during the Get(), but then we have got AlreadyExists error from Create(). Client cache is invalid.
 				err = r.Update(ctx, configmap)
 				if err != nil {
-					logger.Error(err, "Failed to update Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
+					logger.Error(err, "Failed to update Configmap", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
 				}
 				return configmap, updated, nil
 			} else {
-				logger.Error(err, "Failed to create new Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
+				logger.Error(err, "Failed to create new Configmap", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
 				return nil, updated, err
 
 			}
@@ -401,13 +345,13 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, confi
 
 	configmap, err := r.nodeSensorConfigmap(cmName, config, nodesensor)
 	if err != nil {
-		logger.Error(err, "Failed to format existing Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
+		logger.Error(err, "Failed to format existing Configmap", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
 		return nil, updated, err
 	}
 	if !reflect.DeepEqual(confCm.Data, configmap.Data) {
 		err = r.Update(ctx, configmap)
 		if err != nil {
-			logger.Error(err, "Failed to update Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
+			logger.Error(err, "Failed to update Configmap", "Configmap.Namespace", nodesensor.Namespace, "Configmap.Name", cmName)
 			return nil, updated, err
 		}
 
@@ -423,7 +367,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 		return nil
 	}
 	secret := corev1.Secret{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: nodesensor.TargetNs()}, &secret)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: nodesensor.Namespace}, &secret)
 	if err == nil || !errors.IsNotFound(err) {
 		return err
 	}
@@ -433,7 +377,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 		return err
 	}
 
-	secret = common_assets.PullSecret(nodesensor.TargetNs(), pulltoken)
+	secret = common_assets.PullSecret(nodesensor.Namespace, pulltoken)
 	err = ctrl.SetControllerReference(nodesensor, &secret, r.Scheme)
 	if err != nil {
 		logger.Error(err, "Unable to assign Controller Reference to the Pull Secret")
@@ -441,17 +385,17 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 	err = r.Client.Create(ctx, &secret)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
-			logger.Error(err, "Failed to create new Pull Secret", "Secret.Namespace", nodesensor.TargetNs(), "Secret.Name", common.FalconPullSecretName)
+			logger.Error(err, "Failed to create new Pull Secret", "Secret.Namespace", nodesensor.Namespace, "Secret.Name", common.FalconPullSecretName)
 			return err
 		}
 	} else {
-		logger.Info("Created a new Pull Secret", "Secret.Namespace", nodesensor.TargetNs(), "Secret.Name", common.FalconPullSecretName)
+		logger.Info("Created a new Pull Secret", "Secret.Namespace", nodesensor.Namespace, "Secret.Name", common.FalconPullSecretName)
 	}
 	return nil
 }
 
 func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name string, config *node.ConfigCache, nodesensor *falconv1alpha1.FalconNodeSensor) (*corev1.ConfigMap, error) {
-	cm := assets.DaemonsetConfigMap(name, nodesensor.TargetNs(), config)
+	cm := assets.DaemonsetConfigMap(name, nodesensor.Namespace, config)
 
 	err := controllerutil.SetControllerReference(nodesensor, cm, r.Scheme)
 	if err != nil {
@@ -460,8 +404,8 @@ func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name string, config *no
 	return cm, nil
 }
 
-func (r *FalconNodeSensorReconciler) nodeSensorDaemonset(name, image, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) *appsv1.DaemonSet {
-	ds := assets.Daemonset(name, image, serviceAccount, nodesensor)
+func (r *FalconNodeSensorReconciler) nodeSensorDaemonset(name string, image string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) *appsv1.DaemonSet {
+	ds := assets.Daemonset(name, image, nodesensor)
 
 	// NOTE: calling SetControllerReference, and setting owner references in
 	// general, is important as it allows deleted objects to be garbage collected.
@@ -510,7 +454,7 @@ func updateDaemonSetVolumes(ds, origDS *appsv1.DaemonSet, logger logr.Logger) bo
 }
 
 // If an update is needed, this will update the InitContainer image reference from the given DaemonSet
-func updateDaemonSetImages(ds *appsv1.DaemonSet, origImg string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+func updateDaemonSetImages(ds *appsv1.DaemonSet, origImg string, logger logr.Logger) bool {
 	initImage := &ds.Spec.Template.Spec.InitContainers[0].Image
 	imgUpdate := *initImage != origImg
 	if imgUpdate {
@@ -528,203 +472,12 @@ func updateDaemonSetImages(ds *appsv1.DaemonSet, origImg string, nodesensor *fal
 	return imgUpdate
 }
 
-// handlePermissions creates and updates the service account, role and role binding
-func (r *FalconNodeSensorReconciler) handlePermissions(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
-	created, err := r.handleScc(ctx, nodesensor, logger)
-	if created || err != nil {
-		return created, err
-	}
-	created, err = r.handleServiceAccount(ctx, nodesensor, logger)
-	if created || err != nil {
-		return created, err
-	}
-	created, err = r.handleClusterRole(ctx, nodesensor, logger)
-	if created || err != nil {
-		return created, err
-	}
-	return r.handleClusterRoleBinding(ctx, nodesensor, logger)
-}
-
-func (r *FalconNodeSensorReconciler) isServiceAccountRequired(ctx context.Context, logger logr.Logger) (string, error) {
-	scc := securityv1.SecurityContextConstraints{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeSccName}, &scc)
-	if err == nil || errors.IsNotFound(err) {
-		return common.NodeServiceAccountName, nil
-	}
-	if meta.IsNoMatchError(err) {
-		return "", nil
-	}
-	return common.NodeServiceAccountName, err
-}
-
-// handleScc creates and update SCC
-func (r *FalconNodeSensorReconciler) handleScc(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
-	scc := securityv1.SecurityContextConstraints{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeSccName}, &scc)
-	if err == nil || (err != nil && !errors.IsNotFound(err)) {
-		return false, err
-	}
-	scc = securityv1.SecurityContextConstraints{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: securityv1.SchemeGroupVersion.String(),
-			Kind:       "ClusterRole",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: common.NodeClusterRoleBindingName,
-		},
-		AllowPrivilegedContainer: true,
-		RunAsUser:                securityv1.RunAsUserStrategyOptions{Type: securityv1.RunAsUserStrategyRunAsAny},
-		SELinuxContext:           securityv1.SELinuxContextStrategyOptions{Type: securityv1.SELinuxStrategyRunAsAny},
-		FSGroup:                  securityv1.FSGroupStrategyOptions{Type: securityv1.FSGroupStrategyRunAsAny},
-		SupplementalGroups:       securityv1.SupplementalGroupsStrategyOptions{Type: securityv1.SupplementalGroupsStrategyRunAsAny},
-		AllowHostDirVolumePlugin: true,
-		AllowHostIPC:             true,
-		AllowHostNetwork:         true,
-		AllowHostPID:             true,
-		AllowHostPorts:           true,
-		ReadOnlyRootFilesystem:   false,
-		RequiredDropCapabilities: []corev1.Capability{},
-		DefaultAddCapabilities:   []corev1.Capability{},
-		AllowedCapabilities:      []corev1.Capability{},
-		Groups:                   []string{},
-		Volumes: []securityv1.FSType{
-			securityv1.FSTypeConfigMap,
-			securityv1.FSTypeDownwardAPI,
-			securityv1.FSTypeEmptyDir,
-			securityv1.FSTypePersistentVolumeClaim,
-			securityv1.FSProjected,
-			securityv1.FSTypeSecret,
-		},
-	}
-	err = ctrl.SetControllerReference(nodesensor, &scc, r.Scheme)
-	if err != nil {
-		logger.Error(err, "Unable to assign Controller Reference to the ClusterRoleBinding")
-	}
-	logger.Info("Creating FalconNodeSensor ClusterRoleBinding")
-	err = r.Client.Create(ctx, &scc)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		logger.Error(err, "Failed to create new ClusterRoleBinding", "ClusteRoleBinding.Name", common.NodeClusterRoleBindingName)
-		return false, err
-	}
-	return true, nil
-}
-
-// handleRoleBinding creates and updates RoleBinding
-func (r *FalconNodeSensorReconciler) handleClusterRoleBinding(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
-	binding := rbacv1.ClusterRoleBinding{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeClusterRoleBindingName}, &binding)
-	if err == nil || (err != nil && !errors.IsNotFound(err)) {
-		return false, err
-	}
-	binding = rbacv1.ClusterRoleBinding{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: rbacv1.SchemeGroupVersion.String(),
-			Kind:       "ClusterRoleBinding",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: common.NodeClusterRoleBindingName,
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "ClusterRole",
-			Name:     common.NodeClusterRoleName,
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      common.NodeServiceAccountName,
-				Namespace: nodesensor.TargetNs(),
-			},
-		},
-	}
-	err = ctrl.SetControllerReference(nodesensor, &binding, r.Scheme)
-	if err != nil {
-		logger.Error(err, "Unable to assign Controller Reference to the ClusterRoleBinding")
-	}
-	logger.Info("Creating FalconNodeSensor ClusterRoleBinding")
-	err = r.Client.Create(ctx, &binding)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		logger.Error(err, "Failed to create new ClusterRoleBinding", "ClusteRoleBinding.Name", common.NodeClusterRoleBindingName)
-		return false, err
-	}
-	return true, nil
-
-}
-
-// handleClusterRole creates and updates the ClusterRole
-func (r *FalconNodeSensorReconciler) handleClusterRole(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
-	role := rbacv1.ClusterRole{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeClusterRoleName}, &role)
-	if err == nil || (err != nil && !errors.IsNotFound(err)) {
-		return false, err
-	}
-	role = rbacv1.ClusterRole{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: rbacv1.SchemeGroupVersion.String(),
-			Kind:       "ClusterRole",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: nodesensor.TargetNs(),
-			Name:      common.NodeClusterRoleName,
-		},
-		Rules: []rbacv1.PolicyRule{
-			{
-				Verbs:         []string{"use"},
-				Resources:     []string{"securitycontextconstraints"},
-				ResourceNames: []string{common.NodeSccName},
-				APIGroups:     []string{"security.openshift.io"},
-			},
-		},
-	}
-	err = ctrl.SetControllerReference(nodesensor, &role, r.Scheme)
-	if err != nil {
-		logger.Error(err, "Unable to assign Controller Reference to the Role")
-	}
-	logger.Info("Creating FalconNodeSensor ClusterRole")
-	err = r.Client.Create(ctx, &role)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		logger.Error(err, "Failed to create new ClusterRole", "ClusterRole.Name", common.NodeClusterRoleName)
-		return false, err
-	}
-	return true, nil
-}
-
-// handleServiceAccount creates and updates the service account and grants necessary permissions to it
-func (r *FalconNodeSensorReconciler) handleServiceAccount(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
-	sa := corev1.ServiceAccount{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.TargetNs()}, &sa)
-	if err == nil || (err != nil && !errors.IsNotFound(err)) {
-		return false, err
-	}
-	sa = corev1.ServiceAccount{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ServiceAccount",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: nodesensor.TargetNs(),
-			Name:      common.NodeServiceAccountName,
-		},
-	}
-	err = ctrl.SetControllerReference(nodesensor, &sa, r.Scheme)
-	if err != nil {
-		logger.Error(err, "Unable to assign Controller Reference to the ServiceAccount")
-	}
-	logger.Info("Creating FalconNodeSensor ServiceAccount")
-	err = r.Client.Create(ctx, &sa)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		logger.Error(err, "Failed to create new ServiceAccount", "Namespace.Name", nodesensor.TargetNs())
-		return false, err
-	}
-	return true, nil
-}
-
 // handleServiceAccount creates and updates the service account and grants necessary permissions to it
 func (r *FalconNodeSensorReconciler) handleSAAnnotations(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
 	sa := corev1.ServiceAccount{}
 	saAnnotations := nodesensor.Spec.Node.ServiceAccount.Annotations
 
-	err := r.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.TargetNs()}, &sa)
+	err := r.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.Namespace}, &sa)
 	if err != nil && errors.IsNotFound(err) {
 		logger.Error(err, "Could not get FalconNodeSensor ServiceAccount")
 		return err
@@ -742,7 +495,7 @@ func (r *FalconNodeSensorReconciler) handleSAAnnotations(ctx context.Context, no
 
 	err = r.Update(ctx, &sa)
 	if err != nil {
-		logger.Error(err, "Failed to update ServiceAccount Annotations", "ServiceAccount.Namespace", nodesensor.TargetNs(), "Annotations", saAnnotations)
+		logger.Error(err, "Failed to update ServiceAccount Annotations", "ServiceAccount.Namespace", nodesensor.Namespace, "Annotations", saAnnotations)
 		return err
 	}
 	logger.Info("Updating FalconNodeSensor ServiceAccount Annotations", "Annotations", saAnnotations)
@@ -771,7 +524,7 @@ func (r *FalconNodeSensorReconciler) conditionsUpdate(condType string, status me
 }
 
 // finalizeDaemonset deletes the Daemonset running the Falcon Sensor and then runs a Daemonset to cleanup the /opt/CrowdStrike directory
-func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, image string, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
+func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, image string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
 	dsCleanupName := nodesensor.Name + "-cleanup"
 	daemonset := &appsv1.DaemonSet{}
 	pods := corev1.PodList{}
@@ -781,7 +534,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 	// Get a list of DS and return the DS within the correct NS
 	if err := r.List(ctx, dsList, &client.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{common.FalconInstanceKey: common.FalconKernelSensor}),
-		Namespace:     nodesensor.TargetNs(),
+		Namespace:     nodesensor.Namespace,
 	}); err != nil {
 		return err
 	}
@@ -790,7 +543,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 	if err := r.Delete(ctx,
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: nodesensor.Name, Namespace: nodesensor.TargetNs(),
+				Name: nodesensor.Name, Namespace: nodesensor.Namespace,
 			},
 		}); err != nil && !errors.IsNotFound(err) {
 		logger.Error(err, "Failed to cleanup Falcon sensor DaemonSet pods")
@@ -798,10 +551,10 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 	}
 
 	// Check if the cleanup DS is created. If not, create it.
-	err := r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.TargetNs()}, daemonset)
+	err := r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.Namespace}, daemonset)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new DS for cleanup
-		ds := assets.RemoveNodeDirDaemonset(dsCleanupName, image, serviceAccount, nodesensor)
+		ds := assets.RemoveNodeDirDaemonset(dsCleanupName, image, nodesensor)
 
 		// Create the cleanup DS
 		err = r.Create(ctx, ds)
@@ -815,7 +568,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 			// List all pods with the "cleanup" label in the appropriate NS
 			if err := r.List(ctx, &pods, &client.ListOptions{
 				LabelSelector: labels.SelectorFromSet(labels.Set{common.FalconInstanceKey: "cleanup"}),
-				Namespace:     nodesensor.TargetNs(),
+				Namespace:     nodesensor.Namespace,
 			}); err != nil {
 				return err
 			}
@@ -842,7 +595,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 			} else {
 				logger.Info("Waiting for cleanup pods to complete. Retrying....", "Number of nodes still processing task", nodeCount-completedCount)
 			}
-			err = r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.TargetNs()}, daemonset)
+			err = r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.Namespace}, daemonset)
 			if err != nil && errors.IsNotFound(err) {
 				logger.Info("Clean-up daemonset has been removed")
 				break
@@ -853,7 +606,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 		if err := r.Delete(ctx,
 			&appsv1.DaemonSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: dsCleanupName, Namespace: nodesensor.TargetNs(),
+					Name: dsCleanupName, Namespace: nodesensor.Namespace,
 				},
 			}); err != nil && !errors.IsNotFound(err) {
 			logger.Error(err, "Failed to cleanup Falcon sensor DaemonSet pods")

@@ -53,7 +53,7 @@ func dsUpdateStrategy(node *falconv1alpha1.FalconNodeSensor) appsv1.DaemonSetUpd
 	return appsv1.DaemonSetUpdateStrategy{Type: appsv1.OnDeleteDaemonSetStrategyType}
 }
 
-func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
+func Daemonset(dsName string, image string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
 	privileged := true
 	escalation := true
 	readOnlyFs := false
@@ -67,7 +67,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
-			Namespace: node.TargetNs(),
+			Namespace: node.Namespace,
 			Labels: map[string]string{
 				common.FalconInstanceNameKey: dsName,
 				common.FalconInstanceKey:     common.FalconKernelSensor,
@@ -129,7 +129,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 							},
 						},
 					},
-					ServiceAccountName: serviceAccount,
+					ServiceAccountName: common.NodeServiceAccountName,
 					Containers: []corev1.Container{
 						{
 							SecurityContext: &corev1.SecurityContext{
@@ -184,7 +184,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 	}
 }
 
-func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
+func RemoveNodeDirDaemonset(dsName string, image string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
 	privileged := true
 	escalation := true
 	readOnlyFs := false
@@ -193,7 +193,7 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
-			Namespace: node.TargetNs(),
+			Namespace: node.Namespace,
 			Labels: map[string]string{
 				common.FalconInstanceNameKey: dsName,
 				common.FalconInstanceKey:     "cleanup",
@@ -257,7 +257,7 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 							},
 						},
 					},
-					ServiceAccountName: serviceAccount,
+					ServiceAccountName: common.NodeServiceAccountName,
 					Containers: []corev1.Container{
 						{
 							SecurityContext: &corev1.SecurityContext{

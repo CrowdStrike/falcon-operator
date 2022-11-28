@@ -253,7 +253,7 @@ spec:
     listKind: FalconNodeSensorList
     plural: falconnodesensors
     singular: falconnodesensor
-  scope: Cluster
+  scope: Namespaced
   versions:
   - additionalPrinterColumns:
     - jsonPath: .status.sensor
@@ -375,7 +375,7 @@ spec:
                       on the nodes. Disabling might have unintended consequences for
                       certain operations such as sensor downgrading.
                     type: boolean
-                  image_override:
+                  image:
                     description: Location of the Falcon Sensor image. Use only in
                       cases when you mirror the original image to your repository/name:tag
                     type: string
@@ -851,6 +851,12 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: falcon-operator
+  namespace: falcon-operator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: falcon-operator-node-sensor
   namespace: falcon-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
