@@ -47,7 +47,7 @@ spec:
         imagePullPolicy: Always
         env:
           - name: WATCH_NAMESPACE
-            value: ''
+            value: null
           - name: POD_NAME
             valueFrom:
               fieldRef:
