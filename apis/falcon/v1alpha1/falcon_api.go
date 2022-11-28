@@ -30,7 +30,14 @@ type FalconAPI struct {
 // RegistryTLSSpec configures TLS for registry pushing
 type RegistryTLSSpec struct {
 	// Allow pushing to docker registries over HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Skip Registry TLS Verification",order=1
 	InsecureSkipVerify bool `json:"insecure_skip_verify,omitempty"`
+	// Allow for users to provide a CA Cert Bundle, as either a string or base64 encoded string
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Registry CA Certificate Bundle; optionally (double) base64 encoded",order=2
+	CACertificate string `json:"caCertificate,omitempty"`
+	// Allow for users to provide a ConfigMap containing a CA Cert Bundle under a key ending in .crt
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ConfigMap containing Registry CA Certificate Bundle",order=3
+	CACertificateConfigMap string `json:"caCertificateSecret,omitempty"`
 }
 
 type RegistryTypeSpec string

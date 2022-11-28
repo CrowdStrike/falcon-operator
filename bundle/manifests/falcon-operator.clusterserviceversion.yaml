@@ -77,6 +77,10 @@ spec:
         path: injector.serviceAccount.name
       - displayName: Falcon Container Injector TLS Validity Length (days)
         path: injector.tls.validity
+      - description: Allow pushing to docker registries over HTTPS with failed TLS
+          verification. Note that this does not affect other TLS connections.
+        displayName: Skip Registry TLS Verification
+        path: registry.tls.insecure_skip_verify
       - description: Falcon OAuth2 API Client Secret
         displayName: Client Secret
         path: falcon_api.client_secret
@@ -86,6 +90,10 @@ spec:
           Container image will be pushed
         displayName: Falcon Container Image Registry Configuration
         path: registry
+      - description: Allow for users to provide a CA Cert Bundle, as either a string
+          or base64 encoded string
+        displayName: Registry CA Certificate Bundle; optionally (double) base64 encoded
+        path: registry.tls.caCertificate
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
@@ -96,6 +104,10 @@ spec:
         path: injector
       - displayName: Falcon Container Injector TLS Configuration
         path: injector.tls
+      - description: Allow for users to provide a ConfigMap containing a CA Cert Bundle
+          under a key ending in .crt
+        displayName: ConfigMap containing Registry CA Certificate Bundle
+        path: registry.tls.caCertificateSecret
       - description: Falcon Customer ID (CID) Override (optional, default is derived
           from the API Key pair)
         displayName: Falcon Customer ID (CID)

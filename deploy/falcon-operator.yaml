@@ -1741,6 +1741,15 @@ spec:
                     description: TLS configures TLS connection for push of Falcon
                       Container image to the registry
                     properties:
+                      caCertificate:
+                        description: Allow for users to provide a CA Cert Bundle,
+                          as either a string or base64 encoded string
+                        type: string
+                      caCertificateSecret:
+                        description: Allow for users to provide a ConfigMap containing
+                          a CA Cert Bundle, encoded as a base64 string under a key
+                          ending in .crt
+                        type: string
                       insecure_skip_verify:
                         description: Allow pushing to docker registries over HTTPS
                           with failed TLS verification. Note that this does not affect

@@ -17,13 +17,21 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+func (r *FalconContainerReconciler) reconcileRegistryCABundleConfigMap(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
+	return r.reconcileGenericConfigMap(registryCABundleConfigMapName, r.newCABundleConfigMap, ctx, falconContainer)
+}
+
 func (r *FalconContainerReconciler) reconcileConfigMap(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
-	configMap, err := r.newConfigMap(ctx, falconContainer)
+	return r.reconcileGenericConfigMap(injectorConfigMapName, r.newConfigMap, ctx, falconContainer)
+}
+
+func (r *FalconContainerReconciler) reconcileGenericConfigMap(name string, genFunc func(context.Context, *v1alpha1.FalconContainer) (*corev1.ConfigMap, error), ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
+	configMap, err := genFunc(ctx, falconContainer)
 	if err != nil {
 		return configMap, fmt.Errorf("unable to render expected configmap: %v", err)
 	}
 	existingConfigMap := &corev1.ConfigMap{}
-	err = r.Client.Get(ctx, types.NamespacedName{Name: injectorConfigMapName, Namespace: r.Namespace()}, existingConfigMap)
+	err = r.Client.Get(ctx, types.NamespacedName{Name: name, Namespace: r.Namespace()}, existingConfigMap)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, configMap, r.Scheme); err != nil {
@@ -31,7 +39,7 @@ func (r *FalconContainerReconciler) reconcileConfigMap(ctx context.Context, falc
 			}
 			return configMap, r.Create(ctx, falconContainer, configMap)
 		}
-		return &corev1.ConfigMap{}, fmt.Errorf("unable to query existing config map %s: %v", injectorConfigMapName, err)
+		return &corev1.ConfigMap{}, fmt.Errorf("unable to query existing config map %s: %v", name, err)
 	}
 	if reflect.DeepEqual(configMap.Data, existingConfigMap.Data) {
 		return existingConfigMap, nil
@@ -39,6 +47,26 @@ func (r *FalconContainerReconciler) reconcileConfigMap(ctx context.Context, falc
 	existingConfigMap.Data = configMap.Data
 	return existingConfigMap, r.Update(ctx, falconContainer, existingConfigMap)
 
+}
+
+func (r *FalconContainerReconciler) newCABundleConfigMap(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
+	data := make(map[string]string)
+	if falconContainer.Spec.Registry.TLS.CACertificate != "" {
+		data["tls.crt"] = string(common.CleanDecodedBase64([]byte(falconContainer.Spec.Registry.TLS.CACertificate)))
+		return &corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Kind:       "ConfigMap",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      registryCABundleConfigMapName,
+				Namespace: r.Namespace(),
+				Labels:    FcLabels,
+			},
+			Data: data,
+		}, nil
+	}
+	return &corev1.ConfigMap{}, fmt.Errorf("unable to determine contents of Registry TLS CACertificate attribute")
 }
 
 func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.ConfigMap, error) {

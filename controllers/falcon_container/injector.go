@@ -20,12 +20,13 @@ import (
 )
 
 const (
-	injectorName          = "injector"
-	initContainerName     = "crowdstrike-falcon-init-container"
-	injectorConfigMapName = "injector-config"
-	injectorTLSSecretName = "injector-tls"
-	falconVolumeName      = "crowdstrike-falcon-volume"
-	falconVolumePath      = "/tmp/CrowdStrike"
+	injectorName                  = "injector"
+	initContainerName             = "crowdstrike-falcon-init-container"
+	injectorConfigMapName         = "injector-config"
+	registryCABundleConfigMapName = "falcon-registry-certs"
+	injectorTLSSecretName         = "injector-tls"
+	falconVolumeName              = "crowdstrike-falcon-volume"
+	falconVolumePath              = "/tmp/CrowdStrike"
 )
 
 var (
@@ -118,6 +119,7 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 	imagePullSecrets := []corev1.LocalObjectReference{{Name: common.FalconPullSecretName}}
 	azureVolumeName := "azure-config"
 	azureVolumePath := "/run/azure.json"
+	certPath := "/etc/docker/certs.d/falcon-system-certs"
 	hostPathFile := corev1.HostPathFile
 	if common.FalconPullSecretName != falconContainer.Spec.Injector.ImagePullSecretName {
 		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: falconContainer.Spec.Injector.ImagePullSecretName})
@@ -146,6 +148,18 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
+		},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      injectorTLSSecretName,
+			MountPath: "/run/secrets/tls",
+			ReadOnly:  true,
+		},
+		{
+			Name:      falconVolumeName,
+			MountPath: falconVolumePath,
+			ReadOnly:  true,
 		},
 	}
 	initContainers := []corev1.Container{}
@@ -181,6 +195,32 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 					Type: &hostPathFile,
 				},
 			}})
+	}
+
+	var registryCAConfigMapName string = ""
+	if falconContainer.Spec.Registry.TLS.CACertificateConfigMap != "" {
+		registryCAConfigMapName = falconContainer.Spec.Registry.TLS.CACertificateConfigMap
+	}
+	if falconContainer.Spec.Registry.TLS.CACertificate != "" {
+		registryCAConfigMapName = registryCABundleConfigMapName
+	}
+	if registryCAConfigMapName != "" {
+		volumes = append(volumes, corev1.Volume{
+			Name: registryCAConfigMapName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: registryCAConfigMapName,
+					},
+				},
+			},
+		})
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      registryCAConfigMapName,
+			ReadOnly:  true,
+			MountPath: certPath,
+		})
+
 	}
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -249,18 +289,7 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 									Name:          common.FalconServiceHTTPSName,
 								},
 							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      injectorTLSSecretName,
-									MountPath: "/run/secrets/tls",
-									ReadOnly:  true,
-								},
-								{
-									Name:      falconVolumeName,
-									MountPath: falconVolumePath,
-									ReadOnly:  true,
-								},
-							},
+							VolumeMounts: volumeMounts,
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{

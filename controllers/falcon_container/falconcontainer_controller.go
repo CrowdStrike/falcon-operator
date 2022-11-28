@@ -102,6 +102,13 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				return ctrl.Result{}, nil
 			}
 		}
+		// Create a CA Bundle ConfigMap if CACertificate attribute is set; overridden by the presence of a CACertificateConfigMap value
+		if falconContainer.Spec.Registry.TLS.CACertificateConfigMap == "" && falconContainer.Spec.Registry.TLS.CACertificate != "" {
+			if _, err := r.reconcileRegistryCABundleConfigMap(ctx, falconContainer); err != nil {
+				r.Error(ctx, req, falconContainer, fmt.Sprintf("failed to reconcile Registry CA Certificate Bundle ConfigMap: %v", err))
+				return ctrl.Result{}, fmt.Errorf("failed to reconcile Registry CA Certificate Bundle ConfigMap")
+			}
+		}
 		if r.imageMirroringEnabled(falconContainer) {
 			r.Log.Info("Verifying image availability in remote registry")
 			if err := r.PushImage(ctx, falconContainer); err != nil {
