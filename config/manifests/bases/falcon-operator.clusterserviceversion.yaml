@@ -96,10 +96,10 @@ spec:
         path: falcon.app
       - displayName: Falcon Container Image Pull Secret Name
         path: injector.imagePullSecret
-      - description: Falcon Container Version Pinning. If not set to false, once a
+      - description: Falcon Container Version Locking. If not set to false, once a
           sensor version is set, it is used until manually adjusted.
-        displayName: Falcon Container Image Version Pinning
-        path: versionPinning
+        displayName: Falcon Container Image Version Locking
+        path: versionLocking
       - description: 'Sensor grouping tags are optional, user-defined identifiers
           that can used to group and filter hosts. Allowed characters: all alphanumerics,
           ''/'', ''-'', and ''_''.'

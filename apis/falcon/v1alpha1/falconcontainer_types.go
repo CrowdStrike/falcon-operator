@@ -29,10 +29,10 @@ type FalconContainerSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Injector Configuration",order=4
 	Injector FalconContainerInjectorSpec `json:"injector,omitempty"`
 
-	// Falcon Container Version Pinning. If not set to false, once a sensor version is set, it is used until manually adjusted.
+	// Falcon Container Version Locking. If not set to false, once a sensor version is set, it is used until manually adjusted.
 	// +kubebuilder:default:=true
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version Pinning",order=5
-	VersionPinning bool `json:"versionPinning,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version Locking",order=5
+	VersionLocking bool `json:"versionLocking,omitempty"`
 
 	// +kubebuilder:validation:Pattern="^.*:.*$"
 	// +operator-sdk:cv:customresourcedefinitions:type=spec,displayName="Falcon Container Image URI",order=6

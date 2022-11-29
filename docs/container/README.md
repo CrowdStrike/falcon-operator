@@ -56,7 +56,7 @@ Note: to provide multiple arguments to `falconctlOpts`, you need to provide them
 | falcon_api.client_region                  | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                                                                                                                     |
 | image                                     | (optional) Leverage a Falcon Container Sensor image that is not managed by the operator; typically used with custom repositories; overrides all registry settings; might require injector.imagePullSecretName to be set |
 | version                                   | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                                                                                                       |
-| versionPinning                            | (optional) Enable/Disable version pinning; if disabled, new image versions (matching any specified version string) will be leveraged for future pod injections upon controller reconciliation (default: true)
+| versionLocking                            | (optional) Enable/Disable version locking; if disabled, new image versions (matching any specified version string) will be leveraged for future pod injections upon controller reconciliation (default: true)
 | registry.type                             | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift)                                                                                                                             |
 | registry.tls.insecure_skip_verify         | (optional) Skip TLS check when pushing Falcon Container to target registry (only for demoing purposes on self-signed openshift clusters)                                                                                |
 | registry.acr_name                         | (optional) Name of ACR for the Falcon Container push. Only applicable to Azure cloud. (`registry.type="acr"`)                                                                                                           |
@@ -140,7 +140,7 @@ Consult specific deployment guides to learn about the steps needed for image mir
 
 #### (Option 3) Use a custom Image URI
 
-Image must be available at the specified URI; setting the image attribute will cause registry settings to be ignored.  No image mirroring will be leveraged, and version pinning is implied.
+Image must be available at the specified URI; setting the image attribute will cause registry settings to be ignored.  No image mirroring will be leveraged, and version locking is implied.
 
 Example:
 ```
@@ -162,7 +162,7 @@ kubectl delete falconcontainers.falcon.crowdstrike.com --all
 
 ### Sensor Upgrades
 
-The current version of the operator will update the Falcon Container Sensor version upon Operator Reconciliation, if Version Pinning is disabled.  Note that this will only impact future Sensor injections, and will not cause any changes to running pods.  Version Pinning is enabled by default. 
+The current version of the operator will update the Falcon Container Sensor version upon Operator Reconciliation, if Version Locking is disabled.  Note that this will only impact future Sensor injections, and will not cause any changes to running pods.  Version Locking is enabled by default. 
 
 ### Operator Upgrades
 

@@ -1821,9 +1821,9 @@ spec:
                   selected when version specifier is missing; ignored when Image is
                   set.
                 type: string
-              versionPinning:
+              versionLocking:
                 default: true
-                description: Falcon Container Version Pinning. If not set to false,
+                description: Falcon Container Version Locking. If not set to false,
                   once a sensor version is set, it is used until manually adjusted.
                 type: boolean
             required:
