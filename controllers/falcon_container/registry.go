@@ -16,7 +16,6 @@ import (
 )
 
 func (r *FalconContainerReconciler) reconcileRegistrySecrets(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.SecretList, error) {
-	injectionLabelKey := fmt.Sprintf("sensor.%s.crowdstrike.com/injection", r.Namespace())
 	injectionEnabledValue := "enabled"
 	injectionDisabledValue := "disabled"
 	disableDefaultNSInjection := false
@@ -41,12 +40,12 @@ func (r *FalconContainerReconciler) reconcileRegistrySecrets(ctx context.Context
 		if disableDefaultNSInjection {
 			// if default namespace injection is disabled, require that the injection label be set to enabled
 			// in both cases below, ensure that we're not blocking pull secret creation within the injector namespace
-			if (ns.Labels == nil || ns.Labels[injectionLabelKey] != injectionEnabledValue) && ns.Name != r.Namespace() {
+			if (ns.Labels == nil || ns.Labels[common.FalconContainerInjection] != injectionEnabledValue) && ns.Name != r.Namespace() {
 				continue
 			}
 		} else {
 			// otherwise, just ensure the injection label is not set to disabled
-			if ns.Labels != nil && ns.Labels[injectionLabelKey] == injectionDisabledValue && ns.Name != r.Namespace() {
+			if ns.Labels != nil && ns.Labels[common.FalconContainerInjection] == injectionDisabledValue && ns.Name != r.Namespace() {
 				continue
 			}
 		}

@@ -87,7 +87,7 @@ func (r *FalconContainerReconciler) newWebhook(webhookName string, caBundle []by
 				NamespaceSelector: &metav1.LabelSelector{
 					MatchExpressions: []metav1.LabelSelectorRequirement{
 						{
-							Key:      fmt.Sprintf("sensor.%s.crowdstrike.com/injection", r.Namespace()),
+							Key:      common.FalconContainerInjection,
 							Operator: operatorSelector,
 							Values:   operatorValues,
 						},
