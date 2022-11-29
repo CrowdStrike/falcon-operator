@@ -100,7 +100,7 @@ and add something similar to the following lines:
 ```
         env:
           - name: WATCH_NAMESPACE
-            value: ''
+            value: null
           - name: POD_NAME
             valueFrom:
               fieldRef:
@@ -129,7 +129,7 @@ and changing `WATCH_NAMESPACE` to the following lines:
 ```
         env:
           - name: WATCH_NAMESPACE
-            value: ''
+            value: null
           - name: POD_NAME
             valueFrom:
               fieldRef:
