@@ -22,10 +22,11 @@ spec:
       kind: FalconContainer
       name: falconcontainers.falcon.crowdstrike.com
       specDescriptors:
-      - description: FalconAPI configures connection from your local Falcon operator
-          to CrowdStrike Falcon platform.
-        displayName: Falcon Platform API Configuration
-        path: falcon_api
+      - displayName: Falcon Sensor Configuration
+        path: falcon
+      - description: Falcon Customer ID (CID)
+        displayName: Falcon Customer ID (CID)
+        path: falcon.cid
       - description: Falcon OAuth2 API Client ID
         displayName: Client ID
         path: falcon_api.client_id
@@ -43,57 +44,83 @@ spec:
           verification. Note that this does not affect other TLS connections.
         displayName: Skip Registry TLS Verification
         path: registry.tls.insecure_skip_verify
+      - description: Installation token that prevents unauthorized hosts from being
+          accidentally or maliciously added to your customer ID (CID).
+        displayName: Provisioning Token
+        path: falcon.provisioning_token
+      - description: FalconAPI configures connection from your local Falcon operator
+          to CrowdStrike Falcon platform.
+        displayName: Falcon Platform API Configuration
+        path: falcon_api
       - description: Falcon OAuth2 API Client Secret
         displayName: Client Secret
         path: falcon_api.client_secret
       - displayName: Falcon Container Injector Listen Port
         path: injector.listenPort
-      - description: Registry configures container image registry to which the Falcon
-          Container image will be pushed
-        displayName: Falcon Container Image Registry Configuration
-        path: registry
       - description: Allow for users to provide a CA Cert Bundle, as either a string
           or base64 encoded string
         displayName: Registry CA Certificate Bundle; optionally (double) base64 encoded
         path: registry.tls.caCertificate
+      - description: Disable the Falcon Sensor's use of a proxy.
+        displayName: Disable Falcon Proxy
+        path: falcon.apd
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falcon_api.cloud_region
-      - description: Injector represents additional configuration for Falcon Container
-          Injector
-        displayName: Falcon Container Injector Configuration
-        path: injector
       - displayName: Falcon Container Injector TLS Configuration
         path: injector.tls
+      - description: Registry configures container image registry to which the Falcon
+          Container image will be pushed
+        displayName: Falcon Container Image Registry Configuration
+        path: registry
       - description: Allow for users to provide a ConfigMap containing a CA Cert Bundle
           under a key ending in .crt
         displayName: ConfigMap containing Registry CA Certificate Bundle
         path: registry.tls.caCertificateSecret
+      - description: The application proxy host to use for Falcon sensor proxy configuration.
+        displayName: Disable Falcon Proxy Host
+        path: falcon.aph
       - description: Falcon Customer ID (CID) Override (optional, default is derived
           from the API Key pair)
         displayName: Falcon Customer ID (CID)
         path: falcon_api.cid
+      - description: Injector represents additional configuration for Falcon Container
+          Injector
+        displayName: Falcon Container Injector Configuration
+        path: injector
       - displayName: Falcon Container Image Pull Policy
         path: injector.imagePullPolicy
+      - description: The application proxy port to use for Falcon sensor proxy configuration.
+        displayName: Falcon Proxy Port
+        path: falcon.app
+      - displayName: Falcon Container Image Pull Secret Name
+        path: injector.imagePullSecret
       - description: Falcon Container Version Pinning. If not set to false, once a
           sensor version is set, it is used until manually adjusted.
         displayName: Falcon Container Image Version Pinning
         path: versionPinning
-      - displayName: Falcon Container Image Pull Secret Name
-        path: injector.imagePullSecret
+      - description: 'Sensor grouping tags are optional, user-defined identifiers
+          that can used to group and filter hosts. Allowed characters: all alphanumerics,
+          ''/'', ''-'', and ''_''.'
+        displayName: Sensor Grouping Tags
+        path: falcon.tags
       - displayName: Falcon Container Shared Log Volume
         path: injector.logVolume
+      - description: Set sensor trace level.
+        displayName: Trace Level
+        path: falcon.trace
+      - displayName: Falcon Container Injector Resources
+        path: injector.resources
       - description: Falcon Container Version. The latest version will be selected
           when version specifier is missing; ignored when Image is set.
         displayName: Falcon Container Image Version
         path: version
-      - displayName: Falcon Container Injector Resources
-        path: injector.resources
+      - description: Utilize default or Pay-As-You-Go billing.
+        displayName: Billing
+        path: falcon.billing
       - displayName: Falcon Container Sensor Resources
         path: injector.sensorResources
-      - displayName: Falconctl Opts options
-        path: injector.falconctlOpts
       - displayName: Falcon Container Additional Environment Variables
         path: injector.additionalEnvironmentVariables
       - displayName: Disable Default Namespace Injection

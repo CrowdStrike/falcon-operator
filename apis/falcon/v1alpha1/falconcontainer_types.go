@@ -14,30 +14,32 @@ type FalconContainerSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Sensor Configuration",order=1
+	Falcon FalconSensor `json:"falcon,omitempty"`
 	// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=1
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
 	FalconAPI FalconAPI `json:"falcon_api"`
 
 	// Registry configures container image registry to which the Falcon Container image will be pushed
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Registry Configuration",order=2
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Registry Configuration",order=3
 	Registry RegistrySpec `json:"registry,omitempty"`
 
 	// Injector represents additional configuration for Falcon Container Injector
 	// +kubebuilder:default:={imagePullPolicy:Always}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Injector Configuration",order=3
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Injector Configuration",order=4
 	Injector FalconContainerInjectorSpec `json:"injector,omitempty"`
 
 	// Falcon Container Version Pinning. If not set to false, once a sensor version is set, it is used until manually adjusted.
 	// +kubebuilder:default:=true
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version Pinning",order=4
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version Pinning",order=5
 	VersionPinning bool `json:"versionPinning,omitempty"`
 
 	// +kubebuilder:validation:Pattern="^.*:.*$"
-	// +operator-sdk:cv:customresourcedefinitions:type=spec,displayName="Falcon Container Image URI",order=5
+	// +operator-sdk:cv:customresourcedefinitions:type=spec,displayName="Falcon Container Image URI",order=6
 	Image *string `json:"image,omitempty"`
 
 	// Falcon Container Version. The latest version will be selected when version specifier is missing; ignored when Image is set.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=6
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=7
 	Version *string `json:"version,omitempty"`
 }
 
@@ -75,21 +77,18 @@ type FalconContainerInjectorSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Sensor Resources",order=8
 	SensorResources *corev1.ResourceRequirements `json:"sensorResources,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falconctl Opts options",order=9
-	FalconctlOpts string `json:"falconctlOpts,omitempty"`
-
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Additional Environment Variables",order=10
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Additional Environment Variables",order=9
 	AdditionalEnvironmentVariables *map[string]string `json:"additionalEnvironmentVariables,omitempty"`
 
 	// +kubebuilder:default=false
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Disable Default Namespace Injection",order=11
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Disable Default Namespace Injection",order=10
 	DisableDefaultNSInjection bool `json:"disableDefaultNamespaceInjection,omitempty"`
 
 	// +kubebuilder:default=false
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Disable Default Pod Injection",order=12
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Disable Default Pod Injection",order=11
 	DisableDefaultPodInjection bool `json:"disableDefaultPodInjection,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Azure Config file path",order=13
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Azure Config file path",order=12
 	AzureConfigPath string `json:"azureConfigPath,omitempty"`
 }
 

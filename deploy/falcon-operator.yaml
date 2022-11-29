@@ -55,6 +55,57 @@ spec:
           spec:
             description: FalconContainerSpec defines the desired state of FalconContainer
             properties:
+              falcon:
+                description: CrowdStrike Falcon Sensor configuration settings.
+                properties:
+                  apd:
+                    default: false
+                    description: Disable the Falcon Sensor's use of a proxy.
+                    type: boolean
+                  aph:
+                    description: The application proxy host to use for Falcon sensor
+                      proxy configuration.
+                    type: string
+                  app:
+                    description: The application proxy port to use for Falcon sensor
+                      proxy configuration.
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
+                  billing:
+                    description: Utilize default or Pay-As-You-Go billing.
+                    enum:
+                    - default
+                    - metered
+                    type: string
+                  cid:
+                    description: Falcon Customer ID (CID)
+                    pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
+                    type: string
+                  provisioning_token:
+                    description: Installation token that prevents unauthorized hosts
+                      from being accidentally or maliciously added to your customer
+                      ID (CID).
+                    pattern: ^[0-9a-fA-F]{8}$
+                    type: string
+                  tags:
+                    description: 'Sensor grouping tags are optional, user-defined
+                      identifiers that can used to group and filter hosts. Allowed
+                      characters: all alphanumerics, ''/'', ''-'', and ''_''.'
+                    items:
+                      type: string
+                    type: array
+                  trace:
+                    default: none
+                    description: Set sensor trace level.
+                    enum:
+                    - none
+                    - err
+                    - warn
+                    - info
+                    - debug
+                    type: string
+                type: object
               falcon_api:
                 description: FalconAPI configures connection from your local Falcon
                   operator to CrowdStrike Falcon platform.
@@ -106,8 +157,6 @@ spec:
                   disableDefaultPodInjection:
                     default: false
                     type: boolean
-                  falconctlOpts:
-                    type: string
                   imagePullPolicy:
                     default: Always
                     description: PullPolicy describes a policy for if/when to pull
@@ -1747,8 +1796,7 @@ spec:
                         type: string
                       caCertificateSecret:
                         description: Allow for users to provide a ConfigMap containing
-                          a CA Cert Bundle, encoded as a base64 string under a key
-                          ending in .crt
+                          a CA Cert Bundle under a key ending in .crt
                         type: string
                       insecure_skip_verify:
                         description: Allow pushing to docker registries over HTTPS

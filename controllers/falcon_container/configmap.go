@@ -70,7 +70,7 @@ func (r *FalconContainerReconciler) newCABundleConfigMap(ctx context.Context, fa
 }
 
 func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
-	data := make(map[string]string)
+	data := common.MakeSensorEnvMap(falconContainer.Spec.Falcon)
 	data["CP_NAMESPACE"] = r.Namespace()
 	data["FALCON_INJECTOR_LISTEN_PORT"] = strconv.Itoa(int(*falconContainer.Spec.Injector.ListenPort))
 
@@ -113,10 +113,6 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, falconCont
 		} else {
 			data["FALCON_RESOURCES"] = resources
 		}
-	}
-
-	if falconContainer.Spec.Injector.FalconctlOpts != "" {
-		data["FALCONCTL_OPTS"] = falconContainer.Spec.Injector.FalconctlOpts
 	}
 
 	if falconContainer.Spec.Injector.AdditionalEnvironmentVariables != nil {
