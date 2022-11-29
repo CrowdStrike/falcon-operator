@@ -2,8 +2,10 @@ package v1alpha1
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
+	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/crowdstrike/gofalcon/falcon"
 )
 
@@ -61,9 +63,10 @@ type RegistrySpec struct {
 // ApiConfig generates standard gofalcon library api config
 func (fa *FalconAPI) ApiConfig() *falcon.ApiConfig {
 	return &falcon.ApiConfig{
-		Cloud:        falcon.Cloud(fa.CloudRegion),
-		ClientId:     fa.ClientId,
-		ClientSecret: fa.ClientSecret,
+		Cloud:             falcon.Cloud(fa.CloudRegion),
+		ClientId:          fa.ClientId,
+		ClientSecret:      fa.ClientSecret,
+		UserAgentOverride: fmt.Sprintf("falcon-operator/%s", version.Version),
 	}
 }
 
