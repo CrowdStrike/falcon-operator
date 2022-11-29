@@ -40,7 +40,9 @@ jobs:
         if: github.event_name == 'pull_request_target'
 
       - name: Install dependencies
-        run: sudo apt install libgpgme-dev libbtrfs-dev libdevmapper-dev
+        run: |
+          sudo apt-get update -y
+          sudo apt install libgpgme-dev libbtrfs-dev libdevmapper-dev
 
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1.3.0
