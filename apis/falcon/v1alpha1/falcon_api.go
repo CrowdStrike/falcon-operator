@@ -74,7 +74,7 @@ type RegistryTLSSpec struct {
 	CACertificate string `json:"caCertificate,omitempty"`
 	// Allow for users to provide a ConfigMap containing a CA Cert Bundle under a key ending in .crt
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ConfigMap containing Registry CA Certificate Bundle",order=3
-	CACertificateConfigMap string `json:"caCertificateSecret,omitempty"`
+	CACertificateConfigMap string `json:"caCertificateConfigMap,omitempty"`
 }
 
 type RegistryTypeSpec string

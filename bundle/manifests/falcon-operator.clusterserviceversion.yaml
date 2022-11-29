@@ -115,7 +115,7 @@ spec:
       - description: Allow for users to provide a ConfigMap containing a CA Cert Bundle
           under a key ending in .crt
         displayName: ConfigMap containing Registry CA Certificate Bundle
-        path: registry.tls.caCertificateSecret
+        path: registry.tls.caCertificateConfigMap
       - description: The application proxy host to use for Falcon sensor proxy configuration.
         displayName: Disable Falcon Proxy Host
         path: falcon.aph

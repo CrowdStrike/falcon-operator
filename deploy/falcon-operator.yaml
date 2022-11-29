@@ -1794,7 +1794,7 @@ spec:
                         description: Allow for users to provide a CA Cert Bundle,
                           as either a string or base64 encoded string
                         type: string
-                      caCertificateSecret:
+                      caCertificateConfigMap:
                         description: Allow for users to provide a ConfigMap containing
                           a CA Cert Bundle under a key ending in .crt
                         type: string
