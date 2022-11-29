@@ -86,6 +86,22 @@ func EncodeBase64Interface(i interface{}) (string, error) {
 	return buf.String(), nil
 }
 
+func DecodeBase64Interface(i interface{}) string {
+	var str string
+	switch v := i.(type) {
+	case string:
+		str = v
+	case []byte:
+		str = string(v)
+
+	}
+	b64byte, err := base64.StdEncoding.DecodeString(str)
+	if err == nil {
+		return string(b64byte)
+	}
+	return str
+}
+
 func CleanDecodedBase64(s []byte) []byte {
 	re := regexp.MustCompile(`[\t|\n]*`)
 	b64byte, err := base64.StdEncoding.DecodeString(string(s))

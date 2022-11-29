@@ -52,7 +52,7 @@ func (r *FalconContainerReconciler) reconcileGenericConfigMap(name string, genFu
 func (r *FalconContainerReconciler) newCABundleConfigMap(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
 	data := make(map[string]string)
 	if falconContainer.Spec.Registry.TLS.CACertificate != "" {
-		data["tls.crt"] = string(common.CleanDecodedBase64([]byte(falconContainer.Spec.Registry.TLS.CACertificate)))
+		data["tls.crt"] = string(common.DecodeBase64Interface(falconContainer.Spec.Registry.TLS.CACertificate))
 		return &corev1.ConfigMap{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: corev1.SchemeGroupVersion.String(),
