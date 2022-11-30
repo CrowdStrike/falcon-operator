@@ -14,7 +14,7 @@ type FakeDiscovery struct {
 }
 
 func TestInitContainerArgs(t *testing.T) {
-	want := []string{"-c", "mkdir -p /opt/CrowdStrike && touch /opt/CrowdStrike/falconstore"}
+	want := []string{"-c", `if [ -d "/opt/CrowdStrike/falconstore" ] ; then echo "Re-creating /opt/CrowdStrike/falconstore as it is a directory instead of a file"; rm -rf /opt/CrowdStrike/falconstore; fi; mkdir -p /opt/CrowdStrike && touch /opt/CrowdStrike/falconstore`}
 	if got := InitContainerArgs(); !reflect.DeepEqual(got, want) {
 		t.Errorf("InitContainerArgs() = %v, want %v", got, want)
 	}

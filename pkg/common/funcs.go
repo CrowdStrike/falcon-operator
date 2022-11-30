@@ -14,7 +14,8 @@ import (
 func InitContainerArgs() []string {
 	return []string{
 		"-c",
-		"mkdir -p " + FalconDataDir +
+		`if [ -d "/opt/CrowdStrike/falconstore" ] ; then echo "Re-creating /opt/CrowdStrike/falconstore as it is a directory instead of a file"; rm -rf /opt/CrowdStrike/falconstore; fi; ` +
+			"mkdir -p " + FalconDataDir +
 			" && " +
 			"touch " + FalconStoreFile,
 	}
