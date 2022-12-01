@@ -30,61 +30,86 @@ kind: FalconContainer
 metadata:
   name: default
 spec:
+  falcon:
+    Tags: 'test-cluster,dev'
   falcon_api:
     client_id: PLEASE_FILL_IN
     client_secret: PLEASE_FILL_IN
     cloud_region: autodiscover
   registry:
     type: crowdstrike
-  installer_args:
-    - '-falconctl-opts'
-    - '--tags=test-cluster'
 ```
-
-Note: to provide multiple arguments to `-falconctl-opts`, you need to provide them as a one line string:
-
-```
-  installer_args:
-    - `-falconctl-opts`
-    - `--tags=test-cluster,tags1,tags2 --apd=disabled`
-```
-
-### Installation Phases
-
-Once the FalconContainer resource is pushed to the cluster the operator will start an installation process. The installation process consists of the following 5 phases
-
-| Phase          | Description                                                                                                                                                                                            |
-| :------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| *Pending*      | Namespace `falcon-system-configure` is created. Optionally registry may be initialised (OpenShift ImageStream or new ECR repository created)                                                           |
-| *Building*     | Falcon Container image discovery. Depending on `registry.type` value the image is mirrored from CrowdStrike to your registry of choice **OR** access to CrowdStrike registry is set-up on the cluster. |
-| *Configuring*  | Falcon Container Installer is run in `falcon-system-configure` namespace as Kubernetes Job. Operator waits for the Job completion                                                                      |
-| *Deploying*    | Using the Installer output, Falcon Container is installed to the cluster                                                                                                                               |
-| *Validating*   | Operator asserts whether Falcon Container is deployed successfully                                                                                                                                     |
-| *Done*         | Falcon Container Injector is up and running in `falcon-system` namespace.                                                                                                                              |
 
 ### FalconContainer Reference Manual
 
-| Spec                                | Description                                                                                                                              |
-| :---------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------|
-| falcon_api.client_id                | CrowdStrike API Client ID                                                                                                                |
-| falcon_api.client_secret            | CrowdStrike API Client Secret                                                                                                            |
-| falcon_api.client_region            | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                                      |
-| registry.type                       | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift))                                             |
-| registry.tls.insecure_skip_verify   | (optional) Skip TLS check when pushing Falcon Container to target registry (only for demoing purposes on self-signed openshift clusters) |
-| registry.acr_name                   | (optional) Name of ACR for the Falcon Container push. Only applicable to Azure cloud. (`registry.type="acr"`)                            |
-| registry.ecr_iam_role_arn           | (optional) ARN of AWS IAM Role to be assigned to the Injector (only needed when injector runs on EKS Fargate)
-| installer_args                      | (optional) Additional arguments to Falcon Container Installer (see [Product Documentation](https://falcon.crowdstrike.com/documentation/146/falcon-container-sensor-for-linux)) |
-| version                             | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                        | 
+| Spec                                      | Description                                                                                                                                                                                                             |
+| :----------------------------------       | :----------------------------------------------------------------------------------------------------------------------------------------                                                                               |
+| falcon_api.client_id                      | CrowdStrike API Client ID                                                                                                                                                                                               |
+| falcon_api.client_secret                  | CrowdStrike API Client Secret                                                                                                                                                                                           |
+| falcon_api.client_region                  | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                                                                                                                     |
+| falcon.APD                                | (optional) Configure Falcon Sensor to leverage a proxy host                                                                                                                                                             |
+| falcon.APH                                | (optional) Configure the host Falcon Sensor should leverage for proxying                                                                                                                                                |
+| falcon.APP                                | (optional) Configure the port Falcon Sensor should leverage for proxying                                                                                                                                                |
+| falcon.Billing                            | (optional) Configure Pay-as-You-Go (metered) billing rather than default billing                                                                                                                                        |
+| falcon.PToken                             | (optional) Configure a Provisioning Token for CIDs with restricted AID provisioning enabled                                                                                                                             |
+| falcon.Tags                               | (optional) Configure Falcon Sensor Grouping Tags; comma-delimited                                                                                                                                                       |
+| falcon.Trace                              | (optional) Configure Falcon Sensor Trace Logging Level (none, err, warn, info, debug)                                                                                                                                   |
+| image                                     | (optional) Leverage a Falcon Container Sensor image that is not managed by the operator; typically used with custom repositories; overrides all registry settings; might require injector.imagePullSecretName to be set |
+| version                                   | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                                                                                                       |
+| versionLocking                            | (optional) Enable/Disable version locking; if disabled, new image versions (matching any specified version string) will be leveraged for future pod injections upon controller reconciliation (default: true)
+| registry.type                     | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift)                                              |
+| registry.tls.insecure_skip_verify | (optional) Skip TLS check when pushing Falcon Container to target registry (only for demoing purposes on self-signed openshift clusters) |
+| registry.tls.caCertificate | (optional) A string containing an optionally base64-encoded Certificate Authority Chain for self-signed TLS Registry Certificates
+| registry.tls.caCertificateConfigMap | (optional) The name of a ConfigMap containing CA Certificate Authority Chains under keys ending in ".tls"  for self-signed TLS Registry Certificates (ignored when registry.tls.caCertificate is set)
+| registry.acr_name                         | (optional) Name of ACR for the Falcon Container push. Only applicable to Azure cloud. (`registry.type="acr"`)                                                                                                           |
+| registry.ecr_iam_role_arn                 | (optional) ARN of AWS IAM Role to be assigned to the Injector (only needed when injector runs on EKS Fargate)                                                                                                           |
+| injector.serviceAccount.name              | (optional) Name of Service Account to create in falcon-system namespace                                                                                                                                                 |
+| injector.serviceAccount.annotations       | (optional) Annotations that should be added to the Service Account (e.g. for IAM role association)                                                                                                                      |
+| injector.listenPort                       | (optional) Override the default Injector Listen Port of 4433                                                                                                                                                            |
+| injector.tls.validity                     | (optional) Override the default Injector CA validity of 3650 days                                                                                                                                                       |
+| injector.imagePullPolicy                  | (optional) Override the default Falcon Container image pull policy of Always                                                                                                                                            |
+| injector.imagePullSecretName              | (optional) Provide a secret containing an alternative pull token for the Falcon Container image                                                                                                                         |
+| injector.logVolume                        | (optional) Provide a volume for Falcon Container logs                                                                                                                                                                   |
+| injector.resources                        | (optional) Provide a set of kubernetes resource requirements for the Falcon Injector                                                                                                                                    |
+| injector.sensorResources                  | (optional) Provide a set of kubernetes resource requirements for the Falcon Container Sensor container                                                                                                                  |
+| injector.additionalEnvironmentVariables   | (optional) Provide additional environment variables for Falcon Container                                                                                                                                                |
+| injector.disableDefaultNamespaceInjection | (optional) If set to true, disables default Falcon Container injection at the namespace scope; namespaces requiring injection will need to be labeled as specified below                                                |
+| injector.disableDefaultPodInjection       | (optional) If set to true, disables default Falcon Container injection at the pod scope; pods requiring injection will need to be annotated as specified below                                                          |
 
 | Status                              | Description                                                                                                                               |
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
-| phase                               | Current phase of the deployment (see Installation Phases above) Must be `DONE` on successful deployment)                                  |
-| errormsg                            | Displays the last notable error. Must be empty on successful deployment.                                                                  |
-| version                             | Version of Falcon Container that is currently deployed                                                                                    |
-| retry_attempt                       | Number of previous failed attempts (valid values: 0-5)                                                                                    |
-| conditions.["ImageReady"]           | Informs about readiness of Falcon Container image. Custom message refers to image URI that will be used during the deployment             |
-| conditions.["InstallerComplete"]    | Informs about completion of Falcon Container Installer. Users can review the installer Job/Pod in `falcon-system-configure` namespace     |
-| conditions.["Complete"]             | Informs about the completion of the deployment of Falcon Container                                                                        |
+| phase                               | Current phase of the deployment; either RECONCILING, ERROR, or DONE
+| errormsg                                         | Displays the last notable error. Must be empty on successful deployment.                                                                                             |
+| version                                          | Version of Falcon Container that is currently deployed                                                                                                               |
+| conditions.["NamespaceReady"]                    | Displays the most recent reconciliation operation for the Namespace used by the Falcon Container Sensor (Created, Updated, Deleted)                                  |
+| conditions.["ImageReady"]                        | Informs about readiness of Falcon Container image. Custom message refers to image URI that will be used during the deployment (Pushed, Discovered)                   |
+| conditions.["ImageStreamReady"]                  | Displays the most recent successful reconciliation operation for the image stream used by the falcon container in openshift environments (created, updated, deleted) |
+| conditions.["ServiceAccountReady"]               | Displays the most recent sucreconciliation operation for the service account used by the falcon container (created, updated, deleted)                                   |
+| conditions.["ClusterRoleReady"]                  | Displays the most recent sucreconciliation operation for the cluster role used by the falcon container sensor (created, updated, deleted)                               |
+| conditions.["ClusterRoleBindingReady"]           | Displays the most recent sucreconciliation operation for the cluster role binding used by the falcon container sensor (created, updated, deleted)                       |
+| conditions.["SecretReady"]                       | Displays the most recent sucreconciliation operation for the secrets used by the falcon container sensor (created, updated, deleted)                                    |
+| conditions.["ConfigMapReady"]                    | Displays the most recent sucreconciliation operation for the config map used by the falcon container sensor (created, updated, deleted)                                 |
+| conditions.["DeploymentReady"]                   | Displays the most recent sucreconciliation operation for the deployment used by the falcon container sensor injector (created, updated, deleted)                        |
+| conditions.["ServiceReady"]                      | Displays the most recent sucreconciliation operation for the service used by the falcon container sensor injector (created, updated, deleted)                           |
+| conditions.["MutatingWebhookConfigurationReady"] | Displays the most recent sucreconciliation operation for the mutating webhook configuration used by the falcon container sensor injector (created, updated, deleted)    |
+
+### Enabling and Disabling Falcon Container injection
+
+By default, all pods in all namespaces outside of kube-system and kube-public will be subject to Falcon Container injection.
+
+To disable sensor injection for all pods in one namespace, add a label to the namespace:
+sensor.falcon-system.crowdstrike.com/injection=disabled
+
+If injector.disableDefaultNamespaceInjection is set to true, then sensor injection will be disabled in all namespaces by default; to enable injection for all pods in one namespace with default namespace injection set to true, add a label to the namespace:
+sensor.falcon-system.crowdstrike.com/injection=enabled
+
+
+To disable sensor injection for one pod, add an annotation to the pod spec:
+sensor.falcon-system.crowdstrike.com/injection=disabled
+
+If injector.disableDefaultPodInjection is set to true, then sensor injection will be disabled for all pods by default; to enable injection for one pod in a namespace subject to injection, add an annotation to the pod spec:
+sensor.falcon-system.crowdstrike.com/injection=enabled
+ 
 
 ### Image Registry considerations
 
@@ -99,7 +124,7 @@ registry:
   type: crowdstrike
 ```
 
-Falcon Container product will then be installed directly from CrowdStrike registry. Any new deployment to the cluster may contact CrowdStrike registry for the image download. The `imagePullSecret` is created in all the namespaces existing at the time of deployment.
+Falcon Container product will then be installed directly from CrowdStrike registry. Any new deployment to the cluster may contact CrowdStrike registry for the image download. The `falcon-crowdstrike-pull-secret imagePullSecret` is created in all the namespaces targeted for injection.
 
 #### (Option 2) Let operator mirror Falcon Container image to your local registry
 
@@ -114,6 +139,15 @@ Consult specific deployment guides to learn about the steps needed for image mir
  - [Deployment Guide for GKE/GCR](../../docs/deployment/gke/README.md) ([GCP Workload Identity Considerations](../deployment/gke/gcp-workload-identity.md))
  - [Deployment Guide for OpenShift](../../docs/deployment/openshift/README.md)
 
+#### (Option 3) Use a custom Image URI
+
+Image must be available at the specified URI; setting the image attribute will cause registry settings to be ignored.  No image mirroring will be leveraged, and version locking is implied.
+
+Example:
+```
+image: myprivateregistry.internal.lan/falcon-container/falcon-sensor:6.47.0-3003.container.x86_64.Release.US-1
+```
+
 ### Install Steps
 To install Falcon Container (assuming Falcon Operator is installed):
 ```
@@ -127,9 +161,13 @@ To uninstall Falcon Container simply remove the FalconContainer resource. The op
 kubectl delete falconcontainers.falcon.crowdstrike.com --all
 ```
 
-### Upgrades
+### Sensor Upgrades
 
-The current version of the operator does not automatically update Falcon Container sensor. Users are advised to remove & re-add FalconContainer resource to uninstall Falcon Container and to install the newest version.
+The current version of the operator will update the Falcon Container Sensor version upon Operator Reconciliation, if Version Locking is disabled.  Note that this will only impact future Sensor injections, and will not cause any changes to running pods.  Version Locking is enabled by default. 
+
+### Operator Upgrades
+
+The current version of the operator does not support in place upgrades.  Users are advised to remove any FalconContainer or FalconNodeSensor Custom Resources, allow the operator to clean up previously deployed resources, uninstall the operator and install the target version, before updating their Custom Resource(s) to reflect any changes introduced ([see Release Notes](../../RELEASE.md)).
 
 ### Namespace Reference
 
@@ -139,7 +177,6 @@ The following namespaces will be used by Falcon Operator.
 |:------------------------|:-----------------------------------------------------------------|
 | falcon-system           | Used by Falcon Container product, runs the injector and webhoook |
 | falcon-operator         | Runs falcon-operator manager                                     |
-| falcon-system-configure | Used by operator, contains objects created by operator           |
 
 ### Compatibility Guide
 
@@ -154,7 +191,7 @@ Falcon Operator has been explicitly tested on AKS (with ECR), EKS (with ECR), GK
 
 ### Troubleshooting
 
-Falcon Operator modifies the FalconContainer CRD based on what is happening in the cluster. Should an error occur during Falcon Container deployment that error will appear in kubectl output as shown below.
+Falcon Operator modifies the FalconContainer CR based on what is happening in the cluster. Should an error occur during Falcon Container deployment that error will appear in kubectl output as shown below.
 
 ```
 $ kubectl get falconcontainers.falcon.crowdstrike.com
@@ -171,11 +208,6 @@ kubectl get falconcontainers.falcon.crowdstrike.com -o yaml
 To review the logs of Falcon Operator:
 ```
 kubectl -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
-```
-
-To review the logs of Falcon Container Installer:
-```
-kubectl logs -n falcon-system-configure job/falcon-configure
 ```
 
 To review the logs of Falcon Container Injector:

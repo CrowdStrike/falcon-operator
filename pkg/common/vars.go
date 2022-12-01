@@ -11,8 +11,6 @@ var (
 	OrigDSConfVersion       = "0"
 	FalconOperatorNamespace = "falcon-operator"
 	FalconInjectorCommand   = []string{"injector"}
-	Validity                = 3650
-	CA                      = GenCA(FalconOperatorNamespace, Validity)
 )
 
 func init() {

@@ -17,18 +17,26 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	imagev1 "github.com/openshift/api/image/v1"
 	securityv1 "github.com/openshift/api/security/v1"
+	arv1 "k8s.io/api/admissionregistration/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 
-	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
-	falconcontrollers "github.com/crowdstrike/falcon-operator/controllers/falcon"
+	v1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	containercontroller "github.com/crowdstrike/falcon-operator/controllers/falcon_container"
+	nodecontroller "github.com/crowdstrike/falcon-operator/controllers/falcon_node"
+	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/version"
 	// +kubebuilder:scaffold:imports
 )
@@ -43,7 +51,7 @@ func init() {
 	utilruntime.Must(imagev1.AddToScheme(scheme))
 	utilruntime.Must(securityv1.AddToScheme(scheme))
 
-	utilruntime.Must(falconv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -101,13 +109,39 @@ func main() {
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "70435a7a.crowdstrike.com",
 		Namespace:              watchNamespace, // namespaced-scope when the value is not an empty string
+		NewCache: cache.BuilderWithOptions(cache.Options{
+			SelectorsByObject: cache.SelectorsByObject{
+				&v1alpha1.FalconContainer{}:              {},
+				&corev1.Namespace{}:                      {},
+				&rbacv1.ClusterRole{}:                    {},
+				&rbacv1.ClusterRoleBinding{}:             {},
+				&corev1.ServiceAccount{}:                 {},
+				&securityv1.SecurityContextConstraints{}: {},
+				&imagev1.ImageStream{}:                   {},
+				&corev1.Service{}: {
+					Label: labels.SelectorFromSet(containercontroller.FcLabels),
+				},
+				&appsv1.Deployment{}: {
+					Label: labels.SelectorFromSet(containercontroller.FcLabels),
+				},
+				&corev1.Secret{}:    {},
+				&corev1.ConfigMap{}: {},
+				&appsv1.DaemonSet{}: {
+					Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceKey: common.FalconKernelSensor}),
+				},
+				&arv1.MutatingWebhookConfiguration{}: {
+					Label: labels.SelectorFromSet(containercontroller.FcLabels),
+				},
+			},
+		},
+		),
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	if err = (&falconcontrollers.FalconContainerReconciler{
+	if err = (&containercontroller.FalconContainerReconciler{
 		Client:     mgr.GetClient(),
 		Log:        ctrl.Log.WithName("controllers").WithName("falcon").WithName("FalconContainer"),
 		Scheme:     mgr.GetScheme(),
@@ -116,7 +150,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconContainer")
 		os.Exit(1)
 	}
-	if err = (&falconcontrollers.FalconNodeSensorReconciler{
+	if err = (&nodecontroller.FalconNodeSensorReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {

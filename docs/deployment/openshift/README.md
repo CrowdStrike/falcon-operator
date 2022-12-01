@@ -1,4 +1,4 @@
-# Deployment Guide for OpenShift
+[#](#) Deployment Guide for OpenShift
 This document will guide you through the installation of falcon-operator and deployment of [FalconContainer](../../container) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
 
 ## Pre-requisites
@@ -16,7 +16,7 @@ This document will guide you through the installation of falcon-operator and dep
  - Create namespaces used by the operator
    ```
    oc create ns falcon-operator --dry-run=client -o yaml | oc apply -f -
-   oc create ns falcon-system-configure --dry-run=client -o yaml | oc apply -f -
+   oc create ns falcon-system --dry-run=client -o yaml | oc apply -f -
    ```
  
  - Add Falcon Operator subscription to the operator hub on the cluster (This is needed until falcon-operator is available through operatorhub.io)

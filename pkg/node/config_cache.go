@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
@@ -49,32 +48,9 @@ func (cc *ConfigCache) GetPullToken(ctx context.Context) ([]byte, error) {
 }
 
 func (cc *ConfigCache) SensorEnvVars() map[string]string {
-	sensorConfig := make(map[string]string)
-	falconsensor := cc.nodesensor.Spec.Falcon
-
+	sensorConfig := common.MakeSensorEnvMap(cc.nodesensor.Spec.Falcon)
 	if cc.cid != "" {
 		sensorConfig["FALCONCTL_OPT_CID"] = cc.cid
-	}
-	if falconsensor.APD != nil {
-		sensorConfig["FALCONCTL_OPT_APD"] = strconv.FormatBool(*falconsensor.APD)
-	}
-	if falconsensor.APH != "" {
-		sensorConfig["FALCONCTL_OPT_APH"] = falconsensor.APH
-	}
-	if falconsensor.APP != nil {
-		sensorConfig["FALCONCTL_OPT_APP"] = strconv.Itoa(*falconsensor.APP)
-	}
-	if falconsensor.Billing != "" {
-		sensorConfig["FALCONCTL_OPT_BILLING"] = falconsensor.Billing
-	}
-	if falconsensor.PToken != "" {
-		sensorConfig["FALCONCTL_OPT_PROVISIONING_TOKEN"] = falconsensor.PToken
-	}
-	if len(falconsensor.Tags) > 0 {
-		sensorConfig["FALCONCTL_OPT_TAGS"] = strings.Join(falconsensor.Tags, ",")
-	}
-	if falconsensor.Trace != "" {
-		sensorConfig["FALCONCTL_OPT_TRACE"] = falconsensor.Trace
 	}
 	return sensorConfig
 }

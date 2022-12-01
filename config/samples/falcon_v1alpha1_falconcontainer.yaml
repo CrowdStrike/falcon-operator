@@ -16,6 +16,5 @@ spec:
     cloud_region: autodiscover
   registry:
     type: crowdstrike
-  installer_args:
-    - '-falconctl-opts'
-    - '--tags=test-cluster'
+  injector:
+    falconctlOpts: '--tags=test-cluster'

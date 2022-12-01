@@ -76,12 +76,12 @@ fi
 
 kubectl wait --timeout=240s --for=condition=Available -n $OPERATOR_NAMESPACE deployment falcon-operator-controller-manager
 
-export FALCON_SYSTEM_CONFIGURE=falcon-system-configure
-kubectl create ns $FALCON_SYSTEM_CONFIGURE --dry-run=client -o yaml | kubectl apply -f -
+export FALCON_SYSTEM=falcon-system
+kubectl create ns $FALCON_SYSTEM --dry-run=client -o yaml | kubectl apply -f -
 
 GCP_PROJECT_ID=$(gcloud config get-value core/project)
 
-if ! kubectl get secret builder -n $FALCON_SYSTEM_CONFIGURE > /dev/null 2>&1; then
+if ! kubectl get secret builder -n $FALCON_SYSTEM > /dev/null 2>&1; then
     if ! gcloud iam service-accounts describe falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com > /dev/null 2>&1 ; then
         gcloud iam service-accounts create falcon-operator
     fi
@@ -95,7 +95,7 @@ if ! kubectl get secret builder -n $FALCON_SYSTEM_CONFIGURE > /dev/null 2>&1; th
         gcr-storage-admin.json
 
     cp gcr-storage-admin.json .dockerconfigjson
-    kubectl create secret docker-registry -n $FALCON_SYSTEM_CONFIGURE builder --from-file .dockerconfigjson
+    kubectl create secret docker-registry -n $FALCON_SYSTEM builder --from-file .dockerconfigjson
 fi
 
 if ! kubectl get falconcontainers.falcon.crowdstrike.com default > /dev/null 2>&1; then

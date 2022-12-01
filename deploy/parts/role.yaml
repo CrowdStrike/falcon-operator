@@ -10,8 +10,12 @@ rules:
   resources:
   - namespaces
   verbs:
+  - get
+  - list
+  - watch
   - create
   - delete
+  - update
 - apiGroups:
   - ""
   resources:
@@ -35,6 +39,7 @@ rules:
   verbs:
   - create
   - delete
+  - update
   - get
   - list
   - watch
@@ -43,6 +48,9 @@ rules:
   resources:
   - serviceaccounts
   verbs:
+  - create
+  - delete
+  - update
   - get
   - list
   - patch
@@ -54,6 +62,10 @@ rules:
   verbs:
   - create
   - delete
+  - update
+  - get
+  - list
+  - watch
 - apiGroups:
   - admissionregistration.k8s.io
   resources:
@@ -61,6 +73,10 @@ rules:
   verbs:
   - create
   - delete
+  - update
+  - get
+  - list
+  - watch
 - apiGroups:
   - apps
   resources:
@@ -80,6 +96,10 @@ rules:
   verbs:
   - create
   - delete
+  - update
+  - get
+  - list
+  - watch
 - apiGroups:
   - batch
   resources:
@@ -171,9 +191,9 @@ rules:
   verbs:
   - create
   - delete
+  - update
   - get
   - list
-  - update
   - watch
 - apiGroups:
   - rbac.authorization.k8s.io
@@ -182,6 +202,10 @@ rules:
   verbs:
   - create
   - delete
+  - update
+  - get
+  - list
+  - watch
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
@@ -189,6 +213,10 @@ rules:
   verbs:
   - create
   - delete
+  - update
+  - get
+  - list
+  - watch
 - apiGroups:
   - security.openshift.io
   resourceNames:
@@ -197,14 +225,6 @@ rules:
   - securitycontextconstraints
   verbs:
   - use
-- apiGroups:
-  - ""
-  resources:
-  - namespaces
-  verbs:
-  - get
-  - list
-  - watch
 - apiGroups:
   - ""
   resources:

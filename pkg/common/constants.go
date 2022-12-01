@@ -1,13 +1,14 @@
 package common
 
 const (
-	FalconContainerInjection = "sensor.falcon-system.crowdstrike.com/injection"
-	FalconHostInstallDir     = "/opt"
-	FalconDataDir            = "/opt/CrowdStrike"
-	FalconStoreFile          = "/opt/CrowdStrike/falconstore"
-	FalconContainerProbePath = "/live"
-	FalconServiceHTTPSName   = "https"
-	FalconServiceHTTPSPort   = 443
+	FalconContainerInjection       = "sensor.falcon-system.crowdstrike.com/injection"
+	FalconContainerInjectorTLSName = "injector-tls"
+	FalconHostInstallDir           = "/opt"
+	FalconDataDir                  = "/opt/CrowdStrike"
+	FalconStoreFile                = "/opt/CrowdStrike/falconstore"
+	FalconContainerProbePath       = "/live"
+	FalconServiceHTTPSName         = "https"
+	FalconServiceHTTPSPort         = 443
 
 	FalconInstanceNameKey = "crowdstrike.com/name"
 	FalconInstanceKey     = "crowdstrike.com/instance"
@@ -20,8 +21,6 @@ const (
 
 	FalconFinalizer     = "falcon.crowdstrike.com/finalizer"
 	FalconProviderValue = "crowdstrike"
-
-	FalconInstallerJobContainerName = "installer"
 
 	FalconPullSecretName       = "crowdstrike-falcon-pull-secret"
 	NodeServiceAccountName     = "crowdstrike-falcon-node-sensor"

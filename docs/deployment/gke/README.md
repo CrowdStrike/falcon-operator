@@ -78,5 +78,5 @@ Image push secret is used by the operator to mirror Falcon Container image from 
    ```
  - Store the newly created private key for image push in the kubernetes
    ```
-   kubectl create secret docker-registry -n falcon-system-configure builder --from-file .dockerconfigjson
+   kubectl create secret docker-registry -n falcon-system builder --from-file .dockerconfigjson
    ```
