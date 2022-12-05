@@ -18,3 +18,5 @@ spec:
     type: crowdstrike
   injector:
     falconctlOpts: '--tags=test-cluster'
+  falcon:
+    trace: none
