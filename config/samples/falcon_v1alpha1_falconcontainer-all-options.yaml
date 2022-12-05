@@ -23,6 +23,10 @@ spec:
       - tags2
     billing: metered
     trace: none
+    tags:
+      - sidecar
+      - tags1
+      - tags2
   injector:
     serviceAccount:
       name: default
@@ -31,7 +35,6 @@ spec:
         eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/iam-role-name
         iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
         annotation2: annotation-value
-    falconctlOpts: '--apd=disabled --tags=test-cluster,tags1,tags2'
     disableDefaultNamespaceInjection: true
     disableDefaultPodInjection: false
     imagePullPolicy: Always

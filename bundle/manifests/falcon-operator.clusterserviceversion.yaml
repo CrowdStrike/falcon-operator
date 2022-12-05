@@ -12,15 +12,15 @@ metadata:
           },
           "spec": {
             "falcon": {
+              "tags": [
+                "sidecar"
+              ],
               "trace": "none"
             },
             "falcon_api": {
               "client_id": "PLEASE_FILL_IN",
               "client_secret": "PLEASE_FILL_IN",
               "cloud_region": "autodiscover"
-            },
-            "injector": {
-              "falconctlOpts": "--tags=test-cluster"
             },
             "registry": {
               "type": "crowdstrike"
@@ -35,6 +35,9 @@ metadata:
           },
           "spec": {
             "falcon": {
+              "tags": [
+                "daemonset"
+              ],
               "trace": "none"
             },
             "falcon_api": {
