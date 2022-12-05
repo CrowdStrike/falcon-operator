@@ -16,3 +16,5 @@ spec:
     cloud_region: autodiscover
   falcon:
     trace: none
+    tags:
+      - daemonset
