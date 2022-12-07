@@ -261,9 +261,10 @@ ifeq (, $(shell which operator-sdk))
 endif
 
 deploy/parts/crd-falconcontainers.yaml: bundle/manifests/falcon.crowdstrike.com_falconcontainers.yaml
-	(echo "---"; cat $^ ) > $@
+	(echo "---"; sed -n '/^status:/q;p' $^ ) > $@
+
 deploy/parts/crd-falconnodesensors.yaml: bundle/manifests/falcon.crowdstrike.com_falconnodesensors.yaml
-	(echo "---"; cat $^ ) > $@
+	(echo "---"; sed -n '/^status:/q;p' $^ ) > $@
 
 deploy/falcon-operator.yaml: deploy/parts/ns.yaml deploy/parts/crd-falconcontainers.yaml deploy/parts/crd-falconnodesensors.yaml deploy/parts/role.yaml deploy/parts/service_account.yaml deploy/parts/role_binding.yaml deploy/parts/operator.yaml
 	cat $^ | sed "s|$(IMG)|$(IMAGE_TAG_BASE):v$(VERSION)|" > $@
