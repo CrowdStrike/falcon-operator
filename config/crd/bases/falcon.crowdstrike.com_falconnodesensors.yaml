@@ -129,6 +129,13 @@ spec:
               node:
                 description: Various configuration for DaemonSet Deployment
                 properties:
+                  backend:
+                    default: kernel
+                    description: Sets the backend to be used by the DaemonSet Sensor.
+                    enum:
+                    - kernel
+                    - bpf
+                    type: string
                   disableCleanup:
                     default: false
                     description: Disables the cleanup of the sensor through DaemonSet
