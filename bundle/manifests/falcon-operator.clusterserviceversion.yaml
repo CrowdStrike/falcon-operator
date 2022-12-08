@@ -58,7 +58,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
-  name: falcon-operator.v0.8.0
+  name: falcon-operator.v0.7.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -707,4 +707,4 @@ spec:
   relatedImages:
   - image: ""
     name: node-sensor
-  version: 0.8.0
+  version: 0.7.1
