@@ -43,7 +43,7 @@ spec:
     provisioning_token: 00001111
     cid: 00001111222233334444555566667777-12
     tags:
-      - test-cluster
+      - daemonset
       - tags1
       - tags2
     trace: none

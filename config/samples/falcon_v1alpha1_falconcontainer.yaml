@@ -16,5 +16,7 @@ spec:
     cloud_region: autodiscover
   registry:
     type: crowdstrike
-  injector:
-    falconctlOpts: '--tags=test-cluster'
+  falcon:
+    trace: none
+    tags:
+      - sidecar

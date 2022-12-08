@@ -35,7 +35,7 @@ The following step-by-step guide uses `gcloud`, and `kubectl` command-line tools
 
  - Grant GCR permissions to the newly created Service Account
    ```
-   gcloud projects add-iam-policy-binding $PROJECT_ID \
+   gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
        --member "serviceAccount:$GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
        --role roles/containerregistry.ServiceAgent 
    ```
@@ -45,7 +45,7 @@ The following step-by-step guide uses `gcloud`, and `kubectl` command-line tools
    gcloud iam service-accounts add-iam-policy-binding \
        $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com \
        --role roles/iam.workloadIdentityUser \
-       --member "serviceAccount:$GCP_PROJECT_ID.svc.id.goog[falcon-system/default]"
+       --member "serviceAccount:$GCP_PROJECT_ID.svc.id.goog[falcon-system/crowdstrike-falcon-sa]"
    ```
 
 - Re-deploy (delete & create) FalconContainer with the above Service Account added to the spec:
