@@ -52,6 +52,9 @@ func (cc *ConfigCache) SensorEnvVars() map[string]string {
 	if cc.cid != "" {
 		sensorConfig["FALCONCTL_OPT_CID"] = cc.cid
 	}
+	if cc.nodesensor.Spec.Node.Backend != "" {
+		sensorConfig["FALCONCTL_OPT_BACKEND"] = cc.nodesensor.Spec.Node.Backend
+	}
 	return sensorConfig
 }
 
