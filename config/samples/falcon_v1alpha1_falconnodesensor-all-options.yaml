@@ -15,6 +15,7 @@ spec:
     cid: 00001111222233334444555566667777-12
   node:
     # Use to not need falcon_api section above
+    backend: kernel
     image_override: repo.host.com:4000/name:tag
     imagePullPolicy: Always
     # secret within the falcon-system namespace.
