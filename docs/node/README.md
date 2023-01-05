@@ -43,6 +43,7 @@ spec:
 | falcon.trace                              | (optional) Configure Falcon Sensor Trace Logging Level (none, err, warn, info, debug)                                                                                                                                   |
 | node.image_override                 | (optional) Location of the Falcon Sensor Image. Specify only when you mirror the original image to your own image repository              |
 | node.imagePullSecrets               | (optional) list of references to secrets in the falcon-system namespace to use for pulling image from image_override location.            |
+| node.backend                        | (optional) Configure the backend mode for Falcon Sensor (allowed values: kernel, bpf)                                                     |
 | node.disableCleanup                 | (optional) Cleans up `/opt/CrowdStrike` on the nodes by deleting the files and directory.                                                 |
 | node.version                        | (optional) Enforce particular Falcon Sensor version to be installed (example: "6.35", "6.35.0-13207")                                     |
 
