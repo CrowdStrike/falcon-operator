@@ -154,7 +154,7 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
 
 - Deploy FalconNodeSensor to the custom namespace:
   ```
-  oc create -n falcon-system -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/certified-0.6/docs/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
+  oc create -n falcon-system -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/certified-0.6/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
 
 ## Uninstalling
