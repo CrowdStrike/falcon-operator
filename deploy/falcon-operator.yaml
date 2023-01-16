@@ -1993,6 +1993,13 @@ spec:
                     description: Falcon Customer ID (CID)
                     pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
                     type: string
+                  backend:
+                    default: kernel
+                    description: Sets the backend to be used by the DaemonSet Sensor.
+                    enum:
+                    - kernel
+                    - bpf
+                    type: string
                   provisioning_token:
                     description: Installation token that prevents unauthorized hosts
                       from being accidentally or maliciously added to your customer
@@ -2053,13 +2060,6 @@ spec:
               node:
                 description: Various configuration for DaemonSet Deployment
                 properties:
-                  backend:
-                    default: kernel
-                    description: Sets the backend to be used by the DaemonSet Sensor.
-                    enum:
-                    - kernel
-                    - bpf
-                    type: string
                   disableCleanup:
                     default: false
                     description: Disables the cleanup of the sensor through DaemonSet

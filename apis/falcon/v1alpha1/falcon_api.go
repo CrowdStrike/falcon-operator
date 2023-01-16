@@ -62,6 +62,11 @@ type FalconSensor struct {
 	// +kubebuilder:default:=none
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Trace Level",order=7
 	Trace string `json:"trace,omitempty"`
+	// Sets the backend to be used by the DaemonSet Sensor.
+	// +kubebuilder:default=kernel
+	// +kubebuilder:validation:Enum=kernel;bpf
+	// +operator-sdk-csv:customresourcedefinitions:type=spec,order=8
+	Backend string `json:"backend,omitempty"`
 }
 
 // RegistryTLSSpec configures TLS for registry pushing

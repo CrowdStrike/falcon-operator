@@ -81,11 +81,6 @@ type FalconNodeSensorConfig struct {
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=7
 	NodeCleanup *bool `json:"disableCleanup,omitempty"`
-	// Sets the backend to be used by the DaemonSet Sensor.
-	// +kubebuilder:default=kernel
-	// +kubebuilder:validation:Enum=kernel;bpf
-	// +operator-sdk-csv:customresourcedefinitions:type=spec,order=8
-	Backend string `json:"backend,omitempty"`
 
 	// Version of the sensor to be installed. The latest version will be selected when this version specifier is missing.
 	Version *string `json:"version,omitempty"`
