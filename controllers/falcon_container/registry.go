@@ -34,7 +34,7 @@ func (r *FalconContainerReconciler) reconcileRegistrySecrets(ctx context.Context
 	}
 
 	for _, ns := range nsList.Items {
-		if ns.Name == "kube-public" {
+		if ns.Name == "kube-public" || ns.Name == "kube-system" {
 			continue
 		}
 		if disableDefaultNSInjection {
