@@ -45,7 +45,7 @@ The following step-by-step guide uses `gcloud`, and `kubectl` command-line tools
    gcloud iam service-accounts add-iam-policy-binding \
        $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com \
        --role roles/iam.workloadIdentityUser \
-       --member "serviceAccount:$GCP_PROJECT_ID.svc.id.goog[falcon-system/crowdstrike-falcon-sa]"
+       --member "serviceAccount:$GCP_PROJECT_ID.svc.id.goog[falcon-system/default]"
    ```
 
 - Re-deploy (delete & create) FalconContainer with the above Service Account added to the spec:
