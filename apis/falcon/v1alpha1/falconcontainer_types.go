@@ -90,6 +90,13 @@ type FalconContainerInjectorSpec struct {
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Azure Config file path",order=12
 	AzureConfigPath string `json:"azureConfigPath,omitempty"`
+
+	// +kubebuilder:default:=2
+	// +kubebuilder:validation:XIntOrString
+	// +kubebuilder:validation:Minimum:=0
+	// +kubebuilder:validation:Maximum:=65535
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Injector replica count",order=13
+	Replicas *int32 `json:"replicas,omitempty"`
 }
 
 type FalconContainerServiceAccount struct {
