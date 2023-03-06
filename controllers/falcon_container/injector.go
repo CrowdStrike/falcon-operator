@@ -128,7 +128,6 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 	if falconContainer.Spec.Injector.Resources != nil {
 		resources = falconContainer.Spec.Injector.Resources
 	}
-	var replicas int32 = 1
 	var rootUid int64 = 0
 	var readMode int32 = 420
 	runNonRoot := true
@@ -233,7 +232,7 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 			Labels:    FcLabels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
+			Replicas: falconContainer.Spec.Injector.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: FcLabels,
 			},
@@ -262,6 +261,15 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 								},
 							},
 						},
+					},
+					TopologySpreadConstraints: []corev1.TopologySpreadConstraint{{
+						MaxSkew:           1,
+						TopologyKey:       "kubernetes.io/hostname",
+						WhenUnsatisfiable: corev1.ScheduleAnyway,
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{common.FalconInstanceNameKey: injectorName},
+						},
+					},
 					},
 					ImagePullSecrets: imagePullSecrets,
 					SecurityContext: &corev1.PodSecurityContext{
