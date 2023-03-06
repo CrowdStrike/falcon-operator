@@ -1690,6 +1690,13 @@ spec:
                     required:
                     - name
                     type: object
+                  replicas:
+                    default: 2
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
+                    x-kubernetes-int-or-string: true
                   resources:
                     description: ResourceRequirements describes the compute resource
                       requirements.
