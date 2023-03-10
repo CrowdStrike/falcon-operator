@@ -16,17 +16,26 @@ import (
 func InitContainerArgs() []string {
 	return []string{
 		"-c",
-		`if [ -d "/opt/CrowdStrike/falconstore" ] ; then echo "Re-creating /opt/CrowdStrike/falconstore as it is a directory instead of a file"; rm -rf /opt/CrowdStrike/falconstore; fi; ` +
-			"mkdir -p " + FalconDataDir +
-			" && " +
-			"touch " + FalconStoreFile,
+		// Versions of falcon-sensor 6.53+ will contain an init binary that we invoke
+		`if [ -x "` + FalconDaemonsetInitBinary + `" ]; then ` +
+			`echo "Executing ` + FalconDaemonsetInitBinaryInvocation + `"; ` + FalconDaemonsetInitBinaryInvocation + ` ; else ` +
+			`if [ -d "` + FalconInitStoreFile + `" ]; then echo "Re-creating ` + FalconStoreFile + ` as it is a directory instead of a file"; rm -rf ` + FalconInitStoreFile + `; fi; ` +
+			`mkdir -p ` + FalconInitDataDir +
+			` && ` +
+			`touch ` + FalconInitStoreFile +
+			`; fi`,
 	}
 }
 
 func InitCleanupArgs() []string {
 	return []string{
 		"-c",
-		"rm -rf " + FalconDataDir,
+		// Versions of falcon-sensor 6.53+ will contain an init binary that we invoke with a cleanup argument
+		`if [ -x "` + FalconDaemonsetInitBinary + `" ]; then ` +
+			`echo "Running ` + FalconDaemonsetCleanupBinaryInvocation + `"; ` + FalconDaemonsetCleanupBinaryInvocation + `; else ` +
+			`echo "Manually removing ` + FalconDataDir + `"; ` +
+			`rm -rf ` + FalconDataDir +
+			`; fi`,
 	}
 }
 

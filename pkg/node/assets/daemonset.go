@@ -124,8 +124,14 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "falconstore-hostdir",
-									MountPath: common.FalconHostInstallDir,
+									MountPath: common.FalconInitHostInstallDir,
 								},
+							},
+							SecurityContext: &corev1.SecurityContext{
+								Privileged:               &privileged,
+								RunAsUser:                &runAs,
+								ReadOnlyRootFilesystem:   &readOnlyFs,
+								AllowPrivilegeEscalation: &escalation,
 							},
 						},
 					},
