@@ -3,6 +3,13 @@ kind: Namespace
 metadata:
   labels:
     control-plane: controller-manager
+    crowdstrike.com/component: manager
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: system
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: namespace
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
   name: system
 ---
 apiVersion: apps/v1
@@ -12,6 +19,13 @@ metadata:
   namespace: system
   labels:
     control-plane: controller-manager
+    crowdstrike.com/component: manager
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: controller-manager
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: deployment
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
 spec:
   selector:
     matchLabels:
@@ -24,8 +38,26 @@ spec:
       labels:
         control-plane: controller-manager
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                    #  - arm64
+                    #  - ppc64le
+                    #  - s390x
+                  - key: kubernetes.io/os
+                    operator: In
+                    values:
+                      - linux
       securityContext:
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - command:
         - /manager
@@ -34,21 +66,21 @@ spec:
         image: controller:latest
         name: manager
         env:
-          - name: WATCH_NAMESPACE
-            value: null
-          - name: POD_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.name
-          - name: OPERATOR_NAME
-            value: "falcon-operator"
-          - name: RELATED_IMAGE_NODE_SENSOR
-            value: ""
+        - name: WATCH_NAMESPACE
+          value: null
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: OPERATOR_NAME
+          value: "falcon-operator"
+        - name: RELATED_IMAGE_NODE_SENSOR
+          value: ""
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
             drop:
-              - ALL
+              - "ALL"
           privileged: false
         livenessProbe:
           httpGet:

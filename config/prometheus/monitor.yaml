@@ -5,6 +5,13 @@ kind: ServiceMonitor
 metadata:
   labels:
     control-plane: controller-manager
+    crowdstrike.com/component: metrics
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: controller-manager-metrics-monitor
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: servicemonitor
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
   name: controller-manager-metrics-monitor
   namespace: system
 spec:
