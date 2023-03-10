@@ -14,14 +14,14 @@ type FakeDiscovery struct {
 }
 
 func TestInitContainerArgs(t *testing.T) {
-	want := []string{"-c", `if [ -d "/opt/CrowdStrike/falconstore" ] ; then echo "Re-creating /opt/CrowdStrike/falconstore as it is a directory instead of a file"; rm -rf /opt/CrowdStrike/falconstore; fi; mkdir -p /opt/CrowdStrike && touch /opt/CrowdStrike/falconstore`}
+	want := []string{"-c", `if [ -x "/opt/CrowdStrike/falcon-daemonset-init" ]; then echo "Executing falcon-daemonset-init -i"; falcon-daemonset-init -i ; else if [ -d "/host_opt/CrowdStrike/falconstore" ]; then echo "Re-creating /opt/CrowdStrike/falconstore as it is a directory instead of a file"; rm -rf /host_opt/CrowdStrike/falconstore; fi; mkdir -p /host_opt/CrowdStrike/ && touch /host_opt/CrowdStrike/falconstore; fi`}
 	if got := InitContainerArgs(); !reflect.DeepEqual(got, want) {
 		t.Errorf("InitContainerArgs() = %v, want %v", got, want)
 	}
 }
 
 func TestInitCleanupArgs(t *testing.T) {
-	want := []string{"-c", "rm -rf /opt/CrowdStrike"}
+	want := []string{"-c", `if [ -x "/opt/CrowdStrike/falcon-daemonset-init" ]; then echo "Running falcon-daemonset-init -u"; falcon-daemonset-init -u; else echo "Manually removing /opt/CrowdStrike"; rm -rf /opt/CrowdStrike; fi`}
 	if got := InitCleanupArgs(); !reflect.DeepEqual(got, want) {
 		t.Errorf("InitCleanupArgs() = %v, want %v", got, want)
 	}

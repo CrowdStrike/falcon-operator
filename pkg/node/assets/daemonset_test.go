@@ -162,10 +162,16 @@ func TestDaemonset(t *testing.T) {
 							Image:   image,
 							Command: common.FalconShellCommand,
 							Args:    common.InitContainerArgs(),
+							SecurityContext: &corev1.SecurityContext{
+								Privileged:               &privileged,
+								RunAsUser:                &runAs,
+								ReadOnlyRootFilesystem:   &readOnlyFs,
+								AllowPrivilegeEscalation: &escalation,
+							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "falconstore-hostdir",
-									MountPath: common.FalconHostInstallDir,
+									MountPath: common.FalconInitHostInstallDir,
 								},
 							},
 						},
