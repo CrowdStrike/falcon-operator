@@ -2620,7 +2620,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: quay.io/crowdstrike/falcon-operator:latest
+        image: quay.io/crowdstrike:v0.7.1
         imagePullPolicy: Always
         env:
           - name: WATCH_NAMESPACE

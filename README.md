@@ -33,7 +33,7 @@ Installation steps differ based on the Operator Life-cycle Manager (OLM) availab
 
  - (option 1): In case your cluster **is not** using OLM (Operator Life-cycle Manager), run:
    ```
-   kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+   kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/maint-0.7/deploy/falcon-operator.yaml
    ```
 
  - (option 2): In case your cluster **is** using OLM, run:
