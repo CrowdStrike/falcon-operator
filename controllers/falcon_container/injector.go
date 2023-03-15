@@ -87,6 +87,7 @@ func (r *FalconContainerReconciler) newInjectorTLSSecret(c []byte, k []byte, b [
 }
 
 func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*appsv1.Deployment, error) {
+	update := false
 	imageUri, err := r.imageUri(ctx, falconContainer)
 	if err != nil {
 		return &appsv1.Deployment{}, fmt.Errorf("unable to determine falcon container image URI: %v", err)
@@ -107,10 +108,19 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, fal
 	if !reflect.DeepEqual(deployment.Spec.Selector, existingDeployment.Spec.Selector) {
 		// TODO: Handle reconciling label selectors
 		return &appsv1.Deployment{}, fmt.Errorf("unable to reconcile deployment; label selectors are not equal but are immutable")
-	} else if !reflect.DeepEqual(deployment.Spec.Template, existingDeployment.Spec.Template) {
+	}
+	if !reflect.DeepEqual(deployment.Spec.Template, existingDeployment.Spec.Template) {
 		existingDeployment.Spec.Template = deployment.Spec.Template
+		update = true
+	}
+	if !reflect.DeepEqual(deployment.Spec.Replicas, existingDeployment.Spec.Replicas) {
+		existingDeployment.Spec.Replicas = deployment.Spec.Replicas
+		update = true
+	}
+	if update {
 		return existingDeployment, r.Update(ctx, falconContainer, existingDeployment)
 	}
+
 	return existingDeployment, nil
 
 }
