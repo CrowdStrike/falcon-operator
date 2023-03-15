@@ -1,0 +1,87 @@
+name: Multiarch build Release
+
+on:
+  release:
+    types:
+      - created
+
+env:
+  IMAGE_NAME: falcon-operator
+  IMAGE_TAG: latest
+
+jobs:
+  build-multiarch-operator:
+    name: Build multi-architecture image
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        install_latest: [true, false]
+        go-version: [1.18.x]
+
+    steps:
+      # Checkout buildah action github repository
+      - name: Checkout Buildah action
+        uses: actions/checkout@v3
+        with:
+          path: "buildah-build"
+
+      - name: Install latest buildah
+        if: matrix.install_latest
+        run: |
+          bash buildah-build/.github/install_latest_buildah.sh
+
+      - name: Install qemu dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static
+
+      # Checkout falcon-operator github repository
+      - name: Checkout falcon-operator project
+        uses: actions/checkout@v3
+        with:
+          repository: "crowdstrike/falcon-operator"
+          path: ${{ env.PROJECT_DIR }}
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+        id: go
+
+      - name: Build Image
+        id: build_image_multiarch
+        uses: ./buildah-build/
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          tags: ${{ env.IMAGE_TAG }}
+          archs: amd64, aarch64, ppc64le, s390x
+          containerfiles: |
+            ./Dockerfile
+
+      - name: Echo Outputs
+        run: |
+          echo "Image: ${{ steps.build_image_multiarch.outputs.image }}"
+          echo "Tags: ${{ steps.build_image_multiarch.outputs.tags }}"
+          echo "Tagged Image: ${{ steps.build_image_multiarch.outputs.image-with-tag }}"
+
+      - name: Check images created
+        run: buildah images | grep '${{ env.IMAGE_NAME }}'
+
+      - name: Check manifest
+        run: |
+          set -x
+          buildah manifest inspect ${{ steps.build_image_multiarch.outputs.image }}:${{ env.IMAGE_TAG }}
+
+      - name: Push To quay.io
+        id: push-to-quay
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: quay.io/redhatrises
+          username: redhatrises
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Print image url
+        run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
