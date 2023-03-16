@@ -153,16 +153,6 @@ docker-buildx: test ## Build and push docker image for the manager for cross-pla
 	- docker buildx rm project-v3-builder
 	rm Dockerfile.cross
 
-.PHONY: bundle-buildx
-bundle-buildx: test ## Build and push docker image for the manager for cross-platform support
-	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
-	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' bundle.Dockerfile > bundle.Dockerfile.cross
-	- docker buildx create --name project-v3-builder
-	docker buildx use project-v3-builder
-	- docker buildx build --push --platform=$(PLATFORMS) --tag $(BUNDLE_IMG) -f bundle.Dockerfile.cross .
-	- docker buildx rm project-v3-builder
-	rm Dockerfile.cross
-
 ##@ Deployment
 
 ifndef ignore-not-found
@@ -298,4 +288,4 @@ deploy/parts/crd-falconnodesensors.yaml: bundle/manifests/falcon.crowdstrike.com
 	(echo "---"; sed -n '/^status:/q;p' $^ ) > $@
 
 deploy/falcon-operator.yaml: deploy/parts/ns.yaml deploy/parts/crd-falconcontainers.yaml deploy/parts/crd-falconnodesensors.yaml deploy/parts/role.yaml deploy/parts/service_account.yaml deploy/parts/role_binding.yaml deploy/parts/operator.yaml
-	cat $^ | sed "s|$(IMG)|$(IMAGE_TAG_BASE):v$(VERSION)|" > $@
+	cat $^ | sed "s|$(IMAGE_TAG_BASE):latest|$(IMAGE_TAG_BASE):v$(VERSION)|" > $@
