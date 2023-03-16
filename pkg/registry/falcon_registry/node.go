@@ -3,6 +3,7 @@ package falcon_registry
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/crowdstrike/gofalcon/falcon"
@@ -15,8 +16,12 @@ func (reg *FalconRegistry) LastNodeTag(ctx context.Context, versionRequested *st
 	}
 
 	return lastTag(ctx, systemContext, reg.imageUriNode(), func(tag string) bool {
+		arch := "x86_64"
+		if runtime.GOARCH == "arm64" {
+			arch = "aarch64"
+		}
 		return (tag[0] >= '0' && tag[0] <= '9' &&
-			strings.Contains(tag, ".falcon-linux.x86_64") &&
+			strings.Contains(tag, fmt.Sprintf(".falcon-linux.%s", arch)) &&
 			(versionRequested == nil || strings.HasPrefix(tag, *versionRequested)))
 	})
 }
