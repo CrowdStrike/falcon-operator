@@ -3,7 +3,7 @@
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
-VERSION ?= 0.7.1
+VERSION ?= 0.7.2
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -29,7 +29,7 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # quay.io/crowdstrike-bundle:$VERSION and quay.io/crowdstrike-catalog:$VERSION.
-IMAGE_TAG_BASE ?= quay.io/crowdstrike
+IMAGE_TAG_BASE ?= quay.io/crowdstrike/falcon-operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -47,7 +47,8 @@ ifeq ($(USE_IMAGE_DIGESTS), true)
 endif
 
 # Image URL to use all building/pushing image targets
-IMG ?= quay.io/crowdstrike/falcon-operator:latest
+IMG ?= quay.io/crowdstrike/falcon-operator:v$(VERSION)
+
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.24
 
@@ -124,6 +125,9 @@ container-build: ## Build manager binary.
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
+# If you wish built the manager image targeting other platforms you can use the --platform flag.
+# (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.
+# More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.
 	docker build -t ${IMG} .
@@ -131,6 +135,23 @@ docker-build: test ## Build docker image with the manager.
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
+
+# PLATFORMS defines the target platforms for  the manager image be build to provide support to multiple
+# architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:
+# - able to use docker buildx . More info: https://docs.docker.com/build/buildx/
+# - have enable BuildKit, More info: https://docs.docker.com/develop/develop-images/build_enhancements/
+# - be able to push the image for your registry (i.e. if you do not inform a valid value via IMG=<myregistry/image:<tag>> than the export will fail)
+# To properly provided solutions that supports more than one platform you should use this option.
+PLATFORMS ?= linux/arm64,linux/amd64
+.PHONY: docker-buildx
+docker-buildx: test ## Build and push docker image for the manager for cross-platform support
+	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
+	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
+	- docker buildx create --name project-v3-builder
+	docker buildx use project-v3-builder
+	- docker buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
+	- docker buildx rm project-v3-builder
+	rm Dockerfile.cross
 
 ##@ Deployment
 
@@ -261,9 +282,10 @@ ifeq (, $(shell which operator-sdk))
 endif
 
 deploy/parts/crd-falconcontainers.yaml: bundle/manifests/falcon.crowdstrike.com_falconcontainers.yaml
-	(echo "---"; cat $^ ) > $@
+	(echo "---"; sed -n '/^status:/q;p' $^ ) > $@
+
 deploy/parts/crd-falconnodesensors.yaml: bundle/manifests/falcon.crowdstrike.com_falconnodesensors.yaml
-	(echo "---"; cat $^ ) > $@
+	(echo "---"; sed -n '/^status:/q;p' $^ ) > $@
 
 deploy/falcon-operator.yaml: deploy/parts/ns.yaml deploy/parts/crd-falconcontainers.yaml deploy/parts/crd-falconnodesensors.yaml deploy/parts/role.yaml deploy/parts/service_account.yaml deploy/parts/role_binding.yaml deploy/parts/operator.yaml
-	cat $^ | sed "s|$(IMG)|$(IMAGE_TAG_BASE):v$(VERSION)|" > $@
+	cat $^ | sed "s|$(IMAGE_TAG_BASE):latest|$(IMAGE_TAG_BASE):v$(VERSION)|" > $@

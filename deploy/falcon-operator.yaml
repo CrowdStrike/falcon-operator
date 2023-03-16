@@ -1697,6 +1697,13 @@ spec:
                     required:
                     - name
                     type: object
+                  replicas:
+                    default: 2
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
+                    x-kubernetes-int-or-string: true
                   resources:
                     description: ResourceRequirements describes the compute resource
                       requirements.
@@ -1916,12 +1923,6 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: null
-  storedVersions: null
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -2316,12 +2317,6 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: null
-  storedVersions: null
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -2620,7 +2615,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: quay.io/crowdstrike:v0.7.1
+        image: quay.io/crowdstrike/falcon-operator:v0.7.2
         imagePullPolicy: Always
         env:
           - name: WATCH_NAMESPACE

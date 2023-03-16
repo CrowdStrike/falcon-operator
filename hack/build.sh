@@ -30,7 +30,9 @@ else
     EXE="manager"
 fi
 
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a \
+TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
+
+CGO_ENABLED=0 GOOS=${TARGETPLATFORM/\/*/} GOARCH=${TARGETPLATFORM/*\//} go build -a \
     -tags "exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp" \
     --ldflags="-X 'github.com/crowdstrike/falcon-operator/version.Version=${VERSION}'" \
     -o ${EXE} main.go

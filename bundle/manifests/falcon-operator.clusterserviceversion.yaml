@@ -58,7 +58,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
-  name: falcon-operator.v0.7.1
+  name: falcon-operator.v0.7.2
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -176,6 +176,8 @@ spec:
         path: injector.disableDefaultPodInjection
       - displayName: Azure Config file path
         path: injector.azureConfigPath
+      - displayName: Injector replica count
+        path: injector.replicas
       - displayName: Annotations
         path: injector.serviceAccount.annotations
       version: v1alpha1
@@ -610,7 +612,7 @@ spec:
                 - name: OPERATOR_NAME
                   value: falcon-operator
                 - name: RELATED_IMAGE_NODE_SENSOR
-                image: quay.io/crowdstrike/falcon-operator:latest
+                image: quay.io/crowdstrike/falcon-operator:v0.7.2
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -705,4 +707,4 @@ spec:
   relatedImages:
   - image: ""
     name: node-sensor
-  version: 0.7.1
+  version: 0.7.2
