@@ -612,7 +612,7 @@ spec:
                 - name: OPERATOR_NAME
                   value: falcon-operator
                 - name: RELATED_IMAGE_NODE_SENSOR
-                image: quay.io/crowdstrike/falcon-operator:v0.7.2
+                image: quay.io/crowdstrike/falcon-operator:0.7.2
                 livenessProbe:
                   httpGet:
                     path: /healthz
