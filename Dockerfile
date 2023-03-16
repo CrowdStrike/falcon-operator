@@ -1,5 +1,6 @@
 # Build the manager binary
 FROM golang:1.18 as builder
+ARG TARGETPLATFORM
 
 WORKDIR /workspace
 
