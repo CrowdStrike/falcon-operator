@@ -3,6 +3,7 @@ kind: Namespace
 metadata:
   name: falcon-operator
   labels:
+    control-plane: controller-manager
     sensor.falcon-system.crowdstrike.com/injection: disabled
 ---
 apiVersion: apiextensions.k8s.io/v1
@@ -2317,14 +2318,20 @@ spec:
     subresources:
       status: {}
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+apiVersion: v1
+kind: ServiceAccount
 metadata:
-  name: falcon-operator
-  creationTimestamp: null
+  name: falcon-operator-controller-manager
+  namespace: falcon-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: falcon-operator-leader-election-role
+  namespace: falcon-operator
 rules:
 - resources:
-  - namespaces
+  - configmaps
   apiGroups:
   - ""
   verbs:
@@ -2332,8 +2339,68 @@ rules:
   - list
   - watch
   - create
-  - delete
   - update
+  - patch
+  - delete
+- resources:
+  - leases
+  apiGroups:
+  - coordination.k8s.io
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- resources:
+  - events
+  apiGroups:
+  - ""
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: falcon-operator-manager-role
+  creationTimestamp: null
+rules:
+- resources:
+  - configmaps
+  apiGroups:
+  - ""
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- resources:
+  - deployments
+  apiGroups:
+  - ""
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- resources:
+  - namespaces
+  apiGroups:
+  - ""
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
 - resources:
   - pods
   apiGroups:
@@ -2345,21 +2412,15 @@ rules:
   - list
   - watch
 - resources:
-  - pods/log
-  apiGroups:
-  - ""
-  verbs:
-  - get
-- resources:
   - secrets
   apiGroups:
   - ""
   verbs:
   - create
   - delete
-  - update
   - get
   - list
+  - update
   - watch
 - resources:
   - serviceaccounts
@@ -2368,10 +2429,9 @@ rules:
   verbs:
   - create
   - delete
-  - update
   - get
   - list
-  - patch
+  - update
   - watch
 - resources:
   - services
@@ -2380,9 +2440,9 @@ rules:
   verbs:
   - create
   - delete
-  - update
   - get
   - list
+  - update
   - watch
 - resources:
   - mutatingwebhookconfigurations
@@ -2391,9 +2451,9 @@ rules:
   verbs:
   - create
   - delete
-  - update
   - get
   - list
+  - update
   - watch
 - resources:
   - daemonsets
@@ -2411,17 +2471,6 @@ rules:
   - deployments
   apiGroups:
   - apps
-  verbs:
-  - create
-  - delete
-  - update
-  - get
-  - list
-  - watch
-- resources:
-  - jobs
-  apiGroups:
-  - batch
   verbs:
   - create
   - delete
@@ -2467,6 +2516,8 @@ rules:
   apiGroups:
   - falcon.crowdstrike.com
   verbs:
+  - get
+  - patch
   - update
 - resources:
   - falconcontainers/status
@@ -2509,9 +2560,9 @@ rules:
   verbs:
   - create
   - delete
-  - update
   - get
   - list
+  - update
   - watch
 - resources:
   - clusterrolebindings
@@ -2520,9 +2571,9 @@ rules:
   verbs:
   - create
   - delete
-  - update
   - get
   - list
+  - update
   - watch
 - resources:
   - clusterroles
@@ -2531,49 +2582,52 @@ rules:
   verbs:
   - create
   - delete
-  - update
   - get
   - list
+  - update
   - watch
 - resources:
   - securitycontextconstraints
   apiGroups:
   - security.openshift.io
-  resourceNames:
-  - privileged
-  verbs:
-  - use
-- resources:
-  - events
-  apiGroups:
-  - ""
   verbs:
   - create
-  - patch
+  - get
+  - list
+  - use
+  - watch
 ---
-apiVersion: v1
-kind: ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
 metadata:
-  name: falcon-operator
+  name: falcon-operator-leader-election-rolebinding
   namespace: falcon-operator
+roleRef:
+  name: falcon-operator-leader-election-role
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- name: falcon-operator-controller-manager
+  namespace: falcon-operator
+  kind: ServiceAccount
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: falcon-operator
+  name: falcon-operator-manager-rolebinding
 roleRef:
-  name: falcon-operator
+  name: falcon-operator-manager-role
   kind: ClusterRole
   apiGroup: rbac.authorization.k8s.io
 subjects:
-- name: falcon-operator
+- name: falcon-operator-controller-manager
   namespace: falcon-operator
   kind: ServiceAccount
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: falcon-operator
+  name: falcon-operator-manager-config
   namespace: falcon-operator
 data:
   controller_manager_config.yaml: |
@@ -2595,16 +2649,18 @@ metadata:
   name: falcon-operator-controller-manager
   namespace: falcon-operator
   labels:
-    control-plane: falcon-operator-controller-manager
+    control-plane: controller-manager
 spec:
   replicas: 1
   selector:
     matchLabels:
-      control-plane: falcon-operator-controller-manager
+      control-plane: controller-manager
   template:
     metadata:
       labels:
-        control-plane: falcon-operator-controller-manager
+        control-plane: controller-manager
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
     spec:
       terminationGracePeriodSeconds: 10
       serviceAccountName: falcon-operator
@@ -2623,14 +2679,14 @@ spec:
             fieldRef:
               fieldPath: metadata.name
         - name: OPERATOR_NAME
-          value: "falcon-operator"
+          value: falcon-operator
         resources:
           limits:
-            cpu: 100m
+            cpu: 500m
             memory: 256Mi
           requests:
             cpu: 100m
-            memory: 20Mi
+            memory: 64Mi
         livenessProbe:
           httpGet:
             port: 8081
