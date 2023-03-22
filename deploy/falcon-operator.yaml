@@ -2663,7 +2663,7 @@ spec:
         kubectl.kubernetes.io/default-container: manager
     spec:
       terminationGracePeriodSeconds: 10
-      serviceAccountName: falcon-operator
+      serviceAccountName: falcon-operator-controller-manager
       containers:
       - name: manager
         image: quay.io/crowdstrike/falcon-operator:latest

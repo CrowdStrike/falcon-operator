@@ -4,27 +4,17 @@ kind: Deployment
 metadata:
   name: controller-manager
   namespace: system
-  labels:
-    control-plane: controller-manager
 spec:
   template:
     spec:
-      terminationGracePeriodSeconds: 10
-      serviceAccountName: falcon-operator
       containers:
       - name: manager
         imagePullPolicy: Always
         env:
         - name: WATCH_NAMESPACE
           value: null
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
         - name: RELATED_IMAGE_NODE_SENSOR
           value: ""
           $patch: delete
-        - name: OPERATOR_NAME
-          value: falcon-operator
       securityContext:
         fsGroup: 65534
