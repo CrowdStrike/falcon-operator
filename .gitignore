@@ -26,3 +26,4 @@ testbin/*
 *.DS_Store
 /deploy/parts/crd-*.yaml
 .tool-versions
+Dockerfile.cross
