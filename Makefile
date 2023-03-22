@@ -271,7 +271,7 @@ else ifeq ($(OS_NAME), Darwin)
     OPERATOR_SDK_URL=https://github.com/operator-framework/operator-sdk/releases/download/$(SDK_VERSION)/operator-sdk_darwin_amd64
 endif
 
-.PHONY: operator-sdk
+.PHONY: operator-sdk ## Download operator-sdk locally if necessary.
 operator-sdk: $(GOBIN)/operator-sdk
 
 $(GOBIN)/operator-sdk:
@@ -280,11 +280,7 @@ ifeq (, $(shell which operator-sdk))
 	chmod +x $(GOBIN)/operator-sdk
 endif
 
-deploy/parts/crd-falconcontainers.yaml: bundle/manifests/falcon.crowdstrike.com_falconcontainers.yaml
-	(echo "---"; sed -n '/^status:/q;p' $^ ) > $@
-
-deploy/parts/crd-falconnodesensors.yaml: bundle/manifests/falcon.crowdstrike.com_falconnodesensors.yaml
-	(echo "---"; sed -n '/^status:/q;p' $^ ) > $@
-
-deploy/falcon-operator.yaml: deploy/parts/ns.yaml deploy/parts/crd-falconcontainers.yaml deploy/parts/crd-falconnodesensors.yaml deploy/parts/role.yaml deploy/parts/service_account.yaml deploy/parts/role_binding.yaml deploy/parts/operator.yaml
-	cat $^ > $@
+.PHONY: non-olm ## Generate non-olm deployment manifest
+non-olm:
+	$(KUSTOMIZE) build config/non-olm -o deploy/falcon-operator.yaml
+	$(KUSTOMIZE) cfg fmt deploy/falcon-operator.yaml
