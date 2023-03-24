@@ -33,8 +33,8 @@ func InitCleanupArgs() []string {
 		// Versions of falcon-sensor 6.53+ will contain an init binary that we invoke with a cleanup argument
 		`if [ -x "` + FalconDaemonsetInitBinary + `" ]; then ` +
 			`echo "Running ` + FalconDaemonsetCleanupBinaryInvocation + `"; ` + FalconDaemonsetCleanupBinaryInvocation + `; else ` +
-			`echo "Manually removing ` + FalconDataDir + `"; ` +
-			`rm -rf ` + FalconDataDir +
+			`echo "Manually removing ` + FalconInitDataDir + `"; ` +
+			`rm -rf ` + FalconInitDataDir +
 			`; fi`,
 	}
 }
