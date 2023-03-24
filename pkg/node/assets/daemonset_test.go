@@ -236,6 +236,9 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 	privileged := true
 	escalation := true
 	readOnlyFs := false
+	hostpid := true
+	hostnetwork := true
+	hostipc := true
 	runAs := int64(0)
 
 	want := &appsv1.DaemonSet{
@@ -281,6 +284,9 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 					// NodeSelector is set to linux until windows containers are supported for the Falcon sensor
 					NodeSelector:                  common.NodeSelector,
 					Tolerations:                   falconNode.Spec.Node.Tolerations,
+					HostPID:                       hostpid,
+					HostIPC:                       hostipc,
+					HostNetwork:                   hostnetwork,
 					TerminationGracePeriodSeconds: getTermGracePeriod(&falconNode),
 					ImagePullSecrets:              pullSecrets(&falconNode),
 					InitContainers: []corev1.Container{
@@ -298,7 +304,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "opt-crowdstrike",
-									MountPath: common.FalconHostInstallDir,
+									MountPath: common.FalconInitHostInstallDir,
 								},
 							},
 						},
