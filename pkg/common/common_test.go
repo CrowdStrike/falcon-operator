@@ -21,7 +21,7 @@ func TestInitContainerArgs(t *testing.T) {
 }
 
 func TestInitCleanupArgs(t *testing.T) {
-	want := []string{"-c", `if [ -x "/opt/CrowdStrike/falcon-daemonset-init" ]; then echo "Running falcon-daemonset-init -u"; falcon-daemonset-init -u; else echo "Manually removing /host_opt/CrowdStrike"; rm -rf /host_opt/CrowdStrike; fi`}
+	want := []string{"-c", `if [ -x "/opt/CrowdStrike/falcon-daemonset-init" ]; then echo "Running falcon-daemonset-init -u"; falcon-daemonset-init -u; else echo "Manually removing /host_opt/CrowdStrike/"; rm -rf /host_opt/CrowdStrike/; fi`}
 	if got := InitCleanupArgs(); !reflect.DeepEqual(got, want) {
 		t.Errorf("InitCleanupArgs() = %v, want %v", got, want)
 	}
