@@ -68,29 +68,3 @@ jobs:
             git diff --color
             exit 1
           fi
-
-      - name: Ensure go modules are tidy
-        run: |
-          go mod tidy
-          if [[ -n $(git status -s) ]] ; then
-            echo
-            echo -e "\e[31mRunning 'go mod tidy' changes the current setting"
-            echo -e "\e[31mEnsure to include updated go.mod and go.sum in this PR."
-            echo -e "\e[31mThis is usually done by running 'go mod tidy'\e[0m"
-            git status -s
-            git diff --color
-            exit 1
-          fi
-
-      - name: Ensure go fmt is clean
-        run: |
-          make fmt
-          if [[ -n $(git status -s) ]] ; then
-            echo
-            echo -e "\e[31mRunning 'make fmt' changes the current codebase"
-            echo -e "\e[31mEnsure to include updated codebase in this PR."
-            echo -e "\e[31mThis is usually done by running 'make fmt'\e[0m"
-            git status -s
-            git diff --color
-            exit 1
-          fi

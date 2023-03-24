@@ -1,14 +1,14 @@
-name: Golang Build
+name: Golang
 
 on:
   push:
     branches:
       - main
-      - 'maint-*'
+      - "maint-*"
   pull_request:
     branches:
       - main
-      - 'maint-*'
+      - "maint-*"
 
 jobs:
   build:
@@ -19,35 +19,105 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+        id: go
 
-    - name: Set up Go ${{ matrix.go-version }}
-      uses: actions/setup-go@v3
-      with:
-        go-version: ${{ matrix.go-version }}
-      id: go
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgpgme-dev libbtrfs-dev libdevmapper-dev
 
-    - name: Install dependencies
-      uses: mstksg/get-package@master
-      with:
-        apt-get: libgpgme-dev libbtrfs-dev libdevmapper-dev
+      - name: Get Go dependencies
+        run: go get -v -t -d ./...
 
-    - name: Get Go dependencies
-      run: go get -v -t -d ./...
+      - name: Run tests
+        run: make test
 
-    - name: Run tests
-      run: make test
+      - name: Build
+        run: |
+          make build
 
-    - name: Build
-      run: |
-        make build
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          args: "--out-${NO_FUTURE}format colored-line-number --timeout=3m12s"
+          skip-pkg-cache: true
+          skip-build-cache: true
 
-    - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v3
-      with:
-        args: "--out-${NO_FUTURE}format colored-line-number --timeout=3m12s"
-        skip-go-installation: true
-        skip-pkg-cache: true
-        skip-build-cache: true
+  lint:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        go-version: [1.18.x]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgpgme-dev libbtrfs-dev libdevmapper-dev
+
+      - name: Ensure go modules are tidy
+        run: |
+          go mod tidy
+          if [[ -n $(git status -s) ]] ; then
+            echo
+            echo -e "\e[31mRunning 'go mod tidy' changes the current setting"
+            echo -e "\e[31mEnsure to include updated go.mod and go.sum in this PR."
+            echo -e "\e[31mThis is usually done by running 'go mod tidy'\e[0m"
+            git status -s
+            git diff --color
+            exit 1
+          fi
+
+      - name: Ensure go fmt is clean
+        run: |
+          make fmt
+          if [[ -n $(git status -s) ]] ; then
+            echo
+            echo -e "\e[31mRunning 'make fmt' changes the current codebase"
+            echo -e "\e[31mEnsure to include updated codebase in this PR."
+            echo -e "\e[31mThis is usually done by running 'make fmt'\e[0m"
+            git status -s
+            git diff --color
+            exit 1
+          fi
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          args: "--out-${NO_FUTURE}format colored-line-number --timeout=3m12s"
+          skip-pkg-cache: true
+          skip-build-cache: true
+
+  gosec:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+    env:
+      GO111MODULE: on
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: "-exclude=G307 ./..."
