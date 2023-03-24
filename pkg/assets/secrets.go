@@ -16,7 +16,12 @@ func PullSecret(namespace string, pulltoken []byte) corev1.Secret {
 			Name:      common.FalconPullSecretName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				common.FalconProviderKey: common.FalconProviderValue,
+				common.FalconInstanceNameKey: "secret",
+				common.FalconInstanceKey:     common.FalconPullSecretName,
+				common.FalconManagedByKey:    common.FalconManagedByValue,
+				common.FalconProviderKey:     common.FalconProviderValue,
+				common.FalconPartOfKey:       common.FalconPartOfValue,
+				common.FalconCreatedKey:      common.FalconCreatedValue,
 			},
 		},
 		Data: map[string][]byte{

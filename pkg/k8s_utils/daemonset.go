@@ -11,5 +11,5 @@ import (
 
 // RestartDaemonSet restarts all pods that belong to the daemonset
 func RestartDaemonSet(ctx context.Context, cli client.Client, dsUpdate *appsv1.DaemonSet) error {
-	return cli.DeleteAllOf(ctx, &corev1.Pod{}, client.InNamespace(dsUpdate.GetNamespace()), client.MatchingLabels{common.FalconInstanceKey: common.FalconKernelSensor})
+	return cli.DeleteAllOf(ctx, &corev1.Pod{}, client.InNamespace(dsUpdate.GetNamespace()), client.MatchingLabels{common.FalconComponentKey: common.FalconKernelSensor})
 }
