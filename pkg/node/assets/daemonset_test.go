@@ -237,8 +237,6 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 	escalation := true
 	readOnlyFs := false
 	hostpid := true
-	hostnetwork := true
-	hostipc := true
 	runAs := int64(0)
 
 	want := &appsv1.DaemonSet{
@@ -285,8 +283,6 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 					NodeSelector:                  common.NodeSelector,
 					Tolerations:                   falconNode.Spec.Node.Tolerations,
 					HostPID:                       hostpid,
-					HostIPC:                       hostipc,
-					HostNetwork:                   hostnetwork,
 					TerminationGracePeriodSeconds: getTermGracePeriod(&falconNode),
 					ImagePullSecrets:              pullSecrets(&falconNode),
 					InitContainers: []corev1.Container{

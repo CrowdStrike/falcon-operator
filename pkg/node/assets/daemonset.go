@@ -195,8 +195,6 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 	escalation := true
 	readOnlyFs := false
 	hostpid := true
-	hostnetwork := true
-	hostipc := true
 	runAs := int64(0)
 
 	return &appsv1.DaemonSet{
@@ -245,8 +243,6 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 					NodeSelector:                  common.NodeSelector,
 					Tolerations:                   node.Spec.Node.Tolerations,
 					HostPID:                       hostpid,
-					HostIPC:                       hostipc,
-					HostNetwork:                   hostnetwork,
 					TerminationGracePeriodSeconds: getTermGracePeriod(node),
 					ImagePullSecrets:              pullSecrets(node),
 					InitContainers: []corev1.Container{
