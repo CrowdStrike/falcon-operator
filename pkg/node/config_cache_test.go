@@ -2,7 +2,9 @@ package node
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
@@ -16,37 +18,84 @@ var falconImage = "testMyImage"
 var config = ConfigCache{cid: falconCID, imageUri: falconImage, nodesensor: &falconNode}
 
 func TestCID(t *testing.T) {
-	if config.CID() != falconCID {
-		t.Errorf("CID() = %s, want %s", config.CID(), falconCID)
+	got := config.cid
+	want := falconCID
+	if got != want {
+		t.Errorf("CID() = %s, want %s", got, want)
 	}
 }
 
 func TestUsingCrowdStrikeRegistry(t *testing.T) {
-	if config.UsingCrowdStrikeRegistry() != true {
-		t.Errorf("UsingCrowdStrikeRegistry() = %t, want %t", config.UsingCrowdStrikeRegistry(), true)
+	got := config.UsingCrowdStrikeRegistry()
+	want := true
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("UsingCrowdStrikeRegistry() mismatch (-want +got): %s", diff)
 	}
+
+	// Test with imageOverride
+	config.nodesensor.Spec.Node.ImageOverride = falconImage
+	got = config.UsingCrowdStrikeRegistry()
+	want = false
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("UsingCrowdStrikeRegistry() mismatch (-want +got): %s", diff)
+	}
+
+	// Reset imageOverride
+	config.nodesensor.Spec.Node.ImageOverride = ""
 }
 
 func TestGetImageURI(t *testing.T) {
 	var logger logr.Logger
-	want, err := config.GetImageURI(context.Background(), logger)
+
+	config.imageUri = ""
+	got, err := config.GetImageURI(context.Background(), logger)
+	if err != nil {
+		if err.Error() != "Missing falcon_api configuration" {
+			t.Errorf("GetImageURI() error: %v", err)
+		}
+	}
+
+	want := ""
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("GetImageURI() mismatch (-want +got): %s", diff)
+	}
+
+	config.imageUri = falconImage
+	got, err = config.GetImageURI(context.Background(), logger)
 	if err != nil {
 		t.Errorf("GetImageURI() error: %v", err)
 	}
-	if want != falconImage {
-		t.Errorf("GetImageURI() = %s, want %s", want, falconImage)
+	want = falconImage
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("GetImageURI() mismatch (-want +got): %s", diff)
 	}
+
 }
 
 func TestGetPullToken(t *testing.T) {
-	want, err := config.GetPullToken(context.Background())
+	got, err := config.GetPullToken(context.Background())
 	if err != nil {
 		if err.Error() != "Missing falcon_api configuration" {
 			t.Errorf("GetPullToken() error: %v", err)
 		}
 	}
-	if len(want) != 0 {
-		t.Errorf("GetPullToken() = %s, want %s", want, "not empty")
+	if len(got) != 0 {
+		t.Errorf("GetPullToken() = %s, want %s", got, "not empty")
+	}
+
+	config.nodesensor.Spec.FalconAPI = &v1alpha1.FalconAPI{
+		ClientId:     "testID",
+		ClientSecret: "testSecret",
+		CloudRegion:  "testRegion",
+	}
+	got, err = config.GetPullToken(context.Background())
+	if err != nil {
+		if strings.Contains(err.Error(), "401 Unauthorized") {
+			got = []byte("testToken")
+		}
+	}
+	if len(got) == 0 {
+		t.Errorf("GetPullToken() = %s, want %v", "empty", got)
 	}
 }
 
@@ -55,6 +104,13 @@ func TestSensorEnvVars(t *testing.T) {
 	want["FALCONCTL_OPT_CID"] = falconCID
 
 	got := config.SensorEnvVars()
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("SensorEnvVars() mismatch (-want +got): %s", diff)
+	}
+
+	config.nodesensor.Spec.Node.Backend = "kernel"
+	want["FALCONCTL_OPT_BACKEND"] = "kernel"
+	got = config.SensorEnvVars()
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("SensorEnvVars() mismatch (-want +got): %s", diff)
 	}
@@ -75,6 +131,21 @@ func TestNewConfigCache(t *testing.T) {
 	if want != *newCache {
 		t.Errorf("NewConfigCache() = %v, want %v", newCache, want)
 	}
+
+	config.nodesensor.Spec.FalconAPI = &v1alpha1.FalconAPI{
+		ClientId:     "testID",
+		ClientSecret: "testSecret",
+		CloudRegion:  "testRegion",
+		CID:          &falconCID,
+	}
+	newCache, err = NewConfigCache(context.Background(), logger, &falconNode)
+	if err != nil {
+		t.Errorf("NewConfigCache() error: %v", err)
+	}
+
+	if config.cid != newCache.cid {
+		t.Errorf("NewConfigCache() = %v, want %v", newCache, want)
+	}
 }
 
 func TestConfigCacheTest(t *testing.T) {
@@ -87,8 +158,28 @@ func TestConfigCacheTest(t *testing.T) {
 }
 
 func TestGetFalconImage(t *testing.T) {
+	falconNode.Spec.FalconAPI = &v1alpha1.FalconAPI{
+		ClientId:     "testID",
+		ClientSecret: "testSecret",
+		CloudRegion:  "testRegion",
+		CID:          &falconCID,
+	}
+
+	testVersion := "testVersion"
+	falconNode.Spec.Node.Version = &testVersion
+	got, err := getFalconImage(context.Background(), &falconNode)
+	if err != nil {
+		if strings.Contains(err.Error(), "401 Unauthorized") {
+			got = fmt.Sprintf("%s:%s", "TestImageEnv", *falconNode.Spec.Node.Version)
+		}
+	}
+
+	if len(got) == 0 {
+		t.Errorf("getFalconImage() = %s, want %s", "empty", got)
+	}
+
 	falconNode.Spec.FalconAPI = nil
-	_, err := getFalconImage(context.Background(), &falconNode)
+	_, err = getFalconImage(context.Background(), &falconNode)
 	if err != nil {
 		if err.Error() != "Missing falcon_api configuration" {
 			t.Errorf("getFalconImage() error: %v", err)
@@ -101,7 +192,7 @@ func TestGetFalconImage(t *testing.T) {
 	}
 
 	want := "TestImageEnv"
-	got, err := getFalconImage(context.Background(), &falconNode)
+	got, err = getFalconImage(context.Background(), &falconNode)
 	if err != nil {
 		t.Errorf("getFalconImage() error: %v", err)
 	}
