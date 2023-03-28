@@ -1,0 +1,85 @@
+name: Multiarch build Release
+
+on:
+  release:
+    tags:
+      - "v*"
+    types:
+      - created
+
+env:
+  PROJECT_DIR: falcon-operator
+  IMAGE_NAME: falcon-operator
+  IMAGE_TAG: latest
+  IMAGE_REGISTRY: quay.io
+  IMAGE_NAMESPACE: crowdstrike
+  RELEASE_TAG: ${{ github.ref_name }}
+
+jobs:
+  build-multiarch-operator:
+    name: Build multi-architecture image
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: [1.18.x]
+
+    steps:
+      - name: Install qemu dependency
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+        id: go
+
+      # Checkout falcon-operator github repository
+      - name: Checkout falcon-operator project
+        uses: actions/checkout@v3
+        with:
+          repository: "crowdstrike/falcon-operator"
+
+      - name: Create proper tag version
+        id: set_version
+        run: |
+          VERSION=${{ env.RELEASE_TAG }}
+          echo "VERSION=${VERSION:1}" >> $GITHUB_ENV
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          platforms: linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.IMAGE_REGISTRY }}
+          username: ${{ secrets.REGISTRY_LOGIN }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Setup Cross Compile Dockerfile
+        run: sed -e '1 s/\(^FROM\)/FROM --platform=$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
+
+      - name: Build and push
+        id: build_image_multiarch
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.cross
+          platforms: linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
+          push: true
+          tags: |
+            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest,${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+          build-args: |
+            VERSION=${{ env.VERSION }}
+
+      - name: Check manifest
+        run: |
+          docker buildx imagetools inspect ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
+          docker buildx imagetools inspect ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
