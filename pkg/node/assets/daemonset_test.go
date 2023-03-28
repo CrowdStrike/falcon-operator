@@ -61,7 +61,17 @@ func TestPullSecrets(t *testing.T) {
 func TestDsUpdateStrategy(t *testing.T) {
 	falconNode := v1alpha1.FalconNodeSensor{}
 
-	want := appsv1.DaemonSetUpdateStrategy{
+	// Test OnDelete return value
+	falconNode.Spec.Node.DSUpdateStrategy.Type = "OnDelete"
+	got := dsUpdateStrategy(&falconNode)
+	want := appsv1.DaemonSetUpdateStrategy{Type: appsv1.OnDeleteDaemonSetStrategyType}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("dsUpdateStrategy() mismatch (-want +got): %s", diff)
+	}
+
+	// Test RollingUpdate return value
+	want = appsv1.DaemonSetUpdateStrategy{
 		Type: appsv1.RollingUpdateDaemonSetStrategyType,
 		RollingUpdate: &appsv1.RollingUpdateDaemonSet{
 			MaxUnavailable: &intstr.IntOrString{
@@ -74,7 +84,7 @@ func TestDsUpdateStrategy(t *testing.T) {
 	falconNode.Spec.Node.DSUpdateStrategy.Type = appsv1.RollingUpdateDaemonSetStrategyType
 	falconNode.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxUnavailable = &intstr.IntOrString{Type: intstr.Int, IntVal: 1}
 
-	got := dsUpdateStrategy(&falconNode)
+	got = dsUpdateStrategy(&falconNode)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("dsUpdateStrategy() mismatch (-want +got): %s", diff)
 	}
