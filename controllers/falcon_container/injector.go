@@ -37,7 +37,7 @@ var (
 		common.FalconManagedByKey:    injectorName,
 		common.FalconProviderKey:     common.FalconProviderValue,
 		common.FalconPartOfKey:       "Falcon",
-		common.FalconControllerKey:   "controller-manager",
+		common.FalconCreatedKey:      "controller-manager",
 	}
 )
 

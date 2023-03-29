@@ -780,7 +780,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 
 	// Get a list of DS and return the DS within the correct NS
 	if err := r.List(ctx, dsList, &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labels.Set{common.FalconInstanceKey: common.FalconKernelSensor}),
+		LabelSelector: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
 		Namespace:     nodesensor.TargetNs(),
 	}); err != nil {
 		return err
@@ -814,7 +814,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 		for {
 			// List all pods with the "cleanup" label in the appropriate NS
 			if err := r.List(ctx, &pods, &client.ListOptions{
-				LabelSelector: labels.SelectorFromSet(labels.Set{common.FalconInstanceKey: "cleanup"}),
+				LabelSelector: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "cleanup"}),
 				Namespace:     nodesensor.TargetNs(),
 			}); err != nil {
 				return err

@@ -4,6 +4,14 @@
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
+  labels:
+    crowdstrike.com/component: certificate
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: selfsigned-issuer
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: issuer
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
   name: selfsigned-issuer
   namespace: system
 spec:
@@ -12,7 +20,15 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: serving-cert  # this name should match the one appeared in kustomizeconfig.yaml
+  labels:
+    crowdstrike.com/component: certificate
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: serving-cert
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: certificate
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
+  name: serving-cert # this name should match the one appeared in kustomizeconfig.yaml
   namespace: system
 spec:
   # $(SERVICE_NAME) and $(SERVICE_NAMESPACE) will be substituted by kustomize

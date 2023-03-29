@@ -127,7 +127,7 @@ func main() {
 				&corev1.Secret{}:    {},
 				&corev1.ConfigMap{}: {},
 				&appsv1.DaemonSet{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceKey: common.FalconKernelSensor}),
+					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
 				},
 				&arv1.MutatingWebhookConfiguration{}: {
 					Label: labels.SelectorFromSet(containercontroller.FcLabels),

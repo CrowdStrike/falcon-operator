@@ -16,19 +16,20 @@ func TestDaemonsetConfigMap(t *testing.T) {
 	falconNode.Spec.FalconAPI = nil
 	falconCID := "1234567890ABCDEF1234567890ABCDEF-12"
 	falconImage := "testMyImage"
+	cfgName := "test"
 
 	want := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "test",
+			Name:      cfgName,
+			Namespace: cfgName,
 			Labels: map[string]string{
-				common.FalconInstanceNameKey: "test",
-				common.FalconInstanceKey:     common.FalconKernelSensor,
+				common.FalconInstanceNameKey: "configmap",
+				common.FalconInstanceKey:     cfgName,
 				common.FalconComponentKey:    common.FalconKernelSensor,
-				common.FalconManagedByKey:    "test",
+				common.FalconManagedByKey:    common.FalconManagedByValue,
 				common.FalconProviderKey:     common.FalconProviderValue,
-				common.FalconPartOfKey:       "Falcon",
-				common.FalconControllerKey:   "controller-manager",
+				common.FalconPartOfKey:       common.FalconPartOfValue,
+				common.FalconCreatedKey:      common.FalconCreatedValue,
 			},
 		},
 		Data: map[string]string{
