@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	injectorClusterRoleName        = "secret-reader"
+	injectorClusterRoleName        = "falcon-operator-container-role"
 	injectorClusterRoleBindingName = "read-secrets-global"
 )
 
@@ -51,27 +51,6 @@ func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context,
 		return existingServiceAccount, r.Update(ctx, falconContainer, existingServiceAccount)
 	}
 	return existingServiceAccount, nil
-
-}
-
-func (r *FalconContainerReconciler) reconcileClusterRole(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*rbacv1.ClusterRole, error) {
-	clusterRole := r.newClusterRole()
-	existingClusterRole := &rbacv1.ClusterRole{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorClusterRoleName}, existingClusterRole)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			if err = ctrl.SetControllerReference(falconContainer, clusterRole, r.Scheme); err != nil {
-				return &rbacv1.ClusterRole{}, fmt.Errorf("unable to set controller reference on cluster role %s: %v", clusterRole.ObjectMeta.Name, err)
-			}
-			return clusterRole, r.Create(ctx, falconContainer, clusterRole)
-		}
-		return &rbacv1.ClusterRole{}, fmt.Errorf("unable to query existing cluster role %s: %v", injectorClusterRoleName, err)
-	}
-	if reflect.DeepEqual(clusterRole.Rules, existingClusterRole.Rules) {
-		return existingClusterRole, nil
-	}
-	existingClusterRole.Rules = clusterRole.Rules
-	return existingClusterRole, r.Update(ctx, falconContainer, existingClusterRole)
 
 }
 
@@ -123,25 +102,6 @@ func (r *FalconContainerReconciler) newServiceAccount(falconContainer *v1alpha1.
 			Annotations: falconContainer.Spec.Injector.ServiceAccount.Annotations,
 		},
 		ImagePullSecrets: imagePullSecrets,
-	}
-}
-
-func (r *FalconContainerReconciler) newClusterRole() *rbacv1.ClusterRole {
-	return &rbacv1.ClusterRole{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: rbacv1.SchemeGroupVersion.String(),
-			Kind:       "ClusterRole",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   injectorClusterRoleName,
-			Labels: FcLabels,
-		},
-		Rules: []rbacv1.PolicyRule{{
-			Verbs:     []string{"get"},
-			APIGroups: []string{""},
-			Resources: []string{"secrets"},
-		},
-		},
 	}
 }
 

@@ -31,6 +31,7 @@ patchesStrategicMerge:
   - patches/auth_proxy_service.yaml
   - patches/manager_patch.yaml
   - patches/namespace_patch.yaml
+  - patches/falconnodesensor_role.yaml
 
 # Since the WATCH_NAMESPACE value needs to be null for terraform, we need to use a JSON Patch
 # to add a null value, because kustomize will strip it. When kustomize version 5 or greater is used

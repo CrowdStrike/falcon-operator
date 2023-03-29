@@ -2388,6 +2388,26 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  name: falcon-operator-container-role
+  labels:
+    crowdstrike.com/component: rbac
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: sidecar-role
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: clusterrole
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
+rules:
+- resources:
+  - secrets
+  apiGroups:
+  - ""
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
   name: falcon-operator-manager-role
   creationTimestamp: null
 rules:
@@ -2597,27 +2617,6 @@ rules:
   - get
   - list
   - update
-  - watch
-- resources:
-  - clusterroles
-  apiGroups:
-  - rbac.authorization.k8s.io
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - update
-  - watch
-- resources:
-  - securitycontextconstraints
-  apiGroups:
-  - security.openshift.io
-  verbs:
-  - create
-  - get
-  - list
-  - use
   - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1

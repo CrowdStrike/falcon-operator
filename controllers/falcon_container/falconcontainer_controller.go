@@ -41,7 +41,6 @@ type FalconContainerReconciler struct {
 // +kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;delete
-// +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=get;list;watch;create;update;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -137,12 +136,6 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if _, err := r.reconcileServiceAccount(ctx, falconContainer); err != nil {
 		r.Error(ctx, req, falconContainer, fmt.Sprintf("failed to reconcile Service Account: %v", err))
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile Service Account: %v", err)
-	}
-
-	r.Log.Info("Reconciling Cluster Role")
-	if _, err := r.reconcileClusterRole(ctx, falconContainer); err != nil {
-		r.Error(ctx, req, falconContainer, fmt.Sprintf("failed to reconcile Cluster Role: %v", err))
-		return ctrl.Result{}, fmt.Errorf("failed to reconcile Cluster Role: %v", err)
 	}
 
 	r.Log.Info("Reconciling Cluster Role Binding")
