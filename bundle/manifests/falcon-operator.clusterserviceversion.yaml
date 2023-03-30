@@ -242,30 +242,34 @@ spec:
       - description: The application proxy port to use for Falcon sensor proxy configuration.
         displayName: Falcon Proxy Port
         path: falcon.app
-      - description: Type of DaemonSet update. Can be "RollingUpdate" or "OnDelete".
-          Default is RollingUpdate.
-        displayName: DaemonSet Update Strategy
-        path: node.updateStrategy
+      - description: Specifies node affinity for scheduling the DaemonSet. Defaults
+          to allowing scheduling on all nodes.
+        displayName: Node Affinity
+        path: node.nodeAffinity
       - description: 'Sensor grouping tags are optional, user-defined identifiers
           that can used to group and filter hosts. Allowed characters: all alphanumerics,
           ''/'', ''-'', and ''_''.'
         displayName: Sensor Grouping Tags
         path: falcon.tags
+      - description: Type of DaemonSet update. Can be "RollingUpdate" or "OnDelete".
+          Default is RollingUpdate.
+        displayName: DaemonSet Update Strategy
+        path: node.updateStrategy
+      - description: Set sensor trace level.
+        displayName: Trace Level
+        path: falcon.trace
       - description: Kills pod after a specificed amount of time (in seconds). Default
           is 30 seconds.
         displayName: Termination Grace Period
         path: node.terminationGracePeriod
-      - description: Set sensor trace level.
-        displayName: Trace Level
-        path: falcon.trace
+      - description: Utilize default or Pay-As-You-Go billing.
+        displayName: Billing
+        path: falcon.billing
       - description: Disables the cleanup of the sensor through DaemonSet on the nodes.
           Disabling might have unintended consequences for certain operations such
           as sensor downgrading.
         displayName: Node Cleanup
         path: node.disableCleanup
-      - description: Utilize default or Pay-As-You-Go billing.
-        displayName: Billing
-        path: falcon.billing
       - description: Add metadata to the DaemonSet Service Account for IAM roles.
         displayName: Service Account
         path: node.serviceAccount

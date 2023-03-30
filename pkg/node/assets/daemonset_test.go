@@ -29,6 +29,39 @@ func TestGetTermGracePeriod(t *testing.T) {
 	}
 }
 
+func TestNodeAffinity(t *testing.T) {
+	falconNode := v1alpha1.FalconNodeSensor{}
+
+	got := nodeAffinity(&falconNode)
+	if got != nil {
+		t.Errorf("nodeAffinity() mismatch (-want +got): %s", got)
+	}
+
+	testAffinity := &corev1.NodeAffinity{
+		RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+			NodeSelectorTerms: []corev1.NodeSelectorTerm{
+				{
+					MatchExpressions: []corev1.NodeSelectorRequirement{
+						{
+							Key:      "kubernetes.io/arch",
+							Operator: corev1.NodeSelectorOpIn,
+							Values:   []string{"amd64", "arm64"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	falconNode.Spec.Node.NodeAffinity = *testAffinity
+	want := &corev1.Affinity{NodeAffinity: testAffinity}
+
+	got = nodeAffinity(&falconNode)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("nodeAffinity() mismatch (-want +got): %s", diff)
+	}
+}
+
 func TestPullSecrets(t *testing.T) {
 	falconNode := v1alpha1.FalconNodeSensor{}
 
@@ -150,6 +183,7 @@ func TestDaemonset(t *testing.T) {
 				Spec: corev1.PodSpec{
 					// NodeSelector is set to linux until windows containers are supported for the Falcon sensor
 					NodeSelector:                  common.NodeSelector,
+					Affinity:                      nodeAffinity(&falconNode),
 					Tolerations:                   falconNode.Spec.Node.Tolerations,
 					HostPID:                       hostpid,
 					HostIPC:                       hostipc,
@@ -284,6 +318,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 				Spec: corev1.PodSpec{
 					// NodeSelector is set to linux until windows containers are supported for the Falcon sensor
 					NodeSelector:                  common.NodeSelector,
+					Affinity:                      nodeAffinity(&falconNode),
 					Tolerations:                   falconNode.Spec.Node.Tolerations,
 					TerminationGracePeriodSeconds: getTermGracePeriod(&falconNode),
 					ImagePullSecrets:              pullSecrets(&falconNode),

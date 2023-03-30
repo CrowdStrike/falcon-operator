@@ -483,6 +483,7 @@ func (in *FalconNodeSensorConfig) DeepCopyInto(out *FalconNodeSensorConfig) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	in.NodeAffinity.DeepCopyInto(&out.NodeAffinity)
 	if in.ImagePullSecrets != nil {
 		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
 		*out = make([]v1.LocalObjectReference, len(*in))
