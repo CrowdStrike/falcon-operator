@@ -17,6 +17,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -227,11 +228,12 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		// Objects to check for updates to re-spin pods
 		imgUpdate := updateDaemonSetImages(dsUpdate, image, nodesensor, logger)
 		tolsUpdate := updateDaemonSetTolerations(dsUpdate, nodesensor, logger)
+		affUpdate := updateDaemonSetAffinity(dsUpdate, dsTarget, nodesensor, logger)
 		containerVolUpdate := updateDaemonSetContainerVolumes(dsUpdate, dsTarget, logger)
 		volumeUpdates := updateDaemonSetVolumes(dsUpdate, dsTarget, logger)
 
 		// Update the daemonset and re-spin pods with changes
-		if imgUpdate || tolsUpdate || containerVolUpdate || volumeUpdates || updated {
+		if imgUpdate || tolsUpdate || affUpdate || containerVolUpdate || volumeUpdates || updated {
 			err = r.Update(ctx, dsUpdate)
 			if err != nil {
 				err = r.conditionsUpdate(falconv1alpha1.ConditionDaemonSetReady,
@@ -483,6 +485,18 @@ func updateDaemonSetTolerations(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1
 		*tolerations = origTolerations
 	}
 	return tolerationsUpdate
+}
+
+// If an update is needed, this will update the affinity from the given DaemonSet
+func updateDaemonSetAffinity(ds, origDS *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+	nodeAffinity := ds.Spec.Template.Spec.Affinity
+	origNodeAffinity := corev1.Affinity{NodeAffinity: &nodesensor.Spec.Node.NodeAffinity}
+	affinityUpdate := !equality.Semantic.DeepEqual(nodeAffinity.NodeAffinity, origNodeAffinity.NodeAffinity)
+	if affinityUpdate {
+		logger.Info("Updating FalconNodeSensor DaemonSet NodeAffinity")
+		*nodeAffinity = origNodeAffinity
+	}
+	return affinityUpdate
 }
 
 // If an update is needed, this will update the containervolumes from the given DaemonSet

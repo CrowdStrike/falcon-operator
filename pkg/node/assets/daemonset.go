@@ -1,6 +1,8 @@
 package assets
 
 import (
+	"reflect"
+
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	appsv1 "k8s.io/api/apps/v1"
@@ -16,6 +18,13 @@ func getTermGracePeriod(node *falconv1alpha1.FalconNodeSensor) *int64 {
 	gp := int64(gracePeriod)
 	return &gp
 
+}
+
+func nodeAffinity(node *falconv1alpha1.FalconNodeSensor) *corev1.Affinity {
+	if !reflect.DeepEqual(node.Spec.Node.NodeAffinity, corev1.NodeAffinity{}) {
+		return &corev1.Affinity{NodeAffinity: &node.Spec.Node.NodeAffinity}
+	}
+	return nil
 }
 
 func pullSecrets(node *falconv1alpha1.FalconNodeSensor) []corev1.LocalObjectReference {
@@ -109,6 +118,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 				Spec: corev1.PodSpec{
 					// NodeSelector is set to linux until windows containers are supported for the Falcon sensor
 					NodeSelector:                  common.NodeSelector,
+					Affinity:                      nodeAffinity(node),
 					Tolerations:                   node.Spec.Node.Tolerations,
 					HostPID:                       hostpid,
 					HostIPC:                       hostipc,
@@ -234,6 +244,7 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 				Spec: corev1.PodSpec{
 					// NodeSelector is set to linux until windows containers are supported for the Falcon sensor
 					NodeSelector:                  common.NodeSelector,
+					Affinity:                      nodeAffinity(node),
 					Tolerations:                   node.Spec.Node.Tolerations,
 					TerminationGracePeriodSeconds: getTermGracePeriod(node),
 					ImagePullSecrets:              pullSecrets(node),

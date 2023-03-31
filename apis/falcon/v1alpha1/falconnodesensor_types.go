@@ -56,6 +56,9 @@ type FalconNodeSensorConfig struct {
 	// +kubebuilder:default:={{key: "node-role.kubernetes.io/master", operator: "Exists", effect: "NoSchedule"}, {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"}}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// Specifies node affinity for scheduling the DaemonSet. Defaults to allowing scheduling on all nodes.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=5
+	NodeAffinity corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
 	// +kubebuilder:default=Always
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
@@ -67,11 +70,11 @@ type FalconNodeSensorConfig struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// Type of DaemonSet update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Update Strategy",order=5
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Update Strategy",order=6
 	DSUpdateStrategy FalconNodeUpdateStrategy `json:"updateStrategy,omitempty"`
 	// Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.
 	// +kubebuilder:default:=30
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=6
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=7
 	TerminationGracePeriod int64 `json:"terminationGracePeriod,omitempty"`
 	// Add metadata to the DaemonSet Service Account for IAM roles.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -79,12 +82,12 @@ type FalconNodeSensorConfig struct {
 	// Disables the cleanup of the sensor through DaemonSet on the nodes.
 	// Disabling might have unintended consequences for certain operations such as sensor downgrading.
 	// +kubebuilder:default=false
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=7
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=8
 	NodeCleanup *bool `json:"disableCleanup,omitempty"`
 	// Sets the backend to be used by the DaemonSet Sensor.
 	// +kubebuilder:default=kernel
 	// +kubebuilder:validation:Enum=kernel;bpf
-	// +operator-sdk-csv:customresourcedefinitions:type=spec,order=8
+	// +operator-sdk-csv:customresourcedefinitions:type=spec,order=9
 	Backend string `json:"backend,omitempty"`
 
 	// Version of the sensor to be installed. The latest version will be selected when this version specifier is missing.
