@@ -7,6 +7,7 @@ import (
 
 	"github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/go-logr/logr"
 	arv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -15,28 +16,36 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *FalconContainerReconciler) reconcileWebhook(ctx context.Context, falconContainer *v1alpha1.FalconContainer, caBundle []byte) (*arv1.MutatingWebhookConfiguration, error) {
+func (r *FalconContainerReconciler) reconcileWebhook(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer, caBundle []byte) (*arv1.MutatingWebhookConfiguration, error) {
 	webhookName := fmt.Sprintf("%s.%s.svc", injectorName, r.Namespace())
 	disableDefaultNSInjection := false
+
 	if falconContainer.Spec.Injector.DisableDefaultNSInjection {
 		disableDefaultNSInjection = falconContainer.Spec.Injector.DisableDefaultNSInjection
 	}
+
 	webhook := r.newWebhook(webhookName, caBundle, disableDefaultNSInjection, falconContainer)
 	existingWebhook := &arv1.MutatingWebhookConfiguration{}
+
 	err := r.Client.Get(ctx, types.NamespacedName{Name: webhookName}, existingWebhook)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, webhook, r.Scheme); err != nil {
 				return &arv1.MutatingWebhookConfiguration{}, fmt.Errorf("unable to set controller reference on mutating webhook configuration %s: %v", webhook.ObjectMeta.Name, err)
 			}
-			return webhook, r.Create(ctx, falconContainer, webhook)
+
+			return webhook, r.Create(ctx, log, falconContainer, webhook)
 		}
+
 		return &arv1.MutatingWebhookConfiguration{}, fmt.Errorf("unable to query existing mutating webhook configuration %s: %v", webhookName, err)
 	}
+
 	if !reflect.DeepEqual(webhook.Webhooks[0], existingWebhook.Webhooks[0]) {
 		existingWebhook.Webhooks[0] = webhook.Webhooks[0]
-		return webhook, r.Update(ctx, falconContainer, existingWebhook)
+
+		return webhook, r.Update(ctx, log, falconContainer, existingWebhook)
 	}
+
 	return existingWebhook, nil
 
 }
@@ -50,6 +59,7 @@ func (r *FalconContainerReconciler) newWebhook(webhookName string, caBundle []by
 	path := "/mutate"
 	operatorSelector := metav1.LabelSelectorOpNotIn
 	operatorValues := []string{"disabled"}
+
 	if disableNSInjection {
 		operatorSelector = metav1.LabelSelectorOpIn
 		operatorValues = []string{"enabled"}

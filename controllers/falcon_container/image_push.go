@@ -14,11 +14,13 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pushtoken"
 	"github.com/crowdstrike/gofalcon/falcon"
+	"github.com/go-logr/logr"
 	imagev1 "github.com/openshift/api/image/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	types "k8s.io/apimachinery/pkg/types"
 )
 
-func (r *FalconContainerReconciler) PushImage(ctx context.Context, falconContainer *v1alpha1.FalconContainer) error {
+func (r *FalconContainerReconciler) PushImage(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) error {
 	registryUri, err := r.registryUri(ctx, falconContainer)
 	if err != nil {
 		return err
@@ -29,54 +31,60 @@ func (r *FalconContainerReconciler) PushImage(ctx context.Context, falconContain
 		return err
 	}
 
-	r.Log.Info("Found secret for image push", "Secret.Name", pushAuth.Name())
-	image := NewImageRefresher(ctx, r.Log, r.falconApiConfig(ctx, falconContainer), pushAuth, falconContainer.Spec.Registry.TLS.InsecureSkipVerify)
+	log.Info("Found secret for image push", "Secret.Name", pushAuth.Name())
+	image := NewImageRefresher(ctx, log, r.falconApiConfig(ctx, falconContainer), pushAuth, falconContainer.Spec.Registry.TLS.InsecureSkipVerify)
 	version := falconContainer.Spec.Version
+
 	// If we have version locking enabled (as it is by default), use the already configured version if present
 	if falconContainer.Spec.VersionLocking && falconContainer.Status.Version != nil && *falconContainer.Status.Version != "" {
 		return nil
 	}
+
 	tag, err := image.Refresh(registryUri, version)
 	if err != nil {
 		return fmt.Errorf("Cannot push Falcon Container Image: %v", err)
 	}
-	r.Log.Info("Falcon Container Image pushed successfully", "Image.Tag", tag)
+
+	log.Info("Falcon Container Image pushed successfully", "Image.Tag", tag)
 	falconContainer.Status.Version = &tag
+
 	imageUri, err := r.imageUri(ctx, falconContainer)
 	if err != nil {
 		return fmt.Errorf("Cannot identify Falcon Container Image: %v", err)
 	}
-	falconContainer.Status.SetCondition(&metav1.Condition{
+
+	meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
 		Type:    "ImageReady",
 		Status:  metav1.ConditionTrue,
 		Message: imageUri,
 		Reason:  "Pushed",
 	})
+
 	return r.Client.Status().Update(ctx, falconContainer)
 }
 
-func (r *FalconContainerReconciler) verifyCrowdStrikeRegistry(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (bool, error) {
+func (r *FalconContainerReconciler) verifyCrowdStrikeRegistry(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (bool, error) {
 	if _, err := r.setImageTag(ctx, falconContainer); err != nil {
 		return false, fmt.Errorf("Cannot set Falcon Registry Tag: %s", err)
 	}
-	r.Log.Info("Skipping push of Falcon Container image to local registry. Remote CrowdStrike registry will be used.")
+	log.Info("Skipping push of Falcon Container image to local registry. Remote CrowdStrike registry will be used.")
 
 	imageUri, err := r.imageUri(ctx, falconContainer)
 	if err != nil {
 		return false, fmt.Errorf("Cannot find Falcon Registry URI: %s", err)
 	}
 
-	conditionName := "ImageReady"
-	condition := falconContainer.Status.GetCondition(conditionName)
-	if condition != nil && condition.Status == metav1.ConditionTrue && condition.Message == imageUri {
+	condition := meta.IsStatusConditionPresentAndEqual(falconContainer.Status.Conditions, v1alpha1.ConditionImageReady, metav1.ConditionTrue)
+	if condition {
 		return false, nil
 	}
 
-	falconContainer.Status.SetCondition(&metav1.Condition{
-		Type:    "ImageReady",
-		Status:  metav1.ConditionTrue,
-		Message: imageUri,
-		Reason:  "Discovered",
+	meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
+		Status:             metav1.ConditionTrue,
+		Reason:             v1alpha1.ReasonDiscovered,
+		Message:            imageUri,
+		Type:               v1alpha1.ConditionImageReady,
+		ObservedGeneration: falconContainer.GetGeneration(),
 	})
 
 	return true, r.Client.Status().Update(ctx, falconContainer)
@@ -87,10 +95,10 @@ func (r *FalconContainerReconciler) registryUri(ctx context.Context, falconConta
 	case v1alpha1.RegistryTypeOpenshift:
 		imageStream := &imagev1.ImageStream{}
 		err := r.Client.Get(ctx, types.NamespacedName{Name: imageStreamName, Namespace: r.imageNamespace(falconContainer)}, imageStream)
-
 		if err != nil {
 			return "", err
 		}
+
 		if imageStream.Status.DockerImageRepository == "" {
 			return "", fmt.Errorf("Unable to find route to OpenShift on-cluster registry. Please verify that OpenShift on-cluster registry is up and running.")
 		}
@@ -108,17 +116,20 @@ func (r *FalconContainerReconciler) registryUri(ctx context.Context, falconConta
 		if err != nil {
 			return "", fmt.Errorf("Cannot get target docker URI for ECR repository: %v", err)
 		}
+
 		return *repo.RepositoryUri, nil
 	case v1alpha1.RegistryTypeACR:
 		if falconContainer.Spec.Registry.AcrName == nil {
 			return "", fmt.Errorf("Cannot push Falcon Image locally to ACR. acr_name was not specified")
 		}
+
 		return fmt.Sprintf("%s.azurecr.io/falcon-container", *falconContainer.Spec.Registry.AcrName), nil
 	case v1alpha1.RegistryTypeCrowdStrike:
 		cloud, err := falconContainer.Spec.FalconAPI.FalconCloud(ctx)
 		if err != nil {
 			return "", err
 		}
+
 		return falcon_registry.ImageURIContainer(cloud), nil
 	default:
 		return "", fmt.Errorf("Unrecognized registry type: %s", falconContainer.Spec.Registry.Type)
@@ -129,6 +140,7 @@ func (r *FalconContainerReconciler) imageUri(ctx context.Context, falconContaine
 	if falconContainer.Spec.Image != nil && *falconContainer.Spec.Image != "" {
 		return *falconContainer.Spec.Image, nil
 	}
+
 	registryUri, err := r.registryUri(ctx, falconContainer)
 	if err != nil {
 		return "", err
@@ -138,6 +150,7 @@ func (r *FalconContainerReconciler) imageUri(ctx context.Context, falconContaine
 	if err != nil {
 		return "", err
 	}
+
 	return fmt.Sprintf("%s:%s", registryUri, imageTag), nil
 }
 
@@ -145,6 +158,7 @@ func (r *FalconContainerReconciler) getImageTag(ctx context.Context, falconConta
 	if falconContainer.Status.Version != nil && *falconContainer.Status.Version != "" {
 		return *falconContainer.Status.Version, nil
 	}
+
 	return "", fmt.Errorf("Unable to get falcon container version")
 }
 
@@ -155,9 +169,11 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 			return tag, err
 		}
 	}
+
 	// If an Image URI is set, use it for our version
 	if falconContainer.Spec.Image != nil && *falconContainer.Spec.Image != "" {
 		falconContainer.Status.Version = &strings.Split(*falconContainer.Spec.Image, ":")[1]
+
 		return *falconContainer.Status.Version, r.Client.Status().Update(ctx, falconContainer)
 	} else {
 		// Otherwise, get the newest version matching the requested version string
@@ -165,10 +181,12 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 		if err != nil {
 			return "", err
 		}
+
 		tag, err := registry.LastContainerTag(ctx, falconContainer.Spec.Version)
 		if err == nil {
 			falconContainer.Status.Version = &tag
 		}
+
 		return tag, err
 	}
 }
@@ -191,6 +209,7 @@ func (r *FalconContainerReconciler) imageNamespace(falconContainer *v1alpha1.Fal
 func (r *FalconContainerReconciler) falconApiConfig(ctx context.Context, falconContainer *v1alpha1.FalconContainer) *falcon.ApiConfig {
 	cfg := falconContainer.Spec.FalconAPI.ApiConfig()
 	cfg.Context = ctx
+
 	return cfg
 }
 

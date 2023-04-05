@@ -16,17 +16,9 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - description: Phase of deployment
-      jsonPath: .status.phase
-      name: Status
-      type: string
     - description: Version of Falcon Container
       jsonPath: .status.version
       name: Version
-      type: string
-    - description: Last error message
-      jsonPath: .status.errormsg
-      name: Error
       type: string
     name: v1alpha1
     schema:
@@ -1900,14 +1892,6 @@ spec:
                   - type
                   type: object
                 type: array
-              errormsg:
-                description: ErrorMessage informs user of the last notable error.
-                  Users are welcomed to see the operator logs to understand the full
-                  context.
-                type: string
-              phase:
-                description: Phase or the status of the deployment
-                type: string
               version:
                 type: string
             type: object

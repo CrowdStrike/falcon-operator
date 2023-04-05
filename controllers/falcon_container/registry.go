@@ -9,20 +9,23 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *FalconContainerReconciler) reconcileRegistrySecrets(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.SecretList, error) {
+func (r *FalconContainerReconciler) reconcileRegistrySecrets(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.SecretList, error) {
 	injectionEnabledValue := "enabled"
 	injectionDisabledValue := "disabled"
 	disableDefaultNSInjection := false
 	secretList := &corev1.SecretList{}
+
 	if falconContainer.Spec.Injector.DisableDefaultNSInjection {
 		disableDefaultNSInjection = falconContainer.Spec.Injector.DisableDefaultNSInjection
 	}
+
 	nsList := &corev1.NamespaceList{}
 	if err := r.Client.List(ctx, nsList); err != nil {
 		return &corev1.SecretList{}, fmt.Errorf("unable to list current namespaces: %v", err)
@@ -49,16 +52,19 @@ func (r *FalconContainerReconciler) reconcileRegistrySecrets(ctx context.Context
 				continue
 			}
 		}
-		secret, err := r.reconcileRegistrySecret(ns.Name, pulltoken, ctx, falconContainer)
+
+		secret, err := r.reconcileRegistrySecret(ns.Name, pulltoken, ctx, log, falconContainer)
 		if err != nil {
 			return secretList, fmt.Errorf("unable to reconcile registry secret in namespace %s: %v", ns.Name, err)
 		}
+
 		secretList.Items = append(secretList.Items, *secret)
 	}
+
 	return secretList, nil
 }
 
-func (r *FalconContainerReconciler) reconcileRegistrySecret(namespace string, pulltoken []byte, ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.Secret, error) {
+func (r *FalconContainerReconciler) reconcileRegistrySecret(namespace string, pulltoken []byte, ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.Secret, error) {
 	secret := assets.PullSecret(namespace, pulltoken)
 	existingSecret := &corev1.Secret{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: namespace}, existingSecret)
@@ -67,13 +73,18 @@ func (r *FalconContainerReconciler) reconcileRegistrySecret(namespace string, pu
 			if err := ctrl.SetControllerReference(falconContainer, &secret, r.Scheme); err != nil {
 				return &corev1.Secret{}, fmt.Errorf("failed to set controller reference on registry pull token secret %s: %v", secret.ObjectMeta.Name, err)
 			}
-			return &secret, r.Create(ctx, falconContainer, &secret)
+
+			return &secret, r.Create(ctx, log, falconContainer, &secret)
 		}
+
 		return &corev1.Secret{}, fmt.Errorf("unable to query existing secret %s in namespace %s: %v", common.FalconPullSecretName, namespace, err)
 	}
+
 	if reflect.DeepEqual(secret.Data, existingSecret.Data) {
 		return existingSecret, nil
 	}
+
 	existingSecret.Data = secret.Data
-	return existingSecret, r.Update(ctx, falconContainer, existingSecret)
+
+	return existingSecret, r.Update(ctx, log, falconContainer, existingSecret)
 }

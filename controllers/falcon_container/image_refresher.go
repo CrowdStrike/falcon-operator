@@ -41,6 +41,7 @@ func (r *ImageRefresher) Refresh(imageDestination string, versionRequested *stri
 	if err != nil {
 		return "", err
 	}
+
 	r.log.Info("Identified the latest Falcon Container image", "reference", srcRef.DockerReference().String())
 
 	policy := &signature.Policy{Default: []signature.PolicyRequirement{signature.NewPRInsecureAcceptAnything()}}
@@ -58,9 +59,11 @@ func (r *ImageRefresher) Refresh(imageDestination string, versionRequested *stri
 	// Push to the registry with the falconTag
 	dest := fmt.Sprintf("docker://%s:%s", imageDestination, falconTag)
 	destRef, err := alltransports.ParseImageName(dest)
+
 	if err != nil {
 		return "", fmt.Errorf("Invalid destination name %s: %v", dest, err)
 	}
+
 	r.log.Info("Identified the target location for image push", "reference", destRef.DockerReference().String())
 	_, err = copy.Image(r.ctx, policyContext, destRef, srcRef,
 		&copy.Options{
@@ -79,6 +82,7 @@ func (r *ImageRefresher) Refresh(imageDestination string, versionRequested *stri
 	if err != nil {
 		return "", fmt.Errorf("Invalid destination name %s: %v", dest, err)
 	}
+
 	r.log.Info("Identified the target location for image push", "reference", destRef.DockerReference().String())
 	_, err = copy.Image(r.ctx, policyContext, destRef, srcRef,
 		&copy.Options{
@@ -87,6 +91,7 @@ func (r *ImageRefresher) Refresh(imageDestination string, versionRequested *stri
 			DestinationCtx: destinationCtx,
 		},
 	)
+
 	return falconTag, wrapWithHint(err)
 }
 
@@ -95,6 +100,7 @@ func (r *ImageRefresher) source(versionRequested *string) (falconTag string, fal
 	if err != nil {
 		return
 	}
+
 	return registry.PullInfo(r.ctx, versionRequested)
 }
 
@@ -118,6 +124,7 @@ func wrapWithHint(in error) error {
 	if in == nil {
 		return in
 	}
+
 	if strings.Contains(in.Error(), "authentication required") {
 		return fmt.Errorf("Could not authenticate to the registry: %w", in)
 	}

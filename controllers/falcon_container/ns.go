@@ -3,10 +3,10 @@ package falcon
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +40,7 @@ func (r *FalconContainerReconciler) NamespaceLabels() map[string]string {
 	return nsLabels
 }
 
-func (r *FalconContainerReconciler) reconcileNamespace(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.Namespace, error) {
+func (r *FalconContainerReconciler) reconcileNamespace(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.Namespace, error) {
 	namespace := r.newNamespace()
 	existingNamespace := &corev1.Namespace{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: r.Namespace()}, existingNamespace)
@@ -49,14 +49,11 @@ func (r *FalconContainerReconciler) reconcileNamespace(ctx context.Context, falc
 			if err = ctrl.SetControllerReference(falconContainer, namespace, r.Scheme); err != nil {
 				return &corev1.Namespace{}, fmt.Errorf("unable to set controller reference on namespace %s: %v", namespace.ObjectMeta.Name, err)
 			}
-			return namespace, r.Create(ctx, falconContainer, namespace)
+			return namespace, r.Create(ctx, log, falconContainer, namespace)
 		}
 		return &corev1.Namespace{}, fmt.Errorf("unable to query existing namespace %s: %v", r.Namespace(), err)
 	}
-	if !reflect.DeepEqual(namespace.ObjectMeta.Labels, existingNamespace.ObjectMeta.Labels) {
-		existingNamespace.ObjectMeta.Labels = namespace.ObjectMeta.Labels
-		return existingNamespace, r.Update(ctx, falconContainer, existingNamespace)
-	}
+
 	return existingNamespace, nil
 }
 
