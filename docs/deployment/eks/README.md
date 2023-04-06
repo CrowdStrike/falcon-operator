@@ -42,5 +42,5 @@ EKS cluster that runs Falcon Operator needs to have [IAM OIDC provider](https://
    ```
  - To uninstall Falcon Operator that was installed without Operator Lifecycle manager
    ```
-   kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+   kubectl delete -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
    ```

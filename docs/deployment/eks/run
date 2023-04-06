@@ -150,7 +150,7 @@ if kubectl get crd catalogsources.operators.coreos.com > /dev/null 2>&1; then
     fi
 else
     # cluster does not have OLM installed. Installation will proceed without it
-    kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+    kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
 fi
 
 # Wait for the operator pod to come up
