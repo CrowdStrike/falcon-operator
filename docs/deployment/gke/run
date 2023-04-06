@@ -71,7 +71,7 @@ if kubectl get crd catalogsources.operators.coreos.com > /dev/null 2>&1; then
         operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
     fi
 else
-    kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+    kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
 fi
 
 kubectl wait --timeout=240s --for=condition=Available -n $OPERATOR_NAMESPACE deployment falcon-operator-controller-manager
