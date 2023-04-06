@@ -4,7 +4,6 @@
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/falcon-operator)](https://artifacthub.io/packages/search?repo=falcon-operator)
 [![CI Golang Build](https://github.com/CrowdStrike/falcon-operator/actions/workflows/go.yml/badge.svg)](https://github.com/CrowdStrike/falcon-operator/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/crowdstrike/falcon-operator)](https://goreportcard.com/report/github.com/crowdstrike/falcon-operator)
-[![gosec](https://github.com/CrowdStrike/falcon-operator/actions/workflows/gosec.yml/badge.svg)](https://github.com/CrowdStrike/falcon-operator/actions/workflows/gosec.yml)
 [![CodeQL](https://github.com/CrowdStrike/falcon-operator/actions/workflows/codeql.yml/badge.svg)](https://github.com/CrowdStrike/falcon-operator/actions/workflows/codeql.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/crowdstrike/falcon-operator.svg)](https://pkg.go.dev/github.com/crowdstrike/falcon-operator)
 [![CI Container Build](https://github.com/CrowdStrike/falcon-operator/actions/workflows/container_build.yml/badge.svg)](https://github.com/CrowdStrike/falcon-operator/actions/workflows/container_build.yml)
@@ -33,7 +32,7 @@ Installation steps differ based on the Operator Life-cycle Manager (OLM) availab
 
  - (option 1): In case your cluster **is not** using OLM (Operator Life-cycle Manager), run:
    ```
-   kubectl apply -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+   kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
    ```
 
  - (option 2): In case your cluster **is** using OLM, run:
@@ -53,7 +52,7 @@ After the installation concludes, please proceed with deploying either [Falcon C
    ```
  - To uninstall Falcon Operator when OLM is not in use, run:
    ```
-   kubectl delete -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml
+   kubectl delete -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
    ```
 
 ## Getting Help
