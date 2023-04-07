@@ -1,16 +1,27 @@
-# CrowdStrike Falcon Operator Release Notes
+# Changelog
 
-## Release 0.7.2
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.7.2] - 2023-03-29
+
+### Changed
 
 * Sets default replica count of falcon injector to 2, and enables pod topology spread on the falcon-injector deployment
 * Excludes kube-system when creating docker registry secrets
 
-## Release 0.7.1
+## [0.7.1] - 2022-12-08
+
+### Changed
 
 * Adds node.backend attribute, to configure Falcon Sensor in kernel or bpf mode
 * Adds default trace logging value of none
 
-## Release 0.7.0
+## [0.7.0] - 2022-12-01
+
+### Changed
 
 Version 0.7.0 of the Falcon Operator introduces a significant rewrite of the Falcon Container Sensor Controller.  The Falcon Container Custom Resource Definition has changed quite significantly; users are advised to review the [Falcon Operator documentation for the Falcon Container Sensor](docs/container) before attempting to install this release, as some attributes have been changed or removed.
 

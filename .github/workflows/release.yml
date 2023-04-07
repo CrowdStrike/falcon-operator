@@ -1,11 +1,12 @@
-name: Multiarch build Release
+name: Release
 
 on:
-  release:
+  push:
     tags:
       - "v*"
-    types:
-      - created
+
+permissions:
+  contents: write # publishing releases
 
 env:
   PROJECT_DIR: falcon-operator
@@ -16,8 +17,147 @@ env:
   RELEASE_TAG: ${{ github.ref_name }}
 
 jobs:
+  bump_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get Event branch
+        id: event_branch
+        run: |
+          BASEREF=${{ github.event.base_ref }}
+          REFBRANCH=${BASEREF#refs/heads/}
+
+          echo "REFBRANCH=${REFBRANCH}" >> $GITHUB_ENV
+          echo $REFBRANCH
+
+      - name: Checkout tagged branch
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ env.REFBRANCH }}
+
+      - name: Configure Git
+        id: config_git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+          VERSION=${{ env.RELEASE_TAG }}
+          NEWVERSION=${VERSION:1}
+
+          echo "NEWVERSION=${NEWVERSION}" >> $GITHUB_ENV
+
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          release=${{ env.NEWVERSION }}
+          cl=CHANGELOG.md
+          today=$(date +%F)
+          header=$(head -n7 ${cl})
+          older=$(tail -n+7 ${cl})
+
+          # get all commits on head since the latest tag
+          changes=$(git log --no-merges --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD)
+
+          echo "${header}" > ${cl}
+          echo "" >> ${cl}
+          echo "## [${release}] - ${today}" >> ${cl}
+          echo "" >> ${cl}
+          echo "### Changed" >> ${cl}
+          echo "" >> ${cl}
+          echo "${changes}" >> ${cl}
+          echo "${older}" >> ${cl}
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Update release changes
+        id: git_commit
+        run: |
+          OLDVERSION=$(grep ^VERSION Makefile | awk '{print $NF}')
+          sed -i "s/$OLDVERSION/${{ env.NEWVERSION }}/g" -i Makefile
+          git add -u
+          git commit -m "Bumping to version ${{ env.NEWVERSION }}"
+          git push
+
+  create_release:
+    runs-on: ubuntu-latest
+    needs: bump_release
+    steps:
+      - name: Checkout full repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get Event branch
+        id: event_branch
+        run: |
+          BASEREF=${{ github.event.base_ref }}
+          REFBRANCH=${BASEREF#refs/heads/}
+
+          echo "REFBRANCH=${REFBRANCH}" >> $GITHUB_ENV
+
+      - name: Getting latest release version and version setup
+        id: latest_version
+        run: |
+          if ! gh api repos/$GITHUB_REPOSITORY/releases/latest -q .tag_name > /dev/null 2>&1 ; then
+              LATESTREL="v0.0.0"
+          else
+              LATESTREL=$(gh api repos/$GITHUB_REPOSITORY/releases/latest -q .tag_name)
+          fi
+
+          echo "LATESTRELEASE=${LATESTREL}" >> $GITHUB_ENV
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Generate Notes
+        id: notes
+        run: |
+          echo "tag-name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          gh api repos/$GITHUB_REPOSITORY/releases/generate-notes \
+            -f tag_name="${GITHUB_REF#refs/tags/}" \
+            -f target_commitish=${{ env.REFBRANCH }} \
+            -q .body > NOTES.md
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Create release
+        id: create_release
+        if: env.LATESTRELEASE != env.RELEASE_TAG
+        run: |
+          gh api repos/$GITHUB_REPOSITORY/releases \
+          -f tag_name="${GITHUB_REF#refs/tags/}" \
+          -f target_commitish=${{ env.REFBRANCH }} \
+          -f name="${GITHUB_REF#refs/tags/}" \
+          -F generate_release_notes=true
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Updating release
+        id: update_release
+        if: env.LATESTRELEASE == env.RELEASE_TAG
+        run: |
+          gh release edit "${GITHUB_REF#refs/tags/}" \
+          --title ${GITHUB_REF#refs/tags/} \
+          --tag ${GITHUB_REF#refs/tags/} \
+          --target ${{ env.REFBRANCH }} \
+          --notes-file NOTES.md
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Upload release assets
+        id: upload_manifest
+        run: |
+          gh release upload "${GITHUB_REF#refs/tags/}" deploy/falcon-operator.yaml
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
   build-multiarch-operator:
     name: Build multi-architecture image
+    needs: create_release
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -39,8 +179,6 @@ jobs:
       # Checkout falcon-operator github repository
       - name: Checkout falcon-operator project
         uses: actions/checkout@v3
-        with:
-          repository: "crowdstrike/falcon-operator"
 
       - name: Create proper tag version
         id: set_version
@@ -75,11 +213,10 @@ jobs:
           platforms: linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
           push: true
           tags: |
-            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest,${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+            ${{ env.IMAGE_REGISTRY }}/${{ github.repository }}:${{ env.VERSION }}
           build-args: |
             VERSION=${{ env.VERSION }}
 
       - name: Check manifest
         run: |
-          docker buildx imagetools inspect ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
-          docker buildx imagetools inspect ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+          docker buildx imagetools inspect ${{ env.IMAGE_REGISTRY }}/${{ github.repository }}:${{ env.VERSION }}
