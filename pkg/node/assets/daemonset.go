@@ -24,7 +24,7 @@ func nodeAffinity(node *falconv1alpha1.FalconNodeSensor) *corev1.Affinity {
 	if !reflect.DeepEqual(node.Spec.Node.NodeAffinity, corev1.NodeAffinity{}) {
 		return &corev1.Affinity{NodeAffinity: &node.Spec.Node.NodeAffinity}
 	}
-	return nil
+	return &corev1.Affinity{}
 }
 
 func pullSecrets(node *falconv1alpha1.FalconNodeSensor) []corev1.LocalObjectReference {

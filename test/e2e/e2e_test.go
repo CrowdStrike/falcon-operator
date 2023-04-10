@@ -37,7 +37,7 @@ var _ = Describe("falcon", Ordered, func() {
 		By("labeling enforce the namespace where the Operator and Operand(s) will run")
 		cmd = exec.Command("kubectl", "label", "--overwrite", "ns", namespace,
 			"pod-security.kubernetes.io/audit=privileged",
-			"pod-security.kubernetes.io/enforce-version=v1.24",
+			"pod-security.kubernetes.io/enforce-version=latest",
 			"pod-security.kubernetes.io/enforce=privileged")
 		_, err := utils.Run(cmd)
 		Expect(err).To(Not(HaveOccurred()))

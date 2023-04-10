@@ -33,8 +33,9 @@ func TestNodeAffinity(t *testing.T) {
 	falconNode := v1alpha1.FalconNodeSensor{}
 
 	got := nodeAffinity(&falconNode)
-	if got != nil {
-		t.Errorf("nodeAffinity() mismatch (-want +got): %s", got)
+	want := &corev1.Affinity{}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("nodeAffinity() mismatch (-want +got): %s", diff)
 	}
 
 	testAffinity := &corev1.NodeAffinity{
@@ -54,7 +55,7 @@ func TestNodeAffinity(t *testing.T) {
 	}
 
 	falconNode.Spec.Node.NodeAffinity = *testAffinity
-	want := &corev1.Affinity{NodeAffinity: testAffinity}
+	want = &corev1.Affinity{NodeAffinity: testAffinity}
 
 	got = nodeAffinity(&falconNode)
 	if diff := cmp.Diff(want, got); diff != "" {

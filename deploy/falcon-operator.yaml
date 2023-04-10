@@ -2822,6 +2822,14 @@ rules:
   - list
   - update
   - watch
+- resources:
+  - securitycontextconstraints
+  apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - privileged
+  verbs:
+  - use
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
