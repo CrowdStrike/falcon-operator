@@ -286,4 +286,4 @@ deploy/parts/crd-falconnodesensors.yaml: bundle/manifests/falcon.crowdstrike.com
 	(echo "---"; sed -n '/^status:/q;p' $^ ) > $@
 
 deploy/falcon-operator.yaml: deploy/parts/ns.yaml deploy/parts/crd-falconcontainers.yaml deploy/parts/crd-falconnodesensors.yaml deploy/parts/role.yaml deploy/parts/service_account.yaml deploy/parts/role_binding.yaml deploy/parts/operator.yaml
-	cat $^ | sed "s|$(IMAGE_TAG_BASE):latest|$(IMAGE_TAG_BASE):v$(VERSION)|" > $@
+	cat $^ | sed "s|$(IMAGE_TAG_BASE):latest|$(IMAGE_TAG_BASE):$(VERSION)|" > $@
