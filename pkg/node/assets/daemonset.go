@@ -134,8 +134,14 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "falconstore-hostdir",
-									MountPath: common.FalconHostInstallDir,
+									MountPath: common.FalconInitHostInstallDir,
 								},
+							},
+							SecurityContext: &corev1.SecurityContext{
+								Privileged:               &privileged,
+								RunAsUser:                &runAs,
+								ReadOnlyRootFilesystem:   &readOnlyFs,
+								AllowPrivilegeEscalation: &escalation,
 							},
 						},
 					},
@@ -198,6 +204,7 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 	privileged := true
 	escalation := true
 	readOnlyFs := false
+	hostpid := true
 	runAs := int64(0)
 
 	return &appsv1.DaemonSet{
@@ -246,6 +253,7 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 					NodeSelector:                  common.NodeSelector,
 					Affinity:                      nodeAffinity(node),
 					Tolerations:                   node.Spec.Node.Tolerations,
+					HostPID:                       hostpid,
 					TerminationGracePeriodSeconds: getTermGracePeriod(node),
 					ImagePullSecrets:              pullSecrets(node),
 					InitContainers: []corev1.Container{
@@ -263,7 +271,7 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "opt-crowdstrike",
-									MountPath: common.FalconHostInstallDir,
+									MountPath: common.FalconInitHostInstallDir,
 								},
 							},
 						},

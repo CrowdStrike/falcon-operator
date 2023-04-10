@@ -196,10 +196,16 @@ func TestDaemonset(t *testing.T) {
 							Image:   image,
 							Command: common.FalconShellCommand,
 							Args:    common.InitContainerArgs(),
+							SecurityContext: &corev1.SecurityContext{
+								Privileged:               &privileged,
+								RunAsUser:                &runAs,
+								ReadOnlyRootFilesystem:   &readOnlyFs,
+								AllowPrivilegeEscalation: &escalation,
+							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "falconstore-hostdir",
-									MountPath: common.FalconHostInstallDir,
+									MountPath: common.FalconInitHostInstallDir,
 								},
 							},
 						},
@@ -274,6 +280,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 	privileged := true
 	escalation := true
 	readOnlyFs := false
+	hostpid := true
 	runAs := int64(0)
 
 	want := &appsv1.DaemonSet{
@@ -320,6 +327,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 					NodeSelector:                  common.NodeSelector,
 					Affinity:                      nodeAffinity(&falconNode),
 					Tolerations:                   falconNode.Spec.Node.Tolerations,
+					HostPID:                       hostpid,
 					TerminationGracePeriodSeconds: getTermGracePeriod(&falconNode),
 					ImagePullSecrets:              pullSecrets(&falconNode),
 					InitContainers: []corev1.Container{
@@ -337,7 +345,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "opt-crowdstrike",
-									MountPath: common.FalconHostInstallDir,
+									MountPath: common.FalconInitHostInstallDir,
 								},
 							},
 						},
