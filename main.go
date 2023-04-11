@@ -141,7 +141,6 @@ func main() {
 
 	if err = (&containercontroller.FalconContainerReconciler{
 		Client:     mgr.GetClient(),
-		Log:        ctrl.Log.WithName("controllers").WithName("falcon").WithName("FalconContainer"),
 		Scheme:     mgr.GetScheme(),
 		RestConfig: mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {

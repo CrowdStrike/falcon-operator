@@ -115,26 +115,11 @@ type FalconContainerInjectorTLS struct {
 	Validity *int `json:"validity,omitempty"`
 }
 
-const (
-	PhaseReconciling FalconContainerStatusPhase = "RECONCILING"
-	PhaseError       FalconContainerStatusPhase = "ERROR"
-	PhaseDone        FalconContainerStatusPhase = "DONE"
-)
-
-// Represents the status of Falcon deployment
-type FalconContainerStatusPhase string
-
 // FalconContainerStatus defines the observed state of FalconContainer
+// +k8s:openapi-gen=true
 type FalconContainerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-
-	// Phase or the status of the deployment
-	Phase FalconContainerStatusPhase `json:"phase,omitempty"`
-
-	// ErrorMessage informs user of the last notable error. Users are welcomed to see the operator logs
-	// to understand the full context.
-	ErrorMessage string `json:"errormsg,omitempty"`
 
 	Version *string `json:"version,omitempty"`
 
@@ -145,9 +130,7 @@ type FalconContainerStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster
-//+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.phase",description="Phase of deployment"
 //+kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="Version of Falcon Container"
-//+kubebuilder:printcolumn:name="Error",type="string",JSONPath=".status.errormsg",description="Last error message"
 
 // FalconContainer is the Schema for the falconcontainers API
 type FalconContainer struct {

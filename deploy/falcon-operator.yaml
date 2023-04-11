@@ -31,18 +31,10 @@ spec:
   versions:
   - name: v1alpha1
     additionalPrinterColumns:
-    - name: Status
-      type: string
-      description: Phase of deployment
-      jsonPath: .status.phase
     - name: Version
       type: string
       description: Version of Falcon Container
       jsonPath: .status.version
-    - name: Error
-      type: string
-      description: Last error message
-      jsonPath: .status.errormsg
     schema:
       openAPIV3Schema:
         type: object
@@ -1916,14 +1908,6 @@ spec:
                   - reason
                   - status
                   - type
-              errormsg:
-                type: string
-                description: ErrorMessage informs user of the last notable error.
-                  Users are welcomed to see the operator logs to understand the full
-                  context.
-              phase:
-                type: string
-                description: Phase or the status of the deployment
               version:
                 type: string
     served: true

@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/go-logr/logr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -41,7 +42,7 @@ var (
 	}
 )
 
-func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.Secret, error) {
+func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.Secret, error) {
 	existingInjectorTLSSecret := &corev1.Secret{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorTLSSecretName, Namespace: r.Namespace()}, existingInjectorTLSSecret)
 	if err != nil {
@@ -58,7 +59,7 @@ func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Conte
 			if err = ctrl.SetControllerReference(falconContainer, injectorTLSSecret, r.Scheme); err != nil {
 				return &corev1.Secret{}, fmt.Errorf("unable to set controller reference on injector TLS Secret%s: %v", injectorTLSSecret.ObjectMeta.Name, err)
 			}
-			return injectorTLSSecret, r.Create(ctx, falconContainer, injectorTLSSecret)
+			return injectorTLSSecret, r.Create(ctx, log, falconContainer, injectorTLSSecret)
 		}
 		return &corev1.Secret{}, fmt.Errorf("unable to query existing injector TL secret %s: %v", injectorTLSSecretName, err)
 	}
@@ -86,12 +87,14 @@ func (r *FalconContainerReconciler) newInjectorTLSSecret(c []byte, k []byte, b [
 	}
 }
 
-func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*appsv1.Deployment, error) {
+func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*appsv1.Deployment, error) {
 	update := false
+
 	imageUri, err := r.imageUri(ctx, falconContainer)
 	if err != nil {
 		return &appsv1.Deployment{}, fmt.Errorf("unable to determine falcon container image URI: %v", err)
 	}
+
 	deployment := r.newDeployment(imageUri, falconContainer)
 	existingDeployment := &appsv1.Deployment{}
 	err = r.Client.Get(ctx, types.NamespacedName{Name: injectorName, Namespace: r.Namespace()}, existingDeployment)
@@ -100,25 +103,49 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, fal
 			if err = ctrl.SetControllerReference(falconContainer, deployment, r.Scheme); err != nil {
 				return &appsv1.Deployment{}, fmt.Errorf("unable to set controller reference on injector Deployment %s: %v", deployment.ObjectMeta.Name, err)
 			}
-			return deployment, r.Create(ctx, falconContainer, deployment)
+			return deployment, r.Create(ctx, log, falconContainer, deployment)
 		}
 		return &appsv1.Deployment{}, fmt.Errorf("unable to query existing injector Deployment %s: %v", injectorName, err)
 	}
+
 	// Selectors are immutable
 	if !reflect.DeepEqual(deployment.Spec.Selector, existingDeployment.Spec.Selector) {
 		// TODO: Handle reconciling label selectors
 		return &appsv1.Deployment{}, fmt.Errorf("unable to reconcile deployment; label selectors are not equal but are immutable")
 	}
-	if !reflect.DeepEqual(deployment.Spec.Template, existingDeployment.Spec.Template) {
-		existingDeployment.Spec.Template = deployment.Spec.Template
+
+	if !reflect.DeepEqual(deployment.Spec.Template.Spec.Containers[0].Image, existingDeployment.Spec.Template.Spec.Containers[0].Image) {
+		existingDeployment.Spec.Template.Spec.Containers[0].Image = deployment.Spec.Template.Spec.Containers[0].Image
 		update = true
 	}
+
+	if !reflect.DeepEqual(deployment.Spec.Template.Spec.Containers[0].Ports, existingDeployment.Spec.Template.Spec.Containers[0].Ports) {
+		existingDeployment.Spec.Template.Spec.Containers[0].Ports = deployment.Spec.Template.Spec.Containers[0].Ports
+		update = true
+	}
+
+	if !reflect.DeepEqual(deployment.Spec.Template.Spec.Containers[0].ImagePullPolicy, existingDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy) {
+		existingDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy = deployment.Spec.Template.Spec.Containers[0].ImagePullPolicy
+		update = true
+	}
+
+	if !reflect.DeepEqual(deployment.Spec.Template.Spec.Containers[0].Resources, existingDeployment.Spec.Template.Spec.Containers[0].Resources) {
+		existingDeployment.Spec.Template.Spec.Containers[0].Resources = deployment.Spec.Template.Spec.Containers[0].Resources
+		update = true
+	}
+
 	if !reflect.DeepEqual(deployment.Spec.Replicas, existingDeployment.Spec.Replicas) {
 		existingDeployment.Spec.Replicas = deployment.Spec.Replicas
 		update = true
 	}
+
+	if !reflect.DeepEqual(deployment.Spec.Template.Spec.TopologySpreadConstraints, existingDeployment.Spec.Template.Spec.TopologySpreadConstraints) {
+		existingDeployment.Spec.Template.Spec.TopologySpreadConstraints = deployment.Spec.Template.Spec.TopologySpreadConstraints
+		update = true
+	}
+
 	if update {
-		return existingDeployment, r.Update(ctx, falconContainer, existingDeployment)
+		return existingDeployment, r.Update(ctx, log, falconContainer, existingDeployment)
 	}
 
 	return existingDeployment, nil
@@ -131,17 +158,22 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 	azureVolumePath := "/run/azure.json"
 	certPath := "/etc/docker/certs.d/falcon-system-certs"
 	hostPathFile := corev1.HostPathFile
-	if common.FalconPullSecretName != falconContainer.Spec.Injector.ImagePullSecretName {
-		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: falconContainer.Spec.Injector.ImagePullSecretName})
-	}
 	resources := &corev1.ResourceRequirements{}
-	if falconContainer.Spec.Injector.Resources != nil {
-		resources = falconContainer.Spec.Injector.Resources
-	}
 	var rootUid int64 = 0
 	var readMode int32 = 420
 	runNonRoot := true
 	initRunAsNonRoot := false
+	initContainers := []corev1.Container{}
+	var registryCAConfigMapName string = ""
+
+	if common.FalconPullSecretName != falconContainer.Spec.Injector.ImagePullSecretName {
+		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: falconContainer.Spec.Injector.ImagePullSecretName})
+	}
+
+	if falconContainer.Spec.Injector.Resources != nil {
+		resources = falconContainer.Spec.Injector.Resources
+	}
+
 	volumes := []corev1.Volume{
 		{
 			Name: injectorTLSSecretName,
@@ -159,6 +191,7 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 			},
 		},
 	}
+
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      injectorTLSSecretName,
@@ -171,7 +204,7 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 			ReadOnly:  true,
 		},
 	}
-	initContainers := []corev1.Container{}
+
 	if falconContainer.Spec.Injector.AzureConfigPath != "" {
 		initContainers = append(initContainers, corev1.Container{
 			Name:            initContainerName,
@@ -196,6 +229,7 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 				ReadOnly:  true,
 			}},
 		})
+
 		volumes = append(volumes, corev1.Volume{
 			Name: azureVolumeName,
 			VolumeSource: corev1.VolumeSource{
@@ -206,13 +240,14 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 			}})
 	}
 
-	var registryCAConfigMapName string = ""
 	if falconContainer.Spec.Registry.TLS.CACertificateConfigMap != "" {
 		registryCAConfigMapName = falconContainer.Spec.Registry.TLS.CACertificateConfigMap
 	}
+
 	if falconContainer.Spec.Registry.TLS.CACertificate != "" {
 		registryCAConfigMapName = registryCABundleConfigMapName
 	}
+
 	if registryCAConfigMapName != "" {
 		volumes = append(volumes, corev1.Volume{
 			Name: registryCAConfigMapName,
@@ -231,6 +266,7 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 		})
 
 	}
+
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: appsv1.SchemeGroupVersion.String(),
@@ -305,6 +341,7 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 								{
 									ContainerPort: *falconContainer.Spec.Injector.ListenPort,
 									Name:          common.FalconServiceHTTPSName,
+									Protocol:      corev1.ProtocolTCP,
 								},
 							},
 							VolumeMounts: volumeMounts,
@@ -352,9 +389,11 @@ func (r *FalconContainerReconciler) injectorPodReady(ctx context.Context, falcon
 		client.InNamespace(r.Namespace()),
 		client.MatchingLabels(FcLabels),
 	}
-	if err := r.Client.List(ctx, podList, listOpts...); err != nil {
+
+	if err := r.List(ctx, podList, listOpts...); err != nil {
 		return nil, fmt.Errorf("unable to list pods: %v", err)
 	}
+
 	for _, pod := range podList.Items {
 		for _, cond := range pod.Status.Conditions {
 			if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
@@ -362,5 +401,6 @@ func (r *FalconContainerReconciler) injectorPodReady(ctx context.Context, falcon
 			}
 		}
 	}
+
 	return &corev1.Pod{}, fmt.Errorf("No Injector pod found in a Ready state")
 }

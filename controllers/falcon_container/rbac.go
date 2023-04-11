@@ -7,6 +7,7 @@ import (
 
 	"github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -20,7 +21,7 @@ const (
 	injectorClusterRoleBindingName = "read-secrets-global"
 )
 
-func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.ServiceAccount, error) {
+func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.ServiceAccount, error) {
 	update := false
 	serviceAccount := r.newServiceAccount(falconContainer)
 	existingServiceAccount := &corev1.ServiceAccount{}
@@ -31,7 +32,7 @@ func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context,
 				// Set the service account controller reference, but only if we create it; not on updates to an existing sa
 				return &corev1.ServiceAccount{}, fmt.Errorf("unable to set controller reference on service account %s: %v", serviceAccount.ObjectMeta.Name, err)
 			}
-			return serviceAccount, r.Create(ctx, falconContainer, serviceAccount)
+			return serviceAccount, r.Create(ctx, log, falconContainer, serviceAccount)
 		}
 		return &corev1.ServiceAccount{}, fmt.Errorf("unable to query existing service account %s: %v", falconContainer.Spec.Injector.ServiceAccount.Name, err)
 	}
@@ -43,18 +44,14 @@ func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context,
 		existingServiceAccount.ObjectMeta.Labels = serviceAccount.ObjectMeta.Labels
 		update = true
 	}
-	if !reflect.DeepEqual(serviceAccount.ImagePullSecrets, existingServiceAccount.ImagePullSecrets) {
-		existingServiceAccount.ImagePullSecrets = serviceAccount.ImagePullSecrets
-		update = true
-	}
 	if update {
-		return existingServiceAccount, r.Update(ctx, falconContainer, existingServiceAccount)
+		return existingServiceAccount, r.Update(ctx, log, falconContainer, existingServiceAccount)
 	}
 	return existingServiceAccount, nil
 
 }
 
-func (r *FalconContainerReconciler) reconcileClusterRoleBinding(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*rbacv1.ClusterRoleBinding, error) {
+func (r *FalconContainerReconciler) reconcileClusterRoleBinding(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*rbacv1.ClusterRoleBinding, error) {
 	clusterRoleBinding := r.newClusterRoleBinding(falconContainer)
 	existingClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorClusterRoleBindingName}, existingClusterRoleBinding)
@@ -63,7 +60,7 @@ func (r *FalconContainerReconciler) reconcileClusterRoleBinding(ctx context.Cont
 			if err = ctrl.SetControllerReference(falconContainer, clusterRoleBinding, r.Scheme); err != nil {
 				return &rbacv1.ClusterRoleBinding{}, fmt.Errorf("unable to set controller reference on cluster role binding %s: %v", clusterRoleBinding.ObjectMeta.Name, err)
 			}
-			return clusterRoleBinding, r.Create(ctx, falconContainer, clusterRoleBinding)
+			return clusterRoleBinding, r.Create(ctx, log, falconContainer, clusterRoleBinding)
 		}
 		return &rbacv1.ClusterRoleBinding{}, fmt.Errorf("unable to query existing cluster role binding %s: %v", injectorClusterRoleBindingName, err)
 	}
@@ -72,14 +69,14 @@ func (r *FalconContainerReconciler) reconcileClusterRoleBinding(ctx context.Cont
 		if err = ctrl.SetControllerReference(falconContainer, clusterRoleBinding, r.Scheme); err != nil {
 			return &rbacv1.ClusterRoleBinding{}, fmt.Errorf("unable to set controller reference on cluster role binding %s: %v", clusterRoleBinding.ObjectMeta.Name, err)
 		}
-		if err = r.Delete(ctx, falconContainer, existingClusterRoleBinding); err != nil {
+		if err = r.Delete(ctx, log, falconContainer, existingClusterRoleBinding); err != nil {
 			return &rbacv1.ClusterRoleBinding{}, fmt.Errorf("unable to delete existing cluster role binding %s: %v", injectorClusterRoleBindingName, err)
 		}
-		return clusterRoleBinding, r.Create(ctx, falconContainer, clusterRoleBinding)
+		return clusterRoleBinding, r.Create(ctx, log, falconContainer, clusterRoleBinding)
 		// If RoleRef is the same but Subjects have changed, update the object and post to k8s api
 	} else if !reflect.DeepEqual(clusterRoleBinding.Subjects, existingClusterRoleBinding.Subjects) {
 		existingClusterRoleBinding.Subjects = clusterRoleBinding.Subjects
-		return existingClusterRoleBinding, r.Update(ctx, falconContainer, existingClusterRoleBinding)
+		return existingClusterRoleBinding, r.Update(ctx, log, falconContainer, existingClusterRoleBinding)
 	}
 	return existingClusterRoleBinding, nil
 

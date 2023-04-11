@@ -13,9 +13,11 @@ func (r *FalconContainerReconciler) UpsertECRRepo(ctx context.Context) (*types.R
 	if err != nil {
 		return nil, fmt.Errorf("Failed to initialise connection to AWS. Please make sure that kubernetes service account falcon-operator has access to AWS IAM role and OIDC Identity provider is running on the cluster. Error was: %v", err)
 	}
+
 	data, err := cfg.UpsertRepository(ctx, "falcon-container")
 	if err != nil {
 		return nil, fmt.Errorf("Failed to upsert ECR repository: %v", err)
 	}
+
 	return data, nil
 }

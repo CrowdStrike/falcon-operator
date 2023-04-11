@@ -9,26 +9,6 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-const (
-	// Following strings are condition types
-
-	ConditionSuccess        string = "Success"
-	ConditionFailed         string = "Failed"
-	ConditionPending        string = "Pending"
-	ConditionConfigMapReady string = "ConfigMapReady"
-	ConditionDaemonSetReady string = "DaemonSetReady"
-
-	// Following strings are condition reasons
-
-	ReasonReqNotMet        string = "RequirementsNotMet"
-	ReasonInstallSucceeded string = "InstallSucceeded"
-	ReasonInstallFailed    string = "InstallFailed"
-	ReasonSucceeded        string = "Succeeded"
-	ReasonUpdateSucceeded  string = "UpdateSucceeded"
-	ReasonUpdateFailed     string = "UpdateFailed"
-	ReasonFailed           string = "Failed"
-)
-
 // FalconNodeSensorSpec defines the desired state of FalconNodeSensor
 // +k8s:openapi-gen=true
 type FalconNodeSensorSpec struct {
