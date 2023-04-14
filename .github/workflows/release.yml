@@ -25,6 +25,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgpgme-dev libbtrfs-dev libdevmapper-dev
+
       - name: Get Event branch
         id: event_branch
         run: |
@@ -79,6 +84,10 @@ jobs:
         run: |
           OLDVERSION=$(grep ^VERSION Makefile | awk '{print $NF}')
           sed -i "s/$OLDVERSION/${{ env.NEWVERSION }}/g" -i Makefile
+          mkdir -p $HOME/go/bin
+          export PATH=$HOME/go/bin:$PATH
+          make operator-sdk
+          make manifests bundle non-olm IMG=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ env.NEWVERSION }}
           git add -u
           git commit -m "Bumping to version ${{ env.NEWVERSION }}"
           git push
