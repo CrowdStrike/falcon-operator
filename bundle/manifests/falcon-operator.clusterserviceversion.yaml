@@ -660,8 +660,6 @@ spec:
                   privileged: false
               securityContext:
                 runAsNonRoot: true
-                seccompProfile:
-                  type: RuntimeDefault
               serviceAccountName: falcon-operator-controller-manager
               terminationGracePeriodSeconds: 10
       permissions:
