@@ -47,17 +47,18 @@ spec:
                     operator: In
                     values:
                       - amd64
-                    #  - arm64
-                    #  - ppc64le
-                    #  - s390x
+                      - arm64
+                      - ppc64le
+                      - s390x
                   - key: kubernetes.io/os
                     operator: In
                     values:
                       - linux
       securityContext:
         runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+        # Uncomment the following code when OpenShift < 4.11 is no longer supported.
+        # seccompProfile:
+        #   type: RuntimeDefault
       containers:
       - command:
         - /manager
