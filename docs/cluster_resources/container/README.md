@@ -46,7 +46,7 @@ spec:
 | :----------------------------------       | :----------------------------------------------------------------------------------------------------------------------------------------                                                                               |
 | falcon_api.client_id                      | CrowdStrike API Client ID                                                                                                                                                                                               |
 | falcon_api.client_secret                  | CrowdStrike API Client Secret                                                                                                                                                                                           |
-| falcon_api.client_region                  | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                                                                                                                     |
+| falcon_api.cloud_region                   | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                                                                                                                     |
 | falcon.apd                                | (optional) Configure Falcon Sensor to leverage a proxy host                                                                                                                                                             |
 | falcon.aph                                | (optional) Configure the host Falcon Sensor should leverage for proxying                                                                                                                                                |
 | falcon.app                                | (optional) Configure the port Falcon Sensor should leverage for proxying                                                                                                                                                |
@@ -136,8 +136,9 @@ Supported registries are: acr, ecr, gcr, and openshift. Each registry type requi
 Consult specific deployment guides to learn about the steps needed for image mirroring.
 
  - [Deployment Guide for AKS/ACR](../../docs/deployment/azure/README.md)
- - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md) ([Fargate Considerations](../deployment/eks-fargate/README.md))
- - [Deployment Guide for GKE/GCR](../../docs/deployment/gke/README.md) ([GCP Workload Identity Considerations](../deployment/gke/gcp-workload-identity.md))
+ - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md)
+ - [Deployment Guide for EKS Fargate](../../deployment/eks-fargate/README.md)
+ - [Deployment Guide for GKE/GCR](../../docs/deployment/gke/README.md)
  - [Deployment Guide for OpenShift](../../docs/deployment/openshift/README.md)
 
 #### (Option 3) Use a custom Image URI
@@ -224,7 +225,8 @@ kubectl get deployments -n falcon-operator falcon-operator-controller-manager -o
 ### Additional Documentation
 End-to-end guides to install Falcon-operator together with FalconContainer resource.
 
- - [Deployment Guide for AKS/ACR](../../docs/deployment/azure/README.md)
- - [Deployment Guide for EKS/ECR](../../docs/deployment/eks/README.md) ([Fargate Considerations](../deployment/eks-fargate/README.md))
- - [Deployment Guide for GKE/GCR](../../docs/deployment/gke/README.md) ([GCP Workload Identity Considerations](../deployment/gke/gcp-workload-identity.md))
- - [Deployment Guide for OpenShift](../../docs/deployment/openshift/README.md)
+ - [Deployment Guide for AKS/ACR](../../deployment/azure/README.md)
+ - [Deployment Guide for EKS/ECR](../../deployment/eks/README.md)
+ - [Deployment Guide for EKS Fargate](../../deployment/eks-fargate/README.md)
+ - [Deployment Guide for GKE/GCR](../../deployment/gke/README.md)
+ - [Deployment Guide for OpenShift](../../deployment/openshift/README.md)
