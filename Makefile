@@ -269,8 +269,8 @@ else ifeq ($(OS_NAME), Darwin)
     OPERATOR_SDK_URL=https://github.com/operator-framework/operator-sdk/releases/download/$(SDK_VERSION)/operator-sdk_darwin_amd64
 endif
 
-.PHONY: operator-sdk ## Download operator-sdk locally if necessary.
-operator-sdk: $(GOBIN)/operator-sdk
+.PHONY: operator-sdk
+operator-sdk: $(GOBIN)/operator-sdk ## Download operator-sdk locally if necessary.
 
 $(GOBIN)/operator-sdk:
 ifeq (, $(shell which operator-sdk))
@@ -278,7 +278,7 @@ ifeq (, $(shell which operator-sdk))
 	chmod +x $(GOBIN)/operator-sdk
 endif
 
-.PHONY: non-olm ## Generate non-olm deployment manifest
-non-olm:
+.PHONY: non-olm
+non-olm: ## Generate non-olm deployment manifest
 	$(KUSTOMIZE) build config/non-olm -o deploy/falcon-operator.yaml
 	$(KUSTOMIZE) cfg fmt deploy/falcon-operator.yaml
