@@ -38,7 +38,7 @@ Installation steps differ based on the Operator Life-cycle Manager (OLM) availab
    operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
    ```
 
-After the installation concludes, please proceed with deploying either the [Falcon Container Sensor](./cluster_resources/container/README.md) or [Falcon Node Sensor](./cluster_resources/node/README.md) Custom Resource.
+After the installation concludes, please proceed with deploying either the [Falcon Container Sensor](./resources/container/README.md) or [Falcon Node Sensor](./resources/node/README.md) Custom Resource.
 
 #### Uninstall Steps
 
@@ -73,7 +73,7 @@ The CrowdStrike Falcon Operator does not currently support upgrading the operato
 
 ### What network connections are required for the operator to work properly?
 
- - The operator image is available at [quay.io/crowdstrike/falcon-operator](quay.io/crowdstrike/falcon-operator). If necessary, the operator image itself can be mirrored to your registry of choice, including internally hosted registries.
+ - The operator image is available at [quay.io/crowdstrike/falcon-operator](https://quay.io/crowdstrike/falcon-operator). If necessary, the operator image itself can be mirrored to your registry of choice, including internally hosted registries.
  - The operator will need to be able to reach your particular Falcon cloud region (api.crowdstrike.com or api.[YOUR CLOUD].crowdstrike.com).
  - The operator OR your nodes may attempt to reach to `registry.crowdstrike.com` depending on whether the image is being mirrored or not.
  - If Falcon Cloud is set to autodiscover, the operator may also attempt to reach the Falcon Cloud Region **us-1**.

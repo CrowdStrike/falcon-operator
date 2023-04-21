@@ -1,7 +1,7 @@
 # Deployment Guide for GKE
 This document will guide you through the installation of falcon-operator and deployment of either the:
-- [FalconContainer](../../cluster_resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to GCR (Google Container Registry). A new GCP service account for pushing to GCR registry will be created.
-- [FalconNodeSensor](../../cluster_resources/node/README.md) custom resource to the cluster.
+- [FalconContainer](../../resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to GCR (Google Container Registry). A new GCP service account for pushing to GCR registry will be created.
+- [FalconNodeSensor](../../resources/node/README.md) custom resource to the cluster.
 
 ## Prerequisites
 

@@ -28,7 +28,7 @@ No other permissions shall be granted to the new API key pair.
 apiVersion: falcon.crowdstrike.com/v1alpha1
 kind: FalconContainer
 metadata:
-  name: default
+  name: falcon-sidecar-sensor
 spec:
   falcon:
     Tags: 'test-cluster,dev'
@@ -42,31 +42,28 @@ spec:
 
 ### FalconContainer Reference Manual
 
+#### Falcon API Settings
+| Spec                       | Description                                                                                              |
+| :------------------------- | :------------------------------------------------------------------------------------------------------- |
+| falcon_api.client_id       | CrowdStrike API Client ID                                                                                |
+| falcon_api.client_secret   | CrowdStrike API Client Secret                                                                            |
+| falcon_api.cloud_region    | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                      |
+| falcon_api.cid             | (optional) CrowdStrike Falcon CID API override                                                           |
+
+#### Sidecar Injection Configuration Settings
 | Spec                                      | Description                                                                                                                                                                                                             |
-| :----------------------------------       | :----------------------------------------------------------------------------------------------------------------------------------------                                                                               |
-| falcon_api.client_id                      | CrowdStrike API Client ID                                                                                                                                                                                               |
-| falcon_api.client_secret                  | CrowdStrike API Client Secret                                                                                                                                                                                           |
-| falcon_api.cloud_region                   | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                                                                                                                     |
-| falcon.apd                                | (optional) Configure Falcon Sensor to leverage a proxy host                                                                                                                                                             |
-| falcon.aph                                | (optional) Configure the host Falcon Sensor should leverage for proxying                                                                                                                                                |
-| falcon.app                                | (optional) Configure the port Falcon Sensor should leverage for proxying                                                                                                                                                |
-| falcon.billing                            | (optional) Configure Pay-as-You-Go (metered) billing rather than default billing                                                                                                                                        |
-| falcon.provisioning_token                 | (optional) Configure a Provisioning Token for CIDs with restricted AID provisioning enabled                                                                                                                             |
-| falcon.tags                               | (optional) Configure Falcon Sensor Grouping Tags; comma-delimited                                                                                                                                                       |
-| falcon.trace                              | (optional) Configure Falcon Sensor Trace Logging Level (none, err, warn, info, debug)                                                                                                                                   |
+| :----------------------------------       | :----------------------------------------------------------------------------------------------------------------------------------------                                                                               
 | image                                     | (optional) Leverage a Falcon Container Sensor image that is not managed by the operator; typically used with custom repositories; overrides all registry settings; might require injector.imagePullSecretName to be set |
 | version                                   | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                                                                                                       |
-| versionLocking                            | (optional) Enable/Disable version locking; if disabled, new image versions (matching any specified version string) will be leveraged for future pod injections upon controller reconciliation (default: true)
-| registry.type                     | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift)                                              |
-| registry.tls.insecure_skip_verify | (optional) Skip TLS check when pushing Falcon Container to target registry (only for demoing purposes on self-signed openshift clusters) |
-| registry.tls.caCertificate | (optional) A string containing an optionally base64-encoded Certificate Authority Chain for self-signed TLS Registry Certificates
-| registry.tls.caCertificateConfigMap | (optional) The name of a ConfigMap containing CA Certificate Authority Chains under keys ending in ".tls"  for self-signed TLS Registry Certificates (ignored when registry.tls.caCertificate is set)
+| registry.type                             | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift)                                              |
+| registry.tls.insecure_skip_verify         | (optional) Skip TLS check when pushing Falcon Container to target registry (only for demoing purposes on self-signed openshift clusters) |
+| registry.tls.caCertificate                | (optional) A string containing an optionally base64-encoded Certificate Authority Chain for self-signed TLS Registry Certificates
+| registry.tls.caCertificateConfigMap       | (optional) The name of a ConfigMap containing CA Certificate Authority Chains under keys ending in ".tls"  for self-signed TLS Registry Certificates (ignored when registry.tls.caCertificate is set)
 | registry.acr_name                         | (optional) Name of ACR for the Falcon Container push. Only applicable to Azure cloud. (`registry.type="acr"`)                                                                                                           |
 | registry.ecr_iam_role_arn                 | (optional) ARN of AWS IAM Role to be assigned to the Injector (only needed when injector runs on EKS Fargate)                                                                                                           |
-| injector.serviceAccount.name              | (optional) Name of Service Account to create in falcon-system namespace                                                                                                                                                 |
 | injector.serviceAccount.annotations       | (optional) Annotations that should be added to the Service Account (e.g. for IAM role association)                                                                                                                      |
 | injector.listenPort                       | (optional) Override the default Injector Listen Port of 4433                                                                                                                                                            |
-| injector.replicas                       | (optional) Override the default Injector Replica count of 2                                                                                                                                                            |
+| injector.replicas                         | (optional) Override the default Injector Replica count of 2                                                                                                                                                             |
 | injector.tls.validity                     | (optional) Override the default Injector CA validity of 3650 days                                                                                                                                                       |
 | injector.imagePullPolicy                  | (optional) Override the default Falcon Container image pull policy of Always                                                                                                                                            |
 | injector.imagePullSecretName              | (optional) Provide a secret containing an alternative pull token for the Falcon Container image                                                                                                                         |
@@ -76,6 +73,17 @@ spec:
 | injector.additionalEnvironmentVariables   | (optional) Provide additional environment variables for Falcon Container                                                                                                                                                |
 | injector.disableDefaultNamespaceInjection | (optional) If set to true, disables default Falcon Container injection at the namespace scope; namespaces requiring injection will need to be labeled as specified below                                                |
 | injector.disableDefaultPodInjection       | (optional) If set to true, disables default Falcon Container injection at the pod scope; pods requiring injection will need to be annotated as specified below                                                          |
+
+#### Falcon Sensor Settings
+| Spec                                      | Description                                                                                                                                                                                                             |
+| :----------------------------------       | :----------------------------------------------------------------------------------------------------------------------------------------                                                                               |
+| falcon.apd                                | (optional) Configure Falcon Sensor to leverage a proxy host                                                                                                                                                             |
+| falcon.aph                                | (optional) Configure the host Falcon Sensor should leverage for proxying                                                                                                                                                |
+| falcon.app                                | (optional) Configure the port Falcon Sensor should leverage for proxying                                                                                                                                                |
+| falcon.billing                            | (optional) Configure Pay-as-You-Go (metered) billing rather than default billing                                                                                                                                        |
+| falcon.provisioning_token                 | (optional) Configure a Provisioning Token for CIDs with restricted AID provisioning enabled                                                                                                                             |
+| falcon.tags                               | (optional) Configure Falcon Sensor Grouping Tags; comma-delimited                                                                                                                                                       |
+| falcon.trace                              | (optional) Configure Falcon Sensor Trace Logging Level (none, err, warn, info, debug)                                                                                                                                   |
 
 | Status                              | Description                                                                                                                               |
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -143,7 +151,7 @@ Consult specific deployment guides to learn about the steps needed for image mir
 
 #### (Option 3) Use a custom Image URI
 
-Image must be available at the specified URI; setting the image attribute will cause registry settings to be ignored.  No image mirroring will be leveraged, and version locking is implied.
+Image must be available at the specified URI; setting the image attribute will cause registry settings to be ignored. No image mirroring will be leveraged.
 
 Example:
 ```
@@ -165,11 +173,11 @@ kubectl delete falconcontainers.falcon.crowdstrike.com --all
 
 ### Sensor Upgrades
 
-The current version of the operator will update the Falcon Container Sensor version upon Operator Reconciliation, if Version Locking is disabled.  Note that this will only impact future Sensor injections, and will not cause any changes to running pods.  Version Locking is enabled by default. 
+The current version of the operator will update the Falcon Container Sensor version upon Operator Reconciliation, if Version Locking is disabled.  Note that this will only impact future Sensor injections, and will not cause any changes to running pods. 
 
 ### Operator Upgrades
 
-The current version of the operator does not support in place upgrades.  Users are advised to remove any FalconContainer or FalconNodeSensor Custom Resources, allow the operator to clean up previously deployed resources, uninstall the operator and install the target version, before updating their Custom Resource(s) to reflect any changes introduced ([see Release Notes](../../RELEASE.md)).
+The current version of the operator does not support in place upgrades. Users are advised to remove any FalconContainer or FalconNodeSensor Custom Resources, allow the operator to clean up previously deployed resources, uninstall the operator and install the target version, before updating their Custom Resource(s).
 
 ### Namespace Reference
 
