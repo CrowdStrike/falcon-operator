@@ -1,7 +1,7 @@
 # Deployment Guide for OpenShift
 This document will guide you through the installation of falcon-operator and deployment of either the:
-- [FalconContainer](../../cluster_resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
-- [FalconNodeSensor](../../cluster_resources/node/README.md) custom resource to the cluster.
+- [FalconContainer](../../resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
+- [FalconNodeSensor](../../resources/node/README.md) custom resource to the cluster.
 
 You can choose to install the operator and custom resources through the [web console (GUI)](#installing-the-operator-through-the-web-console-gui) or through the [CLI](#installing-the-operator-through-the-cli).
 If you want to automate the deployment of the operator, the CLI method is recommended.
@@ -138,7 +138,7 @@ If you want to automate the deployment of the operator, the CLI method is recomm
     startingCSV: falcon-operator.v0.6.0
   EOF
   ```
-  An [example subscription of the official Red Hat Marketplace certified operator is available](https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/redhat-marketplace.yaml) to use and modify as appropriate for your cluster. Make sure to update the `startingCSV: falcon-operator.v0.6.0` for the version that is listed locally on your cluster.
+  An [example subscription of the official Red Hat Marketplace certified operator is available](https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/redhat-subscription.yaml) to use and modify as appropriate for your cluster. Make sure to update the `startingCSV: falcon-operator.v0.6.0` for the version that is listed locally on your cluster.
 
 ### Installing the Community Operator from the Console OperatorHub
 

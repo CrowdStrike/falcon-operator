@@ -19,10 +19,10 @@ The CrowdStrike Falcon Operator deploys CrowdStrike Falcon Workload Protection t
 
 ## About Custom Resources
 
-| Custom Resource                                               | Description                                                      |
-| :--------                                                     | :------------                                                    |
-| [FalconContainer](docs/cluster_resources/container/README.md) | Manages installation of Falcon Container Sensor on the cluster   |
-| [FalconNodeSensor](docs/cluster_resources/node/README.md)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
+| Custom Resource                                       | Description                                                      |
+| :--------                                             | :------------                                                    |
+| [FalconContainer](docs/resources/container/README.md) | Manages installation of Falcon Container Sensor on the cluster   |
+| [FalconNodeSensor](docs/resources/node/README.md)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
 
 ## Installation and Deployment
 

@@ -1,6 +1,6 @@
 # Deployment Guide for EKS Fargate and ECR
 This document will guide you through the installation of falcon-operator and deployment of either the:
-- [FalconContainer](../../cluster_resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to ECR (Elastic Container Registry). A new AWS IAM Policy will be created to allow the opeator to push to ECR registry.
+- [FalconContainer](../../resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to ECR (Elastic Container Registry). A new AWS IAM Policy will be created to allow the opeator to push to ECR registry.
 
 ## Prerequisites
 

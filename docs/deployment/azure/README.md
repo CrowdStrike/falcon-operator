@@ -1,7 +1,7 @@
 # Deployment Guide for Azure and AKS
 This document will guide you through the installation of falcon-operator and deployment of either the:
-- [FalconContainer](../../cluster_resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to ACR (Azure Container Registry).
-- [FalconNodeSensor](../../cluster_resources/node/README.md) custom resource to the cluster.
+- [FalconContainer](../../resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to ACR (Azure Container Registry).
+- [FalconNodeSensor](../../resources/node/README.md) custom resource to the cluster.
 
 ## Prerequisites
 
