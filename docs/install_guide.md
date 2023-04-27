@@ -1,72 +1,26 @@
 # Installation and Deployment Guide
 
-
 ## Installation and Deployment
 
-There are several ways to install and deploy the Falcon Operator. The guides below will walk you through installing for specific Kubernetes distributions. If none of the guides provide installation for your specific Kubernetes distribution, use [Generic Installation and Deployment](#generic-installation-and-deployment).
+There are several ways to install and deploy the Falcon Operator. The guides below will walk you through installing for specific Kubernetes distributions.
+> :warning: If none of the guides provide installation for your specific Kubernetes distribution, use the [Deployment Guide for Generic Kubernetes](./deployment/generic/README.md).
 
-### Kubernetes Distribution Installation and Deployment (Preferred)
+### Kubernetes Distribution Installation and Deployment
 
-The following are the preferred methods for installing for specific Kubernetes Distributions. Please use these over other methods installations.
+The following are the preferred methods for installing for specific Kubernetes Distributions. Please use these over other methods of installation.
 
- - [Deployment Guide for AKS/ACR](./deployment/azure/README.md)
- - [Deployment Guide for EKS/ECR](./deployment/eks/README.md)
- - [Deployment Guide for EKS Fargate](./deployment/eks-fargate/README.md))
- - [Deployment Guide for GKE/GCR](./deployment/gke/README.md)
- - [Deployment Guide for OpenShift](./deployment/openshift/README.md)
-
-### Generic Installation and Deployment (Alternate)
-
-The following installation and deployment steps should be used for Kubernetes installs that are not provided under [Kubernetes Distribution Installation and Deployment](#kubernetes-distribution-installation-and-deployment) or for testing deployments.
-It is important to understand that when your cluster uses the Operator Life-cycle Manager (OLM) that you follow the installation instructions for OLM.
-
-#### Installation Steps
-
-Installation steps differ based on the Operator Life-cycle Manager (OLM) availability. You can determine whether your cluster is using OLM by running: `kubectl get crd catalogsources.operators.coreos.com`
-
-##### Non-OLM Installation
- - If your cluster **is not** using OLM (Operator Life-cycle Manager), run:
-   ```
-   kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
-   ```
-
-##### Operator Life-cycle Manager (OLM) Installation
- - If your cluster **is** using OLM, run:
-   ```
-   OPERATOR_NAMESPACE=falcon-operator
-   kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
-   operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
-   ```
-
-After the installation concludes, please proceed with deploying either the [Falcon Container Sensor](./resources/container/README.md) or [Falcon Node Sensor](./resources/node/README.md) Custom Resource.
-
-#### Uninstall Steps
-
-Before removing Falcon Operator from the cluster, make sure to remove the custom resources first.
-
-##### Operator Life-cycle Manager (OLM) Uninstall
-
- - To uninstall Falcon Operator when OLM is installed, run:
-   ```
-   operator-sdk cleanup falcon-operator --namespace falcon-operator
-   ```
-
-##### Non-OLM Uninstall
-
- - To uninstall Falcon Operator when OLM is not in use, run:
-   ```
-   kubectl delete -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
-   ```
-
-### Other Installation Methods (Alternate)
-
-Both [OperatorHub.io](https://operatorhub.io/operator/falcon-operator) and [ArtifactHUB](https://artifacthub.io/packages/olm/falcon-operator/falcon-operator) provide alternate methods for Operator Life-cycle Manager (OLM) style installations.
+ - **[Deployment Guide for AKS/ACR](./deployment/azure/README.md)**
+ - **[Deployment Guide for EKS/ECR](./deployment/eks/README.md)**
+ - **[Deployment Guide for EKS Fargate](./deployment/eks-fargate/README.md)**
+ - **[Deployment Guide for GKE/GCR](./deployment/gke/README.md)**
+ - **[Deployment Guide for OpenShift](./deployment/openshift/README.md)**
+ - **[Deployment Guide for Generic Kubernetes](./deployment/generic/README.md)**
 
 ## Upgrading
 
 The CrowdStrike Falcon Operator does not currently support upgrading the operator. To upgrade the operator, you must:
 
-1. Uninstall the deployed custom resources and the operator.
+1. Uninstall the deployed custom resources, the operator, and the CRDs if they still exist.
 2. Install the newer operator and re-deploy the custom resources.
 
 ## FAQ - Frequently Asked Questions
