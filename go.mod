@@ -109,7 +109,7 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc2 // indirect
-	github.com/opencontainers/runc v1.1.4 // indirect
+	github.com/opencontainers/runc v1.1.5 // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20220601164019-72c1f0b44f79 // indirect
 	github.com/opencontainers/selinux v1.10.2 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
