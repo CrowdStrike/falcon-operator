@@ -394,7 +394,11 @@ func (in *FalconContainerServiceAccount) DeepCopy() *FalconContainerServiceAccou
 func (in *FalconContainerSpec) DeepCopyInto(out *FalconContainerSpec) {
 	*out = *in
 	in.Falcon.DeepCopyInto(&out.Falcon)
-	in.FalconAPI.DeepCopyInto(&out.FalconAPI)
+	if in.FalconAPI != nil {
+		in, out := &in.FalconAPI, &out.FalconAPI
+		*out = new(FalconAPI)
+		(*in).DeepCopyInto(*out)
+	}
 	in.Registry.DeepCopyInto(&out.Registry)
 	in.Injector.DeepCopyInto(&out.Injector)
 	if in.Image != nil {

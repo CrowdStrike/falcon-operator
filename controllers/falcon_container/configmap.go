@@ -90,12 +90,18 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.L
 		data["INJECTION_DEFAULT_DISABLED"] = "T"
 	}
 
-	cid, err := falcon_api.FalconCID(ctx, falconContainer.Spec.FalconAPI.CID, falconContainer.Spec.FalconAPI.ApiConfig())
-	if err != nil {
-		return &corev1.ConfigMap{}, fmt.Errorf("unable to determine falcon customer ID (CID): %v", err)
-	} else {
-		data["FALCONCTL_OPT_CID"] = cid
+	cid := ""
+	if falconContainer.Spec.Falcon.CID != nil {
+		cid = *falconContainer.Spec.Falcon.CID
 	}
+
+	if cid == "" && falconContainer.Spec.FalconAPI != nil {
+		cid, err = falcon_api.FalconCID(ctx, falconContainer.Spec.FalconAPI.CID, falconContainer.Spec.FalconAPI.ApiConfig())
+		if err != nil {
+			return &corev1.ConfigMap{}, fmt.Errorf("unable to determine Falcon customer ID (CID): %v", err)
+		}
+	}
+	data["FALCONCTL_OPT_CID"] = cid
 
 	if falconContainer.Spec.Injector.LogVolume != nil {
 		vol, err := common.EncodeBase64Interface(*falconContainer.Spec.Injector.LogVolume)

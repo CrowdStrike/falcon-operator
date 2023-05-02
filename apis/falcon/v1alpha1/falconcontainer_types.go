@@ -18,7 +18,7 @@ type FalconContainerSpec struct {
 	Falcon FalconSensor `json:"falcon,omitempty"`
 	// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
-	FalconAPI FalconAPI `json:"falcon_api"`
+	FalconAPI *FalconAPI `json:"falcon_api"`
 
 	// Registry configures container image registry to which the Falcon Container image will be pushed
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Registry Configuration",order=3
