@@ -3,6 +3,7 @@ package falcon
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,7 +37,7 @@ func (r *FalconContainerReconciler) PushImage(ctx context.Context, log logr.Logg
 	version := falconContainer.Spec.Version
 
 	// If we have version locking enabled (as it is by default), use the already configured version if present
-	if falconContainer.Spec.VersionLocking && falconContainer.Status.Version != nil && *falconContainer.Status.Version != "" {
+	if r.versionLock(falconContainer) {
 		return nil
 	}
 
@@ -141,14 +142,19 @@ func (r *FalconContainerReconciler) imageUri(ctx context.Context, falconContaine
 		return *falconContainer.Spec.Image, nil
 	}
 
+	sidecarImage := os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR")
+	if sidecarImage != "" && falconContainer.Spec.FalconAPI == nil {
+		return sidecarImage, nil
+	}
+
 	registryUri, err := r.registryUri(ctx, falconContainer)
 	if err != nil {
 		return "", err
 	}
 
-	imageTag, err := r.getImageTag(ctx, falconContainer)
+	imageTag, err := r.setImageTag(ctx, falconContainer)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to set Falcon Container Image version: %v", err)
 	}
 
 	return fmt.Sprintf("%s:%s", registryUri, imageTag), nil
@@ -164,7 +170,7 @@ func (r *FalconContainerReconciler) getImageTag(ctx context.Context, falconConta
 
 func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (string, error) {
 	// If version locking is enabled and a version is already set in status, return the current version
-	if falconContainer.Spec.VersionLocking {
+	if r.versionLock(falconContainer) {
 		if tag, err := r.getImageTag(ctx, falconContainer); err == nil {
 			return tag, err
 		}
@@ -175,20 +181,27 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 		falconContainer.Status.Version = &strings.Split(*falconContainer.Spec.Image, ":")[1]
 
 		return *falconContainer.Status.Version, r.Client.Status().Update(ctx, falconContainer)
-	} else {
-		// Otherwise, get the newest version matching the requested version string
-		registry, err := falcon_registry.NewFalconRegistry(ctx, r.falconApiConfig(ctx, falconContainer))
-		if err != nil {
-			return "", err
-		}
-
-		tag, err := registry.LastContainerTag(ctx, falconContainer.Spec.Version)
-		if err == nil {
-			falconContainer.Status.Version = &tag
-		}
-
-		return tag, err
 	}
+
+	if os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR") != "" && falconContainer.Spec.FalconAPI == nil {
+		image := os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR")
+		falconContainer.Status.Version = &strings.Split(image, ":")[1]
+
+		return *falconContainer.Status.Version, r.Client.Status().Update(ctx, falconContainer)
+	}
+
+	// Otherwise, get the newest version matching the requested version string
+	registry, err := falcon_registry.NewFalconRegistry(ctx, r.falconApiConfig(ctx, falconContainer))
+	if err != nil {
+		return "", err
+	}
+
+	tag, err := registry.LastContainerTag(ctx, falconContainer.Spec.Version)
+	if err == nil {
+		falconContainer.Status.Version = &tag
+	}
+
+	return tag, err
 }
 
 func (r *FalconContainerReconciler) pushAuth(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (auth.Credentials, error) {
@@ -215,4 +228,8 @@ func (r *FalconContainerReconciler) falconApiConfig(ctx context.Context, falconC
 
 func (r *FalconContainerReconciler) imageMirroringEnabled(falconContainer *v1alpha1.FalconContainer) bool {
 	return falconContainer.Spec.Registry.Type != v1alpha1.RegistryTypeCrowdStrike
+}
+
+func (r *FalconContainerReconciler) versionLock(falconContainer *v1alpha1.FalconContainer) bool {
+	return falconContainer.Spec.Version != nil && falconContainer.Status.Version != nil && *falconContainer.Spec.Version == *falconContainer.Status.Version
 }
