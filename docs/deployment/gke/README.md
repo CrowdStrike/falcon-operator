@@ -44,7 +44,7 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
 
 - Deploy FalconNodeSensor to the custom namespace:
   ```
-  kubectl create -n falcon-system -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
+  kubectl create -n falcon-system -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
 
 ### Deploy the sidecar sensor
