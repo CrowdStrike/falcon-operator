@@ -64,7 +64,7 @@ var _ = Describe("FalconNodeSensor controller", func() {
 							CID: &falconCID,
 						},
 						Node: falconv1alpha1.FalconNodeSensorConfig{
-							ImageOverride: "example.com/image:test",
+							Image: "example.com/image:test",
 						},
 					},
 				}

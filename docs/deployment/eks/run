@@ -158,7 +158,7 @@ kubectl wait --timeout=240s --for=condition=Available -n $OPERATOR_NAMESPACE dep
 
 # Let the user edit the falconcontainer configuration
 if ! kubectl get falconcontainers.falcon.crowdstrike.com default > /dev/null 2>&1; then
-    kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/eks/falconcontainer-ecr.yaml --edit=true
+    kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/eks/falconcontainer.yaml --edit=true
 fi
 
 # Let the user watch the operator logs

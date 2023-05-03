@@ -69,14 +69,12 @@ spec:
         env:
         - name: WATCH_NAMESPACE
           value: null
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
         - name: OPERATOR_NAME
           value: "falcon-operator"
-        - name: RELATED_IMAGE_NODE_SENSOR
-          value: ""
+        #- name: RELATED_IMAGE_NODE_SENSOR
+        #  image: ""
+        #- name: RELATED_IMAGE_SIDECAR_SENSOR
+        #  image: ""
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

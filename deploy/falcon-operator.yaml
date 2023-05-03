@@ -156,22 +156,17 @@ spec:
                     x-kubernetes-int-or-string: true
                   serviceAccount:
                     type: object
-                    default:
-                      name: default
                     description: Define annotations that will be passed down to injector
                       service account. This is useful for passing along AWS IAM Role
                       or GCP Workload Identity.
                     properties:
-                      name:
-                        type: string
-                        default: default
-                        description: Define annotations that will be passed down to
-                          the Service Account. This is useful for passing along AWS
-                          IAM Role or GCP Workload Identity.
                       annotations:
                         type: object
                         additionalProperties:
                           type: string
+                        description: Define annotations that will be passed down to
+                          the Service Account. This is useful for passing along AWS
+                          IAM Role or GCP Workload Identity.
                   resources:
                     type: object
                     description: ResourceRequirements describes the compute resource
@@ -1829,13 +1824,6 @@ spec:
                 description: Falcon Container Version. The latest version will be
                   selected when version specifier is missing; ignored when Image is
                   set.
-              versionLocking:
-                type: boolean
-                default: true
-                description: Falcon Container Version Locking. If not set to false,
-                  once a sensor version is set, it is used until manually adjusted.
-            required:
-            - falcon_api
           status:
             type: object
             description: FalconContainerStatus defines the observed state of FalconContainer
@@ -2188,6 +2176,11 @@ spec:
                             forever (do not evict). Zero and negative values will
                             be treated as 0 (evict immediately) by the system.
                           format: int64
+                  image:
+                    type: string
+                    description: Location of the Falcon Sensor image. Use only in
+                      cases when you mirror the original image to your repository/name:tag
+                    pattern: ^.*:.*$
                   imagePullPolicy:
                     type: string
                     default: Always
@@ -2210,10 +2203,6 @@ spec:
                     description: Disables the cleanup of the sensor through DaemonSet
                       on the nodes. Disabling might have unintended consequences for
                       certain operations such as sensor downgrading.
-                  image_override:
-                    type: string
-                    description: Location of the Falcon Sensor image. Use only in
-                      cases when you mirror the original image to your repository/name:tag
                   nodeAffinity:
                     type: object
                     description: Specifies node affinity for scheduling the DaemonSet.
@@ -2915,10 +2904,6 @@ spec:
         env:
         - name: WATCH_NAMESPACE
           value: null
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
         - name: OPERATOR_NAME
           value: falcon-operator
         resources:

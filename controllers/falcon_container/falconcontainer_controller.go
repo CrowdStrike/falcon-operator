@@ -3,6 +3,7 @@ package falcon
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
@@ -96,12 +97,13 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Image being set will override other image based settings
 	if falconContainer.Spec.Image != nil && *falconContainer.Spec.Image != "" {
-		if _, err := r.getImageTag(ctx, falconContainer); err != nil {
-			if _, err := r.setImageTag(ctx, falconContainer); err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to set Falcon Container Image version: %v", err)
-			}
+		if _, err := r.setImageTag(ctx, falconContainer); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Container Image version: %v", err)
 		}
-
+	} else if os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR") != "" && falconContainer.Spec.FalconAPI == nil {
+		if _, err := r.setImageTag(ctx, falconContainer); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Container Image version: %v", err)
+		}
 	} else {
 		switch falconContainer.Spec.Registry.Type {
 		case v1alpha1.RegistryTypeECR:

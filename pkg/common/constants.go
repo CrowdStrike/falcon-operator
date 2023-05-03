@@ -32,6 +32,7 @@ const (
 	FalconCreatedValue   = "falcon-operator"
 	FalconManagedByValue = "controller-manager"
 
+	SidecarServiceAccountName  = "crowdstrike-falcon-sidecar-sensor"
 	FalconPullSecretName       = "crowdstrike-falcon-pull-secret"
 	NodeServiceAccountName     = "crowdstrike-falcon-node-sensor"
 	NodeClusterRoleName        = "crowdstrike-falcon-node-sensor"

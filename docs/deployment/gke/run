@@ -99,7 +99,7 @@ if ! kubectl get secret builder -n $FALCON_SYSTEM > /dev/null 2>&1; then
 fi
 
 if ! kubectl get falconcontainers.falcon.crowdstrike.com default > /dev/null 2>&1; then
-    kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/gke/falconcontainer-gke.yaml --edit=true
+    kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/gke/falconcontainer.yaml --edit=true
 fi
 
 kubectl -n $OPERATOR_NAMESPACE logs -f deploy/falcon-operator-controller-manager -c manager

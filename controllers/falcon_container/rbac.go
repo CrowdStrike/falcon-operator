@@ -25,7 +25,7 @@ func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context,
 	update := false
 	serviceAccount := r.newServiceAccount(falconContainer)
 	existingServiceAccount := &corev1.ServiceAccount{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: falconContainer.Spec.Injector.ServiceAccount.Name, Namespace: r.Namespace()}, existingServiceAccount)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: common.SidecarServiceAccountName, Namespace: r.Namespace()}, existingServiceAccount)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, serviceAccount, r.Scheme); err != nil {
@@ -34,7 +34,7 @@ func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context,
 			}
 			return serviceAccount, r.Create(ctx, log, falconContainer, serviceAccount)
 		}
-		return &corev1.ServiceAccount{}, fmt.Errorf("unable to query existing service account %s: %v", falconContainer.Spec.Injector.ServiceAccount.Name, err)
+		return &corev1.ServiceAccount{}, fmt.Errorf("unable to query existing service account %s: %v", common.SidecarServiceAccountName, err)
 	}
 	if !reflect.DeepEqual(serviceAccount.ObjectMeta.Annotations, existingServiceAccount.ObjectMeta.Annotations) {
 		existingServiceAccount.ObjectMeta.Annotations = serviceAccount.ObjectMeta.Annotations
@@ -93,7 +93,7 @@ func (r *FalconContainerReconciler) newServiceAccount(falconContainer *v1alpha1.
 			Kind:       "ServiceAccount",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        falconContainer.Spec.Injector.ServiceAccount.Name,
+			Name:        common.SidecarServiceAccountName,
 			Namespace:   r.Namespace(),
 			Labels:      FcLabels,
 			Annotations: falconContainer.Spec.Injector.ServiceAccount.Annotations,
@@ -114,7 +114,7 @@ func (r *FalconContainerReconciler) newClusterRoleBinding(falconContainer *v1alp
 		},
 		Subjects: []rbacv1.Subject{{
 			Kind:      "ServiceAccount",
-			Name:      falconContainer.Spec.Injector.ServiceAccount.Name,
+			Name:      common.SidecarServiceAccountName,
 			Namespace: r.Namespace(),
 		}},
 		RoleRef: rbacv1.RoleRef{

@@ -28,7 +28,7 @@ func nodeAffinity(node *falconv1alpha1.FalconNodeSensor) *corev1.Affinity {
 }
 
 func pullSecrets(node *falconv1alpha1.FalconNodeSensor) []corev1.LocalObjectReference {
-	if node.Spec.Node.ImageOverride == "" {
+	if node.Spec.Node.Image == "" {
 		return []corev1.LocalObjectReference{
 			{
 				Name: common.FalconPullSecretName,
