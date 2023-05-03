@@ -141,9 +141,10 @@ spec:
                       on the nodes. Disabling might have unintended consequences for
                       certain operations such as sensor downgrading.
                     type: boolean
-                  image_override:
+                  image:
                     description: Location of the Falcon Sensor image. Use only in
                       cases when you mirror the original image to your repository/name:tag
+                    pattern: ^.*:.*$
                     type: string
                   imagePullPolicy:
                     default: Always

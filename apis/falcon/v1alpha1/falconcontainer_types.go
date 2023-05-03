@@ -18,7 +18,7 @@ type FalconContainerSpec struct {
 	Falcon FalconSensor `json:"falcon,omitempty"`
 	// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
-	FalconAPI *FalconAPI `json:"falcon_api"`
+	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
 	// Registry configures container image registry to which the Falcon Container image will be pushed
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Registry Configuration",order=3
@@ -29,23 +29,17 @@ type FalconContainerSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Injector Configuration",order=4
 	Injector FalconContainerInjectorSpec `json:"injector,omitempty"`
 
-	// Falcon Container Version Locking. If not set to false, once a sensor version is set, it is used until manually adjusted.
-	// +kubebuilder:default:=true
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version Locking",order=5
-	VersionLocking bool `json:"versionLocking,omitempty"`
-
 	// +kubebuilder:validation:Pattern="^.*:.*$"
-	// +operator-sdk:cv:customresourcedefinitions:type=spec,displayName="Falcon Container Image URI",order=6
+	// +operator-sdk:cv:customresourcedefinitions:type=spec,displayName="Falcon Container Image URI",order=5
 	Image *string `json:"image,omitempty"`
 
 	// Falcon Container Version. The latest version will be selected when version specifier is missing; ignored when Image is set.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=7
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=6
 	Version *string `json:"version,omitempty"`
 }
 
 type FalconContainerInjectorSpec struct {
 	// Define annotations that will be passed down to injector service account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
-	// +kubebuilder:default:={name:default}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Service Account Configuration",order=1
 	ServiceAccount FalconContainerServiceAccount `json:"serviceAccount,omitempty"`
 
@@ -101,9 +95,6 @@ type FalconContainerInjectorSpec struct {
 
 type FalconContainerServiceAccount struct {
 	// Define annotations that will be passed down to the Service Account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
-	// +kubebuilder:default=default
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Service Account Name",order=1
-	Name string `json:"name,omitempty"`
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Annotations map[string]string `json:"annotations,omitempty"`
 }

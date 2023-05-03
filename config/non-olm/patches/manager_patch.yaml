@@ -13,8 +13,5 @@ spec:
         env:
         - name: WATCH_NAMESPACE
           value: null
-        - name: RELATED_IMAGE_NODE_SENSOR
-          value: ""
-          $patch: delete
       securityContext:
         fsGroup: 65534

@@ -33,7 +33,7 @@ func TestUsingCrowdStrikeRegistry(t *testing.T) {
 	}
 
 	// Test with imageOverride
-	config.nodesensor.Spec.Node.ImageOverride = falconImage
+	config.nodesensor.Spec.Node.Image = falconImage
 	got = config.UsingCrowdStrikeRegistry()
 	want = false
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -41,7 +41,7 @@ func TestUsingCrowdStrikeRegistry(t *testing.T) {
 	}
 
 	// Reset imageOverride
-	config.nodesensor.Spec.Node.ImageOverride = ""
+	config.nodesensor.Spec.Node.Image = ""
 }
 
 func TestGetImageURI(t *testing.T) {
@@ -201,7 +201,7 @@ func TestGetFalconImage(t *testing.T) {
 	}
 
 	want = "TestImageOverride"
-	falconNode.Spec.Node.ImageOverride = want
+	falconNode.Spec.Node.Image = want
 
 	got, err = getFalconImage(context.Background(), &falconNode)
 	if err != nil {

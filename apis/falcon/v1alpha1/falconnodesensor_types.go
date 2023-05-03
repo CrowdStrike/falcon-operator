@@ -44,8 +44,9 @@ type FalconNodeSensorConfig struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// Location of the Falcon Sensor image. Use only in cases when you mirror the original image to your repository/name:tag
+	// +kubebuilder:validation:Pattern="^.*:.*$"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
-	ImageOverride string `json:"image_override,omitempty"`
+	Image string `json:"image,omitempty"`
 	// ImagePullSecrets is an optional list of references to secrets in the falcon-system namespace to use for pulling image from image_override location.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`

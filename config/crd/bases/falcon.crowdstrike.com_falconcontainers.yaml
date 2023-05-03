@@ -1744,8 +1744,6 @@ spec:
                         type: object
                     type: object
                   serviceAccount:
-                    default:
-                      name: default
                     description: Define annotations that will be passed down to injector
                       service account. This is useful for passing along AWS IAM Role
                       or GCP Workload Identity.
@@ -1753,13 +1751,10 @@ spec:
                       annotations:
                         additionalProperties:
                           type: string
-                        type: object
-                      name:
-                        default: default
                         description: Define annotations that will be passed down to
                           the Service Account. This is useful for passing along AWS
                           IAM Role or GCP Workload Identity.
-                        type: string
+                        type: object
                     type: object
                   tls:
                     properties:
@@ -1813,13 +1808,6 @@ spec:
                   selected when version specifier is missing; ignored when Image is
                   set.
                 type: string
-              versionLocking:
-                default: true
-                description: Falcon Container Version Locking. If not set to false,
-                  once a sensor version is set, it is used until manually adjusted.
-                type: boolean
-            required:
-            - falcon_api
             type: object
           status:
             description: FalconContainerStatus defines the observed state of FalconContainer

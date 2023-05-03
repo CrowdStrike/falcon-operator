@@ -5,7 +5,7 @@
 apiVersion: falcon.crowdstrike.com/v1alpha1
 kind: FalconContainer
 metadata:
-  name: default
+  name: falcon-sidecar-sensor
 spec:
   falcon_api:
     client_id: PLEASE_FILL_IN
@@ -29,7 +29,6 @@ spec:
       - tags2
   injector:
     serviceAccount:
-      name: default
       annotations:
         # These are just examples, you wouldn't combine AWS & GKE roles at once
         eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/iam-role-name

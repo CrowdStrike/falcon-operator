@@ -83,7 +83,7 @@ func TestPullSecrets(t *testing.T) {
 		},
 	}
 
-	falconNode.Spec.Node.ImageOverride = "testImageName"
+	falconNode.Spec.Node.Image = "testImageName"
 	falconNode.Spec.Node.ImagePullSecrets = want
 
 	got = pullSecrets(&falconNode)

@@ -8,7 +8,7 @@ metadata:
           "apiVersion": "falcon.crowdstrike.com/v1alpha1",
           "kind": "FalconContainer",
           "metadata": {
-            "name": "default"
+            "name": "falcon-sidecar-sensor"
           },
           "spec": {
             "falcon": {
@@ -81,10 +81,6 @@ spec:
           account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
         displayName: Service Account Configuration
         path: injector.serviceAccount
-      - description: Define annotations that will be passed down to the Service Account.
-          This is useful for passing along AWS IAM Role or GCP Workload Identity.
-        displayName: Service Account Name
-        path: injector.serviceAccount.name
       - displayName: Falcon Container Injector TLS Validity Length (days)
         path: injector.tls.validity
       - description: Allow pushing to docker registries over HTTPS with failed TLS
@@ -143,10 +139,6 @@ spec:
         path: falcon.app
       - displayName: Falcon Container Image Pull Secret Name
         path: injector.imagePullSecret
-      - description: Falcon Container Version Locking. If not set to false, once a
-          sensor version is set, it is used until manually adjusted.
-        displayName: Falcon Container Image Version Locking
-        path: versionLocking
       - description: 'Sensor grouping tags are optional, user-defined identifiers
           that can used to group and filter hosts. Allowed characters: all alphanumerics,
           ''/'', ''-'', and ''_''.'
@@ -154,15 +146,15 @@ spec:
         path: falcon.tags
       - displayName: Falcon Container Shared Log Volume
         path: injector.logVolume
+      - description: Falcon Container Version. The latest version will be selected
+          when version specifier is missing; ignored when Image is set.
+        displayName: Falcon Container Image Version
+        path: version
       - description: Set sensor trace level.
         displayName: Trace Level
         path: falcon.trace
       - displayName: Falcon Container Injector Resources
         path: injector.resources
-      - description: Falcon Container Version. The latest version will be selected
-          when version specifier is missing; ignored when Image is set.
-        displayName: Falcon Container Image Version
-        path: version
       - description: Utilize default or Pay-As-You-Go billing.
         displayName: Billing
         path: falcon.billing
@@ -178,7 +170,9 @@ spec:
         path: injector.azureConfigPath
       - displayName: Injector replica count
         path: injector.replicas
-      - displayName: Annotations
+      - description: Define annotations that will be passed down to the Service Account.
+          This is useful for passing along AWS IAM Role or GCP Workload Identity.
+        displayName: Annotations
         path: injector.serviceAccount.annotations
       version: v1alpha1
     - description: FalconNodeSensor is the Schema for the falconnodesensors API
@@ -214,8 +208,8 @@ spec:
         path: falcon_api.client_secret
       - description: Location of the Falcon Sensor image. Use only in cases when you
           mirror the original image to your repository/name:tag
-        displayName: Image Override
-        path: node.image_override
+        displayName: Image
+        path: node.image
       - description: Disable the Falcon Sensor's use of a proxy.
         displayName: Disable Falcon Proxy
         path: falcon.apd
@@ -624,13 +618,8 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
-                - name: POD_NAME
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.name
                 - name: OPERATOR_NAME
                   value: falcon-operator
-                - name: RELATED_IMAGE_NODE_SENSOR
                 image: quay.io/crowdstrike/falcon-operator:latest
                 livenessProbe:
                   httpGet:
@@ -723,7 +712,4 @@ spec:
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
-  relatedImages:
-  - image: ""
-    name: node-sensor
   version: 0.8.0
