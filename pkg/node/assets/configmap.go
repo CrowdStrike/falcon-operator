@@ -12,15 +12,7 @@ func DaemonsetConfigMap(dsname string, nsname string, config *node.ConfigCache) 
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsname,
 			Namespace: nsname,
-			Labels: map[string]string{
-				common.FalconInstanceNameKey: "configmap",
-				common.FalconInstanceKey:     dsname,
-				common.FalconComponentKey:    common.FalconKernelSensor,
-				common.FalconManagedByKey:    common.FalconManagedByValue,
-				common.FalconProviderKey:     common.FalconProviderValue,
-				common.FalconPartOfKey:       common.FalconPartOfValue,
-				common.FalconCreatedKey:      common.FalconCreatedValue,
-			},
+			Labels:    common.CRLabels("configmap", dsname, common.FalconKernelSensor),
 		},
 		Data: config.SensorEnvVars(),
 	}

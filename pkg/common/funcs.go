@@ -126,3 +126,15 @@ func MapCopy(src map[string]string, dst map[string]string) map[string]string {
 	}
 	return dst
 }
+
+func CRLabels(instanceName string, instanceKey string, component string) map[string]string {
+	return map[string]string{
+		FalconInstanceNameKey: instanceName,
+		FalconInstanceKey:     instanceKey,
+		FalconComponentKey:    component,
+		FalconManagedByKey:    FalconManagedByValue,
+		FalconProviderKey:     FalconProviderValue,
+		FalconPartOfKey:       FalconPartOfValue,
+		FalconCreatedKey:      FalconCreatedValue,
+	}
+}

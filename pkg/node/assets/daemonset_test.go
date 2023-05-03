@@ -145,40 +145,16 @@ func TestDaemonset(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
 			Namespace: falconNode.Namespace,
-			Labels: map[string]string{
-				common.FalconInstanceNameKey: "daemonset",
-				common.FalconInstanceKey:     dsName,
-				common.FalconComponentKey:    common.FalconKernelSensor,
-				common.FalconManagedByKey:    common.FalconManagedByValue,
-				common.FalconProviderKey:     common.FalconProviderValue,
-				common.FalconPartOfKey:       common.FalconPartOfValue,
-				common.FalconCreatedKey:      common.FalconCreatedValue,
-			},
+			Labels:    common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					common.FalconInstanceNameKey: "daemonset",
-					common.FalconInstanceKey:     dsName,
-					common.FalconComponentKey:    common.FalconKernelSensor,
-					common.FalconManagedByKey:    common.FalconManagedByValue,
-					common.FalconProviderKey:     common.FalconProviderValue,
-					common.FalconPartOfKey:       common.FalconPartOfValue,
-					common.FalconCreatedKey:      common.FalconCreatedValue,
-				},
+				MatchLabels: common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
 			},
 			UpdateStrategy: dsUpdateStrategy(&falconNode),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						common.FalconInstanceNameKey: "daemonset",
-						common.FalconInstanceKey:     dsName,
-						common.FalconComponentKey:    common.FalconKernelSensor,
-						common.FalconManagedByKey:    common.FalconManagedByValue,
-						common.FalconProviderKey:     common.FalconProviderValue,
-						common.FalconPartOfKey:       common.FalconPartOfValue,
-						common.FalconCreatedKey:      common.FalconCreatedValue,
-					},
+					Labels:      common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
 					Annotations: map[string]string{"sensor.falcon-system.crowdstrike.com/injection": "disabled"},
 				},
 				Spec: corev1.PodSpec{
@@ -288,40 +264,16 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
 			Namespace: falconNode.Namespace,
-			Labels: map[string]string{
-				common.FalconInstanceNameKey: "cleanup",
-				common.FalconInstanceKey:     dsName,
-				common.FalconComponentKey:    common.FalconKernelSensor,
-				common.FalconManagedByKey:    common.FalconManagedByValue,
-				common.FalconProviderKey:     common.FalconProviderValue,
-				common.FalconPartOfKey:       common.FalconPartOfValue,
-				common.FalconCreatedKey:      common.FalconCreatedValue,
-			},
+			Labels:    common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					common.FalconInstanceNameKey: "cleanup",
-					common.FalconInstanceKey:     dsName,
-					common.FalconComponentKey:    common.FalconKernelSensor,
-					common.FalconManagedByKey:    common.FalconManagedByValue,
-					common.FalconProviderKey:     common.FalconProviderValue,
-					common.FalconPartOfKey:       common.FalconPartOfValue,
-					common.FalconCreatedKey:      common.FalconCreatedValue,
-				},
+				MatchLabels: common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						common.FalconInstanceNameKey: "cleanup",
-						common.FalconInstanceKey:     dsName,
-						common.FalconComponentKey:    common.FalconKernelSensor,
-						common.FalconManagedByKey:    common.FalconManagedByValue,
-						common.FalconProviderKey:     common.FalconProviderValue,
-						common.FalconPartOfKey:       common.FalconPartOfValue,
-						common.FalconCreatedKey:      common.FalconCreatedValue,
-					},
-					Annotations: map[string]string{"sensor.falcon-system.crowdstrike.com/injection": "disabled"},
+					Labels:      common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
+					Annotations: map[string]string{common.FalconContainerInjection: "disabled"},
 				},
 				Spec: corev1.PodSpec{
 					// NodeSelector is set to linux until windows containers are supported for the Falcon sensor
