@@ -22,15 +22,7 @@ func TestDaemonsetConfigMap(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cfgName,
 			Namespace: cfgName,
-			Labels: map[string]string{
-				common.FalconInstanceNameKey: "configmap",
-				common.FalconInstanceKey:     cfgName,
-				common.FalconComponentKey:    common.FalconKernelSensor,
-				common.FalconManagedByKey:    common.FalconManagedByValue,
-				common.FalconProviderKey:     common.FalconProviderValue,
-				common.FalconPartOfKey:       common.FalconPartOfValue,
-				common.FalconCreatedKey:      common.FalconCreatedValue,
-			},
+			Labels:    common.CRLabels("configmap", cfgName, common.FalconKernelSensor),
 		},
 		Data: map[string]string{
 			"FALCONCTL_OPT_CID": "1234567890ABCDEF1234567890ABCDEF-12",

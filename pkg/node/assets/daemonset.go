@@ -77,40 +77,16 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
 			Namespace: node.TargetNs(),
-			Labels: map[string]string{
-				common.FalconInstanceNameKey: "daemonset",
-				common.FalconInstanceKey:     dsName,
-				common.FalconComponentKey:    common.FalconKernelSensor,
-				common.FalconManagedByKey:    common.FalconManagedByValue,
-				common.FalconProviderKey:     common.FalconProviderValue,
-				common.FalconPartOfKey:       common.FalconPartOfValue,
-				common.FalconCreatedKey:      common.FalconCreatedValue,
-			},
+			Labels:    common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					common.FalconInstanceNameKey: "daemonset",
-					common.FalconInstanceKey:     dsName,
-					common.FalconComponentKey:    common.FalconKernelSensor,
-					common.FalconManagedByKey:    common.FalconManagedByValue,
-					common.FalconProviderKey:     common.FalconProviderValue,
-					common.FalconPartOfKey:       common.FalconPartOfValue,
-					common.FalconCreatedKey:      common.FalconCreatedValue,
-				},
+				MatchLabels: common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
 			},
 			UpdateStrategy: dsUpdateStrategy(node),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						common.FalconInstanceNameKey: "daemonset",
-						common.FalconInstanceKey:     dsName,
-						common.FalconComponentKey:    common.FalconKernelSensor,
-						common.FalconManagedByKey:    common.FalconManagedByValue,
-						common.FalconProviderKey:     common.FalconProviderValue,
-						common.FalconPartOfKey:       common.FalconPartOfValue,
-						common.FalconCreatedKey:      common.FalconCreatedValue,
-					},
+					Labels: common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
 					Annotations: map[string]string{
 						common.FalconContainerInjection: "disabled",
 					},
@@ -211,39 +187,15 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
 			Namespace: node.TargetNs(),
-			Labels: map[string]string{
-				common.FalconInstanceNameKey: "cleanup",
-				common.FalconInstanceKey:     dsName,
-				common.FalconComponentKey:    common.FalconKernelSensor,
-				common.FalconManagedByKey:    common.FalconManagedByValue,
-				common.FalconProviderKey:     common.FalconProviderValue,
-				common.FalconPartOfKey:       common.FalconPartOfValue,
-				common.FalconCreatedKey:      common.FalconCreatedValue,
-			},
+			Labels:    common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					common.FalconInstanceNameKey: "cleanup",
-					common.FalconInstanceKey:     dsName,
-					common.FalconComponentKey:    common.FalconKernelSensor,
-					common.FalconManagedByKey:    common.FalconManagedByValue,
-					common.FalconProviderKey:     common.FalconProviderValue,
-					common.FalconPartOfKey:       common.FalconPartOfValue,
-					common.FalconCreatedKey:      common.FalconCreatedValue,
-				},
+				MatchLabels: common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						common.FalconInstanceNameKey: "cleanup",
-						common.FalconInstanceKey:     dsName,
-						common.FalconComponentKey:    common.FalconKernelSensor,
-						common.FalconManagedByKey:    common.FalconManagedByValue,
-						common.FalconProviderKey:     common.FalconProviderValue,
-						common.FalconPartOfKey:       common.FalconPartOfValue,
-						common.FalconCreatedKey:      common.FalconCreatedValue,
-					},
+					Labels: common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
 					Annotations: map[string]string{
 						common.FalconContainerInjection: "disabled",
 					},
