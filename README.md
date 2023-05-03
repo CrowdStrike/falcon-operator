@@ -46,4 +46,5 @@ All bugs, tasks or enhancements are tracked as [GitHub issues](https://github.co
  - So You Think Your Containers Are Secure? Four Steps to Ensure a Secure Container Deployment: [Blog Post](https://www.crowdstrike.com/blog/four-steps-to-ensure-a-secure-containter-deployment/)
  - Container Security With CrowdStrike: [Blog Post](https://www.crowdstrike.com/blog/tech-center/container-security/)
  - To learn more about Falcon Container Sensor for Linux: [Deployment Guide](https://falcon.crowdstrike.com/support/documentation/146/falcon-container-sensor-for-linux), [Release Notes](https://falcon.crowdstrike.com/support/news/release-notes-falcon-container-sensor-for-linux)
+ - To learn more about Falcon Sensor for Linux: [Deployment Guide](https://falcon.crowdstrike.com/documentation/20/falcon-sensor-for-linux#kubernetes-support)
  - [Developer Documentation](docs/developer_guide.md)
