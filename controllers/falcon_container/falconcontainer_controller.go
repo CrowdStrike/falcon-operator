@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
 	arv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -87,6 +88,15 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			v1alpha1.ReasonReqNotMet,
 			"FalconContainer progressing")
 		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	if falconContainer.Status.Version == "" {
+		falconContainer.Status.Version = version.Get()
+		err := r.Status().Update(ctx, falconContainer)
+		if err != nil {
+			log.Error(err, "Failed to update FalconContainer status for falconcontainer.Status.Version")
 			return ctrl.Result{}, err
 		}
 	}

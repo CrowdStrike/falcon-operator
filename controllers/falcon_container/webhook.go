@@ -16,8 +16,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+const (
+	webhookName = "mutatingwebhook.sidecar.falcon.crowdstrike.com"
+)
+
 func (r *FalconContainerReconciler) reconcileWebhook(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer, caBundle []byte) (*arv1.MutatingWebhookConfiguration, error) {
-	webhookName := fmt.Sprintf("%s.%s.svc", injectorName, r.Namespace())
 	disableDefaultNSInjection := false
 
 	if falconContainer.Spec.Injector.DisableDefaultNSInjection {

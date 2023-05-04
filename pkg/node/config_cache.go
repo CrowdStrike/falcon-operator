@@ -26,7 +26,10 @@ func (cc *ConfigCache) CID() string {
 }
 
 func (cc *ConfigCache) UsingCrowdStrikeRegistry() bool {
-	return cc.nodesensor.Spec.Node.Image == "" && cc.nodesensor.Spec.FalconAPI == nil && os.Getenv("RELATED_IMAGE_NODE_SENSOR") == ""
+	if cc.nodesensor.Spec.Node.Image == "" && cc.nodesensor.Spec.FalconAPI == nil {
+		return os.Getenv("RELATED_IMAGE_NODE_SENSOR") == ""
+	}
+	return cc.nodesensor.Spec.Node.Image == ""
 }
 
 func (cc *ConfigCache) GetImageURI(ctx context.Context, logger logr.Logger) (string, error) {

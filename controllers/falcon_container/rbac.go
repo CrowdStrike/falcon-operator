@@ -18,7 +18,7 @@ import (
 
 const (
 	injectorClusterRoleName        = "falcon-operator-container-role"
-	injectorClusterRoleBindingName = "read-secrets-global"
+	injectorClusterRoleBindingName = "falcon-operator-container-rolebinding"
 )
 
 func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.ServiceAccount, error) {

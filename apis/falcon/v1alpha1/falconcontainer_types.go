@@ -112,7 +112,11 @@ type FalconContainerStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Version *string `json:"version,omitempty"`
+	// Version of the CrowdStrike Falcon Sensor
+	Sensor *string `json:"sensor,omitempty"`
+
+	// Version of the CrowdStrike Falcon Operator
+	Version string `json:"version,omitempty"`
 
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -121,7 +125,8 @@ type FalconContainerStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster
-//+kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="Version of Falcon Container"
+//+kubebuilder:printcolumn:name="Operator Version",type="string",JSONPath=".status.version",description="Version of the Operator"
+//+kubebuilder:printcolumn:name="Falcon Sensor",type="string",JSONPath=".status.sensor",description="Version of the Falcon Container"
 
 // FalconContainer is the Schema for the falconcontainers API
 type FalconContainer struct {

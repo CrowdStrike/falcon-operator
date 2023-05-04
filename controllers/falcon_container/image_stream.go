@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	imageStreamName = "falcon-container"
+	imageStreamName = "falcon-sidecar-container"
 )
 
 func (r *FalconContainerReconciler) reconcileImageStream(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*imagev1.ImageStream, error) {

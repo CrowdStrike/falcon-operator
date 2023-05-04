@@ -15,9 +15,13 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - description: Version of Falcon Container
+    - description: Version of the Operator
       jsonPath: .status.version
-      name: Version
+      name: Operator Version
+      type: string
+    - description: Version of the Falcon Container
+      jsonPath: .status.sensor
+      name: Falcon Sensor
       type: string
     name: v1alpha1
     schema:
@@ -1879,7 +1883,11 @@ spec:
                   - type
                   type: object
                 type: array
+              sensor:
+                description: Version of the CrowdStrike Falcon Sensor
+                type: string
               version:
+                description: Version of the CrowdStrike Falcon Operator
                 type: string
             type: object
         type: object
