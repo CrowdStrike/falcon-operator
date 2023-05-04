@@ -62,7 +62,6 @@ spec:
 | node.imagePullSecrets               | (optional) list of references to secrets to use for pulling image from image_override location.                                           |
 | node.terminationGracePeriod         | (optional) Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.                                               |
 | node.serviceAccount.annotations     | (optional) Annotations that should be added to the Service Account (e.g. for IAM role association)                                        |
-| node.backend                        | (optional) Configure the backend mode for Falcon Sensor (allowed values: kernel, bpf)                                                     |
 | node.disableCleanup                 | (optional) Cleans up `/opt/CrowdStrike` on the nodes by deleting the files and directory.                                                 |
 | node.version                        | (optional) Enforce particular Falcon Sensor version to be installed (example: "6.35", "6.35.0-13207")                                     |
 
@@ -83,7 +82,7 @@ All arguments are optional, but successful deployment requires either falcon_id 
 ### Install Steps
 With Falcon Operator installed, run the following command to install the FalconNodeSensor CR:
 ```sh
-kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
+oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
 ```
 The above command uses an example `yaml` file from the Falcon Operator GitHub repository that allows you to easily configure the FalconNodeSensor CR using the Falcon API method.
 
@@ -91,34 +90,34 @@ The above command uses an example `yaml` file from the Falcon Operator GitHub re
 To uninstall the FalconNodeSensor CR, simply remove the FalconNodeSensor resource. The operator will uninstall the Falcon Sensor from the cluster.
 
 ```sh
-kubectl delete falconnodesensors --all
+oc delete falconnodesensors --all
 ```
 
 ### Troubleshooting
 
 - To see the FalconNodeSensor resource on the cluster which includes the operator and sensor versions:
   ```sh
-  kubectl get falconnodesensors -A
+  oc get falconnodesensors -A
   ```
 
 - To verify the existence of the daemonset object:
   ```sh
-  kubectl get daemonsets.apps -n mynamespace
+  oc get daemonsets.apps -n mynamespace
   ```
   where `mynamespace` is the installed namespace of FalconNodeSensor.
 
 - To verify the existence of the sensor objects:
   ```sh
-  kubectl get pods -n mynamespace
+  oc get pods -n mynamespace
   ```
   where `mynamespace` is the installed namespace of FalconNodeSensor.
 
 - To review the logs of Falcon Operator:
   ```sh
-  kubectl -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
+  oc -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
   ```
 
 - To review the currently deployed version of the operator:
   ```sh
-  kubectl get falconnodesensors -A -o=jsonpath='{.items[].status.version}'
+  oc get falconnodesensors -A -o=jsonpath='{.items[].status.version}'
   ```

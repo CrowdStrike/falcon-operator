@@ -14,7 +14,7 @@ This document will guide you through the installation of falcon-operator and dep
 
 - Either spin up an AKS Kubernetes cluster or use one that already exists.
 - Install the operator
-  ```
+  ```sh
   kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
 
@@ -23,35 +23,15 @@ This document will guide you through the installation of falcon-operator and dep
 Once the operator has deployed, you can now deploy the FalconNodeSensor.
 
 - Deploy FalconNodeSensor through the cli using the `kubectl` command:
-  ```
+  ```sh
   kubectl create -n falcon-operator -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
-  ```
-
-### Deploying the Node Sensor to a custom Namespace
-
-If desired, the FalconNodeSensor can be deployed to a namespace of your choosing instead of deploying to the operator namespace.
-To deploy to a custom namespace (replacing `falcon-system` as desired):
-
-- Create a new project
-  ```
-  kubectl create namespace falcon-system
-  ```
-
-- Create the service account in the new namespace
-  ```
-  kubectl create sa falcon-operator-node-sensor -n falcon-system
-  ```
-
-- Deploy FalconNodeSensor to the custom namespace:
-  ```
-  kubectl create -n falcon-system -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
 
 ### Deploy the sidecar sensor
 #### Configure ACR Registry
 
 - Either create or use an existing ACR registry. Make sure to store the ACR registry name in an environment variable.
-  ```
+  ```sh
   ACR_NAME=my-acr-registy-name
   ```
 
@@ -61,13 +41,13 @@ The Image push secret is used by the operator to mirror the Falcon Container sen
 
 - Create kubernetes namespace for falcon-operator
 
-  ```
+  ```sh
   export FALCON_SYSTEM=falcon-system
   kubectl create ns $FALCON_SYSTEM --dry-run=client -o yaml | kubectl apply -f -
   ```
 
 - Create the service principal in Azure for the CrowdStrike Falcon operator
-  ```
+  ```sh
   # https://docs.microsoft.com/en-us/azure/container-registry/container-registry-auth-service-principal
   SERVICE_PRINCIPAL_NAME=falcon-operator
 
@@ -91,7 +71,7 @@ The Image push secret is used by the operator to mirror the Falcon Container sen
 #### Create the FalconContainer resource
 
 - Create new FalconContainer resource
-  ```
+  ```sh
   kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/azure/falconcontainer.yaml --edit=true
   ```
 
@@ -103,20 +83,20 @@ This will insure proper cleanup of the resources.
 ### Uninstall the Node Sensor
 
 - To uninstall the node sensor, simply remove the FalconNodeSensor resource.
-  ```
+  ```sh
   kubectl delete falconnodesensor -A --all
   ```
 
 ### Uninstall the Sidecar Sensor
 
 - To uninstall Falcon Container, simply remove the FalconContainer resource. The operator will then uninstall the Falcon Container product from the cluster.
-  ```
+  ```sh
   kubectl delete falconcontainers --all
   ```
 
 ### Uninstall the Operator
 
 - To uninstall Falcon Operator, delete the deployment:
-  ```
+  ```sh
   kubectl delete -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```

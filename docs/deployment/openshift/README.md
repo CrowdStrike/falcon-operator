@@ -1,7 +1,7 @@
 # Deployment Guide for OpenShift
 This document will guide you through the installation of falcon-operator and deployment of either the:
-- [FalconContainer](../../resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
-- [FalconNodeSensor](../../resources/node/README.md) custom resource to the cluster.
+- [FalconContainer](resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
+- [FalconNodeSensor](resources/node/README.md) custom resource to the cluster.
 
 You can choose to install the operator and custom resources through the [web console (GUI)](#installing-the-operator-through-the-web-console-gui) or through the [CLI](#installing-the-operator-through-the-cli).
 If you want to automate the deployment of the operator, the CLI method is recommended.
