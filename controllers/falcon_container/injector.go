@@ -21,11 +21,11 @@ import (
 )
 
 const (
-	injectorName                  = "injector"
+	injectorName                  = "falcon-sidecar-injector"
 	initContainerName             = "crowdstrike-falcon-init-container"
-	injectorConfigMapName         = "injector-config"
-	registryCABundleConfigMapName = "falcon-registry-certs"
-	injectorTLSSecretName         = "injector-tls"
+	injectorConfigMapName         = "falcon-sidecar-injector-config"
+	registryCABundleConfigMapName = "falcon-sidecar-registry-certs"
+	injectorTLSSecretName         = "falcon-sidecar-injector-tls"
 	falconVolumeName              = "crowdstrike-falcon-volume"
 	falconVolumePath              = "/tmp/CrowdStrike"
 )

@@ -60,14 +60,14 @@ func CertSetup(days int) ([]byte, []byte, []byte, error) {
 	cert := &x509.Certificate{
 		SerialNumber: new(big.Int).Lsh(big.NewInt(1), 128),
 		Subject: pkix.Name{
-			CommonName: "injector.falcon-system.svc",
+			CommonName: "falcon-sidecar-injector.falcon-system.svc",
 		},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(0, 0, days),
 		SubjectKeyId: []byte("234567"),
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:     x509.KeyUsageDigitalSignature,
-		DNSNames:     []string{"injector.falcon-system.svc"},
+		DNSNames:     []string{"falcon-sidecar-injector.falcon-system.svc", "falcon-sidecar-injector.falcon-system.svc.cluster.local"},
 	}
 
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, 2048)

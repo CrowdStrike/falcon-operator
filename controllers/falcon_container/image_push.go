@@ -47,7 +47,7 @@ func (r *FalconContainerReconciler) PushImage(ctx context.Context, log logr.Logg
 	}
 
 	log.Info("Falcon Container Image pushed successfully", "Image.Tag", tag)
-	falconContainer.Status.Version = &tag
+	falconContainer.Status.Sensor = &tag
 
 	imageUri, err := r.imageUri(ctx, falconContainer)
 	if err != nil {
@@ -161,8 +161,8 @@ func (r *FalconContainerReconciler) imageUri(ctx context.Context, falconContaine
 }
 
 func (r *FalconContainerReconciler) getImageTag(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (string, error) {
-	if falconContainer.Status.Version != nil && *falconContainer.Status.Version != "" {
-		return *falconContainer.Status.Version, nil
+	if falconContainer.Status.Sensor != nil && *falconContainer.Status.Sensor != "" {
+		return *falconContainer.Status.Sensor, nil
 	}
 
 	return "", fmt.Errorf("Unable to get falcon container version")
@@ -178,16 +178,16 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 
 	// If an Image URI is set, use it for our version
 	if falconContainer.Spec.Image != nil && *falconContainer.Spec.Image != "" {
-		falconContainer.Status.Version = &strings.Split(*falconContainer.Spec.Image, ":")[1]
+		falconContainer.Status.Sensor = &strings.Split(*falconContainer.Spec.Image, ":")[1]
 
-		return *falconContainer.Status.Version, r.Client.Status().Update(ctx, falconContainer)
+		return *falconContainer.Status.Sensor, r.Client.Status().Update(ctx, falconContainer)
 	}
 
 	if os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR") != "" && falconContainer.Spec.FalconAPI == nil {
 		image := os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR")
-		falconContainer.Status.Version = &strings.Split(image, ":")[1]
+		falconContainer.Status.Sensor = &strings.Split(image, ":")[1]
 
-		return *falconContainer.Status.Version, r.Client.Status().Update(ctx, falconContainer)
+		return *falconContainer.Status.Sensor, r.Client.Status().Update(ctx, falconContainer)
 	}
 
 	// Otherwise, get the newest version matching the requested version string
@@ -198,7 +198,7 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 
 	tag, err := registry.LastContainerTag(ctx, falconContainer.Spec.Version)
 	if err == nil {
-		falconContainer.Status.Version = &tag
+		falconContainer.Status.Sensor = &tag
 	}
 
 	return tag, err
@@ -231,5 +231,5 @@ func (r *FalconContainerReconciler) imageMirroringEnabled(falconContainer *v1alp
 }
 
 func (r *FalconContainerReconciler) versionLock(falconContainer *v1alpha1.FalconContainer) bool {
-	return falconContainer.Spec.Version != nil && falconContainer.Status.Version != nil && *falconContainer.Spec.Version == *falconContainer.Status.Version
+	return falconContainer.Spec.Version != nil && falconContainer.Status.Sensor != nil && *falconContainer.Spec.Version == *falconContainer.Status.Sensor
 }

@@ -98,6 +98,15 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	}
 
+	if nodesensor.Status.Version == "" {
+		nodesensor.Status.Version = version.Get()
+		err = r.Status().Update(ctx, nodesensor)
+		if err != nil {
+			log.Error(err, "Failed to update FalconNodeSensor status for nodesensor.Status.Version")
+			return ctrl.Result{}, err
+		}
+	}
+
 	created, err := r.handleNamespace(ctx, nodesensor, logger)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -263,15 +272,6 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		err = r.Status().Update(ctx, nodesensor)
 		if err != nil {
 			log.Error(err, "Failed to update FalconNodeSensor status for nodesensor.Status.Sensor")
-			return ctrl.Result{}, err
-		}
-	}
-
-	if nodesensor.Status.Version == "" {
-		nodesensor.Status.Version = version.Get()
-		err = r.Status().Update(ctx, nodesensor)
-		if err != nil {
-			log.Error(err, "Failed to update FalconNodeSensor status for nodesensor.Status.Version")
 			return ctrl.Result{}, err
 		}
 	}
@@ -739,9 +739,10 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 			if completedCount == nodeCount {
 				logger.Info("Clean up pods should be done. Continuing deleting.")
 				break
-			} else {
-				logger.Info("Waiting for cleanup pods to complete. Retrying....", "Number of nodes still processing task", nodeCount-completedCount)
+			} else if completedCount < nodeCount && completedCount > 0 {
+				logger.Info("Waiting for cleanup pods to complete. Retrying....", "Number of pods still processing task", completedCount)
 			}
+
 			err = r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.TargetNs()}, daemonset)
 			if err != nil && errors.IsNotFound(err) {
 				logger.Info("Clean-up daemonset has been removed")

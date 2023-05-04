@@ -31,10 +31,14 @@ spec:
   versions:
   - name: v1alpha1
     additionalPrinterColumns:
-    - name: Version
+    - name: Operator Version
       type: string
-      description: Version of Falcon Container
+      description: Version of the Operator
       jsonPath: .status.version
+    - name: Falcon Sensor
+      type: string
+      description: Version of the Falcon Container
+      jsonPath: .status.sensor
     schema:
       openAPIV3Schema:
         type: object
@@ -1896,8 +1900,12 @@ spec:
                   - reason
                   - status
                   - type
+              sensor:
+                type: string
+                description: Version of the CrowdStrike Falcon Sensor
               version:
                 type: string
+                description: Version of the CrowdStrike Falcon Operator
     served: true
     storage: true
     subresources:
@@ -1921,12 +1929,14 @@ spec:
   versions:
   - name: v1alpha1
     additionalPrinterColumns:
-    - name: Falcon Sensor
-      type: string
-      jsonPath: .status.sensor
     - name: Operator Version
       type: string
+      description: Version of the Operator
       jsonPath: .status.version
+    - name: Falcon Sensor
+      type: string
+      description: Version of the Falcon Sensor
+      jsonPath: .status.sensor
     schema:
       openAPIV3Schema:
         type: object

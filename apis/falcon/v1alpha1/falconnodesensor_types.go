@@ -109,8 +109,8 @@ type FalconNodeSensorStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster
-//+kubebuilder:printcolumn:name="Falcon Sensor",type="string",JSONPath=".status.sensor"
-//+kubebuilder:printcolumn:name="Operator Version",type="string",JSONPath=".status.version"
+//+kubebuilder:printcolumn:name="Operator Version",type="string",JSONPath=".status.version",description="Version of the Operator"
+//+kubebuilder:printcolumn:name="Falcon Sensor",type="string",JSONPath=".status.sensor",description="Version of the Falcon Sensor"
 
 // FalconNodeSensor is the Schema for the falconnodesensors API
 // +k8s:openapi-gen=true

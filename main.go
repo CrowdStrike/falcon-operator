@@ -122,8 +122,10 @@ func main() {
 				&appsv1.Deployment{}: {
 					Label: labels.SelectorFromSet(containercontroller.FcLabels),
 				},
-				&corev1.Secret{}:    {},
-				&corev1.ConfigMap{}: {},
+				&corev1.Secret{}: {},
+				&corev1.ConfigMap{}: {
+					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
+				},
 				&appsv1.DaemonSet{}: {
 					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
 				},
