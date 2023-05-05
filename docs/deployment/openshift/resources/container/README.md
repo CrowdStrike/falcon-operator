@@ -1,6 +1,5 @@
 # Falcon Container Sensor
 
-
 ## About Falcon Container Sensor
 The Falcon Container sensor for Linux extends runtime security to container workloads in Kubernetes clusters that don’t allow you to deploy the kernel-based Falcon sensor for Linux. The Falcon Container sensor runs as an unprivileged container in user space with no code running in the kernel of the worker node OS. This allows it to secure Kubernetes pods in clusters where it isn’t possible to deploy the kernel-based Falcon sensor for Linux on the worker node, as with AWS Fargate where organizations don’t have access to the kernel and where privileged containers are disallowed. The Falcon Container sensor can also secure container workloads on clusters where worker node security is managed separately.
 
@@ -140,17 +139,9 @@ Falcon Container product will then be installed directly from CrowdStrike regist
 
 #### (Option 2) Let operator mirror Falcon Container image to your local registry
 
-Requires advanced set-up to grant the operator push access to your local registry. The operator will then mirror Falcon Container image from CrowdStrike registry to your local registry of choice.
+Requires advanced set-up to grant the operator push access to your local registry. The operator will then mirror Falcon Container image from CrowdStrike registry to your local registry OpenShift.
 
-Supported registries are: acr, ecr, gcr, and openshift. Each registry type requires advanced set-up enable image push.
-
-Consult specific deployment guides to learn about the steps needed for image mirroring.
-
- - [Deployment Guide for AKS/ACR](../../deployment/azure/README.md)
- - [Deployment Guide for EKS/ECR](../../deployment/eks/README.md)
- - [Deployment Guide for EKS Fargate](../../deployment/eks-fargate/README.md)
- - [Deployment Guide for GKE/GCR](../../deployment/gke/README.md)
- - [Deployment Guide for OpenShift](../../deployment/openshift/README.md)
+ - [Deployment Guide for OpenShift](../../README.md)
 
 #### (Option 3) Use a custom Image URI
 
@@ -164,14 +155,14 @@ image: myprivateregistry.internal.lan/falcon-container/falcon-sensor:6.47.0-3003
 ### Install Steps
 To install Falcon Container (assuming Falcon Operator is installed):
 ```sh
-kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconcontainer.yaml --edit=true
+oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconcontainer.yaml --edit=true
 ```
 
 ### Uninstall Steps
 To uninstall Falcon Container simply remove the FalconContainer resource. The operator will uninstall the Falcon Container product from the cluster.
 
 ```sh
-kubectl delete falconcontainers.falcon.crowdstrike.com --all
+oc delete falconcontainers.falcon.crowdstrike.com --all
 ```
 
 ### Sensor Upgrades
@@ -187,23 +178,12 @@ The following namespaces will be used by Falcon Operator.
 | falcon-system           | Used by Falcon Container product, runs the injector and webhoook |
 | falcon-operator         | Runs falcon-operator manager                                     |
 
-### Compatibility Guide
-
-Falcon Operator has been explicitly tested on AKS (with ECR), EKS (with ECR), GKE (with GCR), and OpenShift (with ImageStreams).
-
-| Platform                      | Supported versions                                     |
-|:------------------------------|:-------------------------------------------------------|
-| AKS (with ACR)                | 1.18 or greater                                        |
-| EKS (with ECR)                | 1.17 or greater                                        |
-| GKE (with GCR)                | 1.18 or greater                                        |
-| OpenShift (with ImageStreams) | 4.7 or greater                                         |
-
 ### Troubleshooting
 
 - Falcon Operator modifies the FalconContainer CR based on what is happening in the cluster. You can get list the CR, Operator Version, and Sensor version by running the following:
 
   ```sh
-  $ kubectl get falconcontainers.falcon.crowdstrike.com
+  $ oc get falconcontainers.falcon.crowdstrike.com
   NAME                    OPERATOR VERSION   FALCON SENSOR
   falcon-sidecar-sensor   0.8.0              6.51.0-3401.container.x86_64.Release.US-1
   ```
@@ -212,29 +192,20 @@ Falcon Operator has been explicitly tested on AKS (with ECR), EKS (with ECR), GK
   You can get more insight by viewing the FalconContainer CRD in full detail by running the following command:
 
   ```sh
-  kubectl get falconcontainers.falcon.crowdstrike.com -o yaml
+  oc get falconcontainers.falcon.crowdstrike.com -o yaml
   ```
 
 - To review the logs of Falcon Operator:
   ```sh
-  kubectl -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
+  oc -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
   ```
 
 - To review the logs of Falcon Container Sidecar Injector service:
   ```sh
-  kubectl logs -n falcon-system -l "crowdstrike.com/provider=crowdstrike"
+  oc logs -n falcon-system -l "crowdstrike.com/provider=crowdstrike"
   ```
 
 - To review the currently deployed version of the operator:
   ```sh
-  kubectl get falconnodesensors -A -o=jsonpath='{.items[].status.version}'
+  oc get falconnodesensors -A -o=jsonpath='{.items[].status.version}'
   ```
-
-### Additional Documentation
-End-to-end guides to install Falcon-operator together with FalconContainer resource.
-
- - [Deployment Guide for AKS/ACR](../../deployment/azure/README.md)
- - [Deployment Guide for EKS/ECR](../../deployment/eks/README.md)
- - [Deployment Guide for EKS Fargate](../../deployment/eks-fargate/README.md)
- - [Deployment Guide for GKE/GCR](../../deployment/gke/README.md)
- - [Deployment Guide for OpenShift](../../deployment/openshift/README.md)

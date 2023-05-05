@@ -14,7 +14,7 @@ This document will guide you through the installation of falcon-operator and dep
 
 - Either spin up an GKE Kubernetes cluster or use one that already exists.
 - Install the operator
-  ```
+  ```sh
   kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
 
@@ -23,28 +23,8 @@ This document will guide you through the installation of falcon-operator and dep
 Once the operator has deployed, you can now deploy the FalconNodeSensor.
 
 - Deploy FalconNodeSensor through the cli using the `kubectl` command:
-  ```
+  ```sh
   kubectl create -n falcon-operator -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
-  ```
-
-### Deploying the Node Sensor to a custom Namespace
-
-If desired, the FalconNodeSensor can be deployed to a namespace of your choosing instead of deploying to the operator namespace.
-To deploy to a custom namespace (replacing `falcon-system` as desired):
-
-- Create a new project
-  ```
-  kubectl create namespace falcon-system
-  ```
-
-- Create the service account in the new namespace
-  ```
-  kubectl create sa falcon-operator-node-sensor -n falcon-system
-  ```
-
-- Deploy FalconNodeSensor to the custom namespace:
-  ```
-  kubectl create -n falcon-system -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
 
 ### Deploy the sidecar sensor
@@ -54,24 +34,24 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
 An image push secret is used by the operator to mirror Falcon Container image from CrowdStrike registry to your GCR.
 
 - Set environment variable to refer to your GCP project
-  ```
+  ```sh
   GCP_PROJECT_ID=$(gcloud config get-value core/project)
   ```
 
 - Create new GCP service account
-  ```
+  ```sh
   gcloud iam service-accounts create falcon-operator
   ```
 
 - Grant image push access to the newly created service account
-  ```
+  ```sh
   gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
       --member serviceAccount:falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com \
       --role roles/storage.admin
   ```
 
 - Create new private key for the newly create service account
-  ```
+  ```sh
   gcloud iam service-accounts keys create \
       --iam-account "falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
       .dockerconfigjson
@@ -85,7 +65,7 @@ An image push secret is used by the operator to mirror Falcon Container image fr
 #### Create the FalconContainer resource
 
 - Create new FalconContainer resource
-  ```
+  ```sh
   kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/gke/falconcontainer.yaml --edit=true
   ```
 
@@ -93,15 +73,15 @@ An image push secret is used by the operator to mirror Falcon Container image fr
 
 - Open GCP Cloud Shell: https://shell.cloud.google.com/?hl=en_US&fromcloudshell=true&show=terminal
 - Ensure the Cloud Shell is running in context of GCP project you want to use
-  ```
+  ```sh
   gcloud config get-value core/project
   ```
 - In case you have multiple GKE clusters in the project, You need to select the desired one to install the operator in
-  ```
+  ```sh
   gcloud container clusters get-credentials DESIRED_CLUSTER --zone DESIRED_LOCATION
   ```
 - Install the operator & operator-sdk & deploy Falcon Container Sensor
-  ```
+  ```sh
   bash -c 'source <(curl -s https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/gke/run)'
   ```
 
@@ -113,21 +93,21 @@ This will insure proper cleanup of the resources.
 ### Uninstall the Node Sensor
 
 - To uninstall the node sensor, simply remove the FalconNodeSensor resource.
-  ```
+  ```sh
   kubectl delete falconnodesensor -A --all
   ```
 
 ### Uninstall the Sidecar Sensor
 
 - To uninstall Falcon Container, simply remove the FalconContainer resource. The operator will then uninstall the Falcon Container product from the cluster.
-  ```
+  ```sh
   kubectl delete falconcontainers --all
   ```
 
 ### Uninstall the Operator
 
 - To uninstall Falcon Operator, delete the deployment:
-  ```
+  ```sh
   kubectl delete -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
 
@@ -135,7 +115,7 @@ This will insure proper cleanup of the resources.
 
 If the sidecar sensor has been deployed to your GKE cluster, you will want to explicitly disable CrowdStrike Falcon from monitoring using labels for the kube-public, kube-system, falcon-operator, and falcon-system namespaces.
 For example:
-```
+```sh
 kubectl label namespace falcon-operator sensor.falcon-system.crowdstrike.com/injection=disabled
 kubectl label namespace falcon-system sensor.falcon-system.crowdstrike.com/injection=disabled
 kubectl label namespace kube-system sensor.falcon-system.crowdstrike.com/injection=disabled
@@ -150,7 +130,7 @@ The Falcon Container Injector may need [GCP Workload Identity](https://cloud.goo
 to read GCR or Artifact Registry. In many cases, the GCP Workload Identity is assigned or inherited automatically. However if you
 are seeing errors similar to the following, you may need to follow this guide to assign the identity manually.
 
-```
+```log
 time="2022-01-14T13:05:11Z" level=error msg="Failed to handle webhook request" error="Failed to retrieve image details for \"gcr.io/\" in container in pod: Failed to get the image config/digest for \"gcr.io/" on \"eu.gcr.io\": Error reading manifest latest in gcr.io/: unauthorized: You don't have the needed permissions to perform this operation, and you may have invalid credentials. To authenticate your request, follow the steps in: https://cloud.google.com/container-registry/docs/advanced-authentication"
 ```
 
@@ -166,26 +146,26 @@ Conceptually, the following tasks need to be done in order to enable GCR to pull
 Using both `gcloud` and `kubectl` command-line tools, perform the following steps:
 
 - Set up your shell environment variables
-  ```
+  ```sh
   GCP_SERVICE_ACCOUNT=falcon-container-injector
 
   GCP_PROJECT_ID=$(gcloud config get-value core/project)
   ```
 
 - Create new GCP Service Account
-  ```
+  ```sh
   gcloud iam service-accounts create $GCP_SERVICE_ACCOUNT
   ```
 
 - Grant GCR permissions to the newly created Service Account
-  ```
+  ```sh
   gcloud projects add-iam-policy-binding $PROJECT_ID \
       --member "serviceAccount:$GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
       --role roles/containerregistry.ServiceAgent
   ```
 
 - Allow Falcon Injector to use the newly created GCP Service Account
-  ```
+  ```sh
   gcloud iam service-accounts add-iam-policy-binding \
       $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com \
       --role roles/iam.workloadIdentityUser \
@@ -193,12 +173,12 @@ Using both `gcloud` and `kubectl` command-line tools, perform the following step
   ```
 
 - Delete the previously deployed FalconContainer resource:
-  ```
+  ```sh
   kubectl delete falconcontainers --all
   ```
 
 - Add the newly created Service Account to your FalconContainer yaml file:
-  ```
+  ```yaml
   spec:
     injector:
       sa_annotations:
@@ -206,11 +186,11 @@ Using both `gcloud` and `kubectl` command-line tools, perform the following step
   ```
 
   Do not forget to replace the service account name template with actual name
-  ```
+  ```sh
   echo "$GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com"
   ```
 
 - Deploy the FalconContainer resource with the IAM role changes:
-  ```
+  ```sh
   kubectl create -f ./my-falcon-container.yaml
   ```

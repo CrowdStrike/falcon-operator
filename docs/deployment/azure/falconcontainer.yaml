@@ -10,6 +10,5 @@ spec:
   registry:
     type: acr
     acr_name: PLEASE_FILL_IN
-  installer_args:
-    - '-azure-config'
-    - '/etc/kubernetes/azure.json'
+  injector:
+    azureConfigPath: "/etc/kubernetes/azure.json"

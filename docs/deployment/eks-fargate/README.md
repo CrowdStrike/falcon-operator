@@ -12,7 +12,7 @@ This document will guide you through the installation of falcon-operator and dep
 ## Installing the operator
 
 - Create an EKS Fargate profile for the operator:
-  ```
+  ```sh
   eksctl create fargateprofile \
     --region "$AWS_REGION" \
     --cluster eks-fargate-cluster \
@@ -21,7 +21,7 @@ This document will guide you through the installation of falcon-operator and dep
   ```
   
 - Install the operator
-  ```
+  ```sh
   kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
 
@@ -29,7 +29,7 @@ This document will guide you through the installation of falcon-operator and dep
 #### Create the FalconContainer resource
 
 - Create an EKS Fargate profile for the FalconContainer resource deployment:
-  ```
+  ```sh
   eksctl create fargateprofile \
     --region "$AWS_REGION" \
     --cluster eks-fargate-cluster \
@@ -37,17 +37,8 @@ This document will guide you through the installation of falcon-operator and dep
     --namespace falcon-system
   ```
 
-- Create an EKS Fargate profile for the FalconContainer resource deployment Kubernetes Job:
-  ```
-  eksctl create fargateprofile \
-    --region "$AWS_REGION" \
-    --cluster eks-fargate-cluster \
-    --name fp-falcon-system-configure \
-    --namespace falcon-system-configure
-  ```
-
 - Create a new FalconContainer resource
-  ```
+  ```sh
   kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/eks/falconcontainer.yaml --edit=true
   ```
   
@@ -59,14 +50,14 @@ This will insure proper cleanup of the resources.
 ### Uninstall the Sidecar Sensor
 
 - To uninstall Falcon Container, simply remove the FalconContainer resource. The operator will then uninstall the Falcon Container product from the cluster.
-  ```
+  ```sh
   kubectl delete falconcontainers --all
   ```
 
 ### Uninstall the Operator
 
 - To uninstall Falcon Operator, delete the deployment:
-  ```
+  ```sh
   kubectl delete -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
   
@@ -93,7 +84,7 @@ Conceptually, the following tasks need to be done in order to enable ECR pull fr
 Using `aws`, `eksctl`, and `kubectl` command-line tools, perform the following steps:
 
 - Set up your shell environment variables
-  ```
+  ```sh
   export AWS_REGION="insert your region"
   export EKS_CLUSTER_NAME="insert your cluster name"
 
@@ -103,7 +94,7 @@ Using `aws`, `eksctl`, and `kubectl` command-line tools, perform the following s
   ```
 
 - Create AWS IAM Policy for ECR image pulling
-  ```
+  ```sh
   cat <<__END__ > policy.json
   {
       "Version": "2012-10-17",
@@ -139,7 +130,7 @@ Using `aws`, `eksctl`, and `kubectl` command-line tools, perform the following s
   ```
 
 - Assign the newly created policy to the kubernetes ServiceAccount of Falcon Container Injector
-  ```
+  ```sh
   eksctl create iamserviceaccount \
          --name default \
          --namespace falcon-system \
@@ -151,17 +142,17 @@ Using `aws`, `eksctl`, and `kubectl` command-line tools, perform the following s
   ```
 
 - Verify that the IAM Role (not to be confused with IAM Policy) has been assigned to the ServiceAccount by the previous command:
-  ```
+  ```sh
   kubectl get sa -n falcon-system default -o=jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}'
   ```
 
 - Delete the previously deployed FalconContainer resource:
-  ```
+  ```sh
   kubectl delete falconcontainers --all
   ```
 
 - Add Role ARN to your FalconContainer yaml file:
-  ```
+  ```yaml
     injector:
       serviceAccount:
         annotations:
@@ -169,6 +160,6 @@ Using `aws`, `eksctl`, and `kubectl` command-line tools, perform the following s
   ```
 
 - Deploy the FalconContainer resource with the IAM role changes:
-  ```
+  ```sh
   kubectl create -f ./my-falcon-container.yaml
   ```
