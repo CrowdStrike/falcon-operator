@@ -20,7 +20,7 @@ var _ = Describe("FalconNodeSensor controller", func() {
 	Context("FalconNodeSensor controller test", func() {
 
 		const NodeSensorName = "test-falconnodesensor"
-		const NodeSensorNamespace = "falcon-system"
+		const NodeSensorNamespace = "test-falconnodesensor"
 		falconCID := "1234567890ABCDEF1234567890ABCDEF-12"
 
 		ctx := context.Background()
@@ -90,18 +90,6 @@ var _ = Describe("FalconNodeSensor controller", func() {
 			})
 			Expect(err).To(Not(HaveOccurred()))
 
-			_, err = falconNodeReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
-
-			// TODO: serviceAccount reconciliation might be removed in the future
-			_, err = falconNodeReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
-
-			// TODO: clusterRoleBinding reconciliation might be removed in the future
 			_, err = falconNodeReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespaceName,
 			})

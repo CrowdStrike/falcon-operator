@@ -19,6 +19,8 @@ resources:
 
 # NodeSensor RBAC
 - falconnodesensor_role.yaml
+- falconnodesenensor_service_account.yaml
+- falconnodesensor_role_binding.yaml
 
 # ContainerSensor RBAC
 - falconcontainer_role.yaml

@@ -102,6 +102,7 @@ func TestGetPullToken(t *testing.T) {
 func TestSensorEnvVars(t *testing.T) {
 	want := make(map[string]string)
 	want["FALCONCTL_OPT_CID"] = falconCID
+	want["FALCONCTL_OPT_BACKEND"] = "kernel"
 
 	got := config.SensorEnvVars()
 	if diff := cmp.Diff(want, got); diff != "" {

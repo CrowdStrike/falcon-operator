@@ -34,9 +34,18 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -tags
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM registry.access.redhat.com/ubi8/ubi-micro
 WORKDIR /
+LABEL name="CrowdStrike Falcon Operator" \
+    description="The CrowdStrike Falcon Operator deploys the CrowdStrike Falcon Sensor to protect Kubernetes clusters." \
+    maintainer="integrations@crowdstrike.com" \
+    summary="The CrowdStrike Falcon Operator" \
+    release="0" \
+    vendor="CrowdStrike, Inc" \
+    version="${VERSION}"
 COPY LICENSE licenses/
 COPY --from=builder /etc/pki /etc/pki
 COPY --from=builder /workspace/manager .
+
+RUN microdnf update -y && microdnf clean all && rm -rf /var/cache/yum/*
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]

@@ -965,6 +965,16 @@ spec:
           verbs:
           - create
         serviceAccountName: falcon-operator-controller-manager
+      - rules:
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - privileged
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        serviceAccountName: falcon-operator-node-sensor
       deployments:
       - label:
           control-plane: controller-manager

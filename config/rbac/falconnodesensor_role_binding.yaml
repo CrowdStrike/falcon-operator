@@ -1,0 +1,20 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    crowdstrike.com/component: rbac
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: node-sensor-rolebinding
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: clusterrolebinding
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
+  name: node-sensor-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: node-sensor-role
+subjects:
+- kind: ServiceAccount
+  name: node-sensor
+  namespace: system
