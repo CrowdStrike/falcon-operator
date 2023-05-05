@@ -301,7 +301,7 @@ func TestDaemonset(t *testing.T) {
 		},
 	}
 
-	got := Daemonset(dsName, image, common.NodeServiceAccountName, &falconNode)
+	got := Daemonset(dsName, image, &falconNode)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("Daemonset() mismatch (-want +got): %s", diff)
 	}
@@ -396,7 +396,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 		},
 	}
 
-	got := RemoveNodeDirDaemonset(dsName, image, common.NodeServiceAccountName, &falconNode)
+	got := RemoveNodeDirDaemonset(dsName, image, &falconNode)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("Daemonset() mismatch (-want +got): %s", diff)
 	}
