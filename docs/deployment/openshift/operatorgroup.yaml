@@ -2,6 +2,7 @@ apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
   name: falcon-operator
+  namespace: falcon-operator
 spec:
   targetNamespaces:
   - MYNAMESPACE
