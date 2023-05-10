@@ -9,6 +9,7 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 ## Prerequisites
 
 - A CrowdStrike Cloud Workload Protection (CWP) subscription
+- Red Hat Openshift 4.10+
 - If your are installing the CrowdStrike Sensor via the Crowdstrike API, you need to create a new CrowdStrike API key pair with the following permissions:
   - Falcon Images Download: Read
   - Sensor Download: Read
@@ -32,7 +33,7 @@ If you want to automate the deployment of the operator, the CLI method is recomm
    ![OpenShift CrowdStrike Operator Install](images/ocp-opinstall.png)
 
 - Make any necessary changes as desired to the `InstallPlan` before installing the operator. You can set the update approval to `Automatic` which is the default or `Manual`. If you set to `Manual`, updates require approval before an operator will update.
-  Click the `Install` button to begin the install.
+  You can also set the desired update channel for OpenShift to check for updates. Please note that installation versions are tied to channels, and versions may not exist in every channel. Click the `Install` button to begin the install.
 
    ![OpenShift CrowdStrike Operator Install](images/ocp-opinstall2.png)
 
@@ -74,7 +75,7 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 
 ## Installing the operator through the CLI
 
-### Install using the Krew plugin
+### Install using the Krew plugin (Preferred)
 
 To easily uninstall the operator, install Krew if it is not already installed:
 
@@ -166,7 +167,7 @@ Once the Krew plugin is installed:
     sourceNamespace: openshift-marketplace
   EOF
   ```
-  An [example subscription of the official Red Hat Marketplace certified operator is available](redhat-subscription.yaml) to use and modify as appropriate for your cluster. In this example, the install version is specified via `startingCSV`. Make sure to either delete the `startingCSV` or update the `startingCSV: falcon-operator.v0.5.4` for the version that is listed locally on your cluster.
+  Replace the `channel` in the above spec to the desired deployment channel e.g. `alpha`, `certified-X` (where X is the version), or `stable`, etc. An [example subscription of the official Red Hat Marketplace certified operator is available](redhat-subscription.yaml) to use and modify as appropriate for your cluster. If a specific operator version is desired, add `startingCSV` with the desired operator version e.g. `startingCSV: falcon-operator.v0.1.2`.
 
 #### Deploy the operator
 
@@ -259,7 +260,7 @@ This will insure proper cleanup of the resources.
 
 ### Uninstall using the CLI
 
-### Uninstall using the Krew plugin
+### Uninstall using the Krew plugin (Preferred)
 
 To easily uninstall the operator, install Krew if it is not already installed:
 

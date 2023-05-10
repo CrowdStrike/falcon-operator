@@ -7,4 +7,3 @@ spec:
   name: falcon-operator
   source: community-operators
   sourceNamespace: openshift-marketplace
-  startingCSV: falcon-operator.v0.5.4
