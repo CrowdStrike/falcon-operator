@@ -321,7 +321,8 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsNonRoot: &runNonRoot,
 					},
-					InitContainers: initContainers,
+					InitContainers:     initContainers,
+					ServiceAccountName: common.SidecarServiceAccountName,
 					Containers: []corev1.Container{
 						{
 							Name:            "falcon-sensor",
