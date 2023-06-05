@@ -24,7 +24,7 @@ This document provides a comprehensive guide for installing the Falcon Operator 
 1. Install the Falcon Operator by running the following command:
 
     ```shell
-    kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+    kubectl apply -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
     ```
 
 ### Deploying the Falcon Node Sensor
@@ -32,7 +32,7 @@ This document provides a comprehensive guide for installing the Falcon Operator 
 After the Falcon Operator is deployed, run the following command to deploy the Falcon Node Sensor:
 
 ```shell
-kubectl create -n falcon-operator -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
+kubectl create -n falcon-operator -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
 ```
 
 ### Deploying the Falcon Container Sidecar Sensor
@@ -40,7 +40,7 @@ kubectl create -n falcon-operator -f https://raw.githubusercontent.com/CrowdStri
 To deploy the Falcon Container Sidecar Sensor, run the following command:
 
 ```shell
-kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/generic/falconcontainer.yaml --edit=true
+kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/generic/falconcontainer.yaml --edit=true
 ```
 
 ## Uninstalling the Falcon Operator and Resources
@@ -68,5 +68,5 @@ kubectl delete falconcontainers --all
 Delete the Falcon Operator deployment by running:
 
 ```shell
-kubectl delete -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+kubectl delete -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
 ```

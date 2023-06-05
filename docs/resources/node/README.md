@@ -83,7 +83,7 @@ All arguments are optional, but successful deployment requires either falcon_id 
 ### Install Steps
 With Falcon Operator installed, run the following command to install the FalconNodeSensor CR:
 ```sh
-kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
+kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
 ```
 The above command uses an example `yaml` file from the Falcon Operator GitHub repository that allows you to easily configure the FalconNodeSensor CR using the Falcon API method.
 

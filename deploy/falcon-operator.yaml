@@ -2815,6 +2815,20 @@ rules:
   - use
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: falcon-operator-node-sensor-role
+  labels:
+    crowdstrike.com/component: rbac
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: node-sensor-role
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: clusterrole
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: falcon-operator-leader-election-rolebinding

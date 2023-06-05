@@ -19,10 +19,32 @@ For an optimal experience, use the following preferred methods when installing f
 
 ## Upgrading
 
+### Operator Upgrades
+
 Currently, the CrowdStrike Falcon Operator does not support operator upgrades. To upgrade the operator, perform the following steps:
 
 1. Uninstall the deployed custom resources, the operator, and the CRDs (if they still exist).
 2. Install the newer operator and re-deploy the custom resources.
+
+### Sensor Upgrades
+
+Falcon Sensor management and upgrades are best handled by using GitOps methodologies and workflows. Multi-Cluster Management tools such as [Red Hat Advanced Cluster Management for Kubernetes](https://www.redhat.com/en/technologies/management/advanced-cluster-management) or [SuSE Rancher](https://www.rancher.com/products/rancher) can help when needing to scale management across multiple clusters from Git workflows.
+
+Using GitOps ensures several best operational and security practices around Kubernetes as it is the configuration management tool of Kubernetes:
+
+1. Containers are immutable and are meant to be immutable. This means that a container should not be modified during its life: no updates, no patches, no configuration changes. Immutable containers ensures
+   deployments are safe, consistently repeatable, and makes it easier to roll back an upgrade in case of a problem. If a container is modified or drifts from its original build, this could be an indication of an attack compromise.
+2. Kubernetes expands on the concept of container immutability by creating and coalescing around the concept of Immutable Infrastructure: changes e.g. upgrades deploy a new version with no upgrade in place.
+3. Latest versions of released components should always be used which means no more N-1, N-2, etc. for sensor deployments.
+4. No upgrades should happen outside the configuration management tool.
+
+To effectively deploy and use the Falcon sensor in a Kubernetes environment, the following is recommended for the reasons listed above:
+
+1. Copy the CrowdStrike sensor(s) to your own container registry.
+2. Use Git to store the [FalconNodeSensor](https://github.com/crowdstrike/falcon-operator/tree/main/config/samples) and/or [FalconContainer](https://github.com/crowdstrike/falcon-operator/tree/main/config/samples) Kind(s) specifying the sensor in your internal registry.
+3. Alway use the latest sensor version as soon as it is released and able to be updated in your environment.
+4. As soon as the sensor version is changed in Git, a CI/CD pipeline should update the FalconNodeSensor and/or FalconContainer Kind(s) which will then cause the operator to deploy the updated versions to your Kubernetes environments. This is the proper way to handle sensor updates in Kubernetes.
+5. Upgrades should usually happen in a rolling update manner to ensure the Kubernetes cluster and deployed resources stay accessible and operational.
 
 ## FAQ - Frequently Asked Questions
 
@@ -54,69 +76,27 @@ For example, on OpenShift:
 oc annotate ns falcon-operator openshift.io/node-selector=""
 ```
 
-#### ERROR setup failed to get watch namespace
-
-If the following error shows up in the controller manager logs:
-
-```terminal
-1.650281912313243e+09 ERROR setup failed to get watch namespace {"error": "WATCH_NAMESPACE must be set"}
-1.6502819123132205e+09 INFO version go {"version": "go1.17.9 linux/amd64"}
-1.6502819123131733e+09 INFO version operator {"version": "0.5.0-de97605"}
-```
-
-Make sure that the environment variable exists in the controller manager deployment. If it does not exist, add it by running:
+#### Falcon Operator Controller Manager - OOMKilled
+If the Falcon Operator Controller Manager becomes OOMKilled on startup, it could be due to the number and size of resources in the Kubernetes cluster that it has to monitor.
+The OOMKilled error looks like:
 
 ```shell
-kubectl edit deployment falcon-operator-controller-manager -n falcon-operator
+$ kubectl get pods -n falcon-operator
+NAME                                                  READY   STATUS      RESTARTS      AGE
+falcon-operator-controller-manager-77d7b44f96-t6jsr   1/2     OOMKilled   2 (45s ago)   98s
 ```
 
-and add something similar to the following lines:
-
-```yaml
-        env:
-          - name: WATCH_NAMESPACE
-            value: ''
-          - name: POD_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.name
-          - name: OPERATOR_NAME
-            value: "falcon-operator"
-```
-
-#### FalconContainer is stuck in the CONFIGURING Phase
-
-Make sure that the `WATCH_NAMESPACE` variable is correctly configured to be cluster-scoped and not namespace-scoped. If the
-controller manager's deployment has the following configuration:
-
-```yaml
-        env:
-          - name: WATCH_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-```
-
-The operator is configured to be namespace-scoped and not cluster-scoped which is required for the FalconContainer CR.
-
-This problem can be fixed by running:
+To remediate this problem, increase the memory limit of the operator:
+Find and edit the memory limit with OpenShift:
 
 ```shell
-kubectl edit deployment falcon-operator-controller-manager -n falcon-operator
+oc edit csv falcon-operator.v0.8.0 -n falcon-operator
 ```
 
-and changing `WATCH_NAMESPACE` to the following lines:
+Search for the default operator memory limit in the output (for example: 256Mi), and update to something more appropriate, such as 512Mi or 1Gi.
+Find and edit the memory limit on a non-OpenShift cluster:
 
-```yaml
-        env:
-          - name: WATCH_NAMESPACE
-            value: ''
-          - name: POD_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.name
-          - name: OPERATOR_NAME
-            value: "falcon-operator"
+```
+kubectl edit deploy falcon-operator-controller-manager -n falcon-operator
 ```
 
-Once a new version of the controller manager has deployed, you may have to delete and recreate the FalconContainer CR.

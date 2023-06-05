@@ -22,7 +22,7 @@ This document will guide you through the installation of falcon-operator and dep
   
 - Install the operator
   ```sh
-  kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+  kubectl apply -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
 
 ### Deploy the sidecar sensor
@@ -39,7 +39,7 @@ This document will guide you through the installation of falcon-operator and dep
 
 - Create a new FalconContainer resource
   ```sh
-  kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/eks/falconcontainer.yaml --edit=true
+  kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/eks/falconcontainer.yaml --edit=true
   ```
   
 ## Uninstalling
@@ -58,7 +58,7 @@ This will insure proper cleanup of the resources.
 
 - To uninstall Falcon Operator, delete the deployment:
   ```sh
-  kubectl delete -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+  kubectl delete -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
   
 ## Configuring IAM Role to allow ECR Access on EKS Fargate
@@ -132,7 +132,7 @@ Using `aws`, `eksctl`, and `kubectl` command-line tools, perform the following s
 - Assign the newly created policy to the kubernetes ServiceAccount of Falcon Container Injector
   ```sh
   eksctl create iamserviceaccount \
-         --name default \
+         --name falcon-operator-sidecar-sensor \
          --namespace falcon-system \
          --region "$AWS_REGION" \
          --cluster "${EKS_CLUSTER_NAME}" \
@@ -143,7 +143,7 @@ Using `aws`, `eksctl`, and `kubectl` command-line tools, perform the following s
 
 - Verify that the IAM Role (not to be confused with IAM Policy) has been assigned to the ServiceAccount by the previous command:
   ```sh
-  kubectl get sa -n falcon-system default -o=jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}'
+  kubectl get sa -n falcon-system falcon-operator-sidecar-sensor -o=jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}'
   ```
 
 - Delete the previously deployed FalconContainer resource:

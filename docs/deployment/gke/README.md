@@ -15,7 +15,7 @@ This document will guide you through the installation of falcon-operator and dep
 - Either spin up an GKE Kubernetes cluster or use one that already exists.
 - Install the operator
   ```sh
-  kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+  kubectl apply -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
 
 ### Deploy the Node Sensor
@@ -24,7 +24,7 @@ Once the operator has deployed, you can now deploy the FalconNodeSensor.
 
 - Deploy FalconNodeSensor through the cli using the `kubectl` command:
   ```sh
-  kubectl create -n falcon-operator -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
+  kubectl create -n falcon-operator -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
 
 ### Deploy the sidecar sensor
@@ -66,7 +66,7 @@ An image push secret is used by the operator to mirror Falcon Container image fr
 
 - Create new FalconContainer resource
   ```sh
-  kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/gke/falconcontainer.yaml --edit=true
+  kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/gke/falconcontainer.yaml --edit=true
   ```
 
 #### Complete install using GCP Cloud Shell
@@ -82,7 +82,7 @@ An image push secret is used by the operator to mirror Falcon Container image fr
   ```
 - Install the operator & operator-sdk & deploy Falcon Container Sensor
   ```sh
-  bash -c 'source <(curl -s https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/gke/run)'
+  bash -c 'source <(curl -s https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/gke/run)'
   ```
 
 ## Uninstalling
@@ -108,7 +108,7 @@ This will insure proper cleanup of the resources.
 
 - To uninstall Falcon Operator, delete the deployment:
   ```sh
-  kubectl delete -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+  kubectl delete -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
 
 ## GKE Node Upgrades

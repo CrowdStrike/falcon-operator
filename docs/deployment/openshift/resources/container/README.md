@@ -155,7 +155,7 @@ image: myprivateregistry.internal.lan/falcon-container/falcon-sensor:6.47.0-3003
 ### Install Steps
 To install Falcon Container (assuming Falcon Operator is installed):
 ```sh
-oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconcontainer.yaml --edit=true
+oc create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconcontainer.yaml --edit=true
 ```
 
 ### Uninstall Steps

@@ -101,7 +101,7 @@ Once the Krew plugin is installed:
    oc operator install falcon-operator-rhmp --create-operator-group -n falcon-operator
    ```
 
-### Install using the Subscription method
+### Install using the Subscription/CSV method
 
 - Authenticate to your OpenShift cluster
   ```
@@ -161,7 +161,7 @@ Once the Krew plugin is installed:
   metadata:
     name: falcon-operator
   spec:
-    channel: alpha
+    channel: certified-0.8
     name: falcon-operator-rhmp
     source: redhat-marketplace
     sourceNamespace: openshift-marketplace
@@ -260,7 +260,7 @@ This will insure proper cleanup of the resources.
 
 ### Uninstall using the CLI
 
-### Uninstall using the Krew plugin (Preferred)
+#### Uninstall using the Krew plugin (Preferred)
 
 To easily uninstall the operator, install Krew if it is not already installed:
 
@@ -276,21 +276,23 @@ Once the Krew plugin is installed:
    oc operator uninstall falcon-operator-rhmp -n falcon-operator -X
    ```
 
-#### Uninstall the Node Sensor
+#### Uninstall using the Subscription/CSV method
+
+##### Uninstall the Node Sensor
 
 - To uninstall the node sensor, simply remove the FalconNodeSensor resource.
   ```
   oc delete falconnodesensor -A --all
   ```
 
-#### Uninstall the Sidecar Sensor
+##### Uninstall the Sidecar Sensor
 
 - To uninstall Falcon Container simply remove FalconContainer resource. The operator will uninstall Falcon Container product from the cluster.
   ```
   oc delete falconcontainers.falcon.crowdstrike.com default
   ```
 
-#### Uninstall the Operator
+##### Uninstall the Operator
 
 - To uninstall Falcon Operator, get the name of the subscription that the operator was installed with:
   ```
