@@ -163,11 +163,13 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				return ctrl.Result{}, nil
 			}
 			if err != nil {
+				log.Error(err, "Failed to verify CrowdStrike Container Image Registry access")
 				err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to verify CrowdStrike Container Image Registry access: %v", err))
 				if err != nil {
 					return ctrl.Result{}, err
 				}
-				return ctrl.Result{}, fmt.Errorf("failed to verify CrowdStrike Container Image Registry access")
+				time.Sleep(time.Second * 5)
+				return ctrl.Result{RequeueAfter: 5 * time.Second}, fmt.Errorf("failed to verify CrowdStrike Container Image Registry access")
 			}
 
 			if _, err = r.reconcileRegistrySecrets(ctx, log, falconContainer); err != nil {
