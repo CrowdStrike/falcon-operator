@@ -15,7 +15,7 @@ This document will guide you through the installation of falcon-operator and dep
 - Either spin up an AKS Kubernetes cluster or use one that already exists.
 - Install the operator
   ```sh
-  kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+  kubectl apply -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
 
 ### Deploy the Node Sensor
@@ -24,7 +24,7 @@ Once the operator has deployed, you can now deploy the FalconNodeSensor.
 
 - Deploy FalconNodeSensor through the cli using the `kubectl` command:
   ```sh
-  kubectl create -n falcon-operator -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
+  kubectl create -n falcon-operator -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
 
 ### Deploy the sidecar sensor
@@ -72,7 +72,7 @@ The Image push secret is used by the operator to mirror the Falcon Container sen
 
 - Create new FalconContainer resource
   ```sh
-  kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/azure/falconcontainer.yaml --edit=true
+  kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/azure/falconcontainer.yaml --edit=true
   ```
 
 ## Uninstalling
@@ -98,5 +98,5 @@ This will insure proper cleanup of the resources.
 
 - To uninstall Falcon Operator, delete the deployment:
   ```sh
-  kubectl delete -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+  kubectl delete -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```

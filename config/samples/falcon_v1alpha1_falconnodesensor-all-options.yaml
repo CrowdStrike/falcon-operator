@@ -16,13 +16,13 @@ spec:
   node:
     # Use to not need falcon_api section above
     backend: kernel
-    image_override: repo.host.com:4000/name:tag
+    image: repo.host.com:4000/name:tag
     imagePullPolicy: Always
     # secret within the falcon-system namespace.
     # Secret will only be used when image_override is present as well.
     imagePullSecrets:
-      - pullSecret1
-      - pullSecret2
+      - name: pullSecret1
+      - name: pullSecret2
     terminationGracePeriod: 30
     tolerations:
       - effect: NoSchedule

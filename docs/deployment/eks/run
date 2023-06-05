@@ -24,9 +24,9 @@ if ! type kubectl > /dev/null 2>&1; then
         export PATH=$PATH:$HOME/bin
     fi
     if ! type kubectl > /dev/null 2>&1; then
-        mkdir -p "$HOME/bin"
-        curl -o "$HOME/bin/kubectl" https://amazon-eks.s3.us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/kubectl
-        chmod +x "$HOME/bin/kubectl"
+       mkdir -p "$HOME/bin"
+       curl -Lo "$HOME/bin/kubectl" "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+       chmod +x "$HOME/bin/kubectl"
     fi
 fi
 
@@ -102,7 +102,7 @@ __END__
 
 cluster_has_falcon_operator_sa(){
     eksctl get iamserviceaccount \
-           --name falcon-operator \
+           --name falcon-operator-controller-manager \
            --namespace "${OPERATOR_NAMESPACE}" \
            --region "$AWS_REGION" \
            --cluster "${EKS_CLUSTER_NAME}" | grep -q falcon-operator
@@ -111,7 +111,7 @@ cluster_has_falcon_operator_sa(){
 cluster_create_falcon_operator_sa(){
     kubectl create ns "$OPERATOR_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
     eksctl create iamserviceaccount \
-           --name falcon-operator \
+           --name falcon-operator-controller-manager \
            --namespace "${OPERATOR_NAMESPACE}" \
            --region "$AWS_REGION" \
            --cluster "${EKS_CLUSTER_NAME}" \
@@ -137,7 +137,7 @@ cluster_has_falcon_operator_sa || cluster_create_falcon_operator_sa
 if kubectl get crd catalogsources.operators.coreos.com > /dev/null 2>&1; then
     # Cluster has OLM installed. Installation will proceed using operator OLM and operator sdk
     if ! type operator-sdk > /dev/null 2>&1; then
-        fail "Cluster has OLM installed bur operator-sdk tool is not available locally. Please install operator-sdk"
+        fail "Cluster has OLM installed but operator-sdk tool is not available locally. Please install operator-sdk"
     fi
     if ! operator-sdk olm status > /dev/null 2>&1; then
         fail "Unexpected cluster state: Found catalogsources.operators.coreos.com installed on the cluster, but OLM is not ready."
@@ -150,7 +150,7 @@ if kubectl get crd catalogsources.operators.coreos.com > /dev/null 2>&1; then
     fi
 else
     # cluster does not have OLM installed. Installation will proceed without it
-    kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+    kubectl apply -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
 fi
 
 # Wait for the operator pod to come up
@@ -158,7 +158,7 @@ kubectl wait --timeout=240s --for=condition=Available -n $OPERATOR_NAMESPACE dep
 
 # Let the user edit the falconcontainer configuration
 if ! kubectl get falconcontainers.falcon.crowdstrike.com default > /dev/null 2>&1; then
-    kubectl create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/eks/falconcontainer.yaml --edit=true
+    kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/eks/falconcontainer.yaml --edit=true
 fi
 
 # Let the user watch the operator logs
