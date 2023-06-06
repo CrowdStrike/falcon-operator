@@ -117,10 +117,10 @@ func main() {
 				&corev1.ServiceAccount{}:     {},
 				&imagev1.ImageStream{}:       {},
 				&corev1.Service{}: {
-					Label: labels.SelectorFromSet(containercontroller.FcLabels),
+					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconSidecarSensor}),
 				},
 				&appsv1.Deployment{}: {
-					Label: labels.SelectorFromSet(containercontroller.FcLabels),
+					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconSidecarSensor}),
 				},
 				&corev1.Secret{}: {},
 				&corev1.ConfigMap{}: {
@@ -130,7 +130,7 @@ func main() {
 					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
 				},
 				&arv1.MutatingWebhookConfiguration{}: {
-					Label: labels.SelectorFromSet(containercontroller.FcLabels),
+					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconSidecarSensor}),
 				},
 			},
 		},

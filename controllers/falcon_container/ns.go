@@ -30,10 +30,7 @@ func (r *FalconContainerReconciler) Namespace() string {
 }
 
 func (r *FalconContainerReconciler) NamespaceLabels() map[string]string {
-	nsLabels := make(map[string]string)
-	for k, v := range FcLabels {
-		nsLabels[k] = v
-	}
+	nsLabels := common.CRLabels("namespace", r.Namespace(), common.FalconSidecarSensor)
 	for k, v := range namespaceLabels {
 		nsLabels[k] = v
 	}

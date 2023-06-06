@@ -15,14 +15,7 @@ func PullSecret(namespace string, pulltoken []byte) corev1.Secret {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      common.FalconPullSecretName,
 			Namespace: namespace,
-			Labels: map[string]string{
-				common.FalconInstanceNameKey: "secret",
-				common.FalconInstanceKey:     common.FalconPullSecretName,
-				common.FalconManagedByKey:    common.FalconManagedByValue,
-				common.FalconProviderKey:     common.FalconProviderValue,
-				common.FalconPartOfKey:       common.FalconPartOfValue,
-				common.FalconCreatedKey:      common.FalconCreatedValue,
-			},
+			Labels:    common.CRLabels("secret", common.FalconPullSecretName, "falcon-operator"),
 		},
 		Data: map[string][]byte{
 			corev1.DockerConfigJsonKey: common.CleanDecodedBase64(pulltoken),

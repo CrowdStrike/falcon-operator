@@ -76,7 +76,7 @@ func (r *FalconContainerReconciler) newWebhook(webhookName string, caBundle []by
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      webhookName,
 			Namespace: r.Namespace(),
-			Labels:    FcLabels,
+			Labels:    common.CRLabels("mutatingwebhook", webhookName, common.FalconSidecarSensor),
 		},
 		Webhooks: []arv1.MutatingWebhook{
 			{
