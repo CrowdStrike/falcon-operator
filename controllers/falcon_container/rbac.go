@@ -95,7 +95,7 @@ func (r *FalconContainerReconciler) newServiceAccount(falconContainer *v1alpha1.
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        common.SidecarServiceAccountName,
 			Namespace:   r.Namespace(),
-			Labels:      FcLabels,
+			Labels:      common.CRLabels("serviceaccount", common.SidecarServiceAccountName, common.FalconSidecarSensor),
 			Annotations: falconContainer.Spec.Injector.ServiceAccount.Annotations,
 		},
 		ImagePullSecrets: imagePullSecrets,
@@ -110,7 +110,7 @@ func (r *FalconContainerReconciler) newClusterRoleBinding(falconContainer *v1alp
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   injectorClusterRoleBindingName,
-			Labels: FcLabels,
+			Labels: common.CRLabels("clusterrolebinding", injectorName, common.FalconSidecarSensor),
 		},
 		Subjects: []rbacv1.Subject{{
 			Kind:      "ServiceAccount",

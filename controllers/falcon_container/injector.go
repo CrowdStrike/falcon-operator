@@ -30,18 +30,6 @@ const (
 	falconVolumePath              = "/tmp/CrowdStrike"
 )
 
-var (
-	FcLabels = map[string]string{
-		common.FalconInstanceNameKey: injectorName,
-		common.FalconInstanceKey:     "container_sensor",
-		common.FalconComponentKey:    "container_sensor",
-		common.FalconManagedByKey:    injectorName,
-		common.FalconProviderKey:     common.FalconProviderValue,
-		common.FalconPartOfKey:       "Falcon",
-		common.FalconCreatedKey:      "controller-manager",
-	}
-)
-
 func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.Secret, error) {
 	existingInjectorTLSSecret := &corev1.Secret{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorTLSSecretName, Namespace: r.Namespace()}, existingInjectorTLSSecret)
@@ -76,7 +64,7 @@ func (r *FalconContainerReconciler) newInjectorTLSSecret(c []byte, k []byte, b [
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      injectorTLSSecretName,
 			Namespace: r.Namespace(),
-			Labels:    FcLabels,
+			Labels:    common.CRLabels("secret", injectorTLSSecretName, common.FalconSidecarSensor),
 		},
 		Data: map[string][]byte{
 			"tls.crt": c,
@@ -275,16 +263,19 @@ func (r *FalconContainerReconciler) newDeployment(imageUri string, falconContain
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      injectorName,
 			Namespace: r.Namespace(),
-			Labels:    FcLabels,
+			Labels:    common.CRLabels("deployment", injectorName, common.FalconSidecarSensor),
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: falconContainer.Spec.Injector.Replicas,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: FcLabels,
+				MatchLabels: common.CRLabels("deployment", injectorName, common.FalconSidecarSensor),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: FcLabels,
+					Labels: common.CRLabels("deployment", injectorName, common.FalconSidecarSensor),
+					Annotations: map[string]string{
+						common.FalconContainerInjection: "disabled",
+					},
 				},
 				Spec: corev1.PodSpec{
 					Affinity: &corev1.Affinity{
@@ -388,7 +379,7 @@ func (r *FalconContainerReconciler) injectorPodReady(ctx context.Context, falcon
 	podList := &corev1.PodList{}
 	listOpts := []client.ListOption{
 		client.InNamespace(r.Namespace()),
-		client.MatchingLabels(FcLabels),
+		client.MatchingLabels{common.FalconComponentKey: common.FalconSidecarSensor},
 	}
 
 	if err := r.List(ctx, podList, listOpts...); err != nil {

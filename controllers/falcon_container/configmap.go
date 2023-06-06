@@ -62,7 +62,7 @@ func (r *FalconContainerReconciler) newCABundleConfigMap(ctx context.Context, lo
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      registryCABundleConfigMapName,
 				Namespace: r.Namespace(),
-				Labels:    FcLabels,
+				Labels:    common.CRLabels("configmap", registryCABundleConfigMapName, common.FalconSidecarSensor),
 			},
 			Data: data,
 		}, nil
@@ -135,7 +135,7 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.L
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      injectorConfigMapName,
 			Namespace: r.Namespace(),
-			Labels:    FcLabels,
+			Labels:    common.CRLabels("configmap", injectorConfigMapName, common.FalconSidecarSensor),
 		},
 		Data: data,
 	}, nil

@@ -61,10 +61,10 @@ func (r *FalconContainerReconciler) newService(falconContainer *v1alpha1.FalconC
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      injectorName,
 			Namespace: r.Namespace(),
-			Labels:    FcLabels,
+			Labels:    common.CRLabels("service", injectorName, common.FalconSidecarSensor),
 		},
 		Spec: corev1.ServiceSpec{
-			Selector: FcLabels,
+			Selector: map[string]string{common.FalconComponentKey: common.FalconSidecarSensor},
 			Ports: []corev1.ServicePort{
 				{
 					Name:       common.FalconServiceHTTPSName,
