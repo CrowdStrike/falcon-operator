@@ -5,6 +5,95 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2023-06-07
+
+### Changed
+
+- Bump version to 0.8.1
+- build(deps): bump github.com/sigstore/rekor from 1.1.0 to 1.2.0
+- build(deps): bump github.com/docker/docker
+- maint: go mod tidy
+- maint: update changelog
+- feat: standardize labels across controllers
+- fix: update docs for new release
+- fix: delay CS registry API check for falconcontainer
+- build(deps): bump helm/kind-action from 1.5.0 to 1.7.0
+- fix: sidecar deployment should have a service account specified
+- docs: update redhat deployment doc and images
+- fix: update CSV description
+- docs: doc updates
+- fix: various fixes in prep for future changes
+- cleanup: create a common label function
+- fix: various fixes and certification prep
+- fix: sensor version was not working correctly
+- fix: ensure custom non-API Falcon CID can be used
+- fix: update runc go.mod indirect dependency
+- Update README.md
+- cmm edits to clean up verbiage and look/feel
+- feat: Add Krew instructions and update OCP instructions
+- feat: create generic kubernetes install
+- fix: update indirect runc dependency to version 1.1.5
+- fix: Makefile kustomize target
+- docs: resource docs updates
+- Add operatorgroup and some troubleshooting steps
+- GKE, EKS, Azure updates
+- OCP image updates and node doc updates
+- Documentation updates
+- fix: fix Makefile help output for 2 targets
+- feat: make developer guide more robust
+- fix: update metadata to use release version
+- fix: disable seccompProfile until broadly supported and enable multi-arch affinity for controller-manager
+- fix: update tags for release automation
+- fix: reconciliation loop should not run forever
+- fix: fix failing deployment tests
+- feat: automate releases
+- fix: use released manifests for non-olm deployments
+- fix: update CSV contact info
+- build(deps): bump github.com/docker/docker
+- build(deps): bump actions/setup-go from 3 to 4
+- feat: add support for nodeAffinity in node sensor
+- fix: cluster role and SCC should not be reconciled
+- fix: update DS labels
+- Adding release note
+- fix: update deployment on replica count change
+- feat: add docker release build
+- fix: provide more test coverage in node assets
+- clean up ds updates
+- fix test cleanup args
+- update tests
+- clean up updates
+- fix: re-organize go workflows
+- fix: Update falcon-operator.yaml
+- fix: Update labels in assets
+- feat: add labels, security, and arch affinity to kustomize components
+- fix: Dockerfile cross compile updates and Makefile updates
+- fix: ensure non-olm deployment uses kustomize serviceaccount
+- Update falcon-operator.yaml using kustomize
+- feat: Use kustomize to generate non-olm package manifest
+- fix: kustomize format operator non-olm deploy yaml
+- node: updating init containers for node daemonset and node cleanup daemonset
+- Update README.md
+- Update README.md
+- Log the falcon node sensor image uri selected to be used
+- feat: Enable multi-arch operator build
+- build(deps): bump golang.org/x/net from 0.1.0 to 0.7.0
+- update bundle
+- update pod topology and replica count
+- fix: exclude gosec rule G307 as it has been removed in the upstream branch
+- build(deps): bump helm/kind-action from 1.4.0 to 1.5.0
+- Explicitly excluding kube-system from secret creation
+- Adding documentation for node.backend
+- bump CSV version
+- Bumping version to 0.7.1
+- Adding backend support in Node/DaemonSet
+- Do not deploy status: subresources outside OLM
+- remove falconctlOpts to use default properties
+- update bundle manifests
+- update properties in the readme for Node and Container
+- Update FalconContainer All options with default falcon values
+- adding default trace value in the yaml
+- fixing values and typo
+
 ## [0.7.3] - 2023-04-14
 
 ### Changed
@@ -72,7 +161,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-Version 0.7.0 of the Falcon Operator introduces a significant rewrite of the Falcon Container Sensor Controller.  The Falcon Container Custom Resource Definition has changed quite significantly; users are advised to review the [Falcon Operator documentation for the Falcon Container Sensor](docs/container) before attempting to install this release, as some attributes have been changed or removed.
+Version 0.7.0 of the Falcon Operator introduces a significant rewrite of the Falcon Container Sensor Controller.  The Falcon Container Custom Resource Definition has changed quite significantly; users are advised to review the [Falcon Operator documentation for the Falcon Container Sensor](docs/resources/container) before attempting to install this release, as some attributes have been changed or removed.
 
 ### Notable changes
 
