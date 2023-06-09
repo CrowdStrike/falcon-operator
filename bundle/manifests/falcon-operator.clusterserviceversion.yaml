@@ -100,14 +100,17 @@ metadata:
       ]
     capabilities: Basic Install
     categories: Security,Monitoring
-    containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2023-11-03T15:07:51Z"
+    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:a82e26b3746149dffdad0959d9967e8cfdfab7b0ec6e66e2ed5d3556b332f53d
+    createdAt: "2023-11-03T20:51:49Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
+    marketplace.openshift.io/remote-workflow: https://marketplace.redhat.com/en-us/operators/falcon-operator-rhmp/pricing?utm_source=openshift_console
+    marketplace.openshift.io/support-workflow: https://marketplace.redhat.com/en-us/operators/falcon-operator-rhmp/support?utm_source=openshift_console
     operatorframework.io/suggested-namespace: falcon-operator
+    operators.openshift.io/valid-subscription: Not required to use this operator
     operators.operatorframework.io/builder: operator-sdk-v1.30.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4-alpha
-    repository: https://github.com/CrowdStrike/falcon-operator
-    support: Community Only
+    repository: registry.connect.redhat.com/crowdstrike/falcon-operator
+    support: CrowdStrike
   name: falcon-operator.v0.9.1
   namespace: placeholder
 spec:
@@ -619,9 +622,9 @@ spec:
 
     | Custom Resource                                       | Description                                                      |
     | :--------                                             | :------------                                                    |
-    | [FalconAdmission](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/admission/README.md) | Manages installation of Falcon Admission Controller on the cluster |
-    | [FalconContainer](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/container/README.md) | Manages installation of Falcon Container Sensor on the cluster   |
-    | [FalconNodeSensor](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/node/README.md)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
+    | [FalconAdmission](https://github.com/CrowdStrike/falcon-operator/tree/certified/docs/deployment/openshift/resources/admission/README.md) | Manages installation of Falcon Admission Controller on the cluster |
+    | [FalconContainer](https://github.com/CrowdStrike/falcon-operator/tree/certified/docs/deployment/openshift/resources/container/README.md) | Manages installation of Falcon Container Sensor on the cluster   |
+    | [FalconNodeSensor](https://github.com/CrowdStrike/falcon-operator/tree/certified/docs/deployment/openshift/resources/node/README.md)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
 
     ## Installation and Deployment
 

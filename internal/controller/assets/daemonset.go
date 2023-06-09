@@ -262,7 +262,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
-			Namespace: node.TargetNs(),
+			Namespace: node.Namespace,
 			Labels:    common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -355,7 +355,7 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
-			Namespace: node.TargetNs(),
+			Namespace: node.Namespace,
 			Labels:    common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
 		},
 		Spec: appsv1.DaemonSetSpec{

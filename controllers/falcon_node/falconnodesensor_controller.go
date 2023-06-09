@@ -108,32 +108,6 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	}
 
-<<<<<<< HEAD
-	created, err := r.handleNamespace(ctx, nodesensor, logger)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if created {
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-	err = r.handlePriorityClass(ctx, nodesensor, logger)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	serviceAccount := common.NodeServiceAccountName
-
-	created, err = r.handlePermissions(ctx, nodesensor, logger)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if created {
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-=======
->>>>>>> c4c69f2 (Keep nodesensor namespaced for now)
 	if nodesensor.Spec.Node.ServiceAccount.Annotations != nil {
 		err = r.handleSAAnnotations(ctx, nodesensor, logger)
 		if err != nil {
@@ -244,7 +218,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	} else {
 		// Copy Daemonset for updates
 		dsUpdate := daemonset.DeepCopy()
-		dsTarget := assets.Daemonset(dsUpdate.Name, image, nodesensor)
+		dsTarget := assets.Daemonset(dsUpdate.Name, image, common.NodeServiceAccountName, nodesensor)
 
 		// Objects to check for updates to re-spin pods
 		imgUpdate := updateDaemonSetImages(dsUpdate, image, nodesensor, logger)
@@ -406,7 +380,7 @@ func (r *FalconNodeSensorReconciler) handlePriorityClass(ctx context.Context, no
 
 	pc := assets.PriorityClass(pcName, nodesensor.Spec.Node.PriorityClass.Value)
 
-	err := r.Get(ctx, types.NamespacedName{Name: pcName, Namespace: nodesensor.TargetNs()}, existingPC)
+	err := r.Get(ctx, types.NamespacedName{Name: pcName, Namespace: nodesensor.Namespace}, existingPC)
 	if err != nil && errors.IsNotFound(err) {
 		err = ctrl.SetControllerReference(nodesensor, pc, r.Scheme)
 		if err != nil {
@@ -525,12 +499,8 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 		return err
 	}
 
-<<<<<<< HEAD
 	secretData := map[string][]byte{corev1.DockerConfigJsonKey: common.CleanDecodedBase64(pulltoken)}
-	secret = *assets.Secret(common.FalconPullSecretName, nodesensor.TargetNs(), common.FalconKernelSensor, secretData, corev1.SecretTypeDockerConfigJson)
-=======
-	secret = common_assets.PullSecret(nodesensor.Namespace, pulltoken)
->>>>>>> c4c69f2 (Keep nodesensor namespaced for now)
+	secret = *assets.Secret(common.FalconPullSecretName, nodesensor.Namespace, common.FalconKernelSensor, secretData, corev1.SecretTypeDockerConfigJson)
 	err = ctrl.SetControllerReference(nodesensor, &secret, r.Scheme)
 	if err != nil {
 		logger.Error(err, "Unable to assign Controller Reference to the Pull Secret")
@@ -548,11 +518,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 }
 
 func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name string, config *node.ConfigCache, nodesensor *falconv1alpha1.FalconNodeSensor) (*corev1.ConfigMap, error) {
-<<<<<<< HEAD
-	cm := assets.SensorConfigMap(name, nodesensor.TargetNs(), common.FalconKernelSensor, config.SensorEnvVars())
-=======
-	cm := assets.DaemonsetConfigMap(name, nodesensor.Namespace, config)
->>>>>>> c4c69f2 (Keep nodesensor namespaced for now)
+	cm := assets.SensorConfigMap(name, nodesensor.Namespace, common.FalconKernelSensor, config.SensorEnvVars())
 
 	err := controllerutil.SetControllerReference(nodesensor, cm, r.Scheme)
 	if err != nil {
@@ -562,7 +528,7 @@ func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name string, config *no
 }
 
 func (r *FalconNodeSensorReconciler) nodeSensorDaemonset(name string, image string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) *appsv1.DaemonSet {
-	ds := assets.Daemonset(name, image, nodesensor)
+	ds := assets.Daemonset(name, image, common.NodeServiceAccountName, nodesensor)
 
 	// NOTE: calling SetControllerReference, and setting owner references in
 	// general, is important as it allows deleted objects to be garbage collected.
@@ -904,7 +870,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 	err := r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.Namespace}, daemonset)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new DS for cleanup
-		ds := assets.RemoveNodeDirDaemonset(dsCleanupName, image, nodesensor)
+		ds := assets.RemoveNodeDirDaemonset(dsCleanupName, image, common.NodeServiceAccountName, nodesensor)
 
 		// Create the cleanup DS
 		err = r.Create(ctx, ds)

@@ -30,8 +30,7 @@ func TestSensorConfigMap(t *testing.T) {
 			Labels:    common.CRLabels("configmap", cfgName, common.FalconKernelSensor),
 		},
 		Data: map[string]string{
-			"FALCONCTL_OPT_CID":     "1234567890ABCDEF1234567890ABCDEF-12",
-			"FALCONCTL_OPT_BACKEND": "kernel",
+			"FALCONCTL_OPT_CID": "1234567890ABCDEF1234567890ABCDEF-12",
 		},
 	}
 
