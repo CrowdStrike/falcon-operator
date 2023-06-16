@@ -1,9 +1,13 @@
 package common
 
 import (
+	"os"
 	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 
+	"github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"k8s.io/apimachinery/pkg/version"
 	ktest "k8s.io/client-go/testing"
 )
@@ -46,5 +50,114 @@ func TestCleanDecodedBase64(t *testing.T) {
 
 	if got := CleanDecodedBase64(EncodedBase64String("\t\ntest\n\t")); !reflect.DeepEqual(got, want) {
 		t.Errorf("CleanDecodedBase64() = %v, want %v", got, want)
+	}
+}
+
+func TestProxyHost(t *testing.T) {
+	proxy := NewProxyInfo()
+	proxy.host = "test"
+	want := "test"
+
+	if got := proxy.Host(); !reflect.DeepEqual(got, want) {
+		t.Errorf("proxy.Host() = %v, want %v", got, want)
+	}
+}
+
+func TestProxyPort(t *testing.T) {
+	proxy := NewProxyInfo()
+	proxy.port = "1234"
+	want := "1234"
+
+	if got := proxy.Port(); !reflect.DeepEqual(got, want) {
+		t.Errorf("proxy.Port() = %v, want %v", got, want)
+	}
+}
+
+func TestGetProxyInfo(t *testing.T) {
+	os.Setenv("HTTPS_PROXY", "https://test:1234")
+	host, port := "https://test", "1234"
+	gotHost, gotPort := getProxyInfo()
+	if !reflect.DeepEqual(gotHost, host) {
+		t.Errorf("getProxyInfo() = host: %v, want host: %v", gotHost, host)
+	}
+	if !reflect.DeepEqual(gotPort, port) {
+		t.Errorf("getProxyInfo() = port: %v, want port: %v", gotPort, port)
+	}
+
+	os.Setenv("HTTP_PROXY", "http://user:password@test:1234")
+	host, port = "http://user:password@test", "1234"
+	gotHost, gotPort = getProxyInfo()
+	if !reflect.DeepEqual(gotHost, host) {
+		t.Errorf("getProxyInfo() = host: %v, want host: %v", gotHost, host)
+	}
+	if !reflect.DeepEqual(gotPort, port) {
+		t.Errorf("getProxyInfo() = port: %v, want port: %v", gotPort, port)
+	}
+
+	os.Unsetenv("HTTPS_PROXY")
+	os.Unsetenv("HTTP_PROXY")
+	host, port = "", ""
+	gotHost, gotPort = getProxyInfo()
+	if !reflect.DeepEqual(gotHost, host) {
+		t.Errorf("getProxyInfo() = host: %v, want host: %v", gotHost, host)
+	}
+	if !reflect.DeepEqual(gotPort, port) {
+		t.Errorf("getProxyInfo() = port: %v, want port: %v", gotPort, port)
+	}
+}
+
+func TestMakeSensorEnvMap(t *testing.T) {
+	falconNode := v1alpha1.FalconNodeSensor{}
+	falconSensor := falconNode.Spec.Falcon
+	sensorConfig := make(map[string]string)
+	proxy := NewProxyInfo()
+	port := 1234
+	pDisabled := false
+	cid := "test"
+
+	falconSensor.APH = "test"
+	falconSensor.APP = &port
+	falconSensor.APD = &pDisabled
+	falconSensor.Billing = "test"
+	falconSensor.CID = &cid
+	falconSensor.PToken = "test"
+	falconSensor.Tags = []string{"test"}
+	falconSensor.Trace = "debug"
+
+	os.Setenv("HTTPS_PROXY", "https://test.proxy:666")
+
+	// Set proxy values from environment variables if they exist
+	if proxy.Host() != "" {
+		sensorConfig["FALCONCTL_OPT_APH"] = proxy.Host()
+	}
+	if proxy.Port() != "" {
+		sensorConfig["FALCONCTL_OPT_APP"] = proxy.Port()
+	}
+
+	// Set sensor values from CRD
+	if falconSensor.APD != nil {
+		sensorConfig["FALCONCTL_OPT_APD"] = strconv.FormatBool(*falconSensor.APD)
+	}
+	if falconSensor.APH != "" {
+		sensorConfig["FALCONCTL_OPT_APH"] = falconSensor.APH
+	}
+	if falconSensor.APP != nil {
+		sensorConfig["FALCONCTL_OPT_APP"] = strconv.Itoa(*falconSensor.APP)
+	}
+	if falconSensor.Billing != "" {
+		sensorConfig["FALCONCTL_OPT_BILLING"] = falconSensor.Billing
+	}
+	if falconSensor.PToken != "" {
+		sensorConfig["FALCONCTL_OPT_PROVISIONING_TOKEN"] = falconSensor.PToken
+	}
+	if len(falconSensor.Tags) > 0 {
+		sensorConfig["FALCONCTL_OPT_TAGS"] = strings.Join(falconSensor.Tags, ",")
+	}
+	if falconSensor.Trace != "" {
+		sensorConfig["FALCONCTL_OPT_TRACE"] = falconSensor.Trace
+	}
+
+	if got := MakeSensorEnvMap(falconSensor); !reflect.DeepEqual(got, sensorConfig) {
+		t.Errorf("MakeSensorEnvMap() = %v, want %v", got, sensorConfig)
 	}
 }

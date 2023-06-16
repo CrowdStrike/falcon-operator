@@ -11,6 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 func InitContainerArgs() []string {
@@ -137,4 +139,42 @@ func CRLabels(instanceName string, instanceKey string, component string) map[str
 		FalconPartOfKey:       FalconPartOfValue,
 		FalconCreatedKey:      FalconCreatedValue,
 	}
+}
+
+func AppendUniqueEnvVars(envVars ...[]corev1.EnvVar) []corev1.EnvVar {
+	base := []corev1.EnvVar{}
+	for _, envVars := range envVars {
+		if envVars == nil {
+			continue
+		}
+		for _, envVar := range envVars {
+			if !containsEnvVar(base, envVar) {
+				base = append(base, envVar)
+			}
+		}
+	}
+	return base
+}
+
+func containsEnvVar(envVars []corev1.EnvVar, envVar corev1.EnvVar) bool {
+	for _, e := range envVars {
+		if e.Name == envVar.Name {
+			return true
+		}
+	}
+	return false
+}
+
+func UpdateEnvVars(envVars []corev1.EnvVar, updateEnvVars []corev1.EnvVar) []corev1.EnvVar {
+	for i, envVar := range envVars {
+		for _, e := range updateEnvVars {
+			if envVar.Name == e.Name {
+				if envVar.Value != e.Value {
+					envVars[i].Value = e.Value
+				}
+			}
+		}
+	}
+
+	return envVars
 }

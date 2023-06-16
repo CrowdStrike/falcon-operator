@@ -80,6 +80,10 @@ spec:
 
 All arguments are optional, but successful deployment requires either falcon_id and falcon_secret **or** cid and image. When deploying using the CrowdStrike Falcon API, the container image and CID will be fetched from CrowdStrike Falcon API. While in the latter case, the CID and image location is explicitly specified by the user.
 
+### Auto Proxy Configuration
+
+The operator will automatically configure the sensor's proxy configuration when the cluster proxy is configured on OpenShift via OLM. When not running on OpenShift, adding the proxy configuration via environment variables will also configure the sensor's proxy information. These settings can be overridden by configuring the [sensor's proxy settings](#falcon-sensor-settings)
+
 ### Install Steps
 With Falcon Operator installed, run the following command to install the FalconNodeSensor CR:
 ```sh

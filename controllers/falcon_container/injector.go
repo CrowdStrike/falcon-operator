@@ -7,6 +7,7 @@ import (
 
 	"github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
 	"github.com/go-logr/logr"
+	"github.com/operator-framework/operator-lib/proxy"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/tls"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -85,6 +87,13 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log
 
 	deployment := r.newDeployment(imageUri, falconContainer)
 	existingDeployment := &appsv1.Deployment{}
+
+	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
+		for i, container := range deployment.Spec.Template.Spec.Containers {
+			deployment.Spec.Template.Spec.Containers[i].Env = append(container.Env, proxy.ReadProxyVarsFromEnv()...)
+		}
+	}
+
 	err = r.Client.Get(ctx, types.NamespacedName{Name: injectorName, Namespace: r.Namespace()}, existingDeployment)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -100,6 +109,25 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log
 	if !reflect.DeepEqual(deployment.Spec.Selector, existingDeployment.Spec.Selector) {
 		// TODO: Handle reconciling label selectors
 		return &appsv1.Deployment{}, fmt.Errorf("unable to reconcile deployment; label selectors are not equal but are immutable")
+	}
+
+	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
+		for i, container := range existingDeployment.Spec.Template.Spec.Containers {
+			newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
+			updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
+			if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
+				existingDeployment.Spec.Template.Spec.Containers[i].Env = newContainerEnv
+				update = true
+			}
+			if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
+				existingDeployment.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
+				update = true
+			}
+			if update {
+				log.Info("Updating FalconNodeSensor Deployment Proxy Settings")
+			}
+		}
+
 	}
 
 	if !reflect.DeepEqual(deployment.Spec.Template.Spec.Containers[0].Image, existingDeployment.Spec.Template.Spec.Containers[0].Image) {
