@@ -13,6 +13,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/node/assets"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
+	"github.com/operator-framework/operator-lib/proxy"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -197,6 +198,14 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		// Define a new daemonset
 		ds := r.nodeSensorDaemonset(nodesensor.Name, image, serviceAccount, nodesensor, logger)
 
+		if len(proxy.ReadProxyVarsFromEnv()) > 0 {
+			for i, container := range ds.Spec.Template.Spec.Containers {
+				ds.Spec.Template.Spec.Containers[i].Env = append(container.Env, proxy.ReadProxyVarsFromEnv()...)
+			}
+		}
+
+		_ = updateDaemonSetTolerations(ds, nodesensor, logger)
+
 		err = r.Create(ctx, ds)
 		if err != nil {
 			err = r.conditionsUpdate(falconv1alpha1.ConditionFailed,
@@ -235,6 +244,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		affUpdate := updateDaemonSetAffinity(dsUpdate, dsTarget, nodesensor, logger)
 		containerVolUpdate := updateDaemonSetContainerVolumes(dsUpdate, dsTarget, logger)
 		volumeUpdates := updateDaemonSetVolumes(dsUpdate, dsTarget, logger)
+		updated = updateDaemonSetContainerProxy(dsUpdate, nodesensor, logger)
 
 		// Update the daemonset and re-spin pods with changes
 		if imgUpdate || tolsUpdate || affUpdate || containerVolUpdate || volumeUpdates || updated {
@@ -468,6 +478,29 @@ func (r *FalconNodeSensorReconciler) nodeSensorDaemonset(name, image, serviceAcc
 	}
 
 	return ds
+}
+
+func updateDaemonSetContainerProxy(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+	updated := false
+	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
+		for i, container := range ds.Spec.Template.Spec.Containers {
+			newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
+			updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
+			if !equality.Semantic.DeepEqual(ds.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
+				ds.Spec.Template.Spec.Containers[i].Env = newContainerEnv
+				updated = true
+			}
+			if !equality.Semantic.DeepEqual(ds.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
+				ds.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
+				updated = true
+			}
+			if updated {
+				logger.Info("Updating FalconNodeSensor DaemonSet Proxy Settings")
+			}
+		}
+	}
+
+	return updated
 }
 
 // If an update is needed, this will update the tolerations from the given DaemonSet

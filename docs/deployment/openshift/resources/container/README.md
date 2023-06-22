@@ -122,6 +122,10 @@ If `injector.disableDefaultPodInjection` is set to `true`, then sensor injection
 sensor.falcon-system.crowdstrike.com/injection=enabled
 ``` 
 
+### Auto Proxy Configuration
+
+The operator will automatically configure the sensor's proxy configuration when the cluster proxy is configured on OpenShift via OLM. When not running on OpenShift, adding the proxy configuration via environment variables will also configure the sensor's proxy information. These settings can be overridden by configuring the [sensor's proxy settings](#falcon-sensor-settings).
+
 ### Image Registry considerations
 
 Falcon Container Image is distributed by CrowdStrike through CrowdStrike Falcon registry. Operator supports two modes of deployment:

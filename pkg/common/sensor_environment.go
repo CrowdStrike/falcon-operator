@@ -9,7 +9,17 @@ import (
 
 func MakeSensorEnvMap(falconSensor v1alpha1.FalconSensor) map[string]string {
 	sensorConfig := make(map[string]string)
+	proxy := NewProxyInfo()
 
+	// Set proxy values from environment variables if they exist
+	if proxy.Host() != "" {
+		sensorConfig["FALCONCTL_OPT_APH"] = proxy.Host()
+	}
+	if proxy.Port() != "" {
+		sensorConfig["FALCONCTL_OPT_APP"] = proxy.Port()
+	}
+
+	// Set sensor values from CRD
 	if falconSensor.APD != nil {
 		sensorConfig["FALCONCTL_OPT_APD"] = strconv.FormatBool(*falconSensor.APD)
 	}
@@ -31,5 +41,6 @@ func MakeSensorEnvMap(falconSensor v1alpha1.FalconSensor) map[string]string {
 	if falconSensor.Trace != "" {
 		sensorConfig["FALCONCTL_OPT_TRACE"] = falconSensor.Trace
 	}
+
 	return sensorConfig
 }
