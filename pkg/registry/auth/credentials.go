@@ -2,7 +2,7 @@ package auth
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/containers/image/v5/types"
 	corev1 "k8s.io/api/core/v1"
@@ -70,7 +70,7 @@ type legacy struct {
 func (l *legacy) DestinationContext() (*types.SystemContext, error) {
 	const dockerCfgFile = "/tmp/.dockercfg"
 
-	err := ioutil.WriteFile(dockerCfgFile, l.Dockercfg, 0600)
+	err := os.WriteFile(dockerCfgFile, l.Dockercfg, 0600)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (c *classic) DestinationContext() (*types.SystemContext, error) {
 
 	const dockerCfgFile = "/tmp/.dockercfg"
 
-	err := ioutil.WriteFile(dockerCfgFile, c.value, 0600)
+	err := os.WriteFile(dockerCfgFile, c.value, 0600)
 	if err != nil {
 		return nil, err
 	}

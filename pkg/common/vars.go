@@ -1,7 +1,7 @@
 package common
 
 import (
-	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -14,7 +14,7 @@ var (
 )
 
 func init() {
-	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err == nil {
 		ns := strings.TrimSpace(string(nsBytes))
 		FalconOperatorNamespace = ns

@@ -5,7 +5,7 @@
 The following tools are required to develop the Falcon Operator:
 
 - [git][git-tool]
-- [go][go-tool] version 1.18
+- [go][go-tool] version 1.19
 - [operator-sdk][operator-sdk] version 1.22.0
 - [docker][docker] (required for multi-arch builds) or [podman][podman] (if desired for single arch builds)
 
