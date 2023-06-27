@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"k8s.io/apimachinery/pkg/version"
 	ktest "k8s.io/client-go/testing"
 )

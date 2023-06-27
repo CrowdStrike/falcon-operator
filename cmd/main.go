@@ -33,7 +33,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
-	v1alpha1 "github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	v1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	containercontroller "github.com/crowdstrike/falcon-operator/controllers/falcon_container"
 	nodecontroller "github.com/crowdstrike/falcon-operator/controllers/falcon_node"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
