@@ -13,7 +13,7 @@ COPY go.sum go.sum
 RUN go mod download
 
 # Copy the go source
-COPY main.go main.go
+COPY cmd/main.go cmd/main.go
 COPY version/ version/
 COPY apis/ apis/
 COPY controllers/ controllers/
@@ -27,7 +27,7 @@ COPY pkg/ pkg/
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -tags \
     "exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp" \
     --ldflags="-X 'github.com/crowdstrike/falcon-operator/version.Version=${VERSION}'" \
-    -o manager main.go
+    -o manager cmd/main.go
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
