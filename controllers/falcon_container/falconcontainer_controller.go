@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
 	arv1 "k8s.io/api/admissionregistration/v1"

@@ -3,7 +3,7 @@ package assets
 import (
 	"testing"
 
-	"github.com/crowdstrike/falcon-operator/apis/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/node"
 	"github.com/google/go-cmp/cmp"
