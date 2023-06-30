@@ -6,7 +6,7 @@ import (
 	"reflect"
 
 	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
-	"github.com/crowdstrike/falcon-operator/pkg/assets"
+	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/go-logr/logr"
@@ -65,16 +65,17 @@ func (r *FalconContainerReconciler) reconcileRegistrySecrets(ctx context.Context
 }
 
 func (r *FalconContainerReconciler) reconcileRegistrySecret(namespace string, pulltoken []byte, ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.Secret, error) {
-	secret := assets.PullSecret(namespace, pulltoken)
+	secretData := map[string][]byte{corev1.DockerConfigJsonKey: common.CleanDecodedBase64(pulltoken)}
+	secret := assets.Secret(common.FalconPullSecretName, namespace, "falcon-operator", secretData, corev1.SecretTypeDockerConfigJson)
 	existingSecret := &corev1.Secret{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: namespace}, existingSecret)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			if err := ctrl.SetControllerReference(falconContainer, &secret, r.Scheme); err != nil {
+			if err := ctrl.SetControllerReference(falconContainer, secret, r.Scheme); err != nil {
 				return &corev1.Secret{}, fmt.Errorf("failed to set controller reference on registry pull token secret %s: %v", secret.ObjectMeta.Name, err)
 			}
 
-			return &secret, r.Create(ctx, log, falconContainer, &secret)
+			return secret, r.Create(ctx, log, falconContainer, secret)
 		}
 
 		return &corev1.Secret{}, fmt.Errorf("unable to query existing secret %s in namespace %s: %v", common.FalconPullSecretName, namespace, err)

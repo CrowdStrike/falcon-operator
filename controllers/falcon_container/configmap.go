@@ -8,12 +8,12 @@ import (
 	"strings"
 
 	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -54,18 +54,8 @@ func (r *FalconContainerReconciler) newCABundleConfigMap(ctx context.Context, lo
 	data := make(map[string]string)
 	if falconContainer.Spec.Registry.TLS.CACertificate != "" {
 		data["tls.crt"] = string(common.DecodeBase64Interface(falconContainer.Spec.Registry.TLS.CACertificate))
-		return &corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: corev1.SchemeGroupVersion.String(),
-				Kind:       "ConfigMap",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      registryCABundleConfigMapName,
-				Namespace: r.Namespace(),
-				Labels:    common.CRLabels("configmap", registryCABundleConfigMapName, common.FalconSidecarSensor),
-			},
-			Data: data,
-		}, nil
+
+		return assets.SensorConfigMap(registryCABundleConfigMapName, r.Namespace(), common.FalconSidecarSensor, data), nil
 	}
 	return &corev1.ConfigMap{}, fmt.Errorf("unable to determine contents of Registry TLS CACertificate attribute")
 }
@@ -127,16 +117,5 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.L
 		}
 	}
 
-	return &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      injectorConfigMapName,
-			Namespace: r.Namespace(),
-			Labels:    common.CRLabels("configmap", injectorConfigMapName, common.FalconSidecarSensor),
-		},
-		Data: data,
-	}, nil
+	return assets.SensorConfigMap(injectorConfigMapName, r.Namespace(), common.FalconSidecarSensor, data), nil
 }

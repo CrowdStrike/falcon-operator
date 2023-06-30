@@ -17,6 +17,7 @@ COPY cmd/main.go cmd/main.go
 COPY version/ version/
 COPY api/ api/
 COPY controllers/ controllers/
+COPY internal/controller/ internal/controller/
 COPY pkg/ pkg/
 
 # Build

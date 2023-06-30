@@ -6,18 +6,18 @@ import (
 	"reflect"
 
 	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (r *FalconContainerReconciler) reconcileService(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.Service, error) {
-	service := r.newService(falconContainer)
+	selector := map[string]string{common.FalconComponentKey: common.FalconSidecarSensor}
+	service := assets.Service(injectorName, r.Namespace(), common.FalconSidecarSensor, selector, *falconContainer.Spec.Injector.ListenPort)
 	updated := false
 	existingService := &corev1.Service{}
 
@@ -50,29 +50,4 @@ func (r *FalconContainerReconciler) reconcileService(ctx context.Context, log lo
 
 	return existingService, nil
 
-}
-
-func (r *FalconContainerReconciler) newService(falconContainer *v1alpha1.FalconContainer) *corev1.Service {
-	return &corev1.Service{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "Service",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      injectorName,
-			Namespace: r.Namespace(),
-			Labels:    common.CRLabels("service", injectorName, common.FalconSidecarSensor),
-		},
-		Spec: corev1.ServiceSpec{
-			Selector: map[string]string{common.FalconComponentKey: common.FalconSidecarSensor},
-			Ports: []corev1.ServicePort{
-				{
-					Name:       common.FalconServiceHTTPSName,
-					Port:       *falconContainer.Spec.Injector.ListenPort,
-					Protocol:   corev1.ProtocolTCP,
-					TargetPort: intstr.FromString(common.FalconServiceHTTPSName),
-				},
-			},
-		},
-	}
 }
