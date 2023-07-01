@@ -6,9 +6,9 @@ import (
 	"reflect"
 
 	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -20,7 +20,7 @@ const (
 )
 
 func (r *FalconContainerReconciler) reconcileImageStream(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*imagev1.ImageStream, error) {
-	imageStream := r.newImageStream(falconContainer)
+	imageStream := assets.ImageStream(imageStreamName, r.imageNamespace(falconContainer))
 	existingImageStream := &imagev1.ImageStream{}
 
 	err := r.Client.Get(ctx, types.NamespacedName{Name: imageStreamName, Namespace: r.imageNamespace(falconContainer)}, existingImageStream)
@@ -43,12 +43,4 @@ func (r *FalconContainerReconciler) reconcileImageStream(ctx context.Context, lo
 	existingImageStream.Spec = imageStream.Spec
 
 	return existingImageStream, r.Update(ctx, log, falconContainer, existingImageStream)
-}
-
-func (r *FalconContainerReconciler) newImageStream(falconContainer *v1alpha1.FalconContainer) *imagev1.ImageStream {
-	return &imagev1.ImageStream{
-		TypeMeta:   metav1.TypeMeta{APIVersion: imagev1.SchemeGroupVersion.String(), Kind: "ImageStream"},
-		ObjectMeta: metav1.ObjectMeta{Name: imageStreamName, Namespace: r.imageNamespace(falconContainer)},
-		Spec:       imagev1.ImageStreamSpec{},
-	}
 }

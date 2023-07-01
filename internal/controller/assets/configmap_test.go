@@ -11,7 +11,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestDaemonsetConfigMap(t *testing.T) {
+// TestDaemonsetConfigMap tests the SensorConfigMap function
+func TestSensorConfigMap(t *testing.T) {
 	falconNode := v1alpha1.FalconNodeSensor{}
 	falconNode.Spec.FalconAPI = nil
 	falconCID := "1234567890ABCDEF1234567890ABCDEF-12"
@@ -19,6 +20,10 @@ func TestDaemonsetConfigMap(t *testing.T) {
 	cfgName := "test"
 
 	want := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cfgName,
 			Namespace: cfgName,
@@ -31,7 +36,7 @@ func TestDaemonsetConfigMap(t *testing.T) {
 
 	config := node.ConfigCacheTest(falconCID, falconImage, &falconNode)
 
-	got := DaemonsetConfigMap("test", "test", config)
+	got := SensorConfigMap("test", "test", common.FalconKernelSensor, config.SensorEnvVars())
 	if diff := cmp.Diff(&want, &got); diff != "" {
 		t.Errorf("getTermGracePeriod() mismatch (-want +got): %s", diff)
 	}

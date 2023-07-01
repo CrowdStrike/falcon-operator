@@ -6,11 +6,10 @@ import (
 	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
-	common_assets "github.com/crowdstrike/falcon-operator/pkg/assets"
+	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/node"
-	"github.com/crowdstrike/falcon-operator/pkg/node/assets"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
 	"github.com/operator-framework/operator-lib/proxy"
@@ -440,7 +439,8 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 		return err
 	}
 
-	secret = common_assets.PullSecret(nodesensor.TargetNs(), pulltoken)
+	secretData := map[string][]byte{corev1.DockerConfigJsonKey: common.CleanDecodedBase64(pulltoken)}
+	secret = *assets.Secret(common.FalconPullSecretName, nodesensor.TargetNs(), common.FalconKernelSensor, secretData, corev1.SecretTypeDockerConfigJson)
 	err = ctrl.SetControllerReference(nodesensor, &secret, r.Scheme)
 	if err != nil {
 		logger.Error(err, "Unable to assign Controller Reference to the Pull Secret")
@@ -458,7 +458,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 }
 
 func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name string, config *node.ConfigCache, nodesensor *falconv1alpha1.FalconNodeSensor) (*corev1.ConfigMap, error) {
-	cm := assets.DaemonsetConfigMap(name, nodesensor.TargetNs(), config)
+	cm := assets.SensorConfigMap(name, nodesensor.TargetNs(), common.FalconKernelSensor, config.SensorEnvVars())
 
 	err := controllerutil.SetControllerReference(nodesensor, cm, r.Scheme)
 	if err != nil {
