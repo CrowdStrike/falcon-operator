@@ -136,6 +136,32 @@ rules:
   - update
   - watch
 - apiGroups:
+  - crowdstrike.com
+  resources:
+  - falconadmissions
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - crowdstrike.com
+  resources:
+  - falconadmissions/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - crowdstrike.com
+  resources:
+  - falconadmissions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - falcon.crowdstrike.com
   resources:
   - falconcontainers

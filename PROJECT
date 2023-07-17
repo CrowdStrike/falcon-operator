@@ -30,4 +30,12 @@ resources:
   kind: FalconNodeSensor
   path: github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: crowdstrike.com
+  kind: FalconAdmission
+  path: github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1
+  version: v1alpha1
 version: "3"
