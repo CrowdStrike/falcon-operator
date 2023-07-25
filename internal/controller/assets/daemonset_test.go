@@ -3,7 +3,7 @@ package assets
 import (
 	"testing"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/google/go-cmp/cmp"
 	appsv1 "k8s.io/api/apps/v1"
@@ -13,7 +13,7 @@ import (
 )
 
 func TestGetTermGracePeriod(t *testing.T) {
-	falconNode := v1alpha1.FalconNodeSensor{}
+	falconNode := falconv1alpha1.FalconNodeSensor{}
 	falconNode.Spec.FalconAPI = nil
 
 	want := int64(10)
@@ -30,7 +30,7 @@ func TestGetTermGracePeriod(t *testing.T) {
 }
 
 func TestNodeAffinity(t *testing.T) {
-	falconNode := v1alpha1.FalconNodeSensor{}
+	falconNode := falconv1alpha1.FalconNodeSensor{}
 
 	got := nodeAffinity(&falconNode)
 	want := &corev1.Affinity{}
@@ -64,7 +64,7 @@ func TestNodeAffinity(t *testing.T) {
 }
 
 func TestPullSecrets(t *testing.T) {
-	falconNode := v1alpha1.FalconNodeSensor{}
+	falconNode := falconv1alpha1.FalconNodeSensor{}
 
 	want := []corev1.LocalObjectReference{
 		{
@@ -93,7 +93,7 @@ func TestPullSecrets(t *testing.T) {
 }
 
 func TestDsUpdateStrategy(t *testing.T) {
-	falconNode := v1alpha1.FalconNodeSensor{}
+	falconNode := falconv1alpha1.FalconNodeSensor{}
 
 	// Test OnDelete return value
 	falconNode.Spec.Node.DSUpdateStrategy.Type = "OnDelete"
@@ -125,7 +125,7 @@ func TestDsUpdateStrategy(t *testing.T) {
 }
 
 func TestDaemonset(t *testing.T) {
-	falconNode := v1alpha1.FalconNodeSensor{}
+	falconNode := falconv1alpha1.FalconNodeSensor{}
 	falconNode.Namespace = "falcon-system"
 	falconNode.Name = "test"
 	image := "testImage"
@@ -248,7 +248,7 @@ func TestDaemonset(t *testing.T) {
 }
 
 func TestRemoveNodeDirDaemonset(t *testing.T) {
-	falconNode := v1alpha1.FalconNodeSensor{}
+	falconNode := falconv1alpha1.FalconNodeSensor{}
 	falconNode.Namespace = "falcon-system"
 	falconNode.Name = "test"
 	image := "testImage"

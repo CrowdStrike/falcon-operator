@@ -33,7 +33,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
-	v1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	containercontroller "github.com/crowdstrike/falcon-operator/controllers/falcon_container"
 	nodecontroller "github.com/crowdstrike/falcon-operator/controllers/falcon_node"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
@@ -51,7 +51,7 @@ func init() {
 	utilruntime.Must(imagev1.AddToScheme(scheme))
 	utilruntime.Must(securityv1.AddToScheme(scheme))
 
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(falconv1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -119,11 +119,11 @@ func main() {
 		Namespace:              watchNamespace, // namespaced-scope when the value is not an empty string
 		NewCache: cache.BuilderWithOptions(cache.Options{
 			SelectorsByObject: cache.SelectorsByObject{
-				&v1alpha1.FalconContainer{}:  {},
-				&corev1.Namespace{}:          {},
-				&rbacv1.ClusterRoleBinding{}: {},
-				&corev1.ServiceAccount{}:     {},
-				&imagev1.ImageStream{}:       {},
+				&falconv1alpha1.FalconContainer{}: {},
+				&corev1.Namespace{}:               {},
+				&rbacv1.ClusterRoleBinding{}:      {},
+				&corev1.ServiceAccount{}:          {},
+				&imagev1.ImageStream{}:            {},
 				&corev1.Service{}: {
 					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconSidecarSensor}),
 				},

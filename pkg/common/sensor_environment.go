@@ -4,10 +4,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 )
 
-func MakeSensorEnvMap(falconSensor v1alpha1.FalconSensor) map[string]string {
+func MakeSensorEnvMap(falconSensor falconv1alpha1.FalconSensor) map[string]string {
 	sensorConfig := make(map[string]string)
 	proxy := NewProxyInfo()
 

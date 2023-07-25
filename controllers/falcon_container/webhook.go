@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
 	"github.com/go-logr/logr"
 	arv1 "k8s.io/api/admissionregistration/v1"
@@ -18,7 +18,7 @@ const (
 	webhookName = "mutatingwebhook.sidecar.falcon.crowdstrike.com"
 )
 
-func (r *FalconContainerReconciler) reconcileWebhook(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer, caBundle []byte) (*arv1.MutatingWebhookConfiguration, error) {
+func (r *FalconContainerReconciler) reconcileWebhook(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer, caBundle []byte) (*arv1.MutatingWebhookConfiguration, error) {
 	disableDefaultNSInjection := false
 
 	if falconContainer.Spec.Injector.DisableDefaultNSInjection {

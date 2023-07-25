@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
 	"github.com/go-logr/logr"
 	"github.com/operator-framework/operator-lib/proxy"
@@ -28,7 +28,7 @@ const (
 	registryCABundleConfigMapName = "falcon-sidecar-registry-certs"
 )
 
-func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.Secret, error) {
+func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.Secret, error) {
 	existingInjectorTLSSecret := &corev1.Secret{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorTLSSecretName, Namespace: r.Namespace()}, existingInjectorTLSSecret)
 	if err != nil {
@@ -58,7 +58,7 @@ func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Conte
 
 }
 
-func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*appsv1.Deployment, error) {
+func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*appsv1.Deployment, error) {
 	update := false
 
 	imageUri, err := r.imageUri(ctx, falconContainer)
@@ -149,7 +149,7 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log
 
 }
 
-func (r *FalconContainerReconciler) injectorPodReady(ctx context.Context, falconContainer *v1alpha1.FalconContainer) (*corev1.Pod, error) {
+func (r *FalconContainerReconciler) injectorPodReady(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer) (*corev1.Pod, error) {
 	podList := &corev1.PodList{}
 	listOpts := []client.ListOption{
 		client.InNamespace(r.Namespace()),

@@ -3,7 +3,7 @@ package assets
 import (
 	"testing"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/node"
 	"github.com/google/go-cmp/cmp"
@@ -13,7 +13,7 @@ import (
 
 // TestDaemonsetConfigMap tests the SensorConfigMap function
 func TestSensorConfigMap(t *testing.T) {
-	falconNode := v1alpha1.FalconNodeSensor{}
+	falconNode := falconv1alpha1.FalconNodeSensor{}
 	falconNode.Spec.FalconAPI = nil
 	falconCID := "1234567890ABCDEF1234567890ABCDEF-12"
 	falconImage := "testMyImage"

@@ -1,7 +1,7 @@
 package assets
 
 import (
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -10,7 +10,7 @@ import (
 )
 
 // SideCarDeployment returns a Deployment object for the CrowdStrike Falcon sidecar
-func SideCarDeployment(name string, namespace string, component string, imageUri string, falconContainer *v1alpha1.FalconContainer) *appsv1.Deployment {
+func SideCarDeployment(name string, namespace string, component string, imageUri string, falconContainer *falconv1alpha1.FalconContainer) *appsv1.Deployment {
 	imagePullSecrets := []corev1.LocalObjectReference{{Name: common.FalconPullSecretName}}
 	initContainerName := "crowdstrike-falcon-init-container"
 	injectorConfigMapName := "falcon-sidecar-injector-config"

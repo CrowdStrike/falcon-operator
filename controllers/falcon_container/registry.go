@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
@@ -16,7 +16,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *FalconContainerReconciler) reconcileRegistrySecrets(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.SecretList, error) {
+func (r *FalconContainerReconciler) reconcileRegistrySecrets(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.SecretList, error) {
 	injectionEnabledValue := "enabled"
 	injectionDisabledValue := "disabled"
 	disableDefaultNSInjection := false
@@ -64,7 +64,7 @@ func (r *FalconContainerReconciler) reconcileRegistrySecrets(ctx context.Context
 	return secretList, nil
 }
 
-func (r *FalconContainerReconciler) reconcileRegistrySecret(namespace string, pulltoken []byte, ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.Secret, error) {
+func (r *FalconContainerReconciler) reconcileRegistrySecret(namespace string, pulltoken []byte, ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.Secret, error) {
 	secretData := map[string][]byte{corev1.DockerConfigJsonKey: common.CleanDecodedBase64(pulltoken)}
 	secret := assets.Secret(common.FalconPullSecretName, namespace, "falcon-operator", secretData, corev1.SecretTypeDockerConfigJson)
 	existingSecret := &corev1.Secret{}

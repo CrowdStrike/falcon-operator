@@ -1,14 +1,14 @@
 package assets
 
 import (
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	arv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // MutatingWebhook creates a MutatingWebhookConfiguration object
-func MutatingWebhook(name string, namespace string, webhookName string, caBundle []byte, disableNSInjection bool, falconContainer *v1alpha1.FalconContainer) *arv1.MutatingWebhookConfiguration {
+func MutatingWebhook(name string, namespace string, webhookName string, caBundle []byte, disableNSInjection bool, falconContainer *falconv1alpha1.FalconContainer) *arv1.MutatingWebhookConfiguration {
 	sideEffects := arv1.SideEffectClassNone
 	reinvocationPolicy := arv1.NeverReinvocationPolicy
 	failurePolicy := arv1.Fail

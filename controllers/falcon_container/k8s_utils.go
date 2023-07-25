@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *FalconContainerReconciler) Create(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer, obj runtime.Object) error {
+func (r *FalconContainerReconciler) Create(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer, obj runtime.Object) error {
 	switch t := obj.(type) {
 	case client.Object:
 		name := t.GetName()
@@ -41,7 +41,7 @@ func (r *FalconContainerReconciler) Create(ctx context.Context, log logr.Logger,
 	}
 }
 
-func (r *FalconContainerReconciler) Update(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer, obj runtime.Object) error {
+func (r *FalconContainerReconciler) Update(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer, obj runtime.Object) error {
 	switch t := obj.(type) {
 	case client.Object:
 		name := t.GetName()
@@ -67,7 +67,7 @@ func (r *FalconContainerReconciler) Update(ctx context.Context, log logr.Logger,
 	}
 }
 
-func (r *FalconContainerReconciler) Delete(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer, obj runtime.Object) error {
+func (r *FalconContainerReconciler) Delete(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer, obj runtime.Object) error {
 	switch t := obj.(type) {
 	case client.Object:
 		name := t.GetName()

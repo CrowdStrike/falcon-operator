@@ -3,7 +3,7 @@ package assets
 import (
 	"testing"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/google/go-cmp/cmp"
 	appsv1 "k8s.io/api/apps/v1"
@@ -14,7 +14,7 @@ import (
 
 // TestDeployment tests the Deployment function
 func TestSideCarDeployment(t *testing.T) {
-	falconContainer := &v1alpha1.FalconContainer{}
+	falconContainer := &falconv1alpha1.FalconContainer{}
 	falconContainer.Spec.Injector.Resources = &corev1.ResourceRequirements{}
 	falconContainer.Spec.Injector.AzureConfigPath = "/test"
 	falconContainer.Spec.Registry.TLS.CACertificateConfigMap = "test"
@@ -31,7 +31,7 @@ func TestSideCarDeployment(t *testing.T) {
 }
 
 // testSideCarDeployment is a helper function to create a Deployment object for testing
-func testSideCarDeployment(name string, namespace string, component string, imageUri string, falconContainer *v1alpha1.FalconContainer) *appsv1.Deployment {
+func testSideCarDeployment(name string, namespace string, component string, imageUri string, falconContainer *falconv1alpha1.FalconContainer) *appsv1.Deployment {
 	replicas := int32(123)
 	imagePullSecrets := []corev1.LocalObjectReference{{Name: common.FalconPullSecretName}}
 	initContainerName := "crowdstrike-falcon-init-container"
