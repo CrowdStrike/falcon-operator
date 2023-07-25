@@ -6,11 +6,12 @@ import (
 )
 
 var (
-	NodeSelector            = map[string]string{"kubernetes.io/os": "linux"}
-	FalconShellCommand      = []string{"/bin/bash"}
-	OrigDSConfVersion       = "0"
-	FalconOperatorNamespace = "falcon-operator"
-	FalconInjectorCommand   = []string{"injector"}
+	NodeSelector              = map[string]string{"kubernetes.io/os": "linux"}
+	FalconShellCommand        = []string{"/bin/bash"}
+	OrigDSConfVersion         = "0"
+	FalconOperatorNamespace   = "falcon-operator"
+	FalconInjectorCommand     = []string{"injector"}
+	DefaultDisabledNamespaces = []string{"kube-system", "kube-public"}
 )
 
 func init() {

@@ -3,6 +3,7 @@ package v1alpha1
 const (
 	// Following strings are condition types
 
+	ConditionUnknown         string = "Unknown"
 	ConditionSuccess         string = "Success"
 	ConditionFailed          string = "Failed"
 	ConditionPending         string = "Pending"

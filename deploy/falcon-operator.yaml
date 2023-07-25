@@ -2884,7 +2884,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - crowdstrike.com
+  - falcon.crowdstrike.com
   resources:
   - falconadmissions
   verbs:
@@ -2896,13 +2896,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - crowdstrike.com
+  - falcon.crowdstrike.com
   resources:
   - falconadmissions/finalizers
   verbs:
   - update
 - apiGroups:
-  - crowdstrike.com
+  - falcon.crowdstrike.com
   resources:
   - falconadmissions/status
   verbs:

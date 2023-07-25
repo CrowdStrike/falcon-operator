@@ -2,11 +2,13 @@ apiVersion: crowdstrike.com/v1alpha1
 kind: FalconAdmission
 metadata:
   labels:
-    app.kubernetes.io/name: falconadmission
-    app.kubernetes.io/instance: falconadmission-sample
-    app.kubernetes.io/part-of: falcon-operator
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/created-by: falcon-operator
+    crowdstrike.com/component: sample
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: falconadmission-sample
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: clusterrole
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
   name: falconadmission-sample
 spec:
   # TODO(user): Add fields here

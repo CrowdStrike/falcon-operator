@@ -32,7 +32,7 @@ func TestResourceQuota(t *testing.T) {
 						Operator:  corev1.ScopeSelectorOpIn,
 						ScopeName: corev1.ResourceQuotaScopePriorityClass,
 						Values: []string{
-							"system-cluster-critical",
+							common.FalconPriorityClassName,
 						},
 					},
 				},
@@ -40,7 +40,7 @@ func TestResourceQuota(t *testing.T) {
 		},
 	}
 
-	got := ResourceQuota("test", "test", "test")
+	got := ResourceQuota("test", "test", "test", "2")
 	if diff := cmp.Diff(&want, &got); diff != "" {
 		t.Errorf("ResourceQuota() mismatch (-want +got): %s", diff)
 	}

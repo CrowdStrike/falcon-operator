@@ -13,6 +13,11 @@ const (
 	FalconDaemonsetInitBinaryInvocation    = "falcon-daemonset-init -i"
 	FalconDaemonsetCleanupBinaryInvocation = "falcon-daemonset-init -u"
 	FalconContainerProbePath               = "/live"
+	FalconAdmissionClientStartupProbePath  = "/startz"
+	FalconAdmissionClientLivenessProbePath = "/livez"
+	FalconAdmissionStartupProbePath        = "/startz-kac"
+	FalconAdmissionLivenessProbePath       = "/livez-kac"
+	FalconAdmissionServiceHTTPSName        = "webhook-port"
 	FalconServiceHTTPSName                 = "https"
 	FalconServiceHTTPSPort                 = 443
 
@@ -33,9 +38,11 @@ const (
 	FalconPartOfValue         = "Falcon"
 	FalconCreatedValue        = "falcon-operator"
 	FalconManagedByValue      = "controller-manager"
+	FalconPriorityClassName   = "system-cluster-critical"
 
-	SidecarServiceAccountName  = "falcon-operator-sidecar-sensor"
-	FalconPullSecretName       = "crowdstrike-falcon-pull-secret"
-	NodeServiceAccountName     = "falcon-operator-node-sensor"
-	NodeClusterRoleBindingName = "crowdstrike-falcon-node-sensor"
+	SidecarServiceAccountName   = "falcon-operator-sidecar-sensor"
+	FalconPullSecretName        = "crowdstrike-falcon-pull-secret"
+	NodeServiceAccountName      = "falcon-operator-node-sensor"
+	AdmissionServiceAccountName = "falcon-operator-admission-controller"
+	NodeClusterRoleBindingName  = "crowdstrike-falcon-node-sensor"
 )
