@@ -7,22 +7,21 @@ import (
 )
 
 // ValidatingWebhook returns a ValidatingWebhookConfiguration object
-func ValidatingWebhook(name string, namespace string, webhookName string, caBundle []byte) *arv1.ValidatingWebhookConfiguration {
+func ValidatingWebhook(name string, namespace string, webhookName string, caBundle []byte, port int32, failPolicy arv1.FailurePolicyType, disabledNamespaces []string) *arv1.ValidatingWebhookConfiguration {
 	failurePolicy := arv1.Ignore
 	matchPolicy := arv1.Equivalent
 	sideEffects := arv1.SideEffectClassNone
 	timeoutSeconds := int32(5)
 	operatorSelector := metav1.LabelSelectorOpNotIn
 	path := "/validate"
-	port := int32(443)
 	scope := arv1.AllScopes
 	admissionOperatorValues := []string{"disabled"}
-	labels := common.CRLabels("mutatingwebhook", name, common.FalconAdmissionController)
+	labels := common.CRLabels("validatingwebhook", name, common.FalconAdmissionController)
 
 	return &arv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: arv1.SchemeGroupVersion.String(),
-			Kind:       "MutatingWebhookConfiguration",
+			Kind:       "ValidatingWebhookConfiguration",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -34,9 +33,8 @@ func ValidatingWebhook(name string, namespace string, webhookName string, caBund
 				Name:                    webhookName,
 				AdmissionReviewVersions: []string{"v1"},
 				SideEffects:             &sideEffects,
-				// TODO: add support for failurePolicy but only for this failurePolicy
-				FailurePolicy: &failurePolicy,
-				MatchPolicy:   &matchPolicy,
+				FailurePolicy:           &failPolicy,
+				MatchPolicy:             &matchPolicy,
 				ClientConfig: arv1.WebhookClientConfig{
 					CABundle: caBundle,
 					Service: &arv1.ServiceReference{
@@ -52,13 +50,7 @@ func ValidatingWebhook(name string, namespace string, webhookName string, caBund
 						{
 							Key:      "kubernetes.io/metadata.name",
 							Operator: operatorSelector,
-							Values: []string{
-								namespace,
-								"kube-system",
-								"kube-public",
-								"falcon-system",
-							},
-							// TODO: Need to add a list of custom namespaces as well as openshift namespaces
+							Values:   disabledNamespaces,
 						},
 						{
 							Key:      common.FalconAdmissionReviewKey,
@@ -110,13 +102,7 @@ func ValidatingWebhook(name string, namespace string, webhookName string, caBund
 						{
 							Key:      "kubernetes.io/metadata.name",
 							Operator: operatorSelector,
-							Values: []string{
-								namespace,
-								"kube-system",
-								"kube-public",
-								"falcon-system",
-							},
-							// TODO: Need to add a list of custom namespaces as well as openshift namespaces
+							Values:   disabledNamespaces,
 						},
 						{
 							Key:      common.FalconAdmissionReviewKey,

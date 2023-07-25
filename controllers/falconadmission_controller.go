@@ -17,9 +17,9 @@ type FalconAdmissionReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=crowdstrike.com,resources=falconadmissions,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=crowdstrike.com,resources=falconadmissions/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=crowdstrike.com,resources=falconadmissions/finalizers,verbs=update
+//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconadmissions,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconadmissions/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconadmissions/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

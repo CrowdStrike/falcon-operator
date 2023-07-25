@@ -8,7 +8,7 @@ import (
 )
 
 // ResourceQuota returns a ResourceQuota object for the admission controller
-func ResourceQuota(name string, namespace string, component string) *corev1.ResourceQuota {
+func ResourceQuota(name string, namespace string, component string, resourcePod string) *corev1.ResourceQuota {
 	labels := common.CRLabels("resourcequota", name, component)
 
 	return &corev1.ResourceQuota{
@@ -23,7 +23,7 @@ func ResourceQuota(name string, namespace string, component string) *corev1.Reso
 		},
 		Spec: corev1.ResourceQuotaSpec{
 			Hard: corev1.ResourceList{
-				corev1.ResourcePods: resource.MustParse("2"),
+				corev1.ResourcePods: resource.MustParse(resourcePod),
 			},
 			ScopeSelector: &corev1.ScopeSelector{
 				MatchExpressions: []corev1.ScopedResourceSelectorRequirement{
@@ -31,7 +31,7 @@ func ResourceQuota(name string, namespace string, component string) *corev1.Reso
 						Operator:  corev1.ScopeSelectorOpIn,
 						ScopeName: corev1.ResourceQuotaScopePriorityClass,
 						Values: []string{
-							"system-cluster-critical",
+							common.FalconPriorityClassName,
 						},
 					},
 				},
