@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -37,7 +37,7 @@ func (r *FalconContainerReconciler) NamespaceLabels() map[string]string {
 	return nsLabels
 }
 
-func (r *FalconContainerReconciler) reconcileNamespace(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.Namespace, error) {
+func (r *FalconContainerReconciler) reconcileNamespace(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.Namespace, error) {
 	namespace := r.newNamespace()
 	existingNamespace := &corev1.Namespace{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: r.Namespace()}, existingNamespace)

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
@@ -18,15 +18,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *FalconContainerReconciler) reconcileRegistryCABundleConfigMap(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
+func (r *FalconContainerReconciler) reconcileRegistryCABundleConfigMap(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
 	return r.reconcileGenericConfigMap(registryCABundleConfigMapName, r.newCABundleConfigMap, ctx, log, falconContainer)
 }
 
-func (r *FalconContainerReconciler) reconcileConfigMap(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
+func (r *FalconContainerReconciler) reconcileConfigMap(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
 	return r.reconcileGenericConfigMap(injectorConfigMapName, r.newConfigMap, ctx, log, falconContainer)
 }
 
-func (r *FalconContainerReconciler) reconcileGenericConfigMap(name string, genFunc func(context.Context, logr.Logger, *v1alpha1.FalconContainer) (*corev1.ConfigMap, error), ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
+func (r *FalconContainerReconciler) reconcileGenericConfigMap(name string, genFunc func(context.Context, logr.Logger, *falconv1alpha1.FalconContainer) (*corev1.ConfigMap, error), ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
 	configMap, err := genFunc(ctx, log, falconContainer)
 	if err != nil {
 		return configMap, fmt.Errorf("unable to render expected configmap: %v", err)
@@ -50,7 +50,7 @@ func (r *FalconContainerReconciler) reconcileGenericConfigMap(name string, genFu
 
 }
 
-func (r *FalconContainerReconciler) newCABundleConfigMap(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
+func (r *FalconContainerReconciler) newCABundleConfigMap(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
 	data := make(map[string]string)
 	if falconContainer.Spec.Registry.TLS.CACertificate != "" {
 		data["tls.crt"] = string(common.DecodeBase64Interface(falconContainer.Spec.Registry.TLS.CACertificate))
@@ -60,7 +60,7 @@ func (r *FalconContainerReconciler) newCABundleConfigMap(ctx context.Context, lo
 	return &corev1.ConfigMap{}, fmt.Errorf("unable to determine contents of Registry TLS CACertificate attribute")
 }
 
-func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
+func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
 	data := common.MakeSensorEnvMap(falconContainer.Spec.Falcon)
 	data["CP_NAMESPACE"] = r.Namespace()
 	data["FALCON_INJECTOR_LISTEN_PORT"] = strconv.Itoa(int(*falconContainer.Spec.Injector.ListenPort))

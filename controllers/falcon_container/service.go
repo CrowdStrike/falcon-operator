@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/go-logr/logr"
@@ -15,7 +15,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *FalconContainerReconciler) reconcileService(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.Service, error) {
+func (r *FalconContainerReconciler) reconcileService(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.Service, error) {
 	selector := map[string]string{common.FalconComponentKey: common.FalconSidecarSensor}
 	service := assets.Service(injectorName, r.Namespace(), common.FalconSidecarSensor, selector, *falconContainer.Spec.Injector.ListenPort)
 	updated := false

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -21,7 +21,7 @@ const (
 	injectorClusterRoleBindingName = "falcon-operator-container-rolebinding"
 )
 
-func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*corev1.ServiceAccount, error) {
+func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.ServiceAccount, error) {
 	update := false
 	serviceAccount := r.newServiceAccount(falconContainer)
 	existingServiceAccount := &corev1.ServiceAccount{}
@@ -51,7 +51,7 @@ func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context,
 
 }
 
-func (r *FalconContainerReconciler) reconcileClusterRoleBinding(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*rbacv1.ClusterRoleBinding, error) {
+func (r *FalconContainerReconciler) reconcileClusterRoleBinding(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*rbacv1.ClusterRoleBinding, error) {
 	clusterRoleBinding := r.newClusterRoleBinding(falconContainer)
 	existingClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorClusterRoleBindingName}, existingClusterRoleBinding)
@@ -82,7 +82,7 @@ func (r *FalconContainerReconciler) reconcileClusterRoleBinding(ctx context.Cont
 
 }
 
-func (r *FalconContainerReconciler) newServiceAccount(falconContainer *v1alpha1.FalconContainer) *corev1.ServiceAccount {
+func (r *FalconContainerReconciler) newServiceAccount(falconContainer *falconv1alpha1.FalconContainer) *corev1.ServiceAccount {
 	imagePullSecrets := []corev1.LocalObjectReference{{Name: common.FalconPullSecretName}}
 	if common.FalconPullSecretName != falconContainer.Spec.Injector.ImagePullSecretName {
 		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: falconContainer.Spec.Injector.ImagePullSecretName})
@@ -102,7 +102,7 @@ func (r *FalconContainerReconciler) newServiceAccount(falconContainer *v1alpha1.
 	}
 }
 
-func (r *FalconContainerReconciler) newClusterRoleBinding(falconContainer *v1alpha1.FalconContainer) *rbacv1.ClusterRoleBinding {
+func (r *FalconContainerReconciler) newClusterRoleBinding(falconContainer *falconv1alpha1.FalconContainer) *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: rbacv1.SchemeGroupVersion.String(),

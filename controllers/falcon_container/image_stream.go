@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -19,7 +19,7 @@ const (
 	imageStreamName = "falcon-sidecar-container"
 )
 
-func (r *FalconContainerReconciler) reconcileImageStream(ctx context.Context, log logr.Logger, falconContainer *v1alpha1.FalconContainer) (*imagev1.ImageStream, error) {
+func (r *FalconContainerReconciler) reconcileImageStream(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*imagev1.ImageStream, error) {
 	imageStream := assets.ImageStream(imageStreamName, r.imageNamespace(falconContainer))
 	existingImageStream := &imagev1.ImageStream{}
 

@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 )
 
-var falconNode = v1alpha1.FalconNodeSensor{}
+var falconNode = falconv1alpha1.FalconNodeSensor{}
 var falconCID = "1234567890ABCDEF1234567890ABCDEF-12"
 var falconImage = "testMyImage"
 var config = ConfigCache{cid: falconCID, imageUri: falconImage, nodesensor: &falconNode}
@@ -83,7 +83,7 @@ func TestGetPullToken(t *testing.T) {
 		t.Errorf("GetPullToken() = %s, want %s", got, "not empty")
 	}
 
-	config.nodesensor.Spec.FalconAPI = &v1alpha1.FalconAPI{
+	config.nodesensor.Spec.FalconAPI = &falconv1alpha1.FalconAPI{
 		ClientId:     "testID",
 		ClientSecret: "testSecret",
 		CloudRegion:  "testRegion",
@@ -132,7 +132,7 @@ func TestNewConfigCache(t *testing.T) {
 		t.Errorf("NewConfigCache() = %v, want %v", newCache, want)
 	}
 
-	config.nodesensor.Spec.FalconAPI = &v1alpha1.FalconAPI{
+	config.nodesensor.Spec.FalconAPI = &falconv1alpha1.FalconAPI{
 		ClientId:     "testID",
 		ClientSecret: "testSecret",
 		CloudRegion:  "testRegion",
@@ -158,7 +158,7 @@ func TestConfigCacheTest(t *testing.T) {
 }
 
 func TestGetFalconImage(t *testing.T) {
-	falconNode.Spec.FalconAPI = &v1alpha1.FalconAPI{
+	falconNode.Spec.FalconAPI = &falconv1alpha1.FalconAPI{
 		ClientId:     "testID",
 		ClientSecret: "testSecret",
 		CloudRegion:  "testRegion",

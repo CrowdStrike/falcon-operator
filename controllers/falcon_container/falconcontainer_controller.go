@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
 	arv1 "k8s.io/api/admissionregistration/v1"
@@ -34,7 +34,7 @@ type FalconContainerReconciler struct {
 // SetupWithManager sets up the controller with the Manager.
 func (r *FalconContainerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.FalconContainer{}).
+		For(&falconv1alpha1.FalconContainer{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Namespace{}).
 		Owns(&corev1.Secret{}).
@@ -69,7 +69,7 @@ func (r *FalconContainerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.7.2/pkg/reconcile
 func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	falconContainer := &v1alpha1.FalconContainer{}
+	falconContainer := &falconv1alpha1.FalconContainer{}
 
 	if err := r.Get(ctx, req.NamespacedName, falconContainer); err != nil {
 		if errors.IsNotFound(err) {
@@ -83,9 +83,9 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if falconContainer.Status.Conditions == nil || len(falconContainer.Status.Conditions) == 0 {
-		err := r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionPending,
+		err := r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionPending,
 			metav1.ConditionFalse,
-			v1alpha1.ReasonReqNotMet,
+			falconv1alpha1.ReasonReqNotMet,
 			"FalconContainer progressing")
 		if err != nil {
 			return ctrl.Result{}, err
@@ -116,18 +116,18 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	} else {
 		switch falconContainer.Spec.Registry.Type {
-		case v1alpha1.RegistryTypeECR:
+		case falconv1alpha1.RegistryTypeECR:
 			if _, err := r.UpsertECRRepo(ctx); err != nil {
-				err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile ECR repository: %v", err))
+				err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile ECR repository: %v", err))
 				if err != nil {
 					return ctrl.Result{}, err
 				}
 				return ctrl.Result{}, fmt.Errorf("failed to reconcile ECR repository: %v", err)
 			}
-		case v1alpha1.RegistryTypeOpenshift:
+		case falconv1alpha1.RegistryTypeOpenshift:
 			stream, err := r.reconcileImageStream(ctx, log, falconContainer)
 			if err != nil {
-				err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile Image Stream: %v", err))
+				err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile Image Stream: %v", err))
 				if err != nil {
 					return ctrl.Result{}, err
 				}
@@ -141,7 +141,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		// Create a CA Bundle ConfigMap if CACertificate attribute is set; overridden by the presence of a CACertificateConfigMap value
 		if falconContainer.Spec.Registry.TLS.CACertificateConfigMap == "" && falconContainer.Spec.Registry.TLS.CACertificate != "" {
 			if _, err := r.reconcileRegistryCABundleConfigMap(ctx, log, falconContainer); err != nil {
-				err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile Registry CA Certificate Bundle ConfigMap: %v", err))
+				err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile Registry CA Certificate Bundle ConfigMap: %v", err))
 				if err != nil {
 					return ctrl.Result{}, err
 				}
@@ -151,7 +151,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 		if r.imageMirroringEnabled(falconContainer) {
 			if err := r.PushImage(ctx, log, falconContainer); err != nil {
-				err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to refresh Falcon Container image: %v", err))
+				err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to refresh Falcon Container image: %v", err))
 				if err != nil {
 					return ctrl.Result{}, err
 				}
@@ -164,7 +164,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			}
 			if err != nil {
 				log.Error(err, "Failed to verify CrowdStrike Container Image Registry access")
-				err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to verify CrowdStrike Container Image Registry access: %v", err))
+				err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to verify CrowdStrike Container Image Registry access: %v", err))
 				if err != nil {
 					return ctrl.Result{}, err
 				}
@@ -173,7 +173,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			}
 
 			if _, err = r.reconcileRegistrySecrets(ctx, log, falconContainer); err != nil {
-				err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile Falcon registry pull token Secrets: %v", err))
+				err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile Falcon registry pull token Secrets: %v", err))
 				if err != nil {
 					return ctrl.Result{}, err
 				}
@@ -183,7 +183,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if _, err := r.reconcileServiceAccount(ctx, log, falconContainer); err != nil {
-		err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile Service Account: %v", err))
+		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile Service Account: %v", err))
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -191,7 +191,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if _, err := r.reconcileClusterRoleBinding(ctx, log, falconContainer); err != nil {
-		err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile Cluster Role Binding: %v", err))
+		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile Cluster Role Binding: %v", err))
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -200,7 +200,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	injectorTLS, err := r.reconcileInjectorTLSSecret(ctx, log, falconContainer)
 	if err != nil {
-		err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile injector TLS Secret: %v", err))
+		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile injector TLS Secret: %v", err))
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -208,7 +208,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	caBundle := injectorTLS.Data["ca.crt"]
 	if caBundle == nil {
-		err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", "CA bundle not present in injector TLS Secret")
+		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", "CA bundle not present in injector TLS Secret")
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -216,7 +216,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if _, err = r.reconcileConfigMap(ctx, log, falconContainer); err != nil {
-		err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile injector ConfigMap: %v", err))
+		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile injector ConfigMap: %v", err))
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -224,7 +224,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if _, err = r.reconcileDeployment(ctx, log, falconContainer); err != nil {
-		err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile injector Deployment: %v", err))
+		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile injector Deployment: %v", err))
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -232,7 +232,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if _, err = r.reconcileService(ctx, log, falconContainer); err != nil {
-		err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile injector Service: %v", err))
+		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile injector Service: %v", err))
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -241,7 +241,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	pod, err := r.injectorPodReady(ctx, falconContainer)
 	if err != nil && err.Error() != "No Injector pod found in a Ready state" {
-		err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to find Ready injector pod: %v", err))
+		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to find Ready injector pod: %v", err))
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -253,16 +253,16 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if _, err = r.reconcileWebhook(ctx, log, falconContainer, caBundle); err != nil {
-		err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile injector MutatingWebhookConfiguration: %v", err))
+		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile injector MutatingWebhookConfiguration: %v", err))
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile injector MutatingWebhookConfiguration: %v", err)
 	}
 
-	err = r.StatusUpdate(ctx, req, log, falconContainer, v1alpha1.ConditionSuccess,
+	err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionSuccess,
 		metav1.ConditionTrue,
-		v1alpha1.ReasonInstallSucceeded,
+		falconv1alpha1.ReasonInstallSucceeded,
 		"FalconContainer installation completed")
 	if err != nil {
 		return ctrl.Result{}, err
@@ -271,7 +271,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	return ctrl.Result{}, nil
 }
 
-func (r *FalconContainerReconciler) StatusUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconContainer *v1alpha1.FalconContainer, condType string, status metav1.ConditionStatus, reason string, message string) error {
+func (r *FalconContainerReconciler) StatusUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer, condType string, status metav1.ConditionStatus, reason string, message string) error {
 	meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
 		Status:             status,
 		Reason:             reason,
