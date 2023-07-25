@@ -43,11 +43,9 @@ func dsUpdateStrategy(node *falconv1alpha1.FalconNodeSensor) appsv1.DaemonSetUpd
 	if node.Spec.Node.DSUpdateStrategy.Type == appsv1.RollingUpdateDaemonSetStrategyType || node.Spec.Node.DSUpdateStrategy.Type == "" {
 		rollingUpdateSettings := appsv1.RollingUpdateDaemonSet{}
 
-		/* Beta feature to enable later
 		if node.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxSurge != nil {
 			rollingUpdateSettings.MaxSurge = node.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxSurge
 		}
-		*/
 
 		if node.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxUnavailable != nil {
 			rollingUpdateSettings.MaxUnavailable = node.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxUnavailable

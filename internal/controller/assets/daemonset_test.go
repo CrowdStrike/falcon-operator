@@ -108,6 +108,10 @@ func TestDsUpdateStrategy(t *testing.T) {
 	want = appsv1.DaemonSetUpdateStrategy{
 		Type: appsv1.RollingUpdateDaemonSetStrategyType,
 		RollingUpdate: &appsv1.RollingUpdateDaemonSet{
+			MaxSurge: &intstr.IntOrString{
+				Type:   intstr.Int,
+				IntVal: 1,
+			},
 			MaxUnavailable: &intstr.IntOrString{
 				Type:   intstr.Int,
 				IntVal: 1,
@@ -117,6 +121,7 @@ func TestDsUpdateStrategy(t *testing.T) {
 
 	falconNode.Spec.Node.DSUpdateStrategy.Type = appsv1.RollingUpdateDaemonSetStrategyType
 	falconNode.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxUnavailable = &intstr.IntOrString{Type: intstr.Int, IntVal: 1}
+	falconNode.Spec.Node.DSUpdateStrategy.RollingUpdate.MaxSurge = &intstr.IntOrString{Type: intstr.Int, IntVal: 1}
 
 	got = dsUpdateStrategy(&falconNode)
 	if diff := cmp.Diff(want, got); diff != "" {
