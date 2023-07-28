@@ -5,4 +5,4 @@ metadata:
   namespace: falcon-operator
 spec:
   targetNamespaces:
-  - MYNAMESPACE
+  - falcon-operator

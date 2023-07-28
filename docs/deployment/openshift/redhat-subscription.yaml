@@ -7,3 +7,7 @@ spec:
   name: falcon-operator-rhmp
   source: redhat-marketplace
   sourceNamespace: openshift-marketplace
+  ### To install a specific version of the operator, specify a startingCSV. You can see available versions with:
+  ###   oc get packagemanifests falcon-operator-rhmp -n openshift-marketplace -o jsonpath='{range .status.channels[*]}Channel: {.name}{"\n"}{range .entries[*]} - Version: {.name}{"\n"}{end}{end}{"\nDefault Channel: "}{.status.defaultChannel}{"\n"}'
+  ### You may also need to modify `channel` to match.
+  # startingCSV: falcon-operator.v0.8.1
