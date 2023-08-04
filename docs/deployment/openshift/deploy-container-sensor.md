@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-Refer to the [standard deployment guide](README.md):
+Refer to the [FalconNodeSensor deployment guide](README.md):
 
 1. Follow prerequisites listed there
 2. Follow the section _Install the operator_
