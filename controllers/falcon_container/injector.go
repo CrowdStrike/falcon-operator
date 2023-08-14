@@ -10,7 +10,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/operator-framework/operator-lib/proxy"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/tls"
@@ -37,7 +36,13 @@ func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Conte
 			if falconContainer.Spec.Injector.TLS.Validity != nil {
 				validity = *falconContainer.Spec.Injector.TLS.Validity
 			}
-			c, k, b, err := tls.CertSetup(validity)
+
+			certInfo := tls.CertInfo{
+				CommonName: fmt.Sprintf("%s.%s.svc", injectorName, r.Namespace()),
+				DNSNames:   []string{fmt.Sprintf("%s.%s.svc", injectorName, r.Namespace()), fmt.Sprintf("%s.%s.svc.cluster.local", injectorName, r.Namespace())},
+			}
+
+			c, k, b, err := tls.CertSetup(validity, certInfo)
 			if err != nil {
 				return &corev1.Secret{}, fmt.Errorf("failed to generate Falcon Container PKI: %v", err)
 			}
@@ -147,26 +152,4 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log
 
 	return existingDeployment, nil
 
-}
-
-func (r *FalconContainerReconciler) injectorPodReady(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer) (*corev1.Pod, error) {
-	podList := &corev1.PodList{}
-	listOpts := []client.ListOption{
-		client.InNamespace(r.Namespace()),
-		client.MatchingLabels{common.FalconComponentKey: common.FalconSidecarSensor},
-	}
-
-	if err := r.List(ctx, podList, listOpts...); err != nil {
-		return nil, fmt.Errorf("unable to list pods: %v", err)
-	}
-
-	for _, pod := range podList.Items {
-		for _, cond := range pod.Status.Conditions {
-			if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
-				return &pod, nil
-			}
-		}
-	}
-
-	return &corev1.Pod{}, fmt.Errorf("No Injector pod found in a Ready state")
 }

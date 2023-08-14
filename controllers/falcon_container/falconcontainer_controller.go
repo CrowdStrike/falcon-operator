@@ -7,6 +7,9 @@ import (
 	"time"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
+	"github.com/crowdstrike/falcon-operator/pkg/aws"
+	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
 	arv1 "k8s.io/api/admissionregistration/v1"
@@ -117,7 +120,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	} else {
 		switch falconContainer.Spec.Registry.Type {
 		case falconv1alpha1.RegistryTypeECR:
-			if _, err := r.UpsertECRRepo(ctx); err != nil {
+			if _, err := aws.UpsertECRRepo(ctx, "falcon-container"); err != nil {
 				err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile ECR repository: %v", err))
 				if err != nil {
 					return ctrl.Result{}, err
@@ -239,7 +242,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile injector Service: %v", err)
 	}
 
-	pod, err := r.injectorPodReady(ctx, falconContainer)
+	pod, err := k8sutils.GetReadyPod(r.Client, ctx, r.Namespace(), map[string]string{common.FalconComponentKey: common.FalconSidecarSensor})
 	if err != nil && err.Error() != "No Injector pod found in a Ready state" {
 		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to find Ready injector pod: %v", err))
 		if err != nil {

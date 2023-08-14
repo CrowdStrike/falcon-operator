@@ -9,6 +9,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/internal/controller/image"
+	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
@@ -33,7 +35,7 @@ func (r *FalconContainerReconciler) PushImage(ctx context.Context, log logr.Logg
 	}
 
 	log.Info("Found secret for image push", "Secret.Name", pushAuth.Name())
-	image := NewImageRefresher(ctx, log, r.falconApiConfig(ctx, falconContainer), pushAuth, falconContainer.Spec.Registry.TLS.InsecureSkipVerify)
+	image := image.NewImageRefresher(ctx, log, r.falconApiConfig(ctx, falconContainer), pushAuth, falconContainer.Spec.Registry.TLS.InsecureSkipVerify)
 	version := falconContainer.Spec.Version
 
 	// If we have version locking enabled (as it is by default), use the already configured version if present
@@ -113,7 +115,7 @@ func (r *FalconContainerReconciler) registryUri(ctx context.Context, falconConta
 
 		return "gcr.io/" + projectId + "/falcon-container", nil
 	case falconv1alpha1.RegistryTypeECR:
-		repo, err := r.UpsertECRRepo(ctx)
+		repo, err := aws.UpsertECRRepo(ctx, "falcon-container")
 		if err != nil {
 			return "", fmt.Errorf("Cannot get target docker URI for ECR repository: %v", err)
 		}
