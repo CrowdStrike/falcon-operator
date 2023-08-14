@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
 	ecr_types "github.com/aws/aws-sdk-go-v2/service/ecr/types"
 )
 
@@ -40,4 +41,18 @@ func (c *Config) ECRLogin(ctx context.Context) ([]byte, error) {
 		return nil, fmt.Errorf("Cannot get authorization token fro ECR.")
 	}
 	return base64.StdEncoding.DecodeString(*output.AuthorizationData[0].AuthorizationToken)
+}
+
+func UpsertECRRepo(ctx context.Context, name string) (*types.Repository, error) {
+	cfg, err := NewConfig()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to initialise connection to AWS. Please make sure that kubernetes service account falcon-operator has access to AWS IAM role and OIDC Identity provider is running on the cluster. Error was: %v", err)
+	}
+
+	data, err := cfg.UpsertRepository(ctx, name)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to upsert ECR repository: %v", err)
+	}
+
+	return data, nil
 }
