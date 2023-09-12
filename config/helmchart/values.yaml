@@ -1,0 +1,4 @@
+certified:
+  enabled: false
+  channel: stable
+  installPlanApproval: Automatic
