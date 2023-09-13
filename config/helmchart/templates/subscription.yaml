@@ -1,0 +1,17 @@
+{{- if .Values.certified.enabled }}
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: falcon-operator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "falcon-platform.labels" . | nindent 4 }}
+spec:
+  channel: {{ .Values.certified.channel }}
+  installPlanApproval: {{ .Values.certified.installPlanApproval }}
+  name: falcon-operator-rhmp
+  source: redhat-marketplace
+  sourceNamespace: openshift-marketplace
+  startingCSV: falcon-operator.v{{ .Chart.AppVersion }}
+{{- end }}
