@@ -145,7 +145,6 @@ Falcon Container product will then be installed directly from CrowdStrike regist
 #### (Option 2) Let operator mirror Falcon Container image to your local registry
 
 Requires advanced set-up to grant the operator push access to your local registry. The operator will then mirror Falcon Container image from CrowdStrike registry to your local registry of choice.
-
 Supported registries are: acr, ecr, gcr, and openshift. Each registry type requires advanced set-up enable image push.
 
 Consult specific deployment guides to learn about the steps needed for image mirroring.
@@ -191,17 +190,6 @@ The following namespaces will be used by Falcon Operator.
 | falcon-system           | Used by Falcon Container product, runs the injector and webhoook |
 | falcon-operator         | Runs falcon-operator manager                                     |
 
-### Compatibility Guide
-
-Falcon Operator has been explicitly tested on AKS (with ECR), EKS (with ECR), GKE (with GCR), and OpenShift (with ImageStreams).
-
-| Platform                      | Supported versions                                     |
-|:------------------------------|:-------------------------------------------------------|
-| AKS (with ACR)                | 1.18 or greater                                        |
-| EKS (with ECR)                | 1.17 or greater                                        |
-| GKE (with GCR)                | 1.18 or greater                                        |
-| OpenShift (with ImageStreams) | 4.7 or greater                                         |
-
 ### Troubleshooting
 
 - Falcon Operator modifies the FalconContainer CR based on what is happening in the cluster. You can get list the CR, Operator Version, and Sensor version by running the following:
@@ -234,9 +222,9 @@ Falcon Operator has been explicitly tested on AKS (with ECR), EKS (with ECR), GK
   kubectl get falconnodesensors -A -o=jsonpath='{.items[].status.version}'
   ```
 
-### Additional Documentation
-End-to-end guides to install Falcon-operator together with FalconContainer resource.
 
+### Additional Documentation
+End-to-end guide(s) to install Falcon-operator together with FalconContainer resource.
  - [Deployment Guide for AKS/ACR](../../deployment/azure/README.md)
  - [Deployment Guide for EKS/ECR](../../deployment/eks/README.md)
  - [Deployment Guide for EKS Fargate](../../deployment/eks-fargate/README.md)

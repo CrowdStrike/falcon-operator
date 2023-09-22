@@ -1,0 +1,165 @@
+#!/bin/sh
+
+set -e -o pipefail
+
+fail(){
+    echo "fatal error: $*" >&2
+    exit 1
+}
+
+if [ -z "$AWS_REGION" ]; then
+    fail "Please provide AWS region as environment variable: 'export AWS_REGION=region-name-1'"
+fi
+
+if [ -z "$EKS_CLUSTER_NAME" ]; then
+    fail "Please provide AWS EKS cluster name as environment variable: 'export EKS_CLUSTER_NAME=cluster-1'"
+fi
+
+if ! type aws > /dev/null 2>&1; then
+   fail "aws cli tool is not present. Please run this script in AWS cloud-shell that includes aws cli tool."
+fi
+
+if ! type kubectl > /dev/null 2>&1; then
+    if ! echo "${PATH//:/\n}" | grep -q "$HOME/bin"; then
+        export PATH=$PATH:$HOME/bin
+    fi
+    if ! type kubectl > /dev/null 2>&1; then
+       mkdir -p "$HOME/bin"
+       curl -Lo "$HOME/bin/kubectl" "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+       chmod +x "$HOME/bin/kubectl"
+    fi
+fi
+
+if ! type eksctl > /dev/null 2>&1; then
+    if ! echo "${PATH//:/\n}" | grep -q "$HOME/bin"; then
+        export PATH=$PATH:$HOME/bin
+    fi
+    if ! type eksctl > /dev/null 2>&1; then
+        mkdir -p "$HOME/bin"
+        curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C $HOME/bin/
+        chmod +x "$HOME/bin/eksctl"
+    fi
+fi
+
+cluster_has_iam_oidc(){
+    # Does cluster already have IAM OIDC Identity provide installed?
+    # https://docs.aws.amazon.com/eks/latest/userguide/enable-iam-roles-for-service-accounts.html
+    cluster_iodc_url=$(aws --region "$AWS_REGION" eks describe-cluster --name "$EKS_CLUSTER_NAME" --query "cluster.identity.oidc.issuer" --output text)
+    cluster_iodc_id=$(echo "$cluster_iodc_url" | sed 's/^.*\///g')
+    if [ -z "$cluster_iodc_id" ]; then
+        fail "Cannot determine IODC ID for cluster $EKS_CLUSTER_NAME in $AWS_REGION. IODC URL was: '$cluster_iodc_url'"
+    fi
+    aws --region "$AWS_REGION" iam list-open-id-connect-providers | grep -q "$cluster_iodc_id"
+}
+
+cluster_install_iam_oidc(){
+    # https://docs.aws.amazon.com/eks/latest/userguide/enable-iam-roles-for-service-accounts.html
+    eksctl utils associate-iam-oidc-provider --region "$AWS_REGION" --cluster "$EKS_CLUSTER_NAME" --approve
+}
+
+iam_policy_exists(){
+    aws iam get-policy --region "$AWS_REGION" --policy-arn "$iam_policy_arn" > /dev/null
+}
+
+iam_policy_create(){
+    cat <<__END__ > policy.json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowPushPull",
+            "Effect": "Allow",
+            "Action": [
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:CompleteLayerUpload",
+                "ecr:DescribeRepositories",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:InitiateLayerUpload",
+                "ecr:PutImage",
+                "ecr:UploadLayerPart",
+                "ecr:CreateRepository"
+            ],
+            "Resource": "arn:aws:ecr:*:*:repository/falcon-container"
+        },
+        {
+            "Sid": "AllowECRSetup",
+            "Effect": "Allow",
+            "Action": [
+                "ecr:GetAuthorizationToken"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+__END__
+    aws iam create-policy \
+        --region "$AWS_REGION" \
+        --policy-name ${iam_policy_name} \
+        --policy-document 'file://policy.json' \
+        --description "Policy to enable Falcon Operator push new Falcon Container Image to ECR"
+}
+
+cluster_has_falcon_operator_sa(){
+    eksctl get iamserviceaccount \
+           --name falcon-operator-controller-manager \
+           --namespace "${OPERATOR_NAMESPACE}" \
+           --region "$AWS_REGION" \
+           --cluster "${EKS_CLUSTER_NAME}" | grep -q falcon-operator
+}
+
+cluster_create_falcon_operator_sa(){
+    kubectl create ns "$OPERATOR_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+    eksctl create iamserviceaccount \
+           --name falcon-operator-controller-manager \
+           --namespace "${OPERATOR_NAMESPACE}" \
+           --region "$AWS_REGION" \
+           --cluster "${EKS_CLUSTER_NAME}" \
+           --attach-policy-arn "${iam_policy_arn}" \
+           --approve \
+           --override-existing-serviceaccounts
+}
+
+
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+iam_policy_name="FalconContainerPush"
+iam_policy_arn="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${iam_policy_name}"
+OPERATOR_NAMESPACE=falcon-operator
+
+aws eks --region "${AWS_REGION}" update-kubeconfig --name "${EKS_CLUSTER_NAME}"
+
+cluster_has_iam_oidc           || cluster_install_iam_oidc
+iam_policy_exists              || iam_policy_create
+cluster_has_falcon_operator_sa || cluster_create_falcon_operator_sa
+
+
+# Deploy the operator
+if kubectl get crd catalogsources.operators.coreos.com > /dev/null 2>&1; then
+    # Cluster has OLM installed. Installation will proceed using operator OLM and operator sdk
+    if ! type operator-sdk > /dev/null 2>&1; then
+        fail "Cluster has OLM installed but operator-sdk tool is not available locally. Please install operator-sdk"
+    fi
+    if ! operator-sdk olm status > /dev/null 2>&1; then
+        fail "Unexpected cluster state: Found catalogsources.operators.coreos.com installed on the cluster, but OLM is not ready."
+    fi
+
+    kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+
+    if ! kubectl get catalogsources.operators.coreos.com  -n $OPERATOR_NAMESPACE falcon-operator-catalog > /dev/null 2>&1; then
+        operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
+    fi
+else
+    # cluster does not have OLM installed. Installation will proceed without it
+    kubectl apply -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+fi
+
+# Wait for the operator pod to come up
+kubectl wait --timeout=240s --for=condition=Available -n $OPERATOR_NAMESPACE deployment falcon-operator-controller-manager
+
+# Let the user edit the falconcontainer configuration
+if ! kubectl get falconcontainers.falcon.crowdstrike.com default > /dev/null 2>&1; then
+    kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/eks/falconcontainer.yaml --edit=true
+fi
+
+# Let the user watch the operator logs
+kubectl -n $OPERATOR_NAMESPACE logs -f deploy/falcon-operator-controller-manager -c manager

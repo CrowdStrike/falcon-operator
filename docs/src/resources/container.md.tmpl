@@ -149,7 +149,17 @@ Supported registries are: acr, ecr, gcr, and openshift. Each registry type requi
 
 Consult specific deployment guides to learn about the steps needed for image mirroring.
 
+{{- if ne .Distro "openshift" }}
+
+ - [Deployment Guide for AKS/ACR](../../deployment/azure/README.md)
+ - [Deployment Guide for EKS/ECR](../../deployment/eks/README.md)
+ - [Deployment Guide for EKS Fargate](../../deployment/eks-fargate/README.md)
+ - [Deployment Guide for GKE/GCR](../../deployment/gke/README.md)
+ - [Deployment Guide for OpenShift](../../deployment/openshift/README.md)
+{{- else if eq .Distro "openshift" }}
+
 - [Deployment Guide for OpenShift](../../README.md)
+{{- end }}
 
 #### (Option 3) Use a custom Image URI
 
@@ -163,14 +173,14 @@ image: myprivateregistry.internal.lan/falcon-container/falcon-sensor:6.47.0-3003
 ### Install Steps
 To install Falcon Container (assuming Falcon Operator is installed):
 ```sh
-oc create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconcontainer.yaml --edit=true
+{{ .KubeCmd }} create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconcontainer.yaml --edit=true
 ```
 
 ### Uninstall Steps
 To uninstall Falcon Container simply remove the FalconContainer resource. The operator will uninstall the Falcon Container product from the cluster.
 
 ```sh
-oc delete falconcontainers.falcon.crowdstrike.com --all
+{{ .KubeCmd }} delete falconcontainers.falcon.crowdstrike.com --all
 ```
 
 ### Sensor Upgrades
@@ -191,7 +201,7 @@ The following namespaces will be used by Falcon Operator.
 - Falcon Operator modifies the FalconContainer CR based on what is happening in the cluster. You can get list the CR, Operator Version, and Sensor version by running the following:
 
   ```sh
-  $ oc get falconcontainers.falcon.crowdstrike.com
+  $ {{ .KubeCmd }} get falconcontainers.falcon.crowdstrike.com
   NAME                    OPERATOR VERSION   FALCON SENSOR
   falcon-sidecar-sensor   0.8.0              6.51.0-3401.container.x86_64.Release.US-1
   ```
@@ -200,24 +210,34 @@ The following namespaces will be used by Falcon Operator.
   You can get more insight by viewing the FalconContainer CRD in full detail by running the following command:
 
   ```sh
-  oc get falconcontainers.falcon.crowdstrike.com -o yaml
+  {{ .KubeCmd }} get falconcontainers.falcon.crowdstrike.com -o yaml
   ```
 
 - To review the logs of Falcon Operator:
   ```sh
-  oc -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
+  {{ .KubeCmd }} -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
   ```
 
 - To review the logs of Falcon Container Sidecar Injector service:
   ```sh
-  oc logs -n falcon-system -l "crowdstrike.com/provider=crowdstrike"
+  {{ .KubeCmd }} logs -n falcon-system -l "crowdstrike.com/provider=crowdstrike"
   ```
 
 - To review the currently deployed version of the operator:
   ```sh
-  oc get falconnodesensors -A -o=jsonpath='{.items[].status.version}'
+  {{ .KubeCmd }} get falconnodesensors -A -o=jsonpath='{.items[].status.version}'
   ```
 
 
 ### Additional Documentation
 End-to-end guide(s) to install Falcon-operator together with FalconContainer resource.
+
+{{- if ne .Distro "openshift" }}
+ - [Deployment Guide for AKS/ACR](../../deployment/azure/README.md)
+ - [Deployment Guide for EKS/ECR](../../deployment/eks/README.md)
+ - [Deployment Guide for EKS Fargate](../../deployment/eks-fargate/README.md)
+ - [Deployment Guide for GKE/GCR](../../deployment/gke/README.md)
+ - [Deployment Guide for OpenShift](../../deployment/openshift/README.md)
+{{- else if eq .Distro "openshift" }}
+ - [Deployment Guide for OpenShift](../../README.md)
+{{- end }}

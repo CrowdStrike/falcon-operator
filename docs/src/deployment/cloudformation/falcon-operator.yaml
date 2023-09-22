@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Deploy falcon-operator using CloudFormation to existing EKS cluster"
+Metadata:
+  cfn-lint: { config: { ignore_checks: [W9002, W9003, W9004, W9006, E9007, E9008] } }
+Parameters:
+  KubeClusterName:
+    Type: String
+  FalconSensorType:
+    AllowedValues:
+      - FalconContainer
+      - FalconNodeSensor
+    Type: String
+  FalconClientID:
+    Description: Falcon Client ID
+    Type: String
+  FalconClientSecret:
+    Description: Falcon Client Secret
+    Type: String
+Conditions:
+  WantsContainer: !Equals [!Ref FalconSensorType, 'FalconContainer']
+  WantsNodeSensor: !Equals [!Ref FalconSensorType, 'FalconNodeSensor']
+Resources:
+  InstallOperator:
+    Type: "AWSQS::Kubernetes::Resource"
+    Properties:
+      ClusterName: !Ref KubeClusterName
+      Namespace: falcon-operator
+      Url: https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+  InstallFalconContainer:
+    Type: "AWSQS::Kubernetes::Resource"
+    Condition: WantsContainer
+    DependsOn: InstallOperator
+    Properties:
+      ClusterName: !Ref KubeClusterName
+      Namespace: falcon-operator
+      Manifest: !Sub |
+        apiVersion: falcon.crowdstrike.com/v1alpha1
+        kind: ${FalconSensorType}
+        metadata:
+          name: default
+        spec:
+          falcon_api:
+            client_id: ${FalconClientID}
+            client_secret: ${FalconClientSecret}
+            cloud_region: autodiscover
+          registry:
+            type: crowdstrike
+
+  InstallFalconNodeSensor:
+    Type: "AWSQS::Kubernetes::Resource"
+    Condition: WantsNodeSensor
+    DependsOn: InstallOperator
+    Properties:
+      ClusterName: !Ref KubeClusterName
+      Namespace: falcon-operator
+      Manifest: !Sub |
+        apiVersion: falcon.crowdstrike.com/v1alpha1
+        kind: ${FalconSensorType}
+        metadata:
+          name: default
+        spec:
+          falcon_api:
+            client_id: ${FalconClientID}
+            client_secret: ${FalconClientSecret}
+            cloud_region: autodiscover
+          node: {}
+          falcon: {}

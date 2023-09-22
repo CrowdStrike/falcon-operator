@@ -1,0 +1,85 @@
+{{ if eq .Distro "gke" }}
+## GKE Node Upgrades
+
+If the sidecar sensor has been deployed to your GKE cluster, you will want to explicitly disable CrowdStrike Falcon from monitoring using labels for the kube-public, kube-system, falcon-operator, and falcon-system namespaces.
+For example:
+```sh
+{{ .KubeCmd }} label namespace falcon-operator sensor.falcon-system.crowdstrike.com/injection=disabled
+{{ .KubeCmd }} label namespace falcon-system sensor.falcon-system.crowdstrike.com/injection=disabled
+{{ .KubeCmd }} label namespace kube-system sensor.falcon-system.crowdstrike.com/injection=disabled
+{{ .KubeCmd }} label namespace kube-public sensor.falcon-system.crowdstrike.com/injection=disabled
+```
+
+Because the Falcon Container sensor injector is configured to monitor all namespaces, setting the above labels will ensure that any pod related to k8 control plane and CrowdStrike Falcon are not forwarded to the injector.
+
+## Granting GCP Workload Identity to Falcon Container Injector
+
+The Falcon Container Injector may need [GCP Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity)
+to read GCR or Artifact Registry. In many cases, the GCP Workload Identity is assigned or inherited automatically. However if you
+are seeing errors similar to the following, you may need to follow this guide to assign the identity manually.
+
+```log
+time="2022-01-14T13:05:11Z" level=error msg="Failed to handle webhook request" error="Failed to retrieve image details for \"gcr.io/\" in container in pod: Failed to get the image config/digest for \"gcr.io/" on \"eu.gcr.io\": Error reading manifest latest in gcr.io/: unauthorized: You don't have the needed permissions to perform this operation, and you may have invalid credentials. To authenticate your request, follow the steps in: https://cloud.google.com/container-registry/docs/advanced-authentication"
+```
+
+Conceptually, the following tasks need to be done in order to enable GCR to pull from the injector:
+
+- Create GCP Service Account
+- Grant GCR permissions to the newly created Service Account
+- Allow Falcon Container to use the newly created Service Account
+- Put GCP Service Account handle into your Falcon Container resource for re-deployments
+
+### Assigning GCP Workload Identity to Falcon Container Injector
+
+Using both `gcloud` and `{{ .KubeCmd }}` command-line tools, perform the following steps:
+
+- Set up your shell environment variables
+  ```sh
+  GCP_SERVICE_ACCOUNT=falcon-container-injector
+
+  GCP_PROJECT_ID=$(gcloud config get-value core/project)
+  ```
+
+- Create new GCP Service Account
+  ```sh
+  gcloud iam service-accounts create $GCP_SERVICE_ACCOUNT
+  ```
+
+- Grant GCR permissions to the newly created Service Account
+  ```sh
+  gcloud projects add-iam-policy-binding $PROJECT_ID \
+      --member "serviceAccount:$GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
+      --role roles/containerregistry.ServiceAgent
+  ```
+
+- Allow Falcon Injector to use the newly created GCP Service Account
+  ```sh
+  gcloud iam service-accounts add-iam-policy-binding \
+      $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com \
+      --role roles/iam.workloadIdentityUser \
+      --member "serviceAccount:$GCP_PROJECT_ID.svc.id.goog[falcon-system/default]"
+  ```
+
+- Delete the previously deployed FalconContainer resource:
+  ```sh
+  {{ .KubeCmd }} delete falconcontainers --all
+  ```
+
+- Add the newly created Service Account to your FalconContainer yaml file:
+  ```yaml
+  spec:
+    injector:
+      sa_annotations:
+        iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
+  ```
+
+  Do not forget to replace the service account name template with actual name
+  ```sh
+  echo "$GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com"
+  ```
+
+- Deploy the FalconContainer resource with the IAM role changes:
+  ```sh
+  {{ .KubeCmd }} create -f ./my-falcon-container.yaml
+  ```
+{{- end -}}

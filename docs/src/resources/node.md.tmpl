@@ -87,7 +87,7 @@ The operator will automatically configure the sensor's proxy configuration when 
 ### Install Steps
 With Falcon Operator installed, run the following command to install the FalconNodeSensor CR:
 ```sh
-oc create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
+{{ .KubeCmd }} create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
 ```
 The above command uses an example `yaml` file from the Falcon Operator GitHub repository that allows you to easily configure the FalconNodeSensor CR using the Falcon API method.
 
@@ -95,34 +95,34 @@ The above command uses an example `yaml` file from the Falcon Operator GitHub re
 To uninstall the FalconNodeSensor CR, simply remove the FalconNodeSensor resource. The operator will uninstall the Falcon Sensor from the cluster.
 
 ```sh
-oc delete falconnodesensors --all
+{{ .KubeCmd }} delete falconnodesensors --all
 ```
 
 ### Troubleshooting
 
 - To see the FalconNodeSensor resource on the cluster which includes the operator and sensor versions:
   ```sh
-  oc get falconnodesensors -A
+  {{ .KubeCmd }} get falconnodesensors -A
   ```
 
 - To verify the existence of the daemonset object:
   ```sh
-  oc get daemonsets.apps -n mynamespace
+  {{ .KubeCmd }} get daemonsets.apps -n mynamespace
   ```
   where `mynamespace` is the installed namespace of FalconNodeSensor.
 
 - To verify the existence of the sensor objects:
   ```sh
-  oc get pods -n mynamespace
+  {{ .KubeCmd }} get pods -n mynamespace
   ```
   where `mynamespace` is the installed namespace of FalconNodeSensor.
 
 - To review the logs of Falcon Operator:
   ```sh
-  oc -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
+  {{ .KubeCmd }} -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
   ```
 
 - To review the currently deployed version of the operator:
   ```sh
-  oc get falconnodesensors -A -o=jsonpath='{.items[].status.version}'
+  {{ .KubeCmd }} get falconnodesensors -A -o=jsonpath='{.items[].status.version}'
   ```

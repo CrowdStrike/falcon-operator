@@ -1,0 +1,74 @@
+{{ if eq .Distro "azure" }}
+#### Configure ACR Registry
+
+- Either create or use an existing ACR registry. Make sure to store the ACR registry name in an environment variable.
+  ```sh
+  ACR_NAME=my-acr-registy-name
+  ```
+
+#### Manual installation of ACR push secret
+
+The Image push secret is used by the operator to mirror the Falcon Container sensor image from CrowdStrike registry to your Azure ACR registry. We recommend creating separate service principal just for that task.
+
+- Create kubernetes namespace for falcon-operator
+
+  ```sh
+  export FALCON_SYSTEM=falcon-system
+  {{ .KubeCmd }} create ns $FALCON_SYSTEM --dry-run=client -o yaml | {{ .KubeCmd }} apply -f -
+  ```
+
+- Create the service principal in Azure for the CrowdStrike Falcon operator
+  ```sh
+  # https://docs.microsoft.com/en-us/azure/container-registry/container-registry-auth-service-principal
+  SERVICE_PRINCIPAL_NAME=falcon-operator
+
+  ACR_REGISTRY_ID=$(az acr show --name $ACR_NAME --query id --output tsv)
+  SP_APP_ID=$(az ad sp list --display-name $SERVICE_PRINCIPAL_NAME --query [].appId --output tsv)
+  if ! [ -z "$SP_APP_ID" ]; then
+      az ad sp delete --id $SP_APP_ID
+  fi
+
+  SP_PASSWD=$(az ad sp create-for-rbac --name $SERVICE_PRINCIPAL_NAME --scopes $ACR_REGISTRY_ID --role acrpush --query password --output tsv)
+  SP_APP_ID=$(az ad sp list --display-name $SERVICE_PRINCIPAL_NAME --query [].appId --output tsv)
+
+  # TODO backup docker config
+  docker login ... # TODO: script login to your ACR registry
+  
+  {{ .KubeCmd }} create secret generic builder --from-file=.dockerconfigjson=$HOME/.docker/config.json --type=kubernetes.io/dockerconfigjson -n $FALCON_SYSTEM
+
+  # TODO restore docker config from the backup
+  ```
+{{ else if eq .Distro "gke" }}
+#### Create GCR push secret
+
+An image push secret is used by the operator to mirror Falcon Container image from CrowdStrike registry to your GCR.
+
+- Set environment variable to refer to your GCP project
+  ```sh
+  GCP_PROJECT_ID=$(gcloud config get-value core/project)
+  ```
+
+- Create new GCP service account
+  ```sh
+  gcloud iam service-accounts create falcon-operator
+  ```
+
+- Grant image push access to the newly created service account
+  ```sh
+  gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
+      --member serviceAccount:falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com \
+      --role roles/storage.admin
+  ```
+
+- Create new private key for the newly create service account
+  ```sh
+  gcloud iam service-accounts keys create \
+      --iam-account "falcon-operator@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
+      .dockerconfigjson
+  ```
+
+- Store the newly created private key for image push in kubernetes
+  ```
+  {{ .KubeCmd }} create secret docker-registry -n falcon-system-configure builder --from-file .dockerconfigjson
+  ```
+{{- end -}}

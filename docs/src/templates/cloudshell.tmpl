@@ -1,0 +1,27 @@
+{{ if eq .Distro "eks" }}
+#### Complete install using AWS Cloud Shell
+
+ - Open AWS Cloud Shell: https://console.aws.amazon.com/cloudshell/home
+
+ - Install the operator & deploy Falcon Container Sensor
+   ```sh
+   bash -c 'source <(curl -s https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/eks/run)'
+   ```
+   Note: This script should be run as in the cloud shell session directly as some command line tools may be installed in the process.
+{{- else if eq .Distro "gke" -}}
+#### Complete install using GCP Cloud Shell
+
+- Open GCP Cloud Shell: https://shell.cloud.google.com/?hl=en_US&fromcloudshell=true&show=terminal
+- Ensure the Cloud Shell is running in context of GCP project you want to use
+  ```sh
+  gcloud config get-value core/project
+  ```
+- In case you have multiple GKE clusters in the project, You need to select the desired one to install the operator in
+  ```sh
+  gcloud container clusters get-credentials DESIRED_CLUSTER --zone DESIRED_LOCATION
+  ```
+- Install the operator & operator-sdk & deploy Falcon Container Sensor
+  ```sh
+  bash -c 'source <(curl -s https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/gke/run)'
+  ```
+{{- end -}}

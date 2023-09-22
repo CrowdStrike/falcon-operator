@@ -1,0 +1,23 @@
+{{ if eq .Distro "eks" }} The EKS cluster that runs Falcon Operator needs to have the [IAM OIDC provider](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) installed. The IAM OIDC provider associates AWS IAM roles with EKS workloads.
+Please review [AWS documentation](https://docs.aws.amazon.com/eks/latest/userguide/enable-iam-roles-for-service-accounts.html) to understand how the IAM OIDC provider works before proceeding.
+
+ - Provide the following AWS settings as environment variables:
+  ```sh
+  export AWS_REGION=<my_aws_region>
+  export EKS_CLUSTER_NAME=<my_cluster_name>
+  ```
+
+ - Install IAM OIDC on the cluster if it is not already installed:
+  ```sh
+  eksctl utils associate-iam-oidc-provider --region "$AWS_REGION" --cluster "$EKS_CLUSTER_NAME" --approve
+  ```
+{{- else if eq .Distro "eks-fargate" -}}
+- Create an EKS Fargate profile for the operator:
+  ```sh
+  eksctl create fargateprofile \
+    --region "$AWS_REGION" \
+    --cluster eks-fargate-cluster \
+    --name fp-falcon-operator \
+    --namespace falcon-operator
+  ```
+{{- end -}}
