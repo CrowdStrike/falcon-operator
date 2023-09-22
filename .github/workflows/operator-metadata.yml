@@ -5,10 +5,14 @@ on:
     branches:
       - main
       - "maint-*"
+    paths-ignore:
+      - 'docs/**'
   pull_request:
     branches:
       - main
       - "maint-*"
+    paths-ignore:
+      - 'docs/**'
 
 env:
   IMAGE: quay.io/crowdstrike/falcon-operator
