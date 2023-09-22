@@ -1,34 +1,39 @@
-# Deployment Guide for GKE
-This document will guide you through the installation of falcon-operator and deployment of either the:
+<!--- NOTE: DO NOT EDIT! This file is auto-generated. Please update the source *.tmpl file instead --->
+# Deployment Guide for GKE and GCR
+This document will guide you through the installation of the Falcon Operator and deployment of the following resources provdied by the Falcon Operator:
 - [FalconContainer](../../resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to GCR (Google Container Registry). A new GCP service account for pushing to GCR registry will be created.
 - [FalconNodeSensor](../../resources/node/README.md) custom resource to the cluster.
 
 ## Prerequisites
 
 - CrowdStrike CWP subscription
-- If your are installing the CrowdStrike Sensor via the Crowdstrike API, you need to create a new CrowdStrike API key pair with the following permissions:
-  - Falcon Images Download: Read
-  - Sensor Download: Read
+- CrowdStrike API Key Pair (*if installing the CrowdStrike Sensor via the CrowdStrike API*)
 
-## Installing the operator
+    > If you need help creating a new API key pair, review our docs: [CrowdStrike Falcon](https://falcon.crowdstrike.com/support/api-clients-and-keys).
 
-- Either spin up an GKE Kubernetes cluster or use one that already exists.
-- Install the operator
+  Make sure to assign the following permissions to the key pair:
+  - Falcon Images Download: **Read**
+  - Sensor Download: **Read**
+
+## Installing the Falcon Operator
+
+- Set up a new Kubernetes cluster or use an existing one.
+
+- Install the Falcon Operator by running the following command:
   ```sh
   kubectl apply -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
 
-### Deploy the Node Sensor
+### Deploying the Falcon Node Sensor
 
-Once the operator has deployed, you can now deploy the FalconNodeSensor.
+After the Falcon Operator has deployed, you can now deploy the Falcon Node Sensor:
 
 - Deploy FalconNodeSensor through the cli using the `kubectl` command:
   ```sh
   kubectl create -n falcon-operator -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
 
-### Deploy the sidecar sensor
-
+### Deploying the Falcon Container Sidecar Sensor
 #### Create GCR push secret
 
 An image push secret is used by the operator to mirror Falcon Container image from CrowdStrike registry to your GCR.
@@ -64,7 +69,7 @@ An image push secret is used by the operator to mirror Falcon Container image fr
 
 #### Create the FalconContainer resource
 
-- Create new FalconContainer resource
+- Create a new FalconContainer resource
   ```sh
   kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/gke/falconcontainer.yaml --edit=true
   ```
@@ -87,29 +92,33 @@ An image push secret is used by the operator to mirror Falcon Container image fr
 
 ## Uninstalling
 
-When uninstalling the operator, it is important to make sure to uninstall the deployed custom resources first *before* you uninstall the operator.
-This will insure proper cleanup of the resources.
+> :exclamation: It is essential to uninstall ALL of the deployed custom resources before uninstalling the Falcon Operator to ensure proper cleanup.
 
-### Uninstall the Node Sensor
+### Uninstalling the Falcon Node Sensor
 
-- To uninstall the node sensor, simply remove the FalconNodeSensor resource.
-  ```sh
-  kubectl delete falconnodesensor -A --all
-  ```
+Remove the FalconNodeSensor resource by running:
 
-### Uninstall the Sidecar Sensor
+```sh
+kubectl delete falconnodesensor -A --all
+```
 
-- To uninstall Falcon Container, simply remove the FalconContainer resource. The operator will then uninstall the Falcon Container product from the cluster.
-  ```sh
-  kubectl delete falconcontainers --all
-  ```
+### Uninstalling the Falcon Container Sidecar Sensor
 
-### Uninstall the Operator
+Remove the FalconContainer resource. The operator will then uninstall the Falcon Container Sidecar Sensor from the cluster:
 
-- To uninstall Falcon Operator, delete the deployment:
-  ```sh
-  kubectl delete -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
-  ```
+```sh
+kubectl delete falconcontainers --all
+```
+
+### Uninstalling the Falcon Operator
+
+Delete the Falcon Operator deployment by running:
+
+```sh
+kubectl delete -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+```
+
+
 
 ## GKE Node Upgrades
 

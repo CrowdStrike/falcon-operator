@@ -1,0 +1,95 @@
+#!/bin/sh
+
+set -e -o pipefail
+
+fail(){
+    echo "$progname: fatal error: $*" >&2
+    exit 1
+}
+
+if ! type gcloud > /dev/null 2>&1; then
+   fail "gcloud tool is not present. Please run this tool in GCP cloud-shell that includes gcloud tool."
+fi
+
+if ! type kubectl > /dev/null 2>&1; then
+   fail "kubectl tool is not present. Please run this tool in GCP cloud-shell that includes kubectl tool."
+fi
+
+if [ -z "$(gcloud config get-value project 2> /dev/null)" ]; then
+    project_ids=$(gcloud projects list --format json | jq -r '.[].projectId')
+    project_count=$(wc -w <<< "$project_ids")
+    if [ "$project_count" == "1" ]; then
+        gcloud config set project "$project_ids"
+    else
+        gcloud projects list
+        echo "Multiple pre-existing GCP projects found. Please select project using the following command before re-trying"
+        echo "  gcloud config set project VALUE"
+        exit 1
+   fi
+fi
+
+if ! kubectl cluster-info > /dev/null 2>&1; then
+  cluster_count=$(gcloud container clusters list | tail -n +2 | wc -l)
+  if [ "$cluster_count" == "1" ]; then
+      cluster_name=$(gcloud container clusters list | tail -n 1 | awk '{print $1}')
+      zone_name=$(gcloud container clusters list | tail -n 1 | awk '{print $2}')
+      gcloud container clusters get-credentials --zone $zone_name $cluster_name
+  else
+      gcloud container clusters list
+        echo "Multiple pre-existing GKE clusters found. Please select cluster using the following command before re-trying"
+        echo "  gcloud container clusters get-credentials CLUSTER_NAME"
+        exit 1
+  fi
+fi
+
+
+OPERATOR_NAMESPACE=falcon-operator
+if kubectl get crd catalogsources.operators.coreos.com > /dev/null 2>&1; then
+    # Installation using operator OLM and operator sdk
+    if ! type operator-sdk > /dev/null 2>&1; then
+        fail "Cluster has OLM installed but operator-sdk tool is not available locally. Please install operator-sdk"
+    fi
+    if ! operator-sdk olm status > /dev/null 2>&1; then
+        fail "Unexpected cluster state: Found catalogsources.operators.coreos.com installed on the cluster, but OLM is not ready."
+    fi
+
+    kubectl create ns $OPERATOR_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+
+    if ! kubectl get catalogsources.operators.coreos.com  -n $OPERATOR_NAMESPACE falcon-operator-catalog > /dev/null 2>&1; then
+        operator-sdk run bundle quay.io/crowdstrike/falcon-operator-bundle:latest --namespace $OPERATOR_NAMESPACE
+    fi
+else
+    kubectl apply -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+fi
+
+kubectl wait --timeout=240s --for=condition=Available -n $OPERATOR_NAMESPACE deployment falcon-operator-controller-manager
+
+export FALCON_SYSTEM=falcon-system
+kubectl create ns $FALCON_SYSTEM --dry-run=client -o yaml | kubectl apply -f -
+
+GCP_PROJECT_ID=$(gcloud config get-value core/project)
+
+if ! kubectl get secret builder -n $FALCON_SYSTEM > /dev/null 2>&1; then
+    if ! gcloud iam service-accounts describe falcon-operator-sidecar-sensor@$GCP_PROJECT_ID.iam.gserviceaccount.com > /dev/null 2>&1 ; then
+        gcloud iam service-accounts create falcon-operator-sidecar-sensor
+    fi
+
+    gcloud projects add-iam-policy-binding $GCP_PROJECT_ID \
+        --member serviceAccount:falcon-operator-sidecar-sensor@$GCP_PROJECT_ID.iam.gserviceaccount.com \
+        --role roles/storage.admin
+
+    gcloud iam service-accounts keys create \
+        --iam-account "falcon-operator-sidecar-sensor@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
+        gcr-storage-admin.json
+
+    cp gcr-storage-admin.json .dockerconfigjson
+    kubectl create secret docker-registry -n $FALCON_SYSTEM builder --from-file .dockerconfigjson
+fi
+
+if ! kubectl get falconcontainers.falcon.crowdstrike.com default > /dev/null 2>&1; then
+    kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/gke/falconcontainer.yaml --edit=true
+fi
+
+kubectl -n $OPERATOR_NAMESPACE logs -f deploy/falcon-operator-controller-manager -c manager
+
+
