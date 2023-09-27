@@ -46,20 +46,17 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
 
-      - name: Install dependencies
+      - name: Fail if auto-generated docs are modified
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libgpgme-dev libbtrfs-dev libdevmapper-dev
-
-      - name: Ensure go modules are tidy
-        run: |
-          cd docs && make docs
-          if [[ -n $(git status -s) ]] ; then
+          set +e
+          cd docs && make test
+          exitcode=$?
+          echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
+          if [ $exitcode -eq 1 ] ; then
             echo
             echo -e "\e[31mAuto-generated docs have been modified incorrectly."
             echo -e "\e[31mAuto-generated docs changes should be made in ./docs/src"
             echo -e "\e[31mPlease update your PR to address these issues.\e[0m"
-            git status -s
-            git diff --color
-            exit 1
+            exit $exitcode
           fi
+          exit $exitcode

@@ -221,3 +221,4 @@ The following namespaces will be used by Falcon Operator.
 
 ### Additional Documentation
 End-to-end guide(s) to install Falcon-operator together with FalconContainer resource.
+ - [Deployment Guide for OpenShift](../../README.md)
