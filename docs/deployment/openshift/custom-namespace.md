@@ -1,11 +1,17 @@
-# Deploying the Node Sensor to a custom Namespace
+# Deploying the node sensor to a custom namespace
 
 If desired, the FalconNodeSensor can be deployed to a namespace of your choosing instead of deploying to the operator namespace.
+
 To deploy to a custom namespace (replacing `my-special-namespace` as desired):
 
 - Create a new project
   ```
   oc new-project my-special-namespace
+  ```
+
+- Modify the `OperatorGroup` to include the custom namespace in `spec.targetNamespaces`
+  ```
+  oc edit -n falcon-operator operatorgroup
   ```
 
 - Create the service account in the new namespace

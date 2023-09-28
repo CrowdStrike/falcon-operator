@@ -1,5 +1,5 @@
 
-# Uninstalling the Operator
+# Uninstalling the operator
 
 When uninstalling the operator, it is important to make sure to uninstall the deployed custom resources first *before* you uninstall the operator.
 This will insure proper cleanup of the resources.

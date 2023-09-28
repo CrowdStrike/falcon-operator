@@ -3,6 +3,8 @@
 > [!NOTE]
 > This guide is for rare cases where you need to deploy the FalconContainer sidecar-based sensor. The method does not protect the CoreOS host so is not recommended. Unless you are sure you need this, use the [FalconNodeSensor deployment guide](README.md) instead.
 
+This guide assumes the default configuration for the sensor is sufficient. For all configuration options, see [FalconContainer](resources/container/README.md).
+
 ## Prerequisites
 
 Refer to the [FalconNodeSensor deployment guide](README.md):

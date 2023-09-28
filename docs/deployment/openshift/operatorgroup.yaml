@@ -4,5 +4,7 @@ metadata:
   name: falcon-operator
   namespace: falcon-operator
 spec:
+  # targetNamespaces contains the namespace where you will install the node sensor, i.e. where you
+  # will create the FalconNodeSensor resource. By default we use the same namespace as the operator.
   targetNamespaces:
   - falcon-operator

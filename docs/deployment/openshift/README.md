@@ -13,7 +13,7 @@ You only need to follow one installation method per section.
 ## Prerequisites
 
 - A Falcon Cloud Security for Containers subscription (previously known as Cloud Workload Protection)
-- Red Hat Openshift 4.10+ with `cluster-admin` privileges:
+- Red Hat Openshift 4 with `cluster-admin` privileges:
   - Self-managed OpenShift on any platform
   - Red Hat OpenShift Service on AWS (ROSA)
   - Azure Red Hat OpenShift (ARO)
@@ -39,7 +39,8 @@ The Falcon agent will be deployed to all nodes in the cluster and immediately st
 
 To discover your customer ID and download the sensor image, the operator will connect to the Falcon API. You'll need to provide the API client ID and secret to the operator.
 
-1. Navigate to _API clients and keys_ ([US-1](https://falcon.crowdstrike.com/api-clients-and-keys/clients), [US-2](https://falcon.us-2.crowdstrike.com/api-clients-and-keys/clients)).
+1. Log in to the Falcon console.
+1. Navigate to _API clients and keys_.
 1. Click `Create API client`.
 1. Provide a name and description and the following permissions:
    - Falcon Images Download: Read
@@ -123,14 +124,14 @@ Installing the operator via manifest files allows you to check these files into 
   # falcon-operator-rhmp                               Red Hat Marketplace   18h
   ```
 
-- Create an `OperatorGroup` to allow the operator to be installed in the `falcon-operator` namespace (you can [review operatorgroup.yaml](operatorgroup.yaml)):
+- Create an `OperatorGroup` to allow the operator to be installed in the `falcon-operator` namespace:
   ```
-  oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/operatorgroup.yaml
+  oc create --edit=true -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/operatorgroup.yaml
   ```
 
-- Create a `Subscription` to install the operator (you can [review redhat-subscription.yaml](redhat-subscription.yaml)):
+- Create a `Subscription` to install the operator:
   ```
-  oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/redhat-subscription.yaml
+  oc create --edit=true -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/redhat-subscription.yaml
   ```
 
 ## Deploy the sensor
@@ -153,7 +154,11 @@ Deploying the Falcon sensors via the CLI and with manifest files are the same pr
 
 Once the operator has deployed, you can now deploy the FalconNodeSensor.
 
-- Deploy FalconNodeSensor using the `oc` command, supplying your API client ID and secret in `spec.falcon_api.client_id` and `client_secret`:
+- Deploy FalconNodeSensor to the `falcon-operator` namespace using the `oc` command, supplying your API client ID and secret in `spec.falcon_api.client_id` and `client_secret` (if you want deploy the node sensor to a different namespace, see [Deploying the node sensor to a custom namespace](custom-namespace.md)):
   ```
   oc create -n falcon-operator -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
+
+## Uninstall the operator
+
+See [Uninstalling the operator](uninstall.md).
