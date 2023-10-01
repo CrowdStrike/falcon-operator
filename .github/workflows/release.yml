@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout full repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -40,7 +40,7 @@ jobs:
           echo $REFBRANCH
 
       - name: Checkout tagged branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ env.REFBRANCH }}
@@ -99,7 +99,7 @@ jobs:
     needs: bump_release
     steps:
       - name: Checkout full repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -189,7 +189,7 @@ jobs:
 
       # Checkout falcon-operator github repository
       - name: Checkout falcon-operator project
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Create proper tag version
         id: set_version
