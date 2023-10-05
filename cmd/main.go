@@ -77,6 +77,10 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&ver, "version", false, "Print version")
 
+	if env := os.Getenv("ARGS"); env != "" {
+		os.Args = append(os.Args, strings.Split(env, " ")...)
+	}
+
 	opts := zap.Options{
 		Development: true,
 	}
