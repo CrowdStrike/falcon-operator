@@ -8,7 +8,7 @@ import (
 )
 
 // Service returns a Kubernetes Service object
-func Service(name string, namespace string, component string, selector map[string]string, port int32) *corev1.Service {
+func Service(name string, namespace string, component string, selector map[string]string, portName string, port int32) *corev1.Service {
 	labels := common.CRLabels("service", name, component)
 	return &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
@@ -24,7 +24,7 @@ func Service(name string, namespace string, component string, selector map[strin
 			Selector: selector,
 			Ports: []corev1.ServicePort{
 				{
-					Name:       common.FalconServiceHTTPSName,
+					Name:       portName,
 					Port:       port,
 					Protocol:   corev1.ProtocolTCP,
 					TargetPort: intstr.FromString(common.FalconServiceHTTPSName),

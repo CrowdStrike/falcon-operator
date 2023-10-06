@@ -27,7 +27,7 @@ func TestService(t *testing.T) {
 			Selector: selector,
 			Ports: []corev1.ServicePort{
 				{
-					Name:       common.FalconServiceHTTPSName,
+					Name:       "portName",
 					Port:       123,
 					Protocol:   corev1.ProtocolTCP,
 					TargetPort: intstr.FromString(common.FalconServiceHTTPSName),
@@ -36,7 +36,7 @@ func TestService(t *testing.T) {
 		},
 	}
 
-	got := Service("test", "test", "test", selector, 123)
+	got := Service("test", "test", "test", selector, "portName", 123)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("Service() mismatch (-want +got): %s", diff)
 	}
