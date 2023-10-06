@@ -22,3 +22,6 @@ resources:
 
 # ContainerSensor RBAC
 - falconcontainer_role.yaml
+
+# AdmissionController RBAC
+- falconadmission_role.yaml
