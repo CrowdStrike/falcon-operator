@@ -1,14 +1,21 @@
-apiVersion: crowdstrike.com/v1alpha1
+apiVersion: falcon.crowdstrike.com/v1alpha1
 kind: FalconAdmission
 metadata:
   labels:
     crowdstrike.com/component: sample
     crowdstrike.com/created-by: falcon-operator
-    crowdstrike.com/instance: falconadmission-sample
+    crowdstrike.com/instance: falcon-admission
     crowdstrike.com/managed-by: kustomize
-    crowdstrike.com/name: clusterrole
+    crowdstrike.com/name: falconadmission
     crowdstrike.com/part-of: Falcon
     crowdstrike.com/provider: crowdstrike
-  name: falconadmission-sample
+  name: falcon-admission
 spec:
-  # TODO(user): Add fields here
+  falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
+    cloud_region: autodiscover
+  falcon:
+    trace: none
+    tags:
+      - admission_controller

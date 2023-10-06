@@ -8,6 +8,14 @@
 apiVersion: falcon.crowdstrike.com/v1alpha1
 kind: FalconContainer
 metadata:
+  labels:
+    crowdstrike.com/component: sample
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: falcon-sidecar-sensor
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: falconcontainer
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
   name: falcon-sidecar-sensor
 spec:
   falcon_api:
