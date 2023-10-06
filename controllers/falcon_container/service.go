@@ -17,7 +17,7 @@ import (
 
 func (r *FalconContainerReconciler) reconcileService(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.Service, error) {
 	selector := map[string]string{common.FalconComponentKey: common.FalconSidecarSensor}
-	service := assets.Service(injectorName, r.Namespace(), common.FalconSidecarSensor, selector, *falconContainer.Spec.Injector.ListenPort)
+	service := assets.Service(injectorName, r.Namespace(), common.FalconSidecarSensor, selector, common.FalconServiceHTTPSName, *falconContainer.Spec.Injector.ListenPort)
 	updated := false
 	existingService := &corev1.Service{}
 
