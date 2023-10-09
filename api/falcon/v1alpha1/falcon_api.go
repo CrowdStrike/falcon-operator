@@ -15,12 +15,15 @@ type FalconAPI struct {
 	// +kubebuilder:validation:Enum=autodiscover;us-1;us-2;eu-1;us-gov-1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="CrowdStrike Falcon Cloud Region",order=3
 	CloudRegion string `json:"cloud_region"`
+
 	// Falcon OAuth2 API Client ID
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Client ID",order=1
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Client ID",order=1,xDescriptors="urn:alm:descriptor:com.tectonic.ui:password"
 	ClientId string `json:"client_id"`
+
 	// Falcon OAuth2 API Client Secret
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Client Secret",order=2
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Client Secret",order=2,xDescriptors="urn:alm:descriptor:com.tectonic.ui:password"
 	ClientSecret string `json:"client_secret"`
+
 	// Falcon Customer ID (CID) Override (optional, default is derived from the API Key pair)
 	// +kubebuilder:validation:Pattern="^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Customer ID (CID)",order=4
@@ -30,13 +33,15 @@ type FalconAPI struct {
 // RegistryTLSSpec configures TLS for registry pushing
 type RegistryTLSSpec struct {
 	// Allow pushing to docker registries over HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Skip Registry TLS Verification",order=1
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Skip Registry TLS Verification",order=1,xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	InsecureSkipVerify bool `json:"insecure_skip_verify,omitempty"`
+
 	// Allow for users to provide a CA Cert Bundle, as either a string or base64 encoded string
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Registry CA Certificate Bundle; optionally (double) base64 encoded",order=2
 	CACertificate string `json:"caCertificate,omitempty"`
+
 	// Allow for users to provide a ConfigMap containing a CA Cert Bundle under a key ending in .crt
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ConfigMap containing Registry CA Certificate Bundle",order=3
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ConfigMap containing Registry CA Certificate Bundle",order=3,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap"}
 	CACertificateConfigMap string `json:"caCertificateConfigMap,omitempty"`
 }
 
@@ -57,13 +62,17 @@ const (
 
 // RegistrySpec configures container image registry to which the Falcon Container image will be pushed
 type RegistrySpec struct {
-	// Type of the registry to be used
+	// Type of container registry to be used
 	// +kubebuilder:validation:Enum=acr;ecr;gcr;crowdstrike;openshift
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Registry Type",order=1
 	Type RegistryTypeSpec `json:"type"`
 
 	// TLS configures TLS connection for push of Falcon Container image to the registry
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Registry TLS Configuration",order=2
 	TLS RegistryTLSSpec `json:"tls,omitempty"`
+
 	// Azure Container Registry Name represents the name of the ACR for the Falcon Container push. Only applicable to Azure cloud.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Azure Container Registry Name",order=3
 	AcrName *string `json:"acr_name,omitempty"`
 }
 

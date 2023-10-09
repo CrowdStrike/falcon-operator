@@ -4,9 +4,9 @@
 # More info: https://book.kubebuilder.io/reference/project-config.html
 componentConfig: true
 domain: crowdstrike.com
-layout:
-- go.kubebuilder.io/v3
 multigroup: true
+layout:
+- go.kubebuilder.io/v4-alpha
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
@@ -35,6 +35,7 @@ resources:
     namespaced: true
   controller: true
   domain: crowdstrike.com
+  group: falcon
   kind: FalconAdmission
   path: github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1
   version: v1alpha1
