@@ -1,5 +1,13 @@
 package common
 
+type SensorType string
+
+const (
+	SensorTypeSidecar SensorType = "falcon-container"
+	SensorTypeKac     SensorType = "falcon-kac"
+	SensorTypeNode    SensorType = "falcon-sensor"
+)
+
 const (
 	FalconContainerInjection               = "sensor.falcon-system.crowdstrike.com/injection"
 	FalconContainerInjectorTLSName         = "injector-tls"

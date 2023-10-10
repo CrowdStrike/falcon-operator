@@ -10,6 +10,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 
+	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
 	"github.com/crowdstrike/gofalcon/falcon"
@@ -19,6 +20,17 @@ type FalconRegistry struct {
 	token       string
 	falconCloud falcon.CloudType
 	falconCID   string
+}
+
+func SensorImageURI(falconCloud falcon.CloudType, sensorType common.SensorType) string {
+	switch sensorType {
+	case "falcon-container":
+		return fmt.Sprintf("%s/falcon-container/%s/release/falcon-sensor", registryFQDN(falconCloud), registryCloud(falconCloud))
+	case "falcon-kac":
+		return fmt.Sprintf("%s/falcon-kac/%s/release/falcon-kac", registryFQDN(falconCloud), registryCloud(falconCloud))
+	default:
+		return fmt.Sprintf("%s/falcon-sensor/%s/release/falcon-sensor", registryFQDN(falconCloud), registryCloud(falconCloud))
+	}
 }
 
 func NewFalconRegistry(ctx context.Context, apiCfg *falcon.ApiConfig) (*FalconRegistry, error) {
@@ -63,16 +75,16 @@ func (reg *FalconRegistry) Pulltoken() ([]byte, error) {
 	return dockerfile, nil
 }
 
-func (reg *FalconRegistry) PullInfo(ctx context.Context, versionRequested *string) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
+func (reg *FalconRegistry) PullInfo(ctx context.Context, sensorType common.SensorType, versionRequested *string) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
 	systemContext, err = reg.systemContext()
 	if err != nil {
 		return
 	}
-	falconTag, err = reg.LastContainerTag(ctx, versionRequested)
+	falconTag, err = reg.LastContainerTag(ctx, sensorType, versionRequested)
 	if err != nil {
 		return
 	}
-	falconImage, err = imageReference(reg.imageUriContainer(), falconTag)
+	falconImage, err = imageReference(reg.imageUriContainer(sensorType), falconTag)
 	if err != nil {
 		return
 	}

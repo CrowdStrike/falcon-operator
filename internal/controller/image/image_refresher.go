@@ -13,6 +13,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 
+	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	"github.com/crowdstrike/gofalcon/falcon"
@@ -36,8 +37,8 @@ func NewImageRefresher(ctx context.Context, log logr.Logger, falconConfig *falco
 	}
 }
 
-func (r *ImageRefresher) Refresh(imageDestination string, versionRequested *string) (string, error) {
-	falconTag, srcRef, sourceCtx, err := r.source(versionRequested)
+func (r *ImageRefresher) Refresh(imageDestination string, sensorType common.SensorType, versionRequested *string) (string, error) {
+	falconTag, srcRef, sourceCtx, err := r.source(sensorType, versionRequested)
 	if err != nil {
 		return "", err
 	}
@@ -95,13 +96,13 @@ func (r *ImageRefresher) Refresh(imageDestination string, versionRequested *stri
 	return falconTag, wrapWithHint(err)
 }
 
-func (r *ImageRefresher) source(versionRequested *string) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
+func (r *ImageRefresher) source(sensorType common.SensorType, versionRequested *string) (falconTag string, falconImage types.ImageReference, systemContext *types.SystemContext, err error) {
 	registry, err := falcon_registry.NewFalconRegistry(r.ctx, r.falconConfig)
 	if err != nil {
 		return
 	}
 
-	return registry.PullInfo(r.ctx, versionRequested)
+	return registry.PullInfo(r.ctx, sensorType, versionRequested)
 }
 
 func (r *ImageRefresher) destinationContext(insecureSkipTLSVerify bool) (*types.SystemContext, error) {
