@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -204,7 +205,7 @@ func GetReadyPod(r client.Client, ctx context.Context, namespace string, matchin
 		}
 	}
 
-	return &corev1.Pod{}, fmt.Errorf("No Injector pod found in a Ready state")
+	return &corev1.Pod{}, fmt.Errorf("No webhook service pod found in a Ready state")
 }
 
 func GetDeployment(r client.Client, ctx context.Context, namespace string, matchingLabels client.MatchingLabels) (*appsv1.Deployment, error) {
@@ -219,6 +220,24 @@ func GetDeployment(r client.Client, ctx context.Context, namespace string, match
 	}
 
 	return &depList.Items[0], nil
+}
+
+func GetNamespaceNamesSort(ctx context.Context, cli client.Client) ([]string, error) {
+	nsList := []string{}
+	ns := &corev1.NamespaceList{}
+	err := cli.List(ctx, ns)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, i := range ns.Items {
+		if strings.Contains(i.Name, "openshift") {
+			nsList = append(nsList, i.Name)
+		}
+	}
+
+	sort.Slice(nsList, func(i, j int) bool { return nsList[i] < nsList[j] })
+	return nsList, nil
 }
 
 func oLogMessage(kind, obj string) string {
