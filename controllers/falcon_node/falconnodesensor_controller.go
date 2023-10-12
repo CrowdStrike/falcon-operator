@@ -507,7 +507,7 @@ func updateDaemonSetContainerProxy(ds *appsv1.DaemonSet, nodesensor *falconv1alp
 func updateDaemonSetTolerations(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
 	tolerations := &ds.Spec.Template.Spec.Tolerations
 	origTolerations := nodesensor.Spec.Node.Tolerations
-	tolerationsUpdate := !reflect.DeepEqual(*tolerations, origTolerations)
+	tolerationsUpdate := !equality.Semantic.DeepEqual(*tolerations, origTolerations)
 	if tolerationsUpdate {
 		logger.Info("Updating FalconNodeSensor DaemonSet Tolerations")
 		*tolerations = origTolerations
