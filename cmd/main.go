@@ -15,6 +15,7 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/labels"
@@ -34,6 +35,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	admissioncontroller "github.com/crowdstrike/falcon-operator/controllers/admission"
 	containercontroller "github.com/crowdstrike/falcon-operator/controllers/falcon_container"
 	nodecontroller "github.com/crowdstrike/falcon-operator/controllers/falcon_node"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
@@ -121,20 +123,28 @@ func main() {
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "70435a7a.crowdstrike.com",
 		Namespace:              watchNamespace, // namespaced-scope when the value is not an empty string
+
 		NewCache: cache.BuilderWithOptions(cache.Options{
 			SelectorsByObject: cache.SelectorsByObject{
-				&falconv1alpha1.FalconContainer{}: {},
-				&corev1.Namespace{}:               {},
-				&rbacv1.ClusterRoleBinding{}:      {},
-				&corev1.ServiceAccount{}:          {},
-				&imagev1.ImageStream{}:            {},
+				&falconv1alpha1.FalconAdmission{}:  {},
+				&falconv1alpha1.FalconNodeSensor{}: {},
+				&falconv1alpha1.FalconContainer{}:  {},
+				&corev1.Namespace{}:                {},
+				&corev1.Secret{}:                   {},
+				&rbacv1.ClusterRoleBinding{}:       {},
+				&corev1.ServiceAccount{}:           {},
+				&imagev1.ImageStream{}: {
+					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
+				},
 				&corev1.Service{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconSidecarSensor}),
+					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
+				},
+				&corev1.ResourceQuota{}: {
+					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconAdmissionController}),
 				},
 				&appsv1.Deployment{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconSidecarSensor}),
+					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
 				},
-				&corev1.Secret{}: {},
 				&corev1.ConfigMap{}: {
 					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
 				},
@@ -143,6 +153,9 @@ func main() {
 				},
 				&arv1.MutatingWebhookConfiguration{}: {
 					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconSidecarSensor}),
+				},
+				&arv1.ValidatingWebhookConfiguration{}: {
+					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconAdmissionController}),
 				},
 			},
 		},
@@ -176,6 +189,13 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconNodeSensor")
+		os.Exit(1)
+	}
+	if err = (&admissioncontroller.FalconAdmissionReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "FalconContainer")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
