@@ -149,7 +149,7 @@ var _ = Describe("FalconContainer controller", func() {
 			By("Checking if pods were successfully created in the reconciliation")
 			Eventually(func() error {
 				pod, err := k8sutils.GetReadyPod(k8sClient, ctx, SidecarSensorNamespace, map[string]string{common.FalconComponentKey: common.FalconSidecarSensor})
-				if err != nil && err.Error() != "No Injector pod found in a Ready state" {
+				if err != nil && err.Error() != "No webhook service pod found in a Ready state" {
 					return err
 				}
 				if pod.Name == "" {

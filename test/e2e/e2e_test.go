@@ -28,9 +28,10 @@ var _ = Describe("falcon", Ordered, func() {
 	BeforeAll(func() {
 		// The namespace can be created when we run make install
 		// However, in this test we want ensure that the solution
-		// can run in a ns labeled as restricted. Therefore, we are
+		// can run in a ns labeled as privileged. Therefore, we are
 		// creating the namespace an lebeling it.
 		By("creating manager namespace")
+
 		cmd := exec.Command("kubectl", "create", "ns", namespace)
 		_, _ = utils.Run(cmd)
 
@@ -83,8 +84,7 @@ var _ = Describe("falcon", Ordered, func() {
 			outputMake, err := utils.Run(cmd)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-			fmt.Println(outputMake)
-			By("validating that manager Pod/container(s) are restricted")
+			By("validating that manager Pod/container(s) are not restricted")
 			ExpectWithOffset(1, outputMake).NotTo(ContainSubstring("Warning: would violate PodSecurity"))
 
 			By("validating that the controller-manager pod is running as expected")
@@ -308,11 +308,108 @@ var _ = Describe("falcon", Ordered, func() {
 				fmt.Println(string(status))
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
 				if len(status) > 0 {
-					return fmt.Errorf("falcon-node-sensor pod in %s status", status)
+					return fmt.Errorf("falcon-sidecar-sensor pod in %s status", status)
 				}
 				return nil
 			}
 			EventuallyWithOffset(1, getFalconNodeSensorPodStatus, time.Minute, time.Second).Should(Succeed())
+		})
+	})
+
+	Context("Falcon Admission Controller", func() {
+		It("should deploy successfully", func() {
+			projectDir, _ := utils.GetProjectDir()
+
+			var falconClientID = ""
+			var falconClientSecret = ""
+			if clientID, ok := os.LookupEnv("FALCON_CLIENT_ID"); ok {
+				falconClientID = clientID
+			}
+
+			if clientSecret, ok := os.LookupEnv("FALCON_CLIENT_SECRET"); ok {
+				falconClientSecret = clientSecret
+			}
+
+			if falconClientID != "" && falconClientSecret != "" {
+				err := utils.ReplaceInFile(filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falconadmission.yaml"),
+					"client_id: PLEASE_FILL_IN", fmt.Sprintf("client_id: %s", falconClientID))
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+				err = utils.ReplaceInFile(filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falconadmission.yaml"),
+					"client_secret: PLEASE_FILL_IN", fmt.Sprintf("client_secret: %s", falconClientSecret))
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			}
+
+			By("creating an instance of the FalconAdmission Operand(CR)")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "apply", "-f", filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falconadmission.yaml"), "-n", namespace)
+				_, err := utils.Run(cmd)
+				return err
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("validating that pod(s) status.phase=Running")
+			getFalconSidecarPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=admission_controller",
+					"-o", "jsonpath={.items[*].status}", "-n", namespace,
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "\"phase\":\"Running\"") {
+					return fmt.Errorf(" pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconSidecarPodStatus, time.Minute, time.Second).Should(Succeed())
+
+			By("validating that the status of the custom resource created is updated or not")
+			getStatus := func() error {
+				cmd := exec.Command("kubectl", "get", "falconadmission",
+					"falcon-admission", "-A", "-o", "jsonpath={.status.conditions}",
+					"-n", namespace,
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "Success") {
+					return fmt.Errorf("status condition with type Success should be set")
+				}
+				return nil
+			}
+			Eventually(getStatus, time.Minute, time.Second).Should(Succeed())
+		})
+	})
+
+	Context("Falcon Admission Controller", func() {
+		It("should cleanup successfully", func() {
+			projectDir, _ := utils.GetProjectDir()
+
+			By("deleting an instance of the FalconAdmission Operand(CR)")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "delete", "-f", filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falconadmission.yaml"), "-n", namespace)
+				_, err := utils.Run(cmd)
+				return err
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("validating that pod(s) status.phase!=Running")
+			getFalconAdmissionPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=admission_controller", "--field-selector=status.phase=Running",
+					"-o", "jsonpath={.items[*].status}", "-n", namespace,
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if len(status) > 0 {
+					return fmt.Errorf("falcon-admission pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconAdmissionPodStatus, time.Minute, time.Second).Should(Succeed())
 		})
 	})
 })
