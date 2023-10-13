@@ -82,7 +82,7 @@ All arguments are optional, but successful deployment requires either falcon_id 
 
 ### Auto Proxy Configuration
 
-The operator will automatically configure the sensor's proxy configuration when the cluster proxy is configured on OpenShift via OLM. When not running on OpenShift, adding the proxy configuration via environment variables will also configure the sensor's proxy information. These settings can be overridden by configuring the [sensor's proxy settings](#falcon-sensor-settings)
+{{ template "proxy.tmpl" . }}
 
 ### Install Steps
 With Falcon Operator installed, run the following command to install the FalconNodeSensor CR:

@@ -1,0 +1,22 @@
+The operator will automatically configure the sensor's proxy configuration when the cluster proxy is configured on OpenShift via OLM. See the following documentation for more information:
+* [Configuring cluster-wide proxy](https://docs.openshift.com/container-platform/latest/networking/enable-cluster-wide-proxy.html)
+* [Overriding proxy settings of an Operator](https://docs.openshift.com/container-platform/4.13/operators/admin/olm-configuring-proxy-support.html#olm-overriding-proxy-settings_olm-configuring-proxy-support)
+
+When not running on OpenShift, adding the proxy configuration via environment variables will also configure the sensor's proxy information.
+```yaml
+- args:
+  - --leader-elect
+  command:
+  - /manager
+  env:
+  - name: WATCH_NAMESPACE
+    value: null
+  - name: OPERATOR_NAME
+    value: falcon-operator
+  - name: HTTP_PROXY
+    value: http://proxy.example.com:8080
+  - name: HTTPS_PROXY
+    value: http://proxy.example.com:8080
+  image: quay.io/crowdstrike/falcon-operator:latest
+```
+These settings can be overridden by configuring the [sensor's proxy settings](#falcon-sensor-settings)
