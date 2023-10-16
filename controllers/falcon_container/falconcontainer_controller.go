@@ -243,7 +243,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	pod, err := k8sutils.GetReadyPod(r.Client, ctx, r.Namespace(), map[string]string{common.FalconComponentKey: common.FalconSidecarSensor})
-	if err != nil && err.Error() != "No Injector pod found in a Ready state" {
+	if err != nil && err.Error() != "No webhook service pod found in a Ready state" {
 		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to find Ready injector pod: %v", err))
 		if err != nil {
 			return ctrl.Result{}, err

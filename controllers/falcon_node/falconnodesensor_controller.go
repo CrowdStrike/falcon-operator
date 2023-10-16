@@ -593,7 +593,8 @@ func (r *FalconNodeSensorReconciler) handleClusterRoleBinding(ctx context.Contex
 			Kind:       "ClusterRoleBinding",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: common.NodeClusterRoleBindingName,
+			Name:   common.NodeClusterRoleBindingName,
+			Labels: common.CRLabels("clusterrolebinding", common.NodeClusterRoleBindingName, common.FalconKernelSensor),
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
@@ -637,6 +638,7 @@ func (r *FalconNodeSensorReconciler) handleServiceAccount(ctx context.Context, n
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: nodesensor.TargetNs(),
 			Name:      common.NodeServiceAccountName,
+			Labels:    common.CRLabels("serviceaccount", common.NodeServiceAccountName, common.FalconKernelSensor),
 		},
 	}
 	err = ctrl.SetControllerReference(nodesensor, &sa, r.Scheme)
