@@ -42,8 +42,6 @@ type FalconAdmissionReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-const nsTest = "falcon-kac"
-
 // SetupWithManager sets up the controller with the Manager.
 func (r *FalconAdmissionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -135,6 +133,10 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			log.Error(err, "Failed to re-fetch FalconAdmission for status update 2")
 			return ctrl.Result{}, err
 		}
+	}
+
+	if err := r.reconcileNamespace(ctx, req, log, falconAdmission); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// Image being set will override other image based settings

@@ -86,6 +86,23 @@ func TestRole(t *testing.T) {
 			Namespace: namespace,
 			Labels:    common.CRLabels("role", name, common.FalconAdmissionController),
 		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				Verbs:     []string{"create", "get", "list", "watch", "update"},
+				APIGroups: []string{""},
+				Resources: []string{"configmaps"},
+			},
+			{
+				Verbs:     []string{"get", "list", "watch", "update"},
+				APIGroups: []string{""},
+				Resources: []string{"pods"},
+			},
+			{
+				Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
+				APIGroups: []string{"coordination.k8s.io"},
+				Resources: []string{"leases"},
+			},
+		},
 	}
 	got := Role(name, namespace)
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -107,8 +124,9 @@ func TestRoleBinding(t *testing.T) {
 			Kind:       "RoleBinding",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: common.CRLabels("rolebinding", name, component),
+			Name:      name,
+			Labels:    common.CRLabels("rolebinding", name, component),
+			Namespace: namespace,
 		},
 		Subjects: []rbacv1.Subject{
 			{
