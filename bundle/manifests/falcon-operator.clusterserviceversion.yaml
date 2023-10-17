@@ -6,8 +6,49 @@ metadata:
       [
         {
           "apiVersion": "falcon.crowdstrike.com/v1alpha1",
+          "kind": "FalconAdmission",
+          "metadata": {
+            "labels": {
+              "crowdstrike.com/component": "sample",
+              "crowdstrike.com/created-by": "falcon-operator",
+              "crowdstrike.com/instance": "falcon-admission",
+              "crowdstrike.com/managed-by": "kustomize",
+              "crowdstrike.com/name": "falconadmission",
+              "crowdstrike.com/part-of": "Falcon",
+              "crowdstrike.com/provider": "crowdstrike"
+            },
+            "name": "falcon-admission"
+          },
+          "spec": {
+            "falcon": {
+              "tags": [
+                "admission_controller"
+              ],
+              "trace": "none"
+            },
+            "falcon_api": {
+              "client_id": "PLEASE_FILL_IN",
+              "client_secret": "PLEASE_FILL_IN",
+              "cloud_region": "autodiscover"
+            },
+            "registry": {
+              "type": "crowdstrike"
+            }
+          }
+        },
+        {
+          "apiVersion": "falcon.crowdstrike.com/v1alpha1",
           "kind": "FalconContainer",
           "metadata": {
+            "labels": {
+              "crowdstrike.com/component": "sample",
+              "crowdstrike.com/created-by": "falcon-operator",
+              "crowdstrike.com/instance": "falcon-sidecar-sensor",
+              "crowdstrike.com/managed-by": "kustomize",
+              "crowdstrike.com/name": "falconcontainer",
+              "crowdstrike.com/part-of": "Falcon",
+              "crowdstrike.com/provider": "crowdstrike"
+            },
             "name": "falcon-sidecar-sensor"
           },
           "spec": {
@@ -31,6 +72,15 @@ metadata:
           "apiVersion": "falcon.crowdstrike.com/v1alpha1",
           "kind": "FalconNodeSensor",
           "metadata": {
+            "labels": {
+              "crowdstrike.com/component": "sample",
+              "crowdstrike.com/created-by": "falcon-operator",
+              "crowdstrike.com/instance": "falcon-node-sensor",
+              "crowdstrike.com/managed-by": "kustomize",
+              "crowdstrike.com/name": "falconnodesensor",
+              "crowdstrike.com/part-of": "Falcon",
+              "crowdstrike.com/provider": "crowdstrike"
+            },
             "name": "falcon-node-sensor"
           },
           "spec": {
@@ -51,11 +101,11 @@ metadata:
     capabilities: Basic Install
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2023-06-27T14:11:17Z"
+    createdAt: "2023-10-17T19:56:45Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     operatorframework.io/suggested-namespace: falcon-operator
-    operators.operatorframework.io/builder: operator-sdk-v1.30.0
-    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    operators.operatorframework.io/builder: operator-sdk-v1.29.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4-alpha
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
   name: falcon-operator.v0.9.0
@@ -64,6 +114,211 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: FalconAdmission is the Schema for the falconadmissions API
+      displayName: Falcon Admission
+      kind: FalconAdmission
+      name: falconadmissions.falcon.crowdstrike.com
+      specDescriptors:
+      - description: Configure a list of namespaces to ignore admission control.
+        displayName: Ignore Namespace List
+        path: admissionConfig.disabledNamespaces.namespaces
+      - description: ImagePullSecrets is an optional list of references to secrets
+          to use for pulling image from the image location.
+        displayName: Falcon Admission Controller Image Pull Secrets
+        path: admissionConfig.imagePullSecrets
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Secret
+      - description: Define annotations that will be passed down to the Service Account.
+          This is useful for passing along AWS IAM Role or GCP Workload Identity.
+        displayName: Service Account Annotations
+        path: admissionConfig.serviceAccount.annotations
+      - description: Validity of the TLS certificate in days. Default is 3650 days.
+        displayName: Falcon Container Injector TLS Validity Length (days)
+        path: admissionConfig.tls.validity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: RollingUpdate is used to specify the strategy used to roll out
+          a deployment
+        displayName: Falcon Admisison Controller deployment update configuration
+        path: admissionConfig.updateStrategy.rollingUpdate
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+      - description: Falcon Customer ID (CID)
+        displayName: Falcon Customer ID (CID)
+        path: falcon.cid
+      - description: Falcon OAuth2 API Client ID
+        displayName: Client ID
+        path: falcon_api.client_id
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: Namespace where the Falcon Admission Controller should be installed.
+          For best security practices, this should be a dedicated namespace that is
+          not used for any other purpose. It also should not be the same namespace
+          where the Falcon Operator or the Falcon Sensor is installed.
+        displayName: Install Namespace
+        path: installNamespace
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Namespace
+      - description: Allow pushing to docker registries over HTTPS with failed TLS
+          verification. Note that this does not affect other TLS connections.
+        displayName: Skip Registry TLS Verification
+        path: registry.tls.insecure_skip_verify
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Type of container registry to be used
+        displayName: Registry Type
+        path: registry.type
+      - description: Limits the number of admission controller pods that can be created
+          in the namespace.
+        displayName: Resource Quota Pod Limit
+        path: resourcequota.pods
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podCount
+      - description: For OpenShift clusters, ignore openshift-specific namespaces
+          for admission control.
+        displayName: Ignore OpenShift Namespaces
+        path: admissionConfig.disabledNamespaces.ignoreOpenShiftNamespaces
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - displayName: Falcon Admission Controller Image Pull Policy
+        path: admissionConfig.imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: Installation token that prevents unauthorized hosts from being
+          accidentally or maliciously added to your customer ID (CID).
+        displayName: Provisioning Token
+        path: falcon.provisioning_token
+      - description: "FalconAPI configures connection from your local Falcon operator
+          to CrowdStrike Falcon platform. \n When configured, it will pull the sensor
+          from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
+          \n If using the API is not desired, the sensor can be manually configured
+          by setting the Image and Version fields."
+        displayName: Falcon Platform API Configuration
+        path: falcon_api
+      - description: Falcon OAuth2 API Client Secret
+        displayName: Client Secret
+        path: falcon_api.client_secret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: TLS configures TLS connection for push of Falcon Container image
+          to the registry
+        displayName: Registry TLS Configuration
+        path: registry.tls
+      - description: Allow for users to provide a CA Cert Bundle, as either a string
+          or base64 encoded string
+        displayName: Registry CA Certificate Bundle; optionally (double) base64 encoded
+        path: registry.tls.caCertificate
+      - description: Port on which the Falcon Admission Controller service will listen
+          for requests from the cluster.
+        displayName: Falcon Admission Controller Service Port
+        path: admissionConfig.servicePort
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: CrowdStrike Falcon sensor configuration
+        displayName: Falcon Sensor Configuration
+        path: falcon
+      - description: Disable the Falcon Sensor's use of a proxy.
+        displayName: Disable Falcon Proxy
+        path: falcon.apd
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
+          the operator will connect and register.
+        displayName: CrowdStrike Falcon Cloud Region
+        path: falcon_api.cloud_region
+      - description: Azure Container Registry Name represents the name of the ACR
+          for the Falcon Container push. Only applicable to Azure cloud.
+        displayName: Azure Container Registry Name
+        path: registry.acr_name
+      - description: Allow for users to provide a ConfigMap containing a CA Cert Bundle
+          under a key ending in .crt
+        displayName: ConfigMap containing Registry CA Certificate Bundle
+        path: registry.tls.caCertificateConfigMap
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap
+      - description: Port on which the Falcon Admission Controller container will
+          listen for requests.
+        displayName: Falcon Admission Controller Container Port
+        path: admissionConfig.containerPort
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The application proxy host to use for Falcon sensor proxy configuration.
+        displayName: Disable Falcon Proxy Host
+        path: falcon.aph
+      - description: Falcon Customer ID (CID) Override (optional, default is derived
+          from the API Key pair)
+        displayName: Falcon Customer ID (CID)
+        path: falcon_api.cid
+      - description: ResourceQuota configures the ResourceQuota for the Falcon Admission
+          Controller. This is useful for limiting the number of pods that can be created
+          in the namespace.
+        displayName: Falcon Admission Controller Resource Quota
+        path: resourcequota
+      - description: Additional configuration for Falcon Admission Controller deployment.
+        displayName: Falcon Admission Controller Configuration
+        path: admissionConfig
+      - description: Number of replicas for the Falcon Admission Controller deployment.
+        displayName: Admission Controller Replica Count
+        path: admissionConfig.replicas
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The application proxy port to use for Falcon sensor proxy configuration.
+        displayName: Falcon Proxy Port
+        path: falcon.app
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Configure the failure policy for the Falcon Admission Controller.
+        displayName: Falcon Admission Controller Failure Policy
+        path: admissionConfig.failurePolicy
+      - description: 'Sensor grouping tags are optional, user-defined identifiers
+          that can used to group and filter hosts. Allowed characters: all alphanumerics,
+          ''/'', ''-'', and ''_''.'
+        displayName: Sensor Grouping Tags
+        path: falcon.tags
+      - description: Registry configures container image registry to which the Admission
+          Controller image will be pushed.
+        displayName: Falcon Admission Controller Registry Configuration
+        path: registry
+      - description: Define annotations that will be passed down to admision controller
+          service account. This is useful for passing along AWS IAM Role or GCP Workload
+          Identity.
+        displayName: Service Account Configuration
+        path: admissionConfig.serviceAccount
+      - description: Set sensor trace level.
+        displayName: Trace Level
+        path: falcon.trace
+      - description: Location of the Falcon Sensor image. Use only in cases when you
+          mirror the original image to your repository/name:tag, and CrowdStrike OAuth2
+          API is not used.
+        displayName: Falcon Admission Controller Image URI
+        path: image
+      - description: Configure TLS setings for the Falcon Admission Controller
+        displayName: Falcon Admission Controller TLS Configuration
+        path: admissionConfig.tls
+      - description: Utilize default or Pay-As-You-Go billing.
+        displayName: Billing
+        path: falcon.billing
+      - description: 'Falcon Admission Controller Version. The latest version will
+          be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409,
+          etc.'
+        displayName: Falcon Admission Controller Version
+        path: version
+      - displayName: Falcon Admission Controller Client Resources
+        path: admissionConfig.resourcesClient
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - displayName: Falcon Admission Controller Resources
+        path: admissionConfig.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Type of Deployment update. Can be "RollingUpdate" or "OnDelete".
+          Default is RollingUpdate.
+        displayName: Deployment Update Strategy
+        path: admissionConfig.updateStrategy
+      - description: Ignore admission control for a specific set of namespaces.
+        displayName: Ignore Namespace List
+        path: admissionConfig.disabledNamespaces
+      version: v1alpha1
     - description: FalconContainer is the Schema for the falconcontainers API
       displayName: Falcon Container
       kind: FalconContainer
@@ -77,6 +332,8 @@ spec:
       - description: Falcon OAuth2 API Client ID
         displayName: Client ID
         path: falcon_api.client_id
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
       - description: Define annotations that will be passed down to injector service
           account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
         displayName: Service Account Configuration
@@ -87,6 +344,11 @@ spec:
           verification. Note that this does not affect other TLS connections.
         displayName: Skip Registry TLS Verification
         path: registry.tls.insecure_skip_verify
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Type of container registry to be used
+        displayName: Registry Type
+        path: registry.type
       - description: Installation token that prevents unauthorized hosts from being
           accidentally or maliciously added to your customer ID (CID).
         displayName: Provisioning Token
@@ -98,8 +360,14 @@ spec:
       - description: Falcon OAuth2 API Client Secret
         displayName: Client Secret
         path: falcon_api.client_secret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
       - displayName: Falcon Container Injector Listen Port
         path: injector.listenPort
+      - description: TLS configures TLS connection for push of Falcon Container image
+          to the registry
+        displayName: Registry TLS Configuration
+        path: registry.tls
       - description: Allow for users to provide a CA Cert Bundle, as either a string
           or base64 encoded string
         displayName: Registry CA Certificate Bundle; optionally (double) base64 encoded
@@ -107,6 +375,8 @@ spec:
       - description: Disable the Falcon Sensor's use of a proxy.
         displayName: Disable Falcon Proxy
         path: falcon.apd
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
@@ -117,10 +387,16 @@ spec:
           Container image will be pushed
         displayName: Falcon Container Image Registry Configuration
         path: registry
+      - description: Azure Container Registry Name represents the name of the ACR
+          for the Falcon Container push. Only applicable to Azure cloud.
+        displayName: Azure Container Registry Name
+        path: registry.acr_name
       - description: Allow for users to provide a ConfigMap containing a CA Cert Bundle
           under a key ending in .crt
         displayName: ConfigMap containing Registry CA Certificate Bundle
         path: registry.tls.caCertificateConfigMap
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap
       - description: The application proxy host to use for Falcon sensor proxy configuration.
         displayName: Disable Falcon Proxy Host
         path: falcon.aph
@@ -137,6 +413,8 @@ spec:
       - description: The application proxy port to use for Falcon sensor proxy configuration.
         displayName: Falcon Proxy Port
         path: falcon.app
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
       - displayName: Falcon Container Image Pull Secret Name
         path: injector.imagePullSecret
       - description: 'Sensor grouping tags are optional, user-defined identifiers
@@ -192,6 +470,8 @@ spec:
       - description: Falcon OAuth2 API Client ID
         displayName: Client ID
         path: falcon_api.client_id
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
       - description: ImagePullSecrets is an optional list of references to secrets
           in the falcon-system namespace to use for pulling image from image_override
           location.
@@ -206,6 +486,8 @@ spec:
       - description: Falcon OAuth2 API Client Secret
         displayName: Client Secret
         path: falcon_api.client_secret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
       - description: Location of the Falcon Sensor image. Use only in cases when you
           mirror the original image to your repository/name:tag
         displayName: Image
@@ -213,6 +495,8 @@ spec:
       - description: Disable the Falcon Sensor's use of a proxy.
         displayName: Disable Falcon Proxy
         path: falcon.apd
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
@@ -236,6 +520,8 @@ spec:
       - description: The application proxy port to use for Falcon sensor proxy configuration.
         displayName: Falcon Proxy Port
         path: falcon.app
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
       - description: Specifies node affinity for scheduling the DaemonSet. Defaults
           to allowing scheduling on all nodes.
         displayName: Node Affinity
@@ -355,12 +641,32 @@ spec:
         - apiGroups:
           - ""
           resources:
+          - nodes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
           - pods
           verbs:
           - delete
           - deletecollection
           - get
           - list
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - resourcequotas
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - update
           - watch
         - apiGroups:
           - ""
@@ -407,6 +713,17 @@ spec:
           - update
           - watch
         - apiGroups:
+          - admissionregistration.k8s.io
+          resources:
+          - validatingwebhookconfigurations
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - update
+          - watch
+        - apiGroups:
           - apps
           resources:
           - daemonsets
@@ -435,9 +752,11 @@ spec:
           - leases
           verbs:
           - create
+          - delete
           - get
           - list
           - update
+          - watch
         - apiGroups:
           - ""
           resources:
@@ -450,6 +769,32 @@ spec:
           - patch
           - update
           - watch
+        - apiGroups:
+          - falcon.crowdstrike.com
+          resources:
+          - falconadmissions
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - falcon.crowdstrike.com
+          resources:
+          - falconadmissions/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - falcon.crowdstrike.com
+          resources:
+          - falconadmissions/status
+          verbs:
+          - get
+          - patch
+          - update
         - apiGroups:
           - falcon.crowdstrike.com
           resources:
@@ -519,6 +864,18 @@ spec:
           - rbac.authorization.k8s.io
           resources:
           - clusterrolebindings
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - rolebindings
+          - roles
           verbs:
           - create
           - delete

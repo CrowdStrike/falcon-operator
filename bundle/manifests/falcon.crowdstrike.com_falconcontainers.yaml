@@ -1899,7 +1899,7 @@ spec:
                         type: boolean
                     type: object
                   type:
-                    description: Type of the registry to be used
+                    description: Type of container registry to be used
                     enum:
                     - acr
                     - ecr
