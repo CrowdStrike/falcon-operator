@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.19 as builder
+FROM registry.access.redhat.com/ubi8/go-toolset as builder
 ARG TARGETOS
 ARG TARGETARCH
 ARG VERSION
@@ -32,8 +32,10 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -tags
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+FROM registry.access.redhat.com/ubi8/ubi-micro
 WORKDIR /
+COPY LICENSE licenses/
+COPY --from=builder /etc/pki /etc/pki
 COPY --from=builder /workspace/manager .
 USER 65532:65532
 
