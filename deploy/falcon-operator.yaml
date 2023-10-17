@@ -2702,8 +2702,7 @@ spec:
                     type: boolean
                   image:
                     description: Location of the Falcon Sensor image. Use only in
-                      cases when you mirror the original image to your repository/name:tag,
-                      and CrowdStrike OAuth2 API is not used.
+                      cases when you mirror the original image to your repository/name:tag
                     pattern: ^.*:.*$
                     type: string
                   imagePullPolicy:
@@ -3695,7 +3694,7 @@ spec:
                 - linux
       containers:
       - args:
-        - --leader-elect
+        - --config=controller_manager_config.yaml
         command:
         - /manager
         env:
@@ -3731,8 +3730,16 @@ spec:
             drop:
             - ALL
           privileged: false
+        volumeMounts:
+        - mountPath: /controller_manager_config.yaml
+          name: manager-config
+          subPath: controller_manager_config.yaml
       securityContext:
         fsGroup: 65534
         runAsNonRoot: true
       serviceAccountName: falcon-operator-controller-manager
       terminationGracePeriodSeconds: 10
+      volumes:
+      - configMap:
+          name: falcon-operator-manager-config
+        name: manager-config

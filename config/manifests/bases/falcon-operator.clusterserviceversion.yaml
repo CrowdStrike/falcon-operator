@@ -392,8 +392,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:password
       - description: Location of the Falcon Sensor image. Use only in cases when you
-          mirror the original image to your repository/name:tag, and CrowdStrike OAuth2
-          API is not used.
+          mirror the original image to your repository/name:tag
         displayName: Image
         path: node.image
       - description: Disable the Falcon Sensor's use of a proxy.

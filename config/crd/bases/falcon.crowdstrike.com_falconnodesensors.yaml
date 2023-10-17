@@ -145,8 +145,7 @@ spec:
                     type: boolean
                   image:
                     description: Location of the Falcon Sensor image. Use only in
-                      cases when you mirror the original image to your repository/name:tag,
-                      and CrowdStrike OAuth2 API is not used.
+                      cases when you mirror the original image to your repository/name:tag
                     pattern: ^.*:.*$
                     type: string
                   imagePullPolicy:
