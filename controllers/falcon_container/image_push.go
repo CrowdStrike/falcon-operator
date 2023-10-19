@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -181,14 +180,14 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 
 	// If an Image URI is set, use it for our version
 	if falconContainer.Spec.Image != nil && *falconContainer.Spec.Image != "" {
-		falconContainer.Status.Sensor = &strings.Split(*falconContainer.Spec.Image, ":")[1]
+		falconContainer.Status.Sensor = common.ImageVersion(*falconContainer.Spec.Image)
 
 		return *falconContainer.Status.Sensor, r.Client.Status().Update(ctx, falconContainer)
 	}
 
 	if os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR") != "" && falconContainer.Spec.FalconAPI == nil {
 		image := os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR")
-		falconContainer.Status.Sensor = &strings.Split(image, ":")[1]
+		falconContainer.Status.Sensor = common.ImageVersion(image)
 
 		return *falconContainer.Status.Sensor, r.Client.Status().Update(ctx, falconContainer)
 	}
@@ -201,7 +200,7 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 
 	tag, err := registry.LastContainerTag(ctx, common.SensorTypeSidecar, falconContainer.Spec.Version)
 	if err == nil {
-		falconContainer.Status.Sensor = &tag
+		falconContainer.Status.Sensor = common.ImageVersion(tag)
 	}
 
 	return tag, err

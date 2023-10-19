@@ -164,7 +164,7 @@ func ConditionsUpdate(r client.Client, ctx context.Context, req ctrl.Request, lo
 	if !meta.IsStatusConditionPresentAndEqual(falconStatus.Conditions, falconCondition.Type, falconCondition.Status) {
 		fgvk := falconObject.GetObjectKind().GroupVersionKind()
 
-		// Re-fetch the memcached Custom Resource before update the status
+		// Re-fetch the Custom Resource before update the status
 		// so that we have the latest state of the resource on the cluster and we will avoid
 		// raise the issue "the object has been modified, please apply
 		// your changes to the latest version and try again" which would re-trigger the reconciliation
