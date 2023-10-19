@@ -3,7 +3,6 @@ package falcon
 import (
 	"context"
 	"reflect"
-	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
@@ -98,7 +97,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	}
 
-	if nodesensor.Status.Version == "" {
+	if nodesensor.Status.Version != version.Get() {
 		nodesensor.Status.Version = version.Get()
 		err = r.Status().Update(ctx, nodesensor)
 		if err != nil {
@@ -276,8 +275,9 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	}
 
-	if nodesensor.Status.Sensor == nil {
-		nodesensor.Status.Sensor = &strings.Split(image, ":")[1]
+	imgVer := common.ImageVersion(image)
+	if nodesensor.Status.Sensor != imgVer {
+		nodesensor.Status.Sensor = imgVer
 		err = r.Status().Update(ctx, nodesensor)
 		if err != nil {
 			log.Error(err, "Failed to update FalconNodeSensor status for nodesensor.Status.Sensor")

@@ -178,3 +178,16 @@ func UpdateEnvVars(envVars []corev1.EnvVar, updateEnvVars []corev1.EnvVar) []cor
 
 	return envVars
 }
+
+func ImageVersion(image string) *string {
+	switch {
+	case strings.Contains(image, ":"):
+		versionTag := strings.Split(image, ":")
+		return &versionTag[1]
+	case strings.Contains(image, "@"):
+		versionDigest := strings.Split(image, "@")
+		return &versionDigest[1]
+	default:
+		return &image
+	}
+}

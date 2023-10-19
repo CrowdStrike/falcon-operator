@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -104,9 +103,9 @@ func (r *FalconAdmissionReconciler) imageUri(ctx context.Context, falconAdmissio
 		return falconAdmission.Spec.Image, nil
 	}
 
-	sidecarImage := os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER")
-	if sidecarImage != "" && falconAdmission.Spec.FalconAPI == nil {
-		return sidecarImage, nil
+	admissionImage := os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER")
+	if admissionImage != "" && falconAdmission.Spec.FalconAPI == nil {
+		return admissionImage, nil
 	}
 
 	registryUri, err := r.registryUri(ctx, falconAdmission)
@@ -140,14 +139,14 @@ func (r *FalconAdmissionReconciler) setImageTag(ctx context.Context, falconAdmis
 
 	// If an Image URI is set, use it for our version
 	if falconAdmission.Spec.Image != "" {
-		falconAdmission.Status.Sensor = &strings.Split(falconAdmission.Spec.Image, ":")[1]
+		falconAdmission.Status.Sensor = common.ImageVersion(falconAdmission.Spec.Image)
 
 		return *falconAdmission.Status.Sensor, r.Client.Status().Update(ctx, falconAdmission)
 	}
 
 	if os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER") != "" && falconAdmission.Spec.FalconAPI == nil {
 		image := os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER")
-		falconAdmission.Status.Sensor = &strings.Split(image, ":")[1]
+		falconAdmission.Status.Sensor = common.ImageVersion(image)
 
 		return *falconAdmission.Status.Sensor, r.Client.Status().Update(ctx, falconAdmission)
 	}
@@ -160,7 +159,7 @@ func (r *FalconAdmissionReconciler) setImageTag(ctx context.Context, falconAdmis
 
 	tag, err := registry.LastContainerTag(ctx, common.SensorTypeKac, falconAdmission.Spec.Version)
 	if err == nil {
-		falconAdmission.Status.Sensor = &tag
+		falconAdmission.Status.Sensor = common.ImageVersion(tag)
 	}
 
 	return tag, err

@@ -95,7 +95,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
-	if falconContainer.Status.Version == "" {
+	if falconContainer.Status.Version != version.Get() {
 		falconContainer.Status.Version = version.Get()
 		err := r.Status().Update(ctx, falconContainer)
 		if err != nil {

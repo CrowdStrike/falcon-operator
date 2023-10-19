@@ -108,7 +108,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{}, err
 		}
 
-		// Let's re-fetch the memcached Custom Resource after update the status
+		// Let's re-fetch the Custom Resource after update the status
 		// so that we have the latest state of the resource on the cluster and we will avoid
 		// raise the issue "the object has been modified, please apply
 		// your changes to the latest version and try again" which would re-trigger the reconciliation
@@ -119,7 +119,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
-	if falconAdmission.Status.Version == "" || falconAdmission.Status.Version != version.Get() {
+	if falconAdmission.Status.Version != version.Get() {
 		falconAdmission.Status.Version = version.Get()
 
 		err = r.Status().Update(ctx, falconAdmission)
@@ -130,7 +130,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 		err = r.Get(ctx, req.NamespacedName, falconAdmission)
 		if err != nil {
-			log.Error(err, "Failed to re-fetch FalconAdmission for status update 2")
+			log.Error(err, "Failed to re-fetch FalconAdmission for status update")
 			return ctrl.Result{}, err
 		}
 	}
@@ -259,8 +259,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Message:            "FalconAdmission installation completed",
 		ObservedGeneration: falconAdmission.GetGeneration(),
 	}); err != nil {
-		log.Error(err, "Failed to update FalconAdmission installation completion condition")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("failed to update FalconAdmission installation completion condition: %v", err)
 	}
 
 	return ctrl.Result{}, nil
@@ -470,8 +469,6 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx cont
 	}
 
 	if !reflect.DeepEqual(webhook.Webhooks[0].NamespaceSelector, existingWebhook.Webhooks[0].NamespaceSelector) {
-		fmt.Println(existingWebhook.Webhooks[0].NamespaceSelector)
-		fmt.Println(webhook.Webhooks[0].NamespaceSelector)
 		updated = true
 	}
 
