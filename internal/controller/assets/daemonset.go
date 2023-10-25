@@ -7,6 +7,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -60,16 +61,176 @@ func dsUpdateStrategy(node *falconv1alpha1.FalconNodeSensor) appsv1.DaemonSetUpd
 	return appsv1.DaemonSetUpdateStrategy{Type: appsv1.OnDeleteDaemonSetStrategyType}
 }
 
+func sensorCapabilities(node *falconv1alpha1.FalconNodeSensor, initContainer bool) *corev1.Capabilities {
+	if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled {
+		if initContainer {
+			return &corev1.Capabilities{
+				Add: []corev1.Capability{
+					"SYS_ADMIN",
+					"SYS_PTRACE",
+					"SYS_CHROOT",
+					"DAC_READ_SEARCH",
+				},
+			}
+		}
+		return &corev1.Capabilities{
+			Add: []corev1.Capability{
+				"SYS_ADMIN",
+				"SETGID",
+				"SETUID",
+				"SYS_PTRACE",
+				"SYS_CHROOT",
+				"DAC_OVERRIDE",
+				"SETPCAP",
+				"DAC_READ_SEARCH",
+				"BPF",
+				"PERFMON",
+				"SYS_RESOURCE",
+				"NET_RAW",
+				"CHOWN",
+			},
+		}
+	}
+	return nil
+}
+
+func dsResources(node *falconv1alpha1.FalconNodeSensor) corev1.ResourceRequirements {
+	if node.Spec.Node.Backend == "bpf" {
+		var limitResources, requestsResources corev1.ResourceList
+
+		if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled {
+			limitResources = corev1.ResourceList{
+				"cpu":               resource.MustParse("750m"),
+				"memory":            resource.MustParse("1.5Gi"),
+				"ephemeral-storage": resource.MustParse("100Mi"),
+			}
+			requestsResources = corev1.ResourceList{
+				"cpu":               resource.MustParse("750m"),
+				"memory":            resource.MustParse("1.5Gi"),
+				"ephemeral-storage": resource.MustParse("100Mi"),
+			}
+		}
+
+		if node.Spec.Node.SensorResources.Limits.CPU != "" {
+			limitResources["cpu"] = resource.MustParse(node.Spec.Node.SensorResources.Limits.CPU)
+		}
+		if node.Spec.Node.SensorResources.Limits.Memory != "" {
+			limitResources["memory"] = resource.MustParse(node.Spec.Node.SensorResources.Limits.Memory)
+		}
+		if node.Spec.Node.SensorResources.Requests.CPU != "" {
+			requestsResources["cpu"] = resource.MustParse(node.Spec.Node.SensorResources.Requests.CPU)
+		}
+		if node.Spec.Node.SensorResources.Requests.Memory != "" {
+			requestsResources["memory"] = resource.MustParse(node.Spec.Node.SensorResources.Requests.Memory)
+		}
+
+		return corev1.ResourceRequirements{
+			Limits:   limitResources,
+			Requests: requestsResources,
+			Claims:   []corev1.ResourceClaim{},
+		}
+	}
+
+	node.Spec.Node.SensorResources = falconv1alpha1.Resources{}
+	return corev1.ResourceRequirements{}
+}
+
+// initArgs - remove this function when 6.53 is no longer supported. 6.53+ will use InitContainerArgs()
+func initArgs(node *falconv1alpha1.FalconNodeSensor) []string {
+	if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled {
+		return common.InitContainerArgs()
+	}
+	return common.LegacyInitContainerArgs()
+}
+
+// cleanupArgs - remove this function when 6.53 is no longer supported. 6.53+ will use InitCleanupArgs()
+func cleanupArgs(node *falconv1alpha1.FalconNodeSensor) []string {
+	if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled {
+		return common.InitCleanupArgs()
+	}
+	return common.LegacyInitCleanupArgs()
+}
+
+// volumes - remove this function when 6.53 is no longer supported. 6.53+ will only use falconstore
+func volumes(node *falconv1alpha1.FalconNodeSensor) []corev1.Volume {
+	pathTypeUnset := corev1.HostPathUnset
+	pathDirCreate := corev1.HostPathDirectoryOrCreate
+
+	if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled {
+		return []corev1.Volume{
+			{
+				Name: "falconstore",
+				VolumeSource: corev1.VolumeSource{
+					HostPath: &corev1.HostPathVolumeSource{
+						Path: common.FalconStoreFile,
+						Type: &pathTypeUnset,
+					},
+				},
+			},
+		}
+	}
+
+	return []corev1.Volume{
+		{
+			Name: "falconstore",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: common.FalconStoreFile,
+					Type: &pathTypeUnset,
+				},
+			},
+		},
+		{
+			Name: "falconstore-hostdir",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: common.FalconHostInstallDir,
+					Type: &pathDirCreate,
+				},
+			},
+		},
+	}
+}
+
+func volumeMounts(node *falconv1alpha1.FalconNodeSensor, name string) []corev1.VolumeMount {
+	if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled {
+		return []corev1.VolumeMount{}
+	}
+
+	return []corev1.VolumeMount{
+		{
+			Name:      name,
+			MountPath: common.FalconInitHostInstallDir,
+		},
+	}
+}
+
+func volumesCleanup(node *falconv1alpha1.FalconNodeSensor) []corev1.Volume {
+	if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled {
+		return []corev1.Volume{}
+	}
+	return []corev1.Volume{
+		{
+			Name: "opt-crowdstrike",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: common.FalconHostInstallDir,
+				},
+			},
+		},
+	}
+
+}
+
 func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
 	privileged := true
 	escalation := true
-	readOnlyFs := false
+	readOnlyFSDisabled := false
+	readOnlyFSEnabled := true
 	hostpid := true
 	hostnetwork := true
 	hostipc := true
-	runAs := int64(0)
-	pathTypeUnset := corev1.HostPathUnset
-	pathDirCreate := corev1.HostPathDirectoryOrCreate
+	runAsRoot := int64(0)
 
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -101,21 +262,17 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 					ImagePullSecrets:              pullSecrets(node),
 					InitContainers: []corev1.Container{
 						{
-							Name:    "init-falconstore",
-							Image:   image,
-							Command: common.FalconShellCommand,
-							Args:    common.InitContainerArgs(),
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "falconstore-hostdir",
-									MountPath: common.FalconInitHostInstallDir,
-								},
-							},
+							Name:         "init-falconstore",
+							Image:        image,
+							Command:      common.FalconShellCommand,
+							Args:         initArgs(node),
+							VolumeMounts: volumeMounts(node, "falconstore-hostdir"),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
-								RunAsUser:                &runAs,
-								ReadOnlyRootFilesystem:   &readOnlyFs,
+								RunAsUser:                &runAsRoot,
+								ReadOnlyRootFilesystem:   &readOnlyFSEnabled,
 								AllowPrivilegeEscalation: &escalation,
+								Capabilities:             sensorCapabilities(node, true),
 							},
 						},
 					},
@@ -124,9 +281,10 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 						{
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
-								RunAsUser:                &runAs,
-								ReadOnlyRootFilesystem:   &readOnlyFs,
+								RunAsUser:                &runAsRoot,
+								ReadOnlyRootFilesystem:   &readOnlyFSDisabled,
 								AllowPrivilegeEscalation: &escalation,
+								Capabilities:             sensorCapabilities(node, false),
 							},
 							Name:            "falcon-node-sensor",
 							Image:           image,
@@ -146,28 +304,11 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 									MountPath: common.FalconStoreFile,
 								},
 							},
+							Resources: dsResources(node),
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "falconstore",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: common.FalconStoreFile,
-									Type: &pathTypeUnset,
-								},
-							},
-						},
-						{
-							Name: "falconstore-hostdir",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: common.FalconHostInstallDir,
-									Type: &pathDirCreate,
-								},
-							},
-						},
-					},
+					Volumes:           volumes(node),
+					PriorityClassName: node.Spec.Node.PriorityClass.Name,
 				},
 			},
 		},
@@ -176,10 +317,12 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 
 func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
 	privileged := true
+	nonPrivileged := false
 	escalation := true
-	readOnlyFs := false
+	allowEscalation := false
+	readOnlyFs := true
 	hostpid := true
-	runAs := int64(0)
+	runAsRoot := int64(0)
 
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -211,29 +354,24 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 							Name:    "cleanup-opt-crowdstrike",
 							Image:   image,
 							Command: common.FalconShellCommand,
-							Args:    common.InitCleanupArgs(),
+							Args:    cleanupArgs(node),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
-								RunAsUser:                &runAs,
+								RunAsUser:                &runAsRoot,
 								ReadOnlyRootFilesystem:   &readOnlyFs,
 								AllowPrivilegeEscalation: &escalation,
+								Capabilities:             sensorCapabilities(node, true),
 							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "opt-crowdstrike",
-									MountPath: common.FalconInitHostInstallDir,
-								},
-							},
+							VolumeMounts: volumeMounts(node, "opt-crowdstrike"),
 						},
 					},
 					ServiceAccountName: serviceAccount,
 					Containers: []corev1.Container{
 						{
 							SecurityContext: &corev1.SecurityContext{
-								Privileged:               &privileged,
-								RunAsUser:                &runAs,
+								Privileged:               &nonPrivileged,
 								ReadOnlyRootFilesystem:   &readOnlyFs,
-								AllowPrivilegeEscalation: &escalation,
+								AllowPrivilegeEscalation: &allowEscalation,
 							},
 							Name:    "cleanup-sleep",
 							Image:   image,
@@ -241,16 +379,7 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 							Args:    common.CleanupSleep(),
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "opt-crowdstrike",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: common.FalconHostInstallDir,
-								},
-							},
-						},
-					},
+					Volumes: volumesCleanup(node),
 				},
 			},
 		},

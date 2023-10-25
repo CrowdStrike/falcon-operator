@@ -65,14 +65,67 @@ type FalconNodeSensorConfig struct {
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=8
 	NodeCleanup *bool `json:"disableCleanup,omitempty"`
+
+	// Configure resource requests and limits for the DaemonSet Sensor. Only applies when using the eBPF backend.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon eBPF Sensor Resources",order=9
+	SensorResources Resources `json:"resources,omitempty"`
+
 	// Sets the backend to be used by the DaemonSet Sensor.
 	// +kubebuilder:default=kernel
 	// +kubebuilder:validation:Enum=kernel;bpf
-	// +operator-sdk-csv:customresourcedefinitions:type=spec,order=9
+	// +operator-sdk-csv:customresourcedefinitions:type=spec,order=10
 	Backend string `json:"backend,omitempty"`
+
+	// Enables the use of GKE Autopilot.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="GKE Autopilot Settings",order=11
+	GKE AutoPilot `json:"gke,omitempty"`
+
+	// Enable priority class for the DaemonSet. This is useful for GKE Autopilot clusters, but can be set for any cluster.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Priority Class",order=12
+	PriorityClass PriorityClassConfig `json:"priorityClass,omitempty"`
 
 	// Version of the sensor to be installed. The latest version will be selected when this version specifier is missing.
 	Version *string `json:"version,omitempty"`
+}
+
+type PriorityClassConfig struct {
+	// Enables the operator to deploy a PriorityClass instead of rolling your own. Default is false.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deploy Priority Class to cluster",order=2
+	Deploy *bool `json:"deploy,omitempty"`
+
+	// Name of the priority class to use for the DaemonSet.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Name of the Priority Class to use",order=2
+	Name string `json:"name,omitempty"`
+
+	// Value of the priority class to use for the DaemonSet. Requires the Deploy field to be set to true.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Priority Class Value",order=3
+	Value *int32 `json:"value,omitempty"`
+}
+
+type Resources struct {
+	// Sets the resource limits for the DaemonSet Sensor. Only applies when using the eBPF backend.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Limits ResourceList `json:"limits,omitempty"`
+	// Sets the resource requests for the DaemonSet Sensor. Only applies when using the eBPF backend.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Requests ResourceList `json:"requests,omitempty"`
+}
+
+type ResourceList struct {
+	// Minimum allowed is 250m.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +kubebuilder:validation:Pattern="^(([0-9]{4,}|[2-9][5-9][0-9])m$)|[0-9]+$"
+	CPU string `json:"cpu,omitempty"`
+	// Minimum allowed is 500Mi.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +kubebuilder:validation:Pattern="^(([5-9][0-9]{2}[Mi]+)|([0-9.]+[iEGTP]+))|(([5-9][0-9]{8})|([0-9]{10,}))$"
+	Memory string `json:"memory,omitempty"`
+}
+
+type AutoPilot struct {
+	// Enables the use of GKE Autopilot.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Enabled *bool `json:"autopilot,omitempty"`
 }
 
 type FalconNodeUpdateStrategy struct {
