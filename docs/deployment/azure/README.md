@@ -111,6 +111,3 @@ Delete the Falcon Operator deployment by running:
 ```sh
 kubectl delete -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
 ```
-
-
-

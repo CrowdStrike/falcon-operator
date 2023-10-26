@@ -118,7 +118,104 @@ Delete the Falcon Operator deployment by running:
 kubectl delete -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
 ```
 
+## GKE Autopilot configuration
 
+### Setting the PriorityClass
+
+When you enable GKE Autopilot deployment in the Falcon Operator, this creates a new PriorityClass to ensure that the sensor DaemonSet has priority over other application pods. This means that it’s possible that some application pods are evicted or pushed back in the scheduling queue depending on cluster resources availability to accommodate sensor Pods. You can either allow the operator to deploy its own PriorityClass or specify an existing PriorityClass.
+
+### Configuring the resource usage
+
+GKE Autopilot enforces supported minimum and maximum values for the total resources requested by your deployment configuration and will adjust the limits and requests to be within the min/max range. GKE Autopilot lets you set requests but not limits, and will mutate the limits to match the request values.
+
+```yaml
+resources:
+  requests:
+    cpu: "250m"
+  limits:
+    cpu: "<mutates to match requests>"
+```
+
+To understand how GKE Autopilot adjusts limits, and the minimum and maximum resource requests, see [Google Cloud documentation: Minimum and maximum resource requests](https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-resource-requests#min-max-requests).
+
+The Falcon sensor resource usage depends on application workloads and therefore requires more resources if the sensor observes more events. The sensor defaults defined for memory and CPU are only for a successful sensor deployment. Consider adjusting the sensor memory and CPU within the allowed range enforced by GKE Autopilot to ensure the sensor deploys correctly.
+
+> [!WARNING]
+> If you set the requests or limits too low, you can potentially cause the sensor deployment to fail or cause loss of clouded events.
+
+If the sensor fails to start, it’s likely because the application workload requires more resources. If this is the case, set the resource requests to a value higher within the acceptable GKE Autopilot min/max range.
+If you notice that the resource allocation is too high for the application workloads, lower the resource requests as needed.
+
+You can retrieve a snapshot of your resource usage with `kubectl top`, or other resource monitoring like Datadog or Prometheus. For example, the following command will show your CPU and Memory resource usage in the `falcon-system` namespace.
+
+```shell
+kubectl top pod -n falcon-system
+NAME                                   CPU(cores)   MEMORY(bytes)
+falcon-helm-falcon-node-sensor-slsmg   498m         223Mi
+```
+
+The sensor resource limits are only enabled when `backend: bpf`, which is a requirement for GKE Autopilot.
+
+### Enabling GKE Autopilot
+
+To enable GKE Autopilot and deploy the sensor running in user mode, configure the following settings:
+
+1. Set the backend to run in user mode.
+   ```yaml
+   node:
+     backend: bpf
+   ```
+
+2. Enable GKE Autopilot.
+   ```yaml
+   node:
+     gke:
+       autopilot: true
+   ```
+
+3. Optionally, provide a name for an existing priority class, or the operator will create one for you.
+   ```yaml
+   node:
+     priorityClass:
+       Name: my_custom_priorityclass
+   ```
+
+4. Based on your workload requirements, set the requests and limits. The default values for GKE Autopilot are `750m` CPU and `1.5Gi` memory. The minimum allowed values are `250m` CPU and `500Mi` memory:
+   ```yaml
+   node:
+     resources:
+       cpu: 750m
+       memory: 1.5Gi
+   ```
+   > [!WARNING]
+   > If you set the requests or limits too low, you can potentially cause the sensor deployment to fail or cause loss of clouded events.
+
+Add the following toleration to deploy correctly on autopilot:
+
+```yaml
+    - effect: NoSchedule
+      key: kubernetes.io/arch
+      operator: Equal
+      value: amd64
+```
+
+Putting it altogether, an example completed node sensor configuration for GKE Autopilot could look like the following:
+
+```yaml
+node:
+  backend: bpf
+  gke:
+    autopilot: true
+  resources:
+    requests:
+      cpu: 750m
+      memory: 1.5Gi
+  tolerations:
+    - effect: NoSchedule
+      operator: Equal
+      key: kubernetes.io/arch
+      value: amd64
+```
 
 ## GKE Node Upgrades
 

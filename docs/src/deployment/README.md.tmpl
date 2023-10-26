@@ -98,5 +98,6 @@ Delete the Falcon Operator deployment by running:
 {{ .KubeCmd }} delete -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
 ```
 
-{{ template "eksiam.tmpl" . }}
-{{ template "gkenode.tmpl" . }}
+{{- template "eksiam.tmpl" . }}
+{{- template "gkeautopilot.tmpl" . }}
+{{- template "gkenode.tmpl" . }}

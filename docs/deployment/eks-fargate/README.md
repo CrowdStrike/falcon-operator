@@ -172,4 +172,3 @@ Using `aws`, `eksctl`, and `kubectl` command-line tools, perform the following s
   ```sh
   kubectl create -f ./my-falcon-container.yaml
   ```
-
