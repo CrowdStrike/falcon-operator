@@ -1,4 +1,5 @@
-{{ if eq .Distro "eks-fargate" -}}
+{{ if eq .Distro "eks-fargate" }}
+
 ## Configuring IAM Role to allow ECR Access on EKS Fargate
 
 When the Falcon Container Injector is installed on EKS Fargate, the following error message may appear in the injector logs:
