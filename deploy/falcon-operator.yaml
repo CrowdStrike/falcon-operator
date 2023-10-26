@@ -2700,6 +2700,13 @@ spec:
                       on the nodes. Disabling might have unintended consequences for
                       certain operations such as sensor downgrading.
                     type: boolean
+                  gke:
+                    description: Enables the use of GKE Autopilot.
+                    properties:
+                      autopilot:
+                        description: Enables the use of GKE Autopilot.
+                        type: boolean
+                    type: object
                   image:
                     description: Location of the Falcon Sensor image. Use only in
                       cases when you mirror the original image to your repository/name:tag
@@ -2935,6 +2942,54 @@ spec:
                         - nodeSelectorTerms
                         type: object
                         x-kubernetes-map-type: atomic
+                    type: object
+                  priorityClass:
+                    description: Enable priority class for the DaemonSet. This is
+                      useful for GKE Autopilot clusters, but can be set for any cluster.
+                    properties:
+                      deploy:
+                        description: Enables the operator to deploy a PriorityClass
+                          instead of rolling your own. Default is false.
+                        type: boolean
+                      name:
+                        description: Name of the priority class to use for the DaemonSet.
+                        type: string
+                      value:
+                        description: Value of the priority class to use for the DaemonSet.
+                          Requires the Deploy field to be set to true.
+                        format: int32
+                        type: integer
+                    type: object
+                  resources:
+                    description: Configure resource requests and limits for the DaemonSet
+                      Sensor. Only applies when using the eBPF backend.
+                    properties:
+                      limits:
+                        description: Sets the resource limits for the DaemonSet Sensor.
+                          Only applies when using the eBPF backend.
+                        properties:
+                          cpu:
+                            description: Minimum allowed is 250m.
+                            pattern: ^(([0-9]{4,}|[2-9][5-9][0-9])m$)|[0-9]+$
+                            type: string
+                          memory:
+                            description: Minimum allowed is 500Mi.
+                            pattern: ^(([5-9][0-9]{2}[Mi]+)|([0-9.]+[iEGTP]+))|(([5-9][0-9]{8})|([0-9]{10,}))$
+                            type: string
+                        type: object
+                      requests:
+                        description: Sets the resource requests for the DaemonSet
+                          Sensor. Only applies when using the eBPF backend.
+                        properties:
+                          cpu:
+                            description: Minimum allowed is 250m.
+                            pattern: ^(([0-9]{4,}|[2-9][5-9][0-9])m$)|[0-9]+$
+                            type: string
+                          memory:
+                            description: Minimum allowed is 500Mi.
+                            pattern: ^(([5-9][0-9]{2}[Mi]+)|([0-9.]+[iEGTP]+))|(([5-9][0-9]{8})|([0-9]{10,}))$
+                            type: string
+                        type: object
                     type: object
                   serviceAccount:
                     description: Add metadata to the DaemonSet Service Account for
@@ -3548,6 +3603,17 @@ rules:
   resources:
   - rolebindings
   - roles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - scheduling.k8s.io
+  resources:
+  - priorityclasses
   verbs:
   - create
   - delete

@@ -18,6 +18,20 @@ import (
 func InitContainerArgs() []string {
 	return []string{
 		"-c",
+		fmt.Sprintf("echo \"Running %[1]s\"; %[1]s", FalconDaemonsetInitBinary),
+	}
+}
+
+func InitCleanupArgs() []string {
+	return []string{
+		"-c",
+		fmt.Sprintf("echo \"Running %[1]s\"; %[1]s", FalconDaemonsetCleanupBinary),
+	}
+}
+
+func LegacyInitContainerArgs() []string {
+	return []string{
+		"-c",
 		// Versions of falcon-sensor 6.53+ will contain an init binary that we invoke
 		`if [ -x "` + FalconDaemonsetInitBinary + `" ]; then ` +
 			`echo "Executing ` + FalconDaemonsetInitBinaryInvocation + `"; ` + FalconDaemonsetInitBinaryInvocation + ` ; else ` +
@@ -29,11 +43,11 @@ func InitContainerArgs() []string {
 	}
 }
 
-func InitCleanupArgs() []string {
+func LegacyInitCleanupArgs() []string {
 	return []string{
 		"-c",
 		// Versions of falcon-sensor 6.53+ will contain an init binary that we invoke with a cleanup argument
-		`if [ -x "` + FalconDaemonsetInitBinary + `" ]; then ` +
+		`if [ -x "` + FalconDaemonsetCleanupBinary + `" ]; then ` +
 			`echo "Running ` + FalconDaemonsetCleanupBinaryInvocation + `"; ` + FalconDaemonsetCleanupBinaryInvocation + `; else ` +
 			`echo "Manually removing ` + FalconInitDataDir + `"; ` +
 			`rm -rf ` + FalconInitDataDir +

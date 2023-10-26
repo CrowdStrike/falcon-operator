@@ -101,7 +101,7 @@ metadata:
     capabilities: Basic Install
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2023-10-17T19:56:45Z"
+    createdAt: "2023-10-25T21:27:38Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     operatorframework.io/suggested-namespace: falcon-operator
     operators.operatorframework.io/builder: operator-sdk-v1.29.0
@@ -492,6 +492,13 @@ spec:
           mirror the original image to your repository/name:tag
         displayName: Image
         path: node.image
+      - description: Enables the operator to deploy a PriorityClass instead of rolling
+          your own. Default is false.
+        displayName: Deploy Priority Class to cluster
+        path: node.priorityClass.deploy
+      - description: Name of the priority class to use for the DaemonSet.
+        displayName: Name of the Priority Class to use
+        path: node.priorityClass.name
       - description: Disable the Falcon Sensor's use of a proxy.
         displayName: Disable Falcon Proxy
         path: falcon.apd
@@ -506,6 +513,10 @@ spec:
         path: node
       - displayName: Image Pull Policy
         path: node.imagePullPolicy
+      - description: Value of the priority class to use for the DaemonSet. Requires
+          the Deploy field to be set to true.
+        displayName: Priority Class Value
+        path: node.priorityClass.value
       - description: The application proxy host to use for Falcon sensor proxy configuration.
         displayName: Disable Falcon Proxy Host
         path: falcon.aph
@@ -550,6 +561,40 @@ spec:
           as sensor downgrading.
         displayName: Node Cleanup
         path: node.disableCleanup
+      - description: Configure resource requests and limits for the DaemonSet Sensor.
+          Only applies when using the eBPF backend.
+        displayName: Falcon eBPF Sensor Resources
+        path: node.resources
+      - description: Enables the use of GKE Autopilot.
+        displayName: GKE Autopilot Settings
+        path: node.gke
+      - description: Enable priority class for the DaemonSet. This is useful for GKE
+          Autopilot clusters, but can be set for any cluster.
+        displayName: Priority Class
+        path: node.priorityClass
+      - description: Enables the use of GKE Autopilot.
+        displayName: Enabled
+        path: node.gke.autopilot
+      - description: Sets the resource limits for the DaemonSet Sensor. Only applies
+          when using the eBPF backend.
+        displayName: Limits
+        path: node.resources.limits
+      - description: Minimum allowed is 250m.
+        displayName: CPU
+        path: node.resources.limits.cpu
+      - description: Minimum allowed is 500Mi.
+        displayName: Memory
+        path: node.resources.limits.memory
+      - description: Sets the resource requests for the DaemonSet Sensor. Only applies
+          when using the eBPF backend.
+        displayName: Requests
+        path: node.resources.requests
+      - description: Minimum allowed is 250m.
+        displayName: CPU
+        path: node.resources.requests.cpu
+      - description: Minimum allowed is 500Mi.
+        displayName: Memory
+        path: node.resources.requests.memory
       - description: Add metadata to the DaemonSet Service Account for IAM roles.
         displayName: Service Account
         path: node.serviceAccount
@@ -876,6 +921,17 @@ spec:
           resources:
           - rolebindings
           - roles
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - update
+          - watch
+        - apiGroups:
+          - scheduling.k8s.io
+          resources:
+          - priorityclasses
           verbs:
           - create
           - delete

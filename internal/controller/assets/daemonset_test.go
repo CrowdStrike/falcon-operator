@@ -129,6 +129,58 @@ func TestDsUpdateStrategy(t *testing.T) {
 	}
 }
 
+func TestSensorCapabilities(t *testing.T) {
+	falconNode := falconv1alpha1.FalconNodeSensor{}
+	enabled := true
+
+	// Check default return value when GKE is not enabled
+	got := sensorCapabilities(&falconNode, false)
+	wantNil := (*corev1.Capabilities)(nil)
+	if diff := cmp.Diff(wantNil, got); diff != "" {
+		t.Errorf("sensorCapabilities() mismatch (-want +got): %s", diff)
+	}
+
+	// Check return value when GKE is enabled
+	falconNode.Spec.Node.GKE.Enabled = &enabled
+	got = sensorCapabilities(&falconNode, false)
+	want := &corev1.Capabilities{
+		Add: []corev1.Capability{
+			"SYS_ADMIN",
+			"SETGID",
+			"SETUID",
+			"SYS_PTRACE",
+			"SYS_CHROOT",
+			"DAC_OVERRIDE",
+			"SETPCAP",
+			"DAC_READ_SEARCH",
+			"BPF",
+			"PERFMON",
+			"SYS_RESOURCE",
+			"NET_RAW",
+			"CHOWN",
+		},
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("sensorCapabilities() mismatch (-want +got): %s", diff)
+	}
+
+	// check if initContainer is enabled
+	got = sensorCapabilities(&falconNode, true)
+	want = &corev1.Capabilities{
+		Add: []corev1.Capability{
+			"SYS_ADMIN",
+			"SYS_PTRACE",
+			"SYS_CHROOT",
+			"DAC_READ_SEARCH",
+		},
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("sensorCapabilities() mismatch (-want +got): %s", diff)
+	}
+}
+
 func TestDaemonset(t *testing.T) {
 	falconNode := falconv1alpha1.FalconNodeSensor{}
 	falconNode.Namespace = "falcon-system"
@@ -138,11 +190,12 @@ func TestDaemonset(t *testing.T) {
 
 	privileged := true
 	escalation := true
-	readOnlyFs := false
+	readOnlyFSDisabled := false
+	readOnlyFSEnabled := true
 	hostpid := true
 	hostnetwork := true
 	hostipc := true
-	runAs := int64(0)
+	runAsRoot := int64(0)
 	pathTypeUnset := corev1.HostPathUnset
 	pathDirCreate := corev1.HostPathDirectoryOrCreate
 
@@ -177,11 +230,11 @@ func TestDaemonset(t *testing.T) {
 							Name:    "init-falconstore",
 							Image:   image,
 							Command: common.FalconShellCommand,
-							Args:    common.InitContainerArgs(),
+							Args:    initArgs(&falconNode),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
-								RunAsUser:                &runAs,
-								ReadOnlyRootFilesystem:   &readOnlyFs,
+								RunAsUser:                &runAsRoot,
+								ReadOnlyRootFilesystem:   &readOnlyFSEnabled,
 								AllowPrivilegeEscalation: &escalation,
 							},
 							VolumeMounts: []corev1.VolumeMount{
@@ -197,8 +250,8 @@ func TestDaemonset(t *testing.T) {
 						{
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
-								RunAsUser:                &runAs,
-								ReadOnlyRootFilesystem:   &readOnlyFs,
+								RunAsUser:                &runAsRoot,
+								ReadOnlyRootFilesystem:   &readOnlyFSDisabled,
 								AllowPrivilegeEscalation: &escalation,
 							},
 							Name:            "falcon-node-sensor",
@@ -260,10 +313,12 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 	dsName := "test-DaemonSet"
 
 	privileged := true
+	nonPrivileged := false
 	escalation := true
-	readOnlyFs := false
+	allowEscalation := false
+	readOnlyFs := true
 	hostpid := true
-	runAs := int64(0)
+	runAsRoot := int64(0)
 
 	want := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -293,10 +348,10 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 							Name:    "cleanup-opt-crowdstrike",
 							Image:   image,
 							Command: common.FalconShellCommand,
-							Args:    common.InitCleanupArgs(),
+							Args:    cleanupArgs(&falconNode),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
-								RunAsUser:                &runAs,
+								RunAsUser:                &runAsRoot,
 								ReadOnlyRootFilesystem:   &readOnlyFs,
 								AllowPrivilegeEscalation: &escalation,
 							},
@@ -312,10 +367,9 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 					Containers: []corev1.Container{
 						{
 							SecurityContext: &corev1.SecurityContext{
-								Privileged:               &privileged,
-								RunAsUser:                &runAs,
+								Privileged:               &nonPrivileged,
 								ReadOnlyRootFilesystem:   &readOnlyFs,
-								AllowPrivilegeEscalation: &escalation,
+								AllowPrivilegeEscalation: &allowEscalation,
 							},
 							Name:    "cleanup-sleep",
 							Image:   image,

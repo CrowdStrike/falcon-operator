@@ -33,6 +33,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	schedulingv1 "k8s.io/api/scheduling/v1"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	admissioncontroller "github.com/crowdstrike/falcon-operator/controllers/admission"
@@ -133,6 +134,9 @@ func main() {
 				&corev1.Secret{}:                   {},
 				&rbacv1.ClusterRoleBinding{}:       {},
 				&corev1.ServiceAccount{}:           {},
+				&schedulingv1.PriorityClass{}: {
+					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
+				},
 				&imagev1.ImageStream{}: {
 					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
 				},
