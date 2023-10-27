@@ -8,14 +8,15 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 
 ## Prerequisites
 
-- CrowdStrike CWP subscription
-- CrowdStrike API Key Pair (*if installing the CrowdStrike Sensor via the CrowdStrike API*)
-
-    > If you need help creating a new API key pair, review our docs: [CrowdStrike Falcon](https://falcon.crowdstrike.com/support/api-clients-and-keys).
-
-  Make sure to assign the following permissions to the key pair:
-  - Falcon Images Download: **Read**
-  - Sensor Download: **Read**
+> [!IMPORTANT]
+> - The correct CrowdStrike Cloud (not Endpoint) subscription
+> - CrowdStrike API Key Pair (*if installing the CrowdStrike Sensor via the CrowdStrike API*)
+>
+>    > If you need help creating a new API key pair, review our docs: [CrowdStrike Falcon](https://falcon.crowdstrike.com/support/api-clients-and-keys).
+>
+>  Make sure to assign the following permissions to the key pair:
+>  - Falcon Images Download: **Read**
+>  - Sensor Download: **Read**
 
 ## Installing the operator through the Web Console (GUI)
 
@@ -36,7 +37,9 @@ If you want to automate the deployment of the operator, the CLI method is recomm
    ![OpenShift CrowdStrike Operator Install](images/ocp-opinstall.png)
 
 - Make any necessary changes as desired to the `InstallPlan` before installing the operator. You can set the update approval to `Automatic` which is the default or `Manual`. If you set to `Manual`, updates require approval before an operator will update.
-  You can also set the desired update channel for OpenShift to check for updates. Please note that installation versions are tied to channels, and versions may not exist in every channel. Click the `Install` button to begin the install.
+  You can also set the desired update channel for OpenShift to check for updates. Click the `Install` button to begin the install.
+   > [!NOTE]
+   > Installation versions are tied to channels, and versions may not exist in every channel.
 
    ![OpenShift CrowdStrike Operator Install](images/ocp-opinstall2.png)
 
@@ -224,7 +227,8 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
 
 ## Uninstalling
 
-> :exclamation: It is essential to uninstall ALL of the deployed custom resources before uninstalling the Falcon Operator to ensure proper cleanup.
+> [!WARNING]
+> It is essential to uninstall ALL of the deployed custom resources before uninstalling the Falcon Operator to ensure proper cleanup.
 
 ### Uninstall using the Web Console (GUI)
 

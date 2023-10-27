@@ -5,14 +5,15 @@ This document will guide you through the installation of the Falcon Operator and
 
 ## Prerequisites
 
-- CrowdStrike CWP subscription
-- CrowdStrike API Key Pair (*if installing the CrowdStrike Sensor via the CrowdStrike API*)
-
-    > If you need help creating a new API key pair, review our docs: [CrowdStrike Falcon](https://falcon.crowdstrike.com/support/api-clients-and-keys).
-
-  Make sure to assign the following permissions to the key pair:
-  - Falcon Images Download: **Read**
-  - Sensor Download: **Read**
+> [!IMPORTANT]
+> - The correct CrowdStrike Cloud (not Endpoint) subscription
+> - CrowdStrike API Key Pair (*if installing the CrowdStrike Sensor via the CrowdStrike API*)
+>
+>    > If you need help creating a new API key pair, review our docs: [CrowdStrike Falcon](https://falcon.crowdstrike.com/support/api-clients-and-keys).
+>
+>  Make sure to assign the following permissions to the key pair:
+>  - Falcon Images Download: **Read**
+>  - Sensor Download: **Read**
 
 ## Installing the Falcon Operator
 
@@ -52,7 +53,8 @@ This document will guide you through the installation of the Falcon Operator and
 
 ## Uninstalling
 
-> :exclamation: It is essential to uninstall ALL of the deployed custom resources before uninstalling the Falcon Operator to ensure proper cleanup.
+> [!WARNING]
+> It is essential to uninstall ALL of the deployed custom resources before uninstalling the Falcon Operator to ensure proper cleanup.
 
 ### Uninstalling the Falcon Container Sidecar Sensor
 
