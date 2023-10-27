@@ -33,7 +33,7 @@ The Image push secret is used by the operator to mirror the Falcon Container sen
 
   # TODO backup docker config
   docker login ... # TODO: script login to your ACR registry
-  
+
   {{ .KubeCmd }} create secret generic builder --from-file=.dockerconfigjson=$HOME/.docker/config.json --type=kubernetes.io/dockerconfigjson -n $FALCON_SYSTEM
 
   # TODO restore docker config from the backup

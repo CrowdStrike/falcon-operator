@@ -18,9 +18,10 @@ Learn more at [product pages](https://www.crowdstrike.com/products/cloud-securit
 ## About FalconContainer Custom Resource
 Falcon Operator introduces FalconContainer Custom Resource to the cluster. The resource is meant to be singleton and it will install, configure and uninstall Falcon Container Sensor on the cluster.
 
-To start the Falcon Container installation please push the following FalconContainer resource to your cluster. You will need to provide CrowdStrike API Keys and CrowdStrike cloud region for the installation. It is recommended to establish new API credentials for the installation at https://falcon.crowdstrike.com/support/api-clients-and-keys, minimal required permissions are:
- * Falcon Images Download: Read
- * Sensor Download: Read
+> [!IMPORTANT]
+> To start the Falcon Container installation please push the following FalconContainer resource to your cluster. You will need to provide CrowdStrike API Keys and CrowdStrike cloud region for the installation. It is recommended to establish new API credentials for the installation at https://falcon.crowdstrike.com/support/api-clients-and-keys, minimal required permissions are:
+> * Falcon Images Download: Read
+> * Sensor Download: Read
 
 No other permissions shall be granted to the new API key pair.
 
@@ -52,7 +53,7 @@ spec:
 
 #### Sidecar Injection Configuration Settings
 | Spec                                      | Description                                                                                                                                                                                                             |
-| :----------------------------------       | :----------------------------------------------------------------------------------------------------------------------------------------                                                                               
+| :----------------------------------       | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | image                                     | (optional) Leverage a Falcon Container Sensor image that is not managed by the operator; typically used with custom repositories; overrides all registry settings; might require injector.imagePullSecretName to be set |
 | version                                   | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                                                                                                       |
 | registry.type                             | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift)                                              |
@@ -121,7 +122,7 @@ sensor.falcon-system.crowdstrike.com/injection=disabled
 If `injector.disableDefaultPodInjection` is set to `true`, then sensor injection will be disabled for all pods by default. To enable injection for one pod in a namespace subject to injection, add an annotation to the pod spec:
 ```yaml
 sensor.falcon-system.crowdstrike.com/injection=enabled
-``` 
+```
 
 ### Auto Proxy Configuration
 
@@ -201,7 +202,7 @@ kubectl delete falconcontainers.falcon.crowdstrike.com --all
 
 ### Sensor Upgrades
 
-The current version of the operator will update the Falcon Container Sensor version upon Operator Reconciliation unless `version` is set to a specific tag or update.  Note that this will only impact future Sensor injections, and will not cause any changes to running pods. 
+The current version of the operator will update the Falcon Container Sensor version upon Operator Reconciliation unless `version` is set to a specific tag or update.  Note that this will only impact future Sensor injections, and will not cause any changes to running pods.
 
 ### Namespace Reference
 
@@ -222,7 +223,7 @@ The following namespaces will be used by Falcon Operator.
   falcon-sidecar-sensor   0.8.0              6.51.0-3401.container.x86_64.Release.US-1
   ```
 
-  This is helpful information to use as a starting point for troubleshooting.  
+  This is helpful information to use as a starting point for troubleshooting.
   You can get more insight by viewing the FalconContainer CRD in full detail by running the following command:
 
   ```sh

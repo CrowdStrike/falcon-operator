@@ -4,7 +4,8 @@
 
 The Falcon Operator offers various installation and deployment options for specific Kubernetes distributions. The guides below provide detailed instructions for each case.
 
-> :warning: If none of the guides provide installation for your specific Kubernetes distribution, use the [Deployment Guide for Generic Kubernetes](./deployment/generic/README.md).
+> [!WARNING]
+> If none of the guides provide installation for your specific Kubernetes distribution, use the [Deployment Guide for Generic Kubernetes](./deployment/generic/README.md).
 
 ### Kubernetes Distribution Installation and Deployment
 

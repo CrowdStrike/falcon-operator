@@ -8,9 +8,11 @@ Learn more at [product page](https://www.crowdstrike.com/cloud-security-products
 Falcon Operator introduces the FalconNodeSensor Custom Resource (CR) to the cluster. The resource is meant to install, configure, and uninstall the Falcon Linux Sensor on the cluster nodes. This resource deploys a kernel module to the Kubernetes nodes which runs as _privileged_.
 
 ### FalconNodeSensor CR Configuration using CrowdStrike API Keys
-To start the FalconNodeSensor installation using CrowdStrike API Keys to allow the operator to determine your Falcon Customer ID (CID) as well as pull down the CrowdStrike Falcon Sensor container image, please create the following FalconNodeSensor resource to your cluster. You will need to provide CrowdStrike API Keys and CrowdStrike cloud region for the installation. It is recommended to establish new API credentials for the installation at https://falcon.crowdstrike.com/support/api-clients-and-keys, required permissions are:
- * Falcon Images Download: Read
- * Sensor Download: Read
+
+> [!IMPORTANT]
+> To start the FalconNodeSensor installation using CrowdStrike API Keys to allow the operator to determine your Falcon Customer ID (CID) as well as pull down the CrowdStrike Falcon Sensor container image, please create the following FalconNodeSensor resource to your cluster. You will need to provide CrowdStrike API Keys and CrowdStrike cloud region for the installation. It is recommended to establish new API credentials for the installation at https://falcon.crowdstrike.com/support/api-clients-and-keys, required permissions are:
+> * Falcon Images Download: Read
+> * Sensor Download: Read
 
 Example:
 ```yaml

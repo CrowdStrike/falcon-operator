@@ -7,7 +7,8 @@
    ```sh
    bash -c 'source <(curl -s https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/eks/run)'
    ```
-   Note: This script should be run as in the cloud shell session directly as some command line tools may be installed in the process.
+   > [!NOTE]
+   > This script should be run as in the cloud shell session directly as some command line tools may be installed in the process.
 {{- else if eq .Distro "gke" -}}
 #### Complete install using GCP Cloud Shell
 
