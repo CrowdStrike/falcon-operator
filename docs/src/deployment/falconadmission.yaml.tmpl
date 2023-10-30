@@ -1,8 +1,8 @@
 ﻿{{- $registry := dict "azure" "acr" "gke" "gcr" "eks" "ecr" "generic" "crowdstrike" "openshift" "openshift" "eks-fargate" "ecr" -}}
 apiVersion: falcon.crowdstrike.com/v1alpha1
-kind: FalconContainer
+kind: FalconAdmission
 metadata:
-  name: falcon-sidecar-sensor
+  name: falcon-admission
 spec:
   falcon_api:
     client_id: PLEASE_FILL_IN

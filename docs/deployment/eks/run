@@ -157,7 +157,7 @@ fi
 kubectl wait --timeout=240s --for=condition=Available -n $OPERATOR_NAMESPACE deployment falcon-operator-controller-manager
 
 # Let the user edit the falconcontainer configuration
-if ! kubectl get falconcontainers.falcon.crowdstrike.com default > /dev/null 2>&1; then
+if ! kubectl get falconcontainers.falcon.crowdstrike.com falcon-sidecar-sensor > /dev/null 2>&1; then
     kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/eks/falconcontainer.yaml --edit=true
 fi
 

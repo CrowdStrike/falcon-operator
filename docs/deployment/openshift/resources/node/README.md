@@ -11,8 +11,8 @@ Falcon Operator introduces the FalconNodeSensor Custom Resource (CR) to the clus
 
 > [!IMPORTANT]
 > To start the FalconNodeSensor installation using CrowdStrike API Keys to allow the operator to determine your Falcon Customer ID (CID) as well as pull down the CrowdStrike Falcon Sensor container image, please create the following FalconNodeSensor resource to your cluster. You will need to provide CrowdStrike API Keys and CrowdStrike cloud region for the installation. It is recommended to establish new API credentials for the installation at https://falcon.crowdstrike.com/support/api-clients-and-keys, required permissions are:
-> * Falcon Images Download: Read
-> * Sensor Download: Read
+> * Falcon Images Download: **Read**
+> * Sensor Download: **Read**
 
 Example:
 ```yaml
@@ -62,7 +62,7 @@ spec:
 | node.image                          | (optional) Location of the Falcon Sensor Image. Specify only when you mirror the original image to your own image repository              |
 | node.imagePullPolicy                | (optional) Override the default Falcon Container image pull policy of Always                                                              |
 | node.imagePullSecrets               | (optional) list of references to secrets to use for pulling image from image_override location.                                           |
-| node.terminationGracePeriod         | (optional) Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.                                               |
+| node.terminationGracePeriod         | (optional) Kills pod after a specified amount of time (in seconds). Default is 30 seconds.                                                |
 | node.serviceAccount.annotations     | (optional) Annotations that should be added to the Service Account (e.g. for IAM role association)                                        |
 | node.backend                        | (optional) Configure the backend mode for Falcon Sensor (allowed values: kernel, bpf)                                                     |
 | node.disableCleanup                 | (optional) Cleans up `/opt/CrowdStrike` on the nodes by deleting the files and directory.                                                 |

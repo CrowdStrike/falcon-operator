@@ -40,6 +40,9 @@ The sensor resource limits are only enabled when `backend: bpf`, which is a requ
 
 ### Enabling GKE Autopilot
 
+<details>
+  <summary>Click to expand</summary>
+  
 To enable GKE Autopilot and deploy the sensor running in user mode, configure the following settings:
 
 1. Set the backend to run in user mode.
@@ -98,5 +101,7 @@ node:
       key: kubernetes.io/arch
       value: amd64
 ```
+
+</details>
 
 {{- end -}}

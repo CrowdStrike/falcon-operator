@@ -1,7 +1,7 @@
 ﻿apiVersion: falcon.crowdstrike.com/v1alpha1
 kind: FalconContainer
 metadata:
-  name: default
+  name: falcon-sidecar-sensor
 spec:
   falcon_api:
     client_id: PLEASE_FILL_IN

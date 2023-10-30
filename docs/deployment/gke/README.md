@@ -1,7 +1,8 @@
 <!--- NOTE: DO NOT EDIT! This file is auto-generated. Please update the source *.tmpl file instead --->
 # Deployment Guide for GKE and GCR
-This document will guide you through the installation of the Falcon Operator and deployment of the following resources provdied by the Falcon Operator:
-- [FalconContainer](../../resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to GCR (Google Container Registry). A new GCP service account for pushing to GCR registry will be created.
+This document will guide you through the installation of the Falcon Operator and deployment of the following custom resources provided by the Falcon Operator:
+- [FalconAdmission](../../resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to GCR (Google Container Registry). A new GCP service account for pushing to GCR registry will be created.
+- [FalconContainer](../../resources/container/README.md) with the Falcon Container image being mirrored from CrowdStrike container registry to GCR (Google Container Registry). A new GCP service account for pushing to GCR registry will be created.
 - [FalconNodeSensor](../../resources/node/README.md) custom resource to the cluster.
 
 ## Prerequisites
@@ -18,6 +19,9 @@ This document will guide you through the installation of the Falcon Operator and
 
 ## Installing the Falcon Operator
 
+<details>
+  <summary>Click to expand</summary>
+
 - Set up a new Kubernetes cluster or use an existing one.
 
 - Install the Falcon Operator by running the following command:
@@ -25,7 +29,12 @@ This document will guide you through the installation of the Falcon Operator and
   kubectl apply -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
 
+</details>
+
 ### Deploying the Falcon Node Sensor
+
+<details>
+  <summary>Click to expand</summary>
 
 After the Falcon Operator has deployed, you can now deploy the Falcon Node Sensor:
 
@@ -33,8 +42,12 @@ After the Falcon Operator has deployed, you can now deploy the Falcon Node Senso
   ```sh
   kubectl create -n falcon-operator -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
+</details>
 
 ### Deploying the Falcon Container Sidecar Sensor
+
+<details>
+  <summary>Click to expand</summary>
 #### Create GCR push secret
 
 An image push secret is used by the operator to mirror Falcon Container image from CrowdStrike registry to your GCR.
@@ -91,6 +104,20 @@ An image push secret is used by the operator to mirror Falcon Container image fr
   bash -c 'source <(curl -s https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/gke/run)'
   ```
 
+</details>
+
+### Deploying the Falcon Admission Controller
+
+<details>
+  <summary>Click to expand</summary>
+
+- Create a new FalconAdmission resource
+  ```sh
+  kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/gke/falconadmission.yaml --edit=true
+  ```
+
+</details>
+
 ## Uninstalling
 
 > [!WARNING]
@@ -98,13 +125,21 @@ An image push secret is used by the operator to mirror Falcon Container image fr
 
 ### Uninstalling the Falcon Node Sensor
 
+<details>
+  <summary>Click to expand</summary>
+
 Remove the FalconNodeSensor resource by running:
 
 ```sh
 kubectl delete falconnodesensor -A --all
 ```
 
+</details>
+
 ### Uninstalling the Falcon Container Sidecar Sensor
+
+<details>
+  <summary>Click to expand</summary>
 
 Remove the FalconContainer resource. The operator will then uninstall the Falcon Container Sidecar Sensor from the cluster:
 
@@ -112,13 +147,33 @@ Remove the FalconContainer resource. The operator will then uninstall the Falcon
 kubectl delete falconcontainers --all
 ```
 
+</details>
+
+### Uninstalling the Falcon Admission Controller
+
+<details>
+  <summary>Click to expand</summary>
+
+Remove the FalconAdmission resource. The operator will then uninstall the Falcon Admission Controller from the cluster:
+
+```sh
+kubectl delete falconadmission --all
+```
+
+</details>
+
 ### Uninstalling the Falcon Operator
+
+<details>
+  <summary>Click to expand</summary>
 
 Delete the Falcon Operator deployment by running:
 
 ```sh
 kubectl delete -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
 ```
+
+</details>
 
 ## GKE Autopilot configuration
 
@@ -160,6 +215,9 @@ The sensor resource limits are only enabled when `backend: bpf`, which is a requ
 
 ### Enabling GKE Autopilot
 
+<details>
+  <summary>Click to expand</summary>
+  
 To enable GKE Autopilot and deploy the sensor running in user mode, configure the following settings:
 
 1. Set the backend to run in user mode.
@@ -219,6 +277,8 @@ node:
       value: amd64
 ```
 
+</details>
+
 ## GKE Node Upgrades
 
 If the sidecar sensor has been deployed to your GKE cluster, you will want to explicitly disable CrowdStrike Falcon from monitoring using labels for the kube-public, kube-system, falcon-operator, and falcon-system namespaces.
@@ -232,7 +292,12 @@ kubectl label namespace kube-public sensor.falcon-system.crowdstrike.com/injecti
 
 Because the Falcon Container sensor injector is configured to monitor all namespaces, setting the above labels will ensure that any pod related to k8 control plane and CrowdStrike Falcon are not forwarded to the injector.
 
-## Granting GCP Workload Identity to Falcon Container Injector
+## Enabling GCP Workload Identity
+
+### Enabling GCP Workload Identity for the Falcon Sidecar Injector
+
+<details>
+  <summary>Click to expand</summary>
 
 The Falcon Container Injector may need [GCP Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity)
 to read GCR or Artifact Registry. In many cases, the GCP Workload Identity is assigned or inherited automatically. However if you
@@ -249,8 +314,11 @@ Conceptually, the following tasks need to be done in order to enable GCR to pull
 - Allow Falcon Container to use the newly created Service Account
 - Put GCP Service Account handle into your Falcon Container resource for re-deployments
 
-### Assigning GCP Workload Identity to Falcon Container Injector
+#### Assigning GCP Workload Identity to Falcon Container Injector
 
+<details>
+  <summary>Click to expand</summary>
+  
 Using both `gcloud` and `kubectl` command-line tools, perform the following steps:
 
 - Set up your shell environment variables
@@ -272,12 +340,12 @@ Using both `gcloud` and `kubectl` command-line tools, perform the following step
       --role roles/containerregistry.ServiceAgent
   ```
 
-- Allow Falcon Injector to use the newly created GCP Service Account
+- Allow Falcon Sidecar Injector to use the newly created GCP Service Account
   ```sh
   gcloud iam service-accounts add-iam-policy-binding \
       $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com \
       --role roles/iam.workloadIdentityUser \
-      --member "serviceAccount:$GCP_PROJECT_ID.svc.id.goog[falcon-system/default]"
+      --member "serviceAccount:$GCP_PROJECT_ID.svc.id.goog[falcon-system/falcon-operator-sidecar-sensor]"
   ```
 
 - Delete the previously deployed FalconContainer resource:
@@ -289,7 +357,7 @@ Using both `gcloud` and `kubectl` command-line tools, perform the following step
   ```yaml
   spec:
     injector:
-      sa_annotations:
+      annotations:
         iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
   ```
 
@@ -302,3 +370,80 @@ Using both `gcloud` and `kubectl` command-line tools, perform the following step
   ```sh
   kubectl create -f ./my-falcon-container.yaml
   ```
+
+</details>
+</details>
+
+### Enabling GCP Workload Identity for the Falcon Admission Controller
+
+<details>
+  <summary>Click to expand</summary>
+
+The Falcon Admission Controller may need [GCP Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity)
+to read GCR or Artifact Registry. In many cases, the GCP Workload Identity is assigned or inherited automatically.
+Conceptually, the following tasks need to be done in order to enable GCR to pull from the injector:
+
+- Create GCP Service Account
+- Grant GCR permissions to the newly created Service Account
+- Allow Falcon Admission Controller to use the newly created Service Account
+- Put GCP Service Account handle into your Falcon Admission resource for re-deployments
+
+#### Assigning GCP Workload Identity to Falcon Admission Controller
+
+<details>
+  <summary>Click to expand</summary>
+  
+Using both `gcloud` and `kubectl` command-line tools, perform the following steps:
+
+- Set up your shell environment variables
+  ```sh
+  GCP_SERVICE_ACCOUNT=falcon-admission-controller
+
+  GCP_PROJECT_ID=$(gcloud config get-value core/project)
+  ```
+
+- Create new GCP Service Account
+  ```sh
+  gcloud iam service-accounts create $GCP_SERVICE_ACCOUNT
+  ```
+
+- Grant GCR permissions to the newly created Service Account
+  ```sh
+  gcloud projects add-iam-policy-binding $PROJECT_ID \
+      --member "serviceAccount:$GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
+      --role roles/containerregistry.ServiceAgent
+  ```
+
+- Allow Falcon Admission Controller to use the newly created GCP Service Account
+  ```sh
+  gcloud iam service-accounts add-iam-policy-binding \
+      $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com \
+      --role roles/iam.workloadIdentityUser \
+      --member "serviceAccount:$GCP_PROJECT_ID.svc.id.goog[falcon-kac/falcon-operator-admission-controller]"
+  ```
+
+- Delete the previously deployed FalconAdmission resource:
+  ```sh
+  kubectl delete falconadmission --all
+  ```
+
+- Add the newly created Service Account to your FalconAdmission yaml file:
+  ```yaml
+  spec:
+    admissionConfig:
+      annotations:
+        iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
+  ```
+
+  Do not forget to replace the service account name template with actual name
+  ```sh
+  echo "$GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com"
+  ```
+
+- Deploy the FalconAdmission resource with the IAM role changes:
+  ```sh
+  kubectl create -f ./my-falcon-admission.yaml
+  ```
+
+</details>
+</details>

@@ -1,6 +1,5 @@
 # Falcon Container Sensor
 
-
 ## About Falcon Container Sensor
 The Falcon Container sensor for Linux extends runtime security to container workloads in Kubernetes clusters that don’t allow you to deploy the kernel-based Falcon sensor for Linux. The Falcon Container sensor runs as an unprivileged container in user space with no code running in the kernel of the worker node OS. This allows it to secure Kubernetes pods in clusters where it isn’t possible to deploy the kernel-based Falcon sensor for Linux on the worker node, as with AWS Fargate where organizations don’t have access to the kernel and where privileged containers are disallowed. The Falcon Container sensor can also secure container workloads on clusters where worker node security is managed separately.
 
@@ -20,8 +19,8 @@ Falcon Operator introduces FalconContainer Custom Resource to the cluster. The r
 
 > [!IMPORTANT]
 > To start the Falcon Container installation please push the following FalconContainer resource to your cluster. You will need to provide CrowdStrike API Keys and CrowdStrike cloud region for the installation. It is recommended to establish new API credentials for the installation at https://falcon.crowdstrike.com/support/api-clients-and-keys, minimal required permissions are:
-> * Falcon Images Download: Read
-> * Sensor Download: Read
+> * Falcon Images Download: **Read**
+> * Sensor Download: **Read**
 
 No other permissions shall be granted to the new API key pair.
 
@@ -61,7 +60,6 @@ spec:
 | registry.tls.caCertificate                | (optional) A string containing an optionally base64-encoded Certificate Authority Chain for self-signed TLS Registry Certificates
 | registry.tls.caCertificateConfigMap       | (optional) The name of a ConfigMap containing CA Certificate Authority Chains under keys ending in ".tls"  for self-signed TLS Registry Certificates (ignored when registry.tls.caCertificate is set)
 | registry.acr_name                         | (optional) Name of ACR for the Falcon Container push. Only applicable to Azure cloud. (`registry.type="acr"`)                                                                                                           |
-| registry.ecr_iam_role_arn                 | (optional) ARN of AWS IAM Role to be assigned to the Injector (only needed when injector runs on EKS Fargate)                                                                                                           |
 | injector.serviceAccount.annotations       | (optional) Annotations that should be added to the Service Account (e.g. for IAM role association)                                                                                                                      |
 | injector.listenPort                       | (optional) Override the default Injector Listen Port of 4433                                                                                                                                                            |
 | injector.replicas                         | (optional) Override the default Injector Replica count of 2                                                                                                                                                             |
@@ -91,14 +89,14 @@ spec:
 | conditions.["NamespaceReady"]                    | Displays the most recent reconciliation operation for the Namespace used by the Falcon Container Sensor (Created, Updated, Deleted)                                  |
 | conditions.["ImageReady"]                        | Informs about readiness of Falcon Container image. Custom message refers to image URI that will be used during the deployment (Pushed, Discovered)                   |
 | conditions.["ImageStreamReady"]                  | Displays the most recent successful reconciliation operation for the image stream used by the falcon container in openshift environments (created, updated, deleted) |
-| conditions.["ServiceAccountReady"]               | Displays the most recent sucreconciliation operation for the service account used by the falcon container (created, updated, deleted)                                   |
-| conditions.["ClusterRoleReady"]                  | Displays the most recent sucreconciliation operation for the cluster role used by the falcon container sensor (created, updated, deleted)                               |
-| conditions.["ClusterRoleBindingReady"]           | Displays the most recent sucreconciliation operation for the cluster role binding used by the falcon container sensor (created, updated, deleted)                       |
-| conditions.["SecretReady"]                       | Displays the most recent sucreconciliation operation for the secrets used by the falcon container sensor (created, updated, deleted)                                    |
-| conditions.["ConfigMapReady"]                    | Displays the most recent sucreconciliation operation for the config map used by the falcon container sensor (created, updated, deleted)                                 |
-| conditions.["DeploymentReady"]                   | Displays the most recent sucreconciliation operation for the deployment used by the falcon container sensor injector (created, updated, deleted)                        |
-| conditions.["ServiceReady"]                      | Displays the most recent sucreconciliation operation for the service used by the falcon container sensor injector (created, updated, deleted)                           |
-| conditions.["MutatingWebhookConfigurationReady"] | Displays the most recent sucreconciliation operation for the mutating webhook configuration used by the falcon container sensor injector (created, updated, deleted)    |
+| conditions.["ServiceAccountReady"]               | Displays the most recent successful reconciliation operation for the service account used by the falcon container (created, updated, deleted)                                   |
+| conditions.["ClusterRoleReady"]                  | Displays the most recent successful reconciliation operation for the cluster role used by the falcon container sensor (created, updated, deleted)                               |
+| conditions.["ClusterRoleBindingReady"]           | Displays the most recent successful reconciliation operation for the cluster role binding used by the falcon container sensor (created, updated, deleted)                       |
+| conditions.["SecretReady"]                       | Displays the most recent successful reconciliation operation for the secrets used by the falcon container sensor (created, updated, deleted)                                    |
+| conditions.["ConfigMapReady"]                    | Displays the most recent successful reconciliation operation for the config map used by the falcon container sensor (created, updated, deleted)                                 |
+| conditions.["DeploymentReady"]                   | Displays the most recent successful reconciliation operation for the deployment used by the falcon container sensor injector (created, updated, deleted)                        |
+| conditions.["ServiceReady"]                      | Displays the most recent successful reconciliation operation for the service used by the falcon container sensor injector (created, updated, deleted)                           |
+| conditions.["MutatingWebhookConfigurationReady"] | Displays the most recent successful reconciliation operation for the mutating webhook configuration used by the falcon container sensor injector (created, updated, deleted)    |
 
 ### Enabling and Disabling Falcon Container injection
 
@@ -183,10 +181,6 @@ To uninstall Falcon Container simply remove the FalconContainer resource. The op
 ```sh
 {{ .KubeCmd }} delete falconcontainers.falcon.crowdstrike.com --all
 ```
-
-### Sensor Upgrades
-
-The current version of the operator will update the Falcon Container Sensor version upon Operator Reconciliation unless `version` is set to a specific tag or update.  Note that this will only impact future Sensor injections, and will not cause any changes to running pods.
 
 ### Namespace Reference
 

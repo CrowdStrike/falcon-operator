@@ -13,7 +13,12 @@ For example:
 
 Because the Falcon Container sensor injector is configured to monitor all namespaces, setting the above labels will ensure that any pod related to k8 control plane and CrowdStrike Falcon are not forwarded to the injector.
 
-## Granting GCP Workload Identity to Falcon Container Injector
+## Enabling GCP Workload Identity
+
+### Enabling GCP Workload Identity for the Falcon Sidecar Injector
+
+<details>
+  <summary>Click to expand</summary>
 
 The Falcon Container Injector may need [GCP Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity)
 to read GCR or Artifact Registry. In many cases, the GCP Workload Identity is assigned or inherited automatically. However if you
@@ -30,8 +35,11 @@ Conceptually, the following tasks need to be done in order to enable GCR to pull
 - Allow Falcon Container to use the newly created Service Account
 - Put GCP Service Account handle into your Falcon Container resource for re-deployments
 
-### Assigning GCP Workload Identity to Falcon Container Injector
+#### Assigning GCP Workload Identity to Falcon Container Injector
 
+<details>
+  <summary>Click to expand</summary>
+  
 Using both `gcloud` and `{{ .KubeCmd }}` command-line tools, perform the following steps:
 
 - Set up your shell environment variables
@@ -53,12 +61,12 @@ Using both `gcloud` and `{{ .KubeCmd }}` command-line tools, perform the followi
       --role roles/containerregistry.ServiceAgent
   ```
 
-- Allow Falcon Injector to use the newly created GCP Service Account
+- Allow Falcon Sidecar Injector to use the newly created GCP Service Account
   ```sh
   gcloud iam service-accounts add-iam-policy-binding \
       $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com \
       --role roles/iam.workloadIdentityUser \
-      --member "serviceAccount:$GCP_PROJECT_ID.svc.id.goog[falcon-system/default]"
+      --member "serviceAccount:$GCP_PROJECT_ID.svc.id.goog[falcon-system/falcon-operator-sidecar-sensor]"
   ```
 
 - Delete the previously deployed FalconContainer resource:
@@ -70,7 +78,7 @@ Using both `gcloud` and `{{ .KubeCmd }}` command-line tools, perform the followi
   ```yaml
   spec:
     injector:
-      sa_annotations:
+      annotations:
         iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
   ```
 
@@ -83,5 +91,82 @@ Using both `gcloud` and `{{ .KubeCmd }}` command-line tools, perform the followi
   ```sh
   {{ .KubeCmd }} create -f ./my-falcon-container.yaml
   ```
+
+</details>
+</details>
+
+### Enabling GCP Workload Identity for the Falcon Admission Controller
+
+<details>
+  <summary>Click to expand</summary>
+
+The Falcon Admission Controller may need [GCP Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity)
+to read GCR or Artifact Registry. In many cases, the GCP Workload Identity is assigned or inherited automatically.
+Conceptually, the following tasks need to be done in order to enable GCR to pull from the injector:
+
+- Create GCP Service Account
+- Grant GCR permissions to the newly created Service Account
+- Allow Falcon Admission Controller to use the newly created Service Account
+- Put GCP Service Account handle into your Falcon Admission resource for re-deployments
+
+#### Assigning GCP Workload Identity to Falcon Admission Controller
+
+<details>
+  <summary>Click to expand</summary>
+  
+Using both `gcloud` and `{{ .KubeCmd }}` command-line tools, perform the following steps:
+
+- Set up your shell environment variables
+  ```sh
+  GCP_SERVICE_ACCOUNT=falcon-admission-controller
+
+  GCP_PROJECT_ID=$(gcloud config get-value core/project)
+  ```
+
+- Create new GCP Service Account
+  ```sh
+  gcloud iam service-accounts create $GCP_SERVICE_ACCOUNT
+  ```
+
+- Grant GCR permissions to the newly created Service Account
+  ```sh
+  gcloud projects add-iam-policy-binding $PROJECT_ID \
+      --member "serviceAccount:$GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com" \
+      --role roles/containerregistry.ServiceAgent
+  ```
+
+- Allow Falcon Admission Controller to use the newly created GCP Service Account
+  ```sh
+  gcloud iam service-accounts add-iam-policy-binding \
+      $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com \
+      --role roles/iam.workloadIdentityUser \
+      --member "serviceAccount:$GCP_PROJECT_ID.svc.id.goog[falcon-kac/falcon-operator-admission-controller]"
+  ```
+
+- Delete the previously deployed FalconAdmission resource:
+  ```sh
+  {{ .KubeCmd }} delete falconadmission --all
+  ```
+
+- Add the newly created Service Account to your FalconAdmission yaml file:
+  ```yaml
+  spec:
+    admissionConfig:
+      annotations:
+        iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
+  ```
+
+  Do not forget to replace the service account name template with actual name
+  ```sh
+  echo "$GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com"
+  ```
+
+- Deploy the FalconAdmission resource with the IAM role changes:
+  ```sh
+  {{ .KubeCmd }} create -f ./my-falcon-admission.yaml
+  ```
+
+</details>
+</details>
 
 {{- end -}}
