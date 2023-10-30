@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -231,6 +232,19 @@ func TestDaemonset(t *testing.T) {
 							Image:   image,
 							Command: common.FalconShellCommand,
 							Args:    initArgs(&falconNode),
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									"cpu":               resource.MustParse("10m"),
+									"ephemeral-storage": resource.MustParse("10Mi"),
+									"memory":            resource.MustParse("50Mi"),
+								},
+								Requests: corev1.ResourceList{
+									"cpu":               resource.MustParse("10m"),
+									"ephemeral-storage": resource.MustParse("10Mi"),
+									"memory":            resource.MustParse("50Mi"),
+								},
+								Claims: []corev1.ResourceClaim{},
+							},
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
@@ -272,6 +286,7 @@ func TestDaemonset(t *testing.T) {
 									MountPath: common.FalconStoreFile,
 								},
 							},
+							Resources: dsResources(&falconNode),
 						},
 					},
 					Volumes: []corev1.Volume{
@@ -349,6 +364,19 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 							Image:   image,
 							Command: common.FalconShellCommand,
 							Args:    cleanupArgs(&falconNode),
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									"cpu":               resource.MustParse("10m"),
+									"ephemeral-storage": resource.MustParse("10Mi"),
+									"memory":            resource.MustParse("50Mi"),
+								},
+								Requests: corev1.ResourceList{
+									"cpu":               resource.MustParse("10m"),
+									"ephemeral-storage": resource.MustParse("10Mi"),
+									"memory":            resource.MustParse("50Mi"),
+								},
+								Claims: []corev1.ResourceClaim{},
+							},
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
@@ -366,15 +394,28 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 					ServiceAccountName: common.NodeServiceAccountName,
 					Containers: []corev1.Container{
 						{
+							Name:    "cleanup-sleep",
+							Image:   image,
+							Command: common.FalconShellCommand,
+							Args:    common.CleanupSleep(),
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									"cpu":               resource.MustParse("10m"),
+									"ephemeral-storage": resource.MustParse("10Mi"),
+									"memory":            resource.MustParse("50Mi"),
+								},
+								Requests: corev1.ResourceList{
+									"cpu":               resource.MustParse("10m"),
+									"ephemeral-storage": resource.MustParse("10Mi"),
+									"memory":            resource.MustParse("50Mi"),
+								},
+								Claims: []corev1.ResourceClaim{},
+							},
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &nonPrivileged,
 								ReadOnlyRootFilesystem:   &readOnlyFs,
 								AllowPrivilegeEscalation: &allowEscalation,
 							},
-							Name:    "cleanup-sleep",
-							Image:   image,
-							Command: common.FalconShellCommand,
-							Args:    common.CleanupSleep(),
 						},
 					},
 					Volumes: []corev1.Volume{
