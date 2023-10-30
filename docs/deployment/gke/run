@@ -86,7 +86,7 @@ if ! kubectl get secret builder -n $FALCON_SYSTEM > /dev/null 2>&1; then
     kubectl create secret docker-registry -n $FALCON_SYSTEM builder --from-file .dockerconfigjson
 fi
 
-if ! kubectl get falconcontainers.falcon.crowdstrike.com default > /dev/null 2>&1; then
+if ! kubectl get falconcontainers.falcon.crowdstrike.com falcon-sidecar-sensor > /dev/null 2>&1; then
     kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/gke/falconcontainer.yaml --edit=true
 fi
 

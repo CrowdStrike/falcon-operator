@@ -1,7 +1,8 @@
 <!--- NOTE: DO NOT EDIT! This file is auto-generated. Please update the source *.tmpl file instead --->
 # Deployment Guide for Kubernetes
-This document will guide you through the installation of the Falcon Operator and deployment of the following resources provdied by the Falcon Operator:
-- [FalconContainer](../../resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to .
+This document will guide you through the installation of the Falcon Operator and deployment of the following custom resources provided by the Falcon Operator:
+- [FalconAdmission](../../resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to .
+- [FalconContainer](../../resources/container/README.md) with the Falcon Container image being mirrored from CrowdStrike container registry to .
 - [FalconNodeSensor](../../resources/node/README.md) custom resource to the cluster.
 
 ## Prerequisites
@@ -18,6 +19,9 @@ This document will guide you through the installation of the Falcon Operator and
 
 ## Installing the Falcon Operator
 
+<details>
+  <summary>Click to expand</summary>
+
 - Set up a new Kubernetes cluster or use an existing one.
 
 - Install the Falcon Operator by running the following command:
@@ -25,7 +29,12 @@ This document will guide you through the installation of the Falcon Operator and
   kubectl apply -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
   ```
 
+</details>
+
 ### Deploying the Falcon Node Sensor
+
+<details>
+  <summary>Click to expand</summary>
 
 After the Falcon Operator has deployed, you can now deploy the Falcon Node Sensor:
 
@@ -33,8 +42,12 @@ After the Falcon Operator has deployed, you can now deploy the Falcon Node Senso
   ```sh
   kubectl create -n falcon-operator -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
+</details>
 
 ### Deploying the Falcon Container Sidecar Sensor
+
+<details>
+  <summary>Click to expand</summary>
 
 #### Create the FalconContainer resource
 
@@ -45,6 +58,20 @@ After the Falcon Operator has deployed, you can now deploy the Falcon Node Senso
 
 
 
+</details>
+
+### Deploying the Falcon Admission Controller
+
+<details>
+  <summary>Click to expand</summary>
+
+- Create a new FalconAdmission resource
+  ```sh
+  kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/generic/falconadmission.yaml --edit=true
+  ```
+
+</details>
+
 ## Uninstalling
 
 > [!WARNING]
@@ -52,13 +79,21 @@ After the Falcon Operator has deployed, you can now deploy the Falcon Node Senso
 
 ### Uninstalling the Falcon Node Sensor
 
+<details>
+  <summary>Click to expand</summary>
+
 Remove the FalconNodeSensor resource by running:
 
 ```sh
 kubectl delete falconnodesensor -A --all
 ```
 
+</details>
+
 ### Uninstalling the Falcon Container Sidecar Sensor
+
+<details>
+  <summary>Click to expand</summary>
 
 Remove the FalconContainer resource. The operator will then uninstall the Falcon Container Sidecar Sensor from the cluster:
 
@@ -66,10 +101,30 @@ Remove the FalconContainer resource. The operator will then uninstall the Falcon
 kubectl delete falconcontainers --all
 ```
 
+</details>
+
+### Uninstalling the Falcon Admission Controller
+
+<details>
+  <summary>Click to expand</summary>
+
+Remove the FalconAdmission resource. The operator will then uninstall the Falcon Admission Controller from the cluster:
+
+```sh
+kubectl delete falconadmission --all
+```
+
+</details>
+
 ### Uninstalling the Falcon Operator
+
+<details>
+  <summary>Click to expand</summary>
 
 Delete the Falcon Operator deployment by running:
 
 ```sh
 kubectl delete -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
 ```
+
+</details>

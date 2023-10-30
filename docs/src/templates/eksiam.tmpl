@@ -2,6 +2,11 @@
 
 ## Configuring IAM Role to allow ECR Access on EKS Fargate
 
+### Configure IAM Role for ECR Access for the Sidecar Injector
+
+<details>
+  <summary>Click to expand</summary>
+
 When the Falcon Container Injector is installed on EKS Fargate, the following error message may appear in the injector logs:
 
 ```
@@ -15,10 +20,13 @@ Conceptually, the following tasks need to be done in order to enable ECR pull fr
 
 - Create IAM Policy for ECR image pull
 - Create IAM Role for the injector
-- Assign the IAM Role to the injector (and set-up a proper trust relationship on the role and OIDC indentity provider)
+- Assign the IAM Role to the injector (and set-up a proper trust relationship on the role and OIDC identity provider)
 - Put IAM Role ARN into your Falcon Container resource for re-deployments
 
-### Assigning AWS IAM Role to Falcon Container Injector
+#### Assigning AWS IAM Role to Falcon Container Injector
+
+<details>
+  <summary>Click to expand</summary>
 
 Using `aws`, `eksctl`, and `{{ .KubeCmd }}` command-line tools, perform the following steps:
 
@@ -102,5 +110,112 @@ Using `aws`, `eksctl`, and `{{ .KubeCmd }}` command-line tools, perform the foll
   ```sh
   {{ .KubeCmd }} create -f ./my-falcon-container.yaml
   ```
+  
+</details>
+</details>
+
+### Configure IAM Role for ECR Access for the Admission Controller
+
+<details>
+  <summary>Click to expand</summary>
+
+When the Falcon Admission Controller is installed on EKS Fargate, you may need to enable ECR access for the admission controller. 
+Conceptually, the following tasks need to be done in order to enable ECR pull from the admission controller:
+
+- Create IAM Policy for ECR image pull
+- Create IAM Role for the admission controller
+- Assign the IAM Role to the admission controller (and set-up a proper trust relationship on the role and OIDC identity provider)
+- Put IAM Role ARN into your Falcon Admission resource for re-deployments
+
+#### Assigning AWS IAM Role to Falcon Admission Controller
+
+<details>
+  <summary>Click to expand</summary>
+
+Using `aws`, `eksctl`, and `{{ .KubeCmd }}` command-line tools, perform the following steps:
+
+- Set up your shell environment variables
+  ```sh
+  export AWS_REGION="insert your region"
+  export EKS_CLUSTER_NAME="insert your cluster name"
+
+  export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+  iam_policy_name="FalconAdmissionEcrPull"
+  iam_policy_arn="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${iam_policy_name}"
+  ```
+
+- Create AWS IAM Policy for ECR image pulling
+  ```sh
+  cat <<__END__ > policy.json
+  {
+      "Version": "2012-10-17",
+      "Statement": [
+          {
+              "Sid": "AllowImagePull",
+              "Effect": "Allow",
+              "Action": [
+                  "ecr:BatchGetImage",
+                  "ecr:DescribeImages",
+                  "ecr:GetDownloadUrlForLayer",
+                  "ecr:ListImages"
+              ],
+              "Resource": "*"
+          },
+          {
+              "Sid": "AllowECRSetup",
+              "Effect": "Allow",
+              "Action": [
+                  "ecr:GetAuthorizationToken"
+              ],
+              "Resource": "*"
+          }
+      ]
+  }
+  __END__
+
+  aws iam create-policy \
+      --region "$AWS_REGION" \
+      --policy-name ${iam_policy_name} \
+      --policy-document 'file://policy.json' \
+      --description "Policy to enable Falcon Admission Controller to pull container image from ECR"
+  ```
+
+- Assign the newly created policy to the kubernetes ServiceAccount of Falcon Admission Controller
+  ```sh
+  eksctl create iamserviceaccount \
+         --name falcon-operator-admission-controller \
+         --namespace falcon-kac \
+         --region "$AWS_REGION" \
+         --cluster "${EKS_CLUSTER_NAME}" \
+         --attach-policy-arn "${iam_policy_arn}" \
+         --approve \
+         --override-existing-serviceaccounts
+  ```
+
+- Verify that the IAM Role (not to be confused with IAM Policy) has been assigned to the ServiceAccount by the previous command:
+  ```sh
+  {{ .KubeCmd }} get sa -n falcon-kac falcon-operator-admission-controller -o=jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}'
+  ```
+
+- Delete the previously deployed FalconAdmission resource:
+  ```sh
+  {{ .KubeCmd }} delete falconadmission --all
+  ```
+
+- Add Role ARN to your FalconAdmission yaml file:
+  ```yaml
+    admissionConfig:
+      serviceAccount:
+        annotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::12345678910:role/eksctl-demo-cluster-addon-iamservic-Role1-J78KUNY32R1
+  ```
+
+- Deploy the FalconAdmission resource with the IAM role changes:
+  ```sh
+  {{ .KubeCmd }} create -f ./my-falcon-admission.yaml
+  ```
+  
+</details>
+</details>
 
 {{- end -}}

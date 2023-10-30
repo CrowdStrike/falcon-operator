@@ -1,6 +1,8 @@
 # Deployment Guide for OpenShift
-This document will guide you through the installation of falcon-operator and deployment of either the:
-- [FalconContainer](resources/container/README.md) custom resource to the cluster with Falcon Container image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
+
+This document will guide you through the installation of the Falcon Operator and deployment of the following custom resources provided by the Falcon Operator:
+- [FalconAdmission](../../resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
+- [FalconContainer](resources/container/README.md) with Falcon Container image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
 - [FalconNodeSensor](resources/node/README.md) custom resource to the cluster.
 
 You can choose to install the operator and custom resources through the [web console (GUI)](#installing-the-operator-through-the-web-console-gui) or through the [CLI](#installing-the-operator-through-the-cli).
@@ -19,6 +21,9 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 >  - Sensor Download: **Read**
 
 ## Installing the operator through the Web Console (GUI)
+
+<details>
+  <summary>Click to expand</summary>
 
 - Authenticate to your OpenShift cluster
 
@@ -49,6 +54,9 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 
 ### Deploy the Node Sensor
 
+<details>
+  <summary>Click to expand</summary>
+
 - To deploy the Falcon Node Sensor, click `Create Instance` for the `Falcon Node Sensor` Kind under the `Provided APIs` for the Falcon Operator.
 
    ![OpenShift CrowdStrike Falcon Node Sensor](images/ocp-fns.png)
@@ -63,7 +71,12 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 
 - If more configuration is needed for your organization or deployment, `Falcon Sensor Configuration` will provide additional ways to configure the CrowdStrike Falcon Sensor. `DaemonSet Configuration` provides more ways to configure deployment and behavior of the DaemonSet including the ability to deploy the sensor without having to use the CrowdStrike API.
 
+</details>
+
 ### Deploy the Sidecar Sensor
+
+<details>
+  <summary>Click to expand</summary>
 
 - To deploy the Falon Sidecar Sensor, click `Create Instance` for the `Falcon Container` Kind under the `Provided APIs` for the Falcon Operator.
 
@@ -77,11 +90,42 @@ If you want to automate the deployment of the operator, the CLI method is recomm
    2. Replace with your CrowdStrike API Client Secret value
    3. Click `Create` to deploy the FalconContainer Kind
 
-- If more configuration is needed for your organization or deployment, `Installer Args` will provide additional ways to configure and deploy the CrowdStrike Falcon Sensor.
+- If more configuration is needed for your organization or deployment, `Falcon Sensor Configuration` will provide additional ways to configure the CrowdStrike Falcon Sensor.
+
+</details>
+
+### Deploy the Admission Controller
+
+<details>
+  <summary>Click to expand</summary>
+
+- To deploy the Falon Sidecar Sensor, click `Create Instance` for the `Falcon Admission` Kind under the `Provided APIs` for the Falcon Operator.
+
+   ![OpenShift CrowdStrike Falcon Admission Controller](images/ocp-fkac.png)
+
+- If using the CrowdStrike API method which connects to the CrowdStrike cloud and will attempt to discover your Falcon Customer ID as well as download the Falcon Admission container image, make sure that you have a new [CrowdStrike API key pair](#prerequisites) before continuing.
+
+   ![OpenShift CrowdStrike Falcon Admission Controller](images/ocp-fkacinstall.png)
+
+   1. Replace with your CrowdStrike API Client ID value
+   2. Replace with your CrowdStrike API Client Secret value
+   3. Click `Create` to deploy the FalconAdmission Kind
+
+- If more configuration is needed for your organization or deployment, `Falcon Sensor Configuration` will provide additional ways to configure the CrowdStrike Admission Controller. `Falcon Admission Controller Configuration` provides more ways to configure deployment and behavior of the admission controller.
+
+</details>
+
+</details>
 
 ## Installing the operator through the CLI
 
+<details>
+  <summary>Click to expand</summary>
+
 ### Install using the Krew plugin (Preferred)
+
+<details>
+  <summary>Click to expand</summary>
 
 To easily uninstall the operator, install Krew if it is not already installed:
 
@@ -107,7 +151,12 @@ Once the Krew plugin is installed:
    oc operator install falcon-operator-rhmp --create-operator-group -n falcon-operator
    ```
 
+</details>
+
 ### Install using the Subscription/CSV method
+
+<details>
+  <summary>Click to expand</summary>
 
 - Authenticate to your OpenShift cluster
   ```
@@ -184,7 +233,12 @@ Deploy the `subscription.yaml` that you create to the cluster for the operator t
   oc create -f subscription.yaml -n falcon-operator
   ```
 
+</details>
+
 ### Deploy the Node Sensor
+
+<details>
+  <summary>Click to expand</summary>
 
 Once the operator has deployed, you can now deploy the FalconNodeSensor.
 
@@ -218,12 +272,31 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
   oc create -n falcon-system -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
 
+</details>
+
 ### Deploy the Sidecar Sensor
+
+<details>
+  <summary>Click to expand</summary>
 
 - Deploy FalconContainer through the cli using the `oc` command:
   ```
   oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/falconcontainer.yaml --edit=true
   ```
+</details>
+
+### Deploy the Admission Controller
+
+<details>
+  <summary>Click to expand</summary>
+
+- Deploy FalconAdmission through the cli using the `oc` command:
+  ```
+  oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/falconadmission.yaml --edit=true
+  ```
+
+</details>
+</details>
 
 ## Uninstalling
 
@@ -231,6 +304,9 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
 > It is essential to uninstall ALL of the deployed custom resources before uninstalling the Falcon Operator to ensure proper cleanup.
 
 ### Uninstall using the Web Console (GUI)
+
+<details>
+  <summary>Click to expand</summary>
 
 - To uninstall in the OpenShift Web Console (GUI), expand the `Operators` menu and click on `Installed Operators`.
 
@@ -256,6 +332,16 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
 
    ![OpenShift CrowdStrike Sidecar Uninstall](images/ocp-containerdel.png)
 
+#### Uninstall the Admission Controller
+
+- Click on the `CrowdStrike Falcon Platform - Operator` listing, followed by clicking on the `Falcon Admission` tab.
+
+   ![OpenShift CrowdStrike Admission Controller Uninstall](images/ocp-fkactab.png)
+
+- On the deployed `FalconAdmission` Kind, click the 3 vertical dot action menu on the far right, and click `Delete FalconAdmission`.
+
+   ![OpenShift CrowdStrike Admission Controller Uninstall](images/ocp-fkacdel.png)
+
 #### Uninstall the Operator
 
 - In the list of `Installed Operators`, click the 3 vertical dot action menu on the far right of the `CrowdStrike Falcon Platform - Operator` listing, and click `Uninstall Operator`.
@@ -264,9 +350,17 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
 
   This will open an uninstall confirmation box, click `Uninstall` to complete the uninstall.
 
+</details>
+
 ### Uninstall using the CLI
 
+<details>
+  <summary>Click to expand</summary>
+
 #### Uninstall using the Krew plugin (Preferred)
+
+<details>
+  <summary>Click to expand</summary>
 
 To easily uninstall the operator, install Krew if it is not already installed:
 
@@ -282,7 +376,12 @@ Once the Krew plugin is installed:
    oc operator uninstall falcon-operator-rhmp -n falcon-operator -X
    ```
 
+</details>
+
 #### Uninstall using the Subscription/CSV method
+
+<details>
+  <summary>Click to expand</summary>
 
 ##### Uninstall the Node Sensor
 
@@ -295,7 +394,14 @@ Once the Krew plugin is installed:
 
 - To uninstall Falcon Container simply remove FalconContainer resource. The operator will uninstall Falcon Container product from the cluster.
   ```
-  oc delete falconcontainers.falcon.crowdstrike.com default
+  oc delete falconadmissions falcon-sidecar-sensor
+  ```
+
+##### Uninstall the Admission Controller
+
+- To uninstall Falcon Container simply remove FalconAdmission resource. The operator will then uninstall the Falcon Admission Controller from the cluster:
+  ```
+  oc delete falconadmissions falcon-admission
   ```
 
 ##### Uninstall the Operator
@@ -319,3 +425,6 @@ Once the Krew plugin is installed:
   ```
   oc delete csv falcon-operator.v0.8.0 -n falcon-operator
   ```
+
+</details>
+</details>

@@ -101,7 +101,7 @@ metadata:
     capabilities: Basic Install
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2023-10-25T21:27:38Z"
+    createdAt: "2023-10-30T20:05:26Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     operatorframework.io/suggested-namespace: falcon-operator
     operators.operatorframework.io/builder: operator-sdk-v1.29.0
@@ -606,15 +606,16 @@ spec:
         path: node.updateStrategy.type
       version: v1alpha1
   description: |-
-    The CrowdStrike Falcon Operator installs the CrowdStrike Falcon Container Sensor or CrowdStrike Falcon Node Sensor on a Kubernetes cluster.
+    The CrowdStrike Falcon Operator installs CrowdStrike Falcon custom resources on a Kubernetes cluster.
 
     ## About the CrowdStrike Falcon Operator
-    The CrowdStrike Falcon Operator deploys CrowdStrike Falcon Workload Protection to the cluster. The operator exposes 2 custom resources that allows you to deploy either the Falcon Container Sensor or Falcon Node Sensor.
+    The CrowdStrike Falcon Operator deploys CrowdStrike Falcon to the cluster. The operator exposes custom resources that allow you to protect your Kubernetes clusters when deployed.
 
     ## About Custom Resources
 
     | Custom Resource                                       | Description                                                      |
     | :--------                                             | :------------                                                    |
+    | [FalconAdmission](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/admission/README.md) | Manages installation of Falcon Admission Controller on the cluster |
     | [FalconContainer](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/container/README.md) | Manages installation of Falcon Container Sensor on the cluster   |
     | [FalconNodeSensor](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/node/README.md)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
 
