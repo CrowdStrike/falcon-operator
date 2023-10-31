@@ -12,7 +12,6 @@ import (
 
 // SideCarDeployment returns a Deployment object for the CrowdStrike Falcon sidecar
 func SideCarDeployment(name string, namespace string, component string, imageUri string, falconContainer *falconv1alpha1.FalconContainer) *appsv1.Deployment {
-	imagePullSecrets := []corev1.LocalObjectReference{{Name: common.FalconPullSecretName}}
 	initContainerName := "crowdstrike-falcon-init-container"
 	injectorConfigMapName := "falcon-sidecar-injector-config"
 	registryCABundleConfigMapName := "falcon-sidecar-registry-certs"
@@ -31,10 +30,6 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 	initContainers := []corev1.Container{}
 	var registryCAConfigMapName string = ""
 	labels := common.CRLabels("deployment", name, component)
-
-	if common.FalconPullSecretName != falconContainer.Spec.Injector.ImagePullSecretName {
-		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: falconContainer.Spec.Injector.ImagePullSecretName})
-	}
 
 	if falconContainer.Spec.Injector.Resources != nil {
 		resources = falconContainer.Spec.Injector.Resources
@@ -130,7 +125,6 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 			ReadOnly:  true,
 			MountPath: certPath,
 		})
-
 	}
 
 	return &appsv1.Deployment{
@@ -187,7 +181,6 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 							},
 						},
 					},
-					ImagePullSecrets: imagePullSecrets,
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsNonRoot: &runNonRoot,
 					},
@@ -265,6 +258,8 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 	sizeLimitTmp := resource.MustParse("256Mi")
 	sizeLimitPrivate := resource.MustParse("4Ki")
 	labels := common.CRLabels("deployment", name, component)
+	registryCAConfigMapName := ""
+	registryCABundleConfigMapName := name + "-registry-certs"
 
 	if falconAdmission.Spec.AdmissionConfig.ResourcesClient != nil {
 		resourcesClient = falconAdmission.Spec.AdmissionConfig.ResourcesClient
@@ -272,6 +267,54 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 
 	if falconAdmission.Spec.AdmissionConfig.ResourcesAC != nil {
 		resourcesAC = falconAdmission.Spec.AdmissionConfig.ResourcesAC
+	}
+
+	volumes := []corev1.Volume{
+		{
+			Name: name + "-tls-certs",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: name + "-tls",
+				},
+			},
+		},
+		{
+			Name: "crowdstrike-falcon-vol0",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					SizeLimit: &sizeLimitTmp,
+				},
+			},
+		},
+		{
+			Name: "crowdstrike-falcon-vol1",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					SizeLimit: &sizeLimitPrivate,
+				},
+			},
+		},
+	}
+
+	if falconAdmission.Spec.Registry.TLS.CACertificateConfigMap != "" {
+		registryCAConfigMapName = falconAdmission.Spec.Registry.TLS.CACertificateConfigMap
+	}
+
+	if falconAdmission.Spec.Registry.TLS.CACertificate != "" {
+		registryCAConfigMapName = registryCABundleConfigMapName
+	}
+
+	if registryCAConfigMapName != "" {
+		volumes = append(volumes, corev1.Volume{
+			Name: registryCAConfigMapName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: registryCAConfigMapName,
+					},
+				},
+			},
+		})
 	}
 
 	return &appsv1.Deployment{
@@ -329,7 +372,6 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 							},
 						},
 					},
-					ImagePullSecrets:      pullSecretsAdmission(falconAdmission),
 					ShareProcessNamespace: &shareProcessNamespace,
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsNonRoot: &runNonRoot,
@@ -401,21 +443,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      name + "-tls-certs",
-									MountPath: "/run/secrets/tls",
-									ReadOnly:  true,
-								},
-								{
-									Name:      "crowdstrike-falcon-vol0",
-									MountPath: "/tmp",
-								},
-								{
-									Name:      "crowdstrike-falcon-vol1",
-									MountPath: "/var/private",
-								},
-							},
+							VolumeMounts: admissionDepVolumeMounts(name, registryCAConfigMapName, true),
 							StartupProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -470,16 +498,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 									},
 								},
 							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "crowdstrike-falcon-vol0",
-									MountPath: "/tmp",
-								},
-								{
-									Name:      "crowdstrike-falcon-vol1",
-									MountPath: "/var/private",
-								},
-							},
+							VolumeMounts: admissionDepVolumeMounts(name, registryCAConfigMapName, false),
 							StartupProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -511,48 +530,44 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 							Resources: *resourcesAC,
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: name + "-tls-certs",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: name + "-tls",
-								},
-							},
-						},
-						{
-							Name: "crowdstrike-falcon-vol0",
-							VolumeSource: corev1.VolumeSource{
-								EmptyDir: &corev1.EmptyDirVolumeSource{
-									SizeLimit: &sizeLimitTmp,
-								},
-							},
-						},
-						{
-							Name: "crowdstrike-falcon-vol1",
-							VolumeSource: corev1.VolumeSource{
-								EmptyDir: &corev1.EmptyDirVolumeSource{
-									SizeLimit: &sizeLimitPrivate,
-								},
-							},
-						},
-					},
+					Volumes: volumes,
 				},
 			},
 		},
 	}
 }
 
-func pullSecretsAdmission(admission *falconv1alpha1.FalconAdmission) []corev1.LocalObjectReference {
-	if admission.Spec.Image == "" {
-		return []corev1.LocalObjectReference{
-			{
-				Name: common.FalconPullSecretName,
-			},
-		}
-	} else {
-		return admission.Spec.AdmissionConfig.ImagePullSecrets
+func admissionDepVolumeMounts(name string, registryCAConfigMapName string, client bool) []corev1.VolumeMount {
+	certPath := "/etc/docker/certs.d/falcon-admission-certs"
+
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "crowdstrike-falcon-vol0",
+			MountPath: "/tmp",
+		},
+		{
+			Name:      "crowdstrike-falcon-vol1",
+			MountPath: "/var/private",
+		},
 	}
+
+	if client {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      name + "-tls-certs",
+			MountPath: "/run/secrets/tls",
+			ReadOnly:  true,
+		})
+	}
+
+	if registryCAConfigMapName != "" {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      registryCAConfigMapName,
+			ReadOnly:  true,
+			MountPath: certPath,
+		})
+	}
+
+	return volumeMounts
 }
 
 func admissionDepUpdateStrategy(admission *falconv1alpha1.FalconAdmission) appsv1.DeploymentStrategy {

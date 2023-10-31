@@ -23,12 +23,20 @@ const (
 
 func (r *FalconAdmissionReconciler) reconcileServiceAccount(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
 	update := false
+	existingServiceAccount := &corev1.ServiceAccount{}
+
+	imagePullSecrets := []corev1.LocalObjectReference{{Name: common.FalconPullSecretName}}
+	for _, secret := range falconAdmission.Spec.AdmissionConfig.ImagePullSecrets {
+		if secret.Name != common.FalconPullSecretName {
+			imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: secret.Name})
+		}
+	}
+
 	serviceAccount := assets.ServiceAccount(common.AdmissionServiceAccountName,
 		falconAdmission.Spec.InstallNamespace,
 		common.FalconAdmissionController,
 		falconAdmission.Spec.AdmissionConfig.ServiceAccount.Annotations,
-		falconAdmission.Spec.AdmissionConfig.ImagePullSecrets)
-	existingServiceAccount := &corev1.ServiceAccount{}
+		imagePullSecrets)
 
 	err := r.Get(ctx, types.NamespacedName{Name: common.AdmissionServiceAccountName, Namespace: falconAdmission.Spec.InstallNamespace}, existingServiceAccount)
 	if err != nil && apierrors.IsNotFound(err) {

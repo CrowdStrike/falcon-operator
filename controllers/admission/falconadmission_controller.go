@@ -13,7 +13,6 @@ import (
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/crowdstrike/falcon-operator/pkg/tls"
 	"github.com/crowdstrike/falcon-operator/version"
@@ -142,11 +141,11 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// Image being set will override other image based settings
 	if falconAdmission.Spec.Image != "" {
 		if _, err := r.setImageTag(ctx, falconAdmission); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Container Image version: %v", err)
+			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Admission Image version: %v", err)
 		}
 	} else if os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER") != "" && falconAdmission.Spec.FalconAPI == nil {
 		if _, err := r.setImageTag(ctx, falconAdmission); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Container Image version: %v", err)
+			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Admission Image version: %v", err)
 		}
 	} else {
 		switch falconAdmission.Spec.Registry.Type {
@@ -164,9 +163,19 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			}
 		}
 
+		// Create a CA Bundle ConfigMap if CACertificate attribute is set; overridden by the presence of a CACertificateConfigMap value
+		if falconAdmission.Spec.Registry.TLS.CACertificateConfigMap == "" && falconAdmission.Spec.Registry.TLS.CACertificate != "" {
+			if _, err := r.reconcileRegistryCABundleConfigMap(ctx, req, log, falconAdmission); err != nil {
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+
+			}
+		}
+
 		if r.imageMirroringEnabled(falconAdmission) {
 			if err := r.PushImage(ctx, log, falconAdmission); err != nil {
-				return ctrl.Result{}, fmt.Errorf("cannot refresh Falcon Container image: %v", err)
+				return ctrl.Result{}, fmt.Errorf("cannot refresh Falcon Admission image: %v", err)
 			}
 		} else {
 			updated, err = r.verifyCrowdStrike(ctx, log, falconAdmission)
@@ -174,7 +183,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				return ctrl.Result{}, nil
 			}
 			if err != nil {
-				log.Error(err, "Failed to verify CrowdStrike Container Image Registry access")
+				log.Error(err, "Failed to verify CrowdStrike Admission Image Registry access")
 				time.Sleep(time.Second * 5)
 				return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 			}
@@ -339,50 +348,6 @@ func (r *FalconAdmissionReconciler) reconcileTLSSecret(ctx context.Context, req 
 	}
 
 	return &corev1.Secret{}, nil
-}
-
-func (r *FalconAdmissionReconciler) reconcileConfigMap(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) (bool, error) {
-	existingCM := &corev1.ConfigMap{}
-	var err error
-	data := common.MakeSensorEnvMap(falconAdmission.Spec.Falcon)
-	name := falconAdmission.Name + "-config"
-
-	cid := ""
-	if falconAdmission.Spec.Falcon.CID != nil {
-		cid = *falconAdmission.Spec.Falcon.CID
-	}
-
-	if cid == "" && falconAdmission.Spec.FalconAPI != nil {
-		cid, err = falcon_api.FalconCID(ctx, falconAdmission.Spec.FalconAPI.CID, falconAdmission.Spec.FalconAPI.ApiConfig())
-		if err != nil {
-			return false, err
-		}
-	}
-	data["FALCONCTL_OPT_CID"] = cid
-
-	cm := assets.SensorConfigMap(name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, data)
-	err = r.Get(ctx, types.NamespacedName{Name: name, Namespace: falconAdmission.Spec.InstallNamespace}, existingCM)
-	if err != nil && apierrors.IsNotFound(err) {
-		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, cm)
-		if err != nil {
-			return false, err
-		}
-
-		return false, nil
-	} else if err != nil {
-		log.Error(err, "Failed to get FalconAdmission ConfigMap")
-		return false, err
-	}
-
-	if !reflect.DeepEqual(cm.Data, existingCM.Data) {
-		existingCM.Data = cm.Data
-		if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingCM); err != nil {
-			return false, err
-		}
-		return true, nil
-	}
-
-	return false, nil
 }
 
 func (r *FalconAdmissionReconciler) reconcileService(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) (bool, error) {
@@ -576,6 +541,16 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 			existingDeployment.Spec.Template.Spec.Containers[i].Resources = containers.Resources
 			updated = true
 		}
+
+		if !reflect.DeepEqual(containers.LivenessProbe.ProbeHandler.HTTPGet.Port, existingDeployment.Spec.Template.Spec.Containers[i].LivenessProbe.ProbeHandler.HTTPGet.Port) {
+			existingDeployment.Spec.Template.Spec.Containers[i].LivenessProbe.ProbeHandler.HTTPGet.Port = containers.LivenessProbe.ProbeHandler.HTTPGet.Port
+			updated = true
+		}
+
+		if !reflect.DeepEqual(containers.StartupProbe.ProbeHandler.HTTPGet.Port, existingDeployment.Spec.Template.Spec.Containers[i].StartupProbe.ProbeHandler.HTTPGet.Port) {
+			existingDeployment.Spec.Template.Spec.Containers[i].StartupProbe.ProbeHandler.HTTPGet.Port = containers.StartupProbe.ProbeHandler.HTTPGet.Port
+			updated = true
+		}
 	}
 
 	if updated {
@@ -622,10 +597,11 @@ func (r *FalconAdmissionReconciler) reconcileRegistrySecret(ctx context.Context,
 
 func (r *FalconAdmissionReconciler) reconcileImageStream(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) (*imagev1.ImageStream, error) {
 	const imageStreamName = "falcon-admission-controller"
-	imageStream := assets.ImageStream(imageStreamName, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController)
+	namespace := r.imageNamespace(falconAdmission)
+	imageStream := assets.ImageStream(imageStreamName, namespace, common.FalconAdmissionController)
 	existingImageStream := &imagev1.ImageStream{}
 
-	err := r.Get(ctx, types.NamespacedName{Name: imageStreamName, Namespace: falconAdmission.Spec.InstallNamespace}, existingImageStream)
+	err := r.Get(ctx, types.NamespacedName{Name: imageStreamName, Namespace: namespace}, existingImageStream)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, imageStream)
 		if err != nil {

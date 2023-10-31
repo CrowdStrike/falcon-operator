@@ -48,36 +48,6 @@ func TestAdmissionDeployment(t *testing.T) {
 	}
 }
 
-// TestPullSecretsAdmission tests the PullSecretsAdmission function
-func TestPullSecretsAdmission(t *testing.T) {
-	falconAdmission := falconv1alpha1.FalconAdmission{}
-
-	want := []corev1.LocalObjectReference{
-		{
-			Name: common.FalconPullSecretName,
-		},
-	}
-
-	got := pullSecretsAdmission(&falconAdmission)
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("pullSecretsAdmission() mismatch (-want +got): %s", diff)
-	}
-
-	want = []corev1.LocalObjectReference{
-		{
-			Name: "testSecretName",
-		},
-	}
-
-	falconAdmission.Spec.Image = "testImageName"
-	falconAdmission.Spec.AdmissionConfig.ImagePullSecrets = want
-
-	got = pullSecretsAdmission(&falconAdmission)
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("pullSecretsAdmission() mismatch (-want +got): %s", diff)
-	}
-}
-
 // TestAdmissionDepUpdateStrategy tests the Admission Controller Deployment Update Strategy function
 func TestAdmissionDepUpdateStrategy(t *testing.T) {
 	falconAdmission := falconv1alpha1.FalconAdmission{}
@@ -109,7 +79,6 @@ func TestAdmissionDepUpdateStrategy(t *testing.T) {
 // testSideCarDeployment is a helper function to create a Deployment object for testing
 func testSideCarDeployment(name string, namespace string, component string, imageUri string, falconContainer *falconv1alpha1.FalconContainer) *appsv1.Deployment {
 	replicas := int32(123)
-	imagePullSecrets := []corev1.LocalObjectReference{{Name: common.FalconPullSecretName}}
 	initContainerName := "crowdstrike-falcon-init-container"
 	injectorConfigMapName := "falcon-sidecar-injector-config"
 	registryCABundleConfigMapName := "falcon-sidecar-registry-certs"
@@ -128,10 +97,6 @@ func testSideCarDeployment(name string, namespace string, component string, imag
 	initContainers := []corev1.Container{}
 	var registryCAConfigMapName string = ""
 	labels := common.CRLabels("deployment", name, component)
-
-	if common.FalconPullSecretName != falconContainer.Spec.Injector.ImagePullSecretName {
-		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReference{Name: falconContainer.Spec.Injector.ImagePullSecretName})
-	}
 
 	if falconContainer.Spec.Injector.Resources != nil {
 		resources = falconContainer.Spec.Injector.Resources
@@ -283,7 +248,6 @@ func testSideCarDeployment(name string, namespace string, component string, imag
 						},
 					},
 					},
-					ImagePullSecrets: imagePullSecrets,
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsNonRoot: &runNonRoot,
 					},
@@ -424,7 +388,6 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 						},
 					},
 					},
-					ImagePullSecrets:      pullSecretsAdmission(falconAdmission),
 					ShareProcessNamespace: &shareProcessNamespace,
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsNonRoot: &runNonRoot,
@@ -498,17 +461,17 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      name + "-tls-certs",
-									MountPath: "/run/secrets/tls",
-									ReadOnly:  true,
-								},
-								{
 									Name:      "crowdstrike-falcon-vol0",
 									MountPath: "/tmp",
 								},
 								{
 									Name:      "crowdstrike-falcon-vol1",
 									MountPath: "/var/private",
+								},
+								{
+									Name:      name + "-tls-certs",
+									MountPath: "/run/secrets/tls",
+									ReadOnly:  true,
 								},
 							},
 							StartupProbe: &corev1.Probe{
