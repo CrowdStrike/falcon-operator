@@ -10,19 +10,20 @@
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator)
 [![Docker Repository on Quay](https://quay.io/repository/crowdstrike/falcon-operator-bundle/status "Docker Repository on Quay")](https://quay.io/repository/crowdstrike/falcon-operator-bundle)
 
-The CrowdStrike Falcon Operator installs the CrowdStrike Falcon Container Sensor or CrowdStrike Falcon Node Sensor on a Kubernetes cluster.
+The CrowdStrike Falcon Operator installs CrowdStrike Falcon custom resources on a Kubernetes cluster.
 
 The CrowdStrike Falcon Operator is an open source project and not a CrowdStrike product. As such, it carries no formal support, expressed, or implied.
 
 ## About the CrowdStrike Falcon Operator
-The CrowdStrike Falcon Operator deploys CrowdStrike Falcon Workload Protection to the cluster. The operator exposes 2 custom resources that allows you to deploy either the Falcon Container Sensor or Falcon Node Sensor.
+The CrowdStrike Falcon Operator deploys CrowdStrike Falcon to the cluster. The operator exposes custom resources that allow you to protect your Kubernetes clusters when deployed.
 
 ## About Custom Resources
 
 | Custom Resource                                       | Description                                                      |
 | :--------                                             | :------------                                                    |
-| [FalconContainer](docs/resources/container/README.md) | Manages installation of Falcon Container Sensor on the cluster   |
-| [FalconNodeSensor](docs/resources/node/README.md)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
+| [FalconAdmission](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/admission/README.md) | Manages installation of Falcon Admission Controller on the cluster |
+| [FalconContainer](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/container/README.md) | Manages installation of Falcon Container Sensor on the cluster   |
+| [FalconNodeSensor](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/node/README.md)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
 
 ## Installation and Deployment
 
