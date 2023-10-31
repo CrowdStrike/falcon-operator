@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -29,6 +30,11 @@ func (r *FalconContainerReconciler) PushImage(ctx context.Context, log logr.Logg
 		return err
 	}
 
+	// If we have version locking enabled (as it is by default), use the already configured version if present
+	if r.versionLock(falconContainer) {
+		return nil
+	}
+
 	pushAuth, err := r.pushAuth(ctx, falconContainer)
 	if err != nil {
 		return err
@@ -37,11 +43,6 @@ func (r *FalconContainerReconciler) PushImage(ctx context.Context, log logr.Logg
 	log.Info("Found secret for image push", "Secret.Name", pushAuth.Name())
 	image := image.NewImageRefresher(ctx, log, r.falconApiConfig(ctx, falconContainer), pushAuth, falconContainer.Spec.Registry.TLS.InsecureSkipVerify)
 	version := falconContainer.Spec.Version
-
-	// If we have version locking enabled (as it is by default), use the already configured version if present
-	if r.versionLock(falconContainer) {
-		return nil
-	}
 
 	tag, err := image.Refresh(registryUri, common.SensorTypeSidecar, version)
 	if err != nil {
@@ -233,5 +234,5 @@ func (r *FalconContainerReconciler) imageMirroringEnabled(falconContainer *falco
 }
 
 func (r *FalconContainerReconciler) versionLock(falconContainer *falconv1alpha1.FalconContainer) bool {
-	return falconContainer.Spec.Version != nil && falconContainer.Status.Sensor != nil && *falconContainer.Spec.Version == *falconContainer.Status.Sensor
+	return (falconContainer.Spec.Version != nil && falconContainer.Status.Sensor != nil && strings.Contains(*falconContainer.Status.Sensor, *falconContainer.Spec.Version)) || (falconContainer.Spec.Version == nil && falconContainer.Status.Sensor != nil)
 }

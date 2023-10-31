@@ -146,6 +146,11 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log
 		update = true
 	}
 
+	if !reflect.DeepEqual(deployment.Spec.Template.Spec.ImagePullSecrets, existingDeployment.Spec.Template.Spec.ImagePullSecrets) {
+		existingDeployment.Spec.Template.Spec.ImagePullSecrets = deployment.Spec.Template.Spec.ImagePullSecrets
+		update = true
+	}
+
 	if update {
 		return existingDeployment, r.Update(ctx, log, falconContainer, existingDeployment)
 	}

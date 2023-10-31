@@ -4,18 +4,23 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/image"
+	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/crowdstrike/falcon-operator/pkg/gcp"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pushtoken"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
+	imagev1 "github.com/openshift/api/image/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 )
 
@@ -23,6 +28,11 @@ func (r *FalconAdmissionReconciler) PushImage(ctx context.Context, log logr.Logg
 	registryUri, err := r.registryUri(ctx, falconAdmission)
 	if err != nil {
 		return err
+	}
+
+	// If we have version locking enabled (as it is by default), use the already configured version if present
+	if r.versionLock(falconAdmission) {
+		return nil
 	}
 
 	pushAuth, err := r.pushAuth(ctx, falconAdmission)
@@ -34,22 +44,17 @@ func (r *FalconAdmissionReconciler) PushImage(ctx context.Context, log logr.Logg
 	image := image.NewImageRefresher(ctx, log, r.falconApiConfig(ctx, falconAdmission), pushAuth, falconAdmission.Spec.Registry.TLS.InsecureSkipVerify)
 	version := falconAdmission.Spec.Version
 
-	// If we have version locking enabled (as it is by default), use the already configured version if present
-	if r.versionLock(falconAdmission) {
-		return nil
-	}
-
 	tag, err := image.Refresh(registryUri, common.SensorTypeKac, version)
 	if err != nil {
-		return fmt.Errorf("Cannot push Falcon Container Image: %v", err)
+		return fmt.Errorf("Cannot push Falcon Admission Image: %v", err)
 	}
 
-	log.Info("Falcon Container Image pushed successfully", "Image.Tag", tag)
+	log.Info("Falcon Admission Controller Image pushed successfully", "Image.Tag", tag)
 	falconAdmission.Status.Sensor = &tag
 
 	imageUri, err := r.imageUri(ctx, falconAdmission)
 	if err != nil {
-		return fmt.Errorf("Cannot identify Falcon Container Image: %v", err)
+		return fmt.Errorf("Cannot identify Falcon Admission Image: %v", err)
 	}
 
 	meta.SetStatusCondition(&falconAdmission.Status.Conditions, metav1.Condition{
@@ -77,7 +82,7 @@ func (r *FalconAdmissionReconciler) verifyCrowdStrike(ctx context.Context, log l
 		return false, nil
 	}
 
-	log.Info("Skipping push of Falcon Container image to local registry. Remote CrowdStrike registry will be used.")
+	log.Info("Skipping push of Falcon Admission image to local registry. Remote CrowdStrike registry will be used.")
 	meta.SetStatusCondition(&falconAdmission.Status.Conditions, metav1.Condition{
 		Status:             metav1.ConditionTrue,
 		Reason:             falconv1alpha1.ReasonDiscovered,
@@ -90,12 +95,49 @@ func (r *FalconAdmissionReconciler) verifyCrowdStrike(ctx context.Context, log l
 }
 
 func (r *FalconAdmissionReconciler) registryUri(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission) (string, error) {
-	cloud, err := falconAdmission.Spec.FalconAPI.FalconCloud(ctx)
-	if err != nil {
-		return "", err
-	}
+	switch falconAdmission.Spec.Registry.Type {
+	case falconv1alpha1.RegistryTypeOpenshift:
+		imageStream := &imagev1.ImageStream{}
+		err := r.Get(ctx, types.NamespacedName{Name: "falcon-admission-controller", Namespace: r.imageNamespace(falconAdmission)}, imageStream)
+		if err != nil {
+			return "", err
+		}
 
-	return falcon_registry.SensorImageURI(cloud, common.SensorTypeKac), nil
+		if imageStream.Status.DockerImageRepository == "" {
+			return "", fmt.Errorf("Unable to find route to OpenShift on-cluster registry. Please verify that OpenShift on-cluster registry is up and running.")
+		}
+
+		return imageStream.Status.DockerImageRepository, nil
+	case falconv1alpha1.RegistryTypeGCR:
+		projectId, err := gcp.GetProjectID()
+		if err != nil {
+			return "", fmt.Errorf("Cannot get GCP Project ID: %v", err)
+		}
+
+		return "gcr.io/" + projectId + "/falcon-kac", nil
+	case falconv1alpha1.RegistryTypeECR:
+		repo, err := aws.UpsertECRRepo(ctx, "falcon-kac")
+		if err != nil {
+			return "", fmt.Errorf("Cannot get target docker URI for ECR repository: %v", err)
+		}
+
+		return *repo.RepositoryUri, nil
+	case falconv1alpha1.RegistryTypeACR:
+		if falconAdmission.Spec.Registry.AcrName == nil {
+			return "", fmt.Errorf("Cannot push Falcon Image locally to ACR. acr_name was not specified")
+		}
+
+		return fmt.Sprintf("%s.azurecr.io/falcon-kac", *falconAdmission.Spec.Registry.AcrName), nil
+	case falconv1alpha1.RegistryTypeCrowdStrike:
+		cloud, err := falconAdmission.Spec.FalconAPI.FalconCloud(ctx)
+		if err != nil {
+			return "", err
+		}
+
+		return falcon_registry.SensorImageURI(cloud, common.SensorTypeKac), nil
+	default:
+		return "", fmt.Errorf("Unrecognized registry type: %s", falconAdmission.Spec.Registry.Type)
+	}
 }
 
 func (r *FalconAdmissionReconciler) imageUri(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission) (string, error) {
@@ -115,7 +157,7 @@ func (r *FalconAdmissionReconciler) imageUri(ctx context.Context, falconAdmissio
 
 	imageTag, err := r.setImageTag(ctx, falconAdmission)
 	if err != nil {
-		return "", fmt.Errorf("failed to set Falcon Container Image version: %v", err)
+		return "", fmt.Errorf("failed to set Falcon Admission Image version: %v", err)
 	}
 
 	return fmt.Sprintf("%s:%s", registryUri, imageTag), nil
@@ -126,7 +168,7 @@ func (r *FalconAdmissionReconciler) getImageTag(ctx context.Context, falconAdmis
 		return *falconAdmission.Status.Sensor, nil
 	}
 
-	return "", fmt.Errorf("Unable to get falcon container version")
+	return "", fmt.Errorf("Unable to get falcon admission container image version")
 }
 
 func (r *FalconAdmissionReconciler) setImageTag(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission) (string, error) {
@@ -167,8 +209,17 @@ func (r *FalconAdmissionReconciler) setImageTag(ctx context.Context, falconAdmis
 
 func (r *FalconAdmissionReconciler) pushAuth(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission) (auth.Credentials, error) {
 	return pushtoken.GetCredentials(ctx, falconAdmission.Spec.Registry.Type,
-		k8s_utils.QuerySecretsInNamespace(r.Client, falconAdmission.Spec.InstallNamespace),
+		k8s_utils.QuerySecretsInNamespace(r.Client, r.imageNamespace(falconAdmission)),
 	)
+}
+
+func (r *FalconAdmissionReconciler) imageNamespace(falconAdmission *falconv1alpha1.FalconAdmission) string {
+	if falconAdmission.Spec.Registry.Type == falconv1alpha1.RegistryTypeOpenshift {
+		// Within OpenShift, ImageStreams are separated by namespaces. The "openshift" namespace
+		// is shared and images pushed there can be referenced by deployments in other namespaces
+		return "openshift"
+	}
+	return falconAdmission.Spec.InstallNamespace
 }
 
 func (r *FalconAdmissionReconciler) falconApiConfig(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission) *falcon.ApiConfig {
@@ -183,5 +234,5 @@ func (r *FalconAdmissionReconciler) imageMirroringEnabled(falconAdmission *falco
 }
 
 func (r *FalconAdmissionReconciler) versionLock(falconAdmission *falconv1alpha1.FalconAdmission) bool {
-	return falconAdmission.Spec.Version != nil && falconAdmission.Status.Sensor != nil && *falconAdmission.Spec.Version == *falconAdmission.Status.Sensor
+	return (falconAdmission.Spec.Version != nil && falconAdmission.Status.Sensor != nil && strings.Contains(*falconAdmission.Status.Sensor, *falconAdmission.Spec.Version)) || (falconAdmission.Spec.Version == nil && falconAdmission.Status.Sensor != nil)
 }
