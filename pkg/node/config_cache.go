@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
@@ -105,6 +106,10 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 	}
 	imageUri := falcon_registry.ImageURINode(cloud)
 
+	if versionLock(nodesensor) {
+		return fmt.Sprintf("%s:%s", imageUri, *nodesensor.Status.Sensor), nil
+	}
+
 	registry, err := falcon_registry.NewFalconRegistry(ctx, nodesensor.Spec.FalconAPI.ApiConfig())
 	if err != nil {
 		return "", err
@@ -115,6 +120,10 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 	}
 
 	return fmt.Sprintf("%s:%s", imageUri, imageTag), nil
+}
+
+func versionLock(nodesensor *falconv1alpha1.FalconNodeSensor) bool {
+	return (nodesensor.Spec.Node.Version != nil && nodesensor.Status.Sensor != nil && strings.Contains(*nodesensor.Status.Sensor, *nodesensor.Spec.Node.Version)) || (nodesensor.Spec.Node.Version == nil && nodesensor.Status.Sensor != nil)
 }
 
 func ConfigCacheTest(cid string, imageUri string, nodeTest *falconv1alpha1.FalconNodeSensor) *ConfigCache {

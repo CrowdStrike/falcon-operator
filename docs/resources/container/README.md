@@ -98,6 +98,9 @@ spec:
 | conditions.["ServiceReady"]                      | Displays the most recent successful reconciliation operation for the service used by the falcon container sensor injector (created, updated, deleted)                           |
 | conditions.["MutatingWebhookConfigurationReady"] | Displays the most recent successful reconciliation operation for the mutating webhook configuration used by the falcon container sensor injector (created, updated, deleted)    |
 
+> [!IMPORTANT]
+> All arguments are optional, but successful deployment requires either **client_id and client_secret or the Falcon cid and image**. When deploying using the CrowdStrike Falcon API, the container image and CID will be fetched from CrowdStrike Falcon API. While in the latter case, the CID and image location is explicitly specified by the user.
+
 ### Enabling and Disabling Falcon Container injection
 
 By default, all pods in all namespaces outside of `kube-system` and `kube-public` will be subject to Falcon Container injection.
@@ -145,7 +148,13 @@ When not running on OpenShift, adding the proxy configuration via environment va
     value: http://proxy.example.com:8080
   image: quay.io/crowdstrike/falcon-operator:latest
 ```
-These settings can be overridden by configuring the [sensor's proxy settings](#falcon-sensor-settings)
+These settings can be overridden by configuring the [sensor's proxy settings](#falcon-sensor-settings) which will only change the sensor's proxy settings **not** the operator's proxy settings.
+
+>[!IMPORTANT]
+> 1. If using the CrowdStrike API with the **client_id and client_secret** authentication method, the operator must be able to reach the CrowdStrike API through the proxy via the Kubernetes cluster networking configuration.
+>    If the proxy is not configured correctly, the operator will not be able to authenticate with the CrowdStrike API and will not be able to create the sensor.
+> 2. If the CrowdStrike API is not used, configure the [sensor's proxy settings](#falcon-sensor-settings).
+> 3. Ensure that the host node can reach the CrowdStrike Falcon Cloud through the proxy.
 
 
 ### Image Registry considerations
@@ -204,8 +213,15 @@ The following namespaces will be used by Falcon Operator.
 
 | Namespace               | Description                                                      |
 |:------------------------|:-----------------------------------------------------------------|
-| falcon-system           | Used by Falcon Container product, runs the injector and webhoook |
-| falcon-operator         | Runs falcon-operator manager                                     |
+| falcon-system           | Used by Falcon Container product, runs the injector, and webhoook |
+| falcon-operator         | Runs falcon-operator manager                                      |
+
+### Sensor upgrades
+
+To upgrade the sensor version, simply add and/or update the `version` field in the FalconContainer resource and apply the change. Alternatively if the `image` field was used instead of using the Falcon API credentials, add and/or update the `image` field in the FalconContainer resource and apply the change. The operator will detect the change and perform the upgrade.
+
+> [!IMPORTANT]
+> The operator will only upgrade the injector service. You will need to restart or roll your workload deployments to upgrade the sidecar version.
 
 ### Troubleshooting
 
