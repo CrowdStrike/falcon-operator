@@ -76,7 +76,8 @@ spec:
 | falcon.tags                               | (optional) Configure Falcon Sensor Grouping Tags; comma-delimited                                                                                                                                                       |
 | falcon.trace                              | (optional) Configure Falcon Sensor Trace Logging Level (none, err, warn, info, debug)                                                                                                                                   |
 
-All arguments are optional, but successful deployment requires either falcon_id and falcon_secret **or** cid and image. When deploying using the CrowdStrike Falcon API, the container image and CID will be fetched from CrowdStrike Falcon API. While in the latter case, the CID and image location is explicitly specified by the user.
+> [!IMPORTANT]
+> All arguments are optional, but successful deployment requires either **client_id and client_secret or the Falcon cid and image**. When deploying using the CrowdStrike Falcon API, the container image and CID will be fetched from CrowdStrike Falcon API. While in the latter case, the CID and image location is explicitly specified by the user.
 
 ### Auto Proxy Configuration
 
@@ -101,7 +102,13 @@ When not running on OpenShift, adding the proxy configuration via environment va
     value: http://proxy.example.com:8080
   image: quay.io/crowdstrike/falcon-operator:latest
 ```
-These settings can be overridden by configuring the [sensor's proxy settings](#falcon-sensor-settings)
+These settings can be overridden by configuring the [sensor's proxy settings](#falcon-sensor-settings) which will only change the sensor's proxy settings **not** the operator's proxy settings.
+
+>[!IMPORTANT]
+> 1. If using the CrowdStrike API with the **client_id and client_secret** authentication method, the operator must be able to reach the CrowdStrike API through the proxy via the Kubernetes cluster networking configuration.
+>    If the proxy is not configured correctly, the operator will not be able to authenticate with the CrowdStrike API and will not be able to create the sensor.
+> 2. If the CrowdStrike API is not used, configure the [sensor's proxy settings](#falcon-sensor-settings).
+> 3. Ensure that the host node can reach the CrowdStrike Falcon Cloud through the proxy.
 
 
 ### Image Registry considerations
@@ -153,6 +160,10 @@ To uninstall Falcon Admission Controller simply remove the FalconAdmission resou
 ```sh
 kubectl delete falconadmission --all
 ``` 
+
+### Sensor upgrades
+
+To upgrade the sensor version, simply add and/or update the `version` field in the FalconAdmission resource and apply the change. Alternatively if the `image` field was used instead of using the Falcon API credentials, add and/or update the `image` field in the FalconAdmission resource and apply the change. The operator will detect the change and perform the upgrade.
 
 ### Troubleshooting
 

@@ -76,7 +76,8 @@ spec:
 | falcon.tags                               | (optional) Configure Falcon Sensor Grouping Tags; comma-delimited                                                                                                                                                       |
 | falcon.trace                              | (optional) Configure Falcon Sensor Trace Logging Level (none, err, warn, info, debug)                                                                                                                                   |
 
-All arguments are optional, but successful deployment requires either falcon_id and falcon_secret **or** cid and image. When deploying using the CrowdStrike Falcon API, the container image and CID will be fetched from CrowdStrike Falcon API. While in the latter case, the CID and image location is explicitly specified by the user.
+> [!IMPORTANT]
+> All arguments are optional, but successful deployment requires either **client_id and client_secret or the Falcon cid and image**. When deploying using the CrowdStrike Falcon API, the container image and CID will be fetched from CrowdStrike Falcon API. While in the latter case, the CID and image location is explicitly specified by the user.
 
 ### Auto Proxy Configuration
 
@@ -137,6 +138,10 @@ To uninstall Falcon Admission Controller simply remove the FalconAdmission resou
 ```sh
 {{ .KubeCmd }} delete falconadmission --all
 ``` 
+
+### Sensor upgrades
+
+To upgrade the sensor version, simply add and/or update the `version` field in the FalconAdmission resource and apply the change. Alternatively if the `image` field was used instead of using the Falcon API credentials, add and/or update the `image` field in the FalconAdmission resource and apply the change. The operator will detect the change and perform the upgrade.
 
 ### Troubleshooting
 
