@@ -101,10 +101,10 @@ metadata:
     capabilities: Basic Install
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2023-10-30T20:05:26Z"
+    createdAt: "2023-11-01T20:08:53Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     operatorframework.io/suggested-namespace: falcon-operator
-    operators.operatorframework.io/builder: operator-sdk-v1.29.0
+    operators.operatorframework.io/builder: operator-sdk-v1.30.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4-alpha
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
@@ -1013,7 +1013,7 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: OPERATOR_NAME
                   value: falcon-operator
-                image: quay.io/crowdstrike/falcon-operator:latest
+                image: quay.io/crowdstrike/falcon-operator:0.9.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
