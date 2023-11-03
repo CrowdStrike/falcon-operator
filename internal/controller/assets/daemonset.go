@@ -94,9 +94,30 @@ func sensorCapabilities(node *falconv1alpha1.FalconNodeSensor, initContainer boo
 	return nil
 }
 
+func initContainerResources(node *falconv1alpha1.FalconNodeSensor) corev1.ResourceRequirements {
+	if node.Spec.Node.Backend == "bpf" && (node.Spec.Node.SensorResources != falconv1alpha1.Resources{} || (node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled)) {
+		return corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"cpu":               resource.MustParse("10m"),
+				"ephemeral-storage": resource.MustParse("100Mi"),
+				"memory":            resource.MustParse("50Mi"),
+			},
+			Requests: corev1.ResourceList{
+				"cpu":               resource.MustParse("10m"),
+				"ephemeral-storage": resource.MustParse("100Mi"),
+				"memory":            resource.MustParse("50Mi"),
+			},
+			Claims: []corev1.ResourceClaim{},
+		}
+	}
+
+	return corev1.ResourceRequirements{}
+}
+
 func dsResources(node *falconv1alpha1.FalconNodeSensor) corev1.ResourceRequirements {
 	if node.Spec.Node.Backend == "bpf" {
-		var limitResources, requestsResources corev1.ResourceList
+		limitResources := corev1.ResourceList{}
+		requestsResources := corev1.ResourceList{}
 
 		if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled {
 			limitResources = corev1.ResourceList{
@@ -117,8 +138,14 @@ func dsResources(node *falconv1alpha1.FalconNodeSensor) corev1.ResourceRequireme
 		if node.Spec.Node.SensorResources.Limits.Memory != "" {
 			limitResources["memory"] = resource.MustParse(node.Spec.Node.SensorResources.Limits.Memory)
 		}
+		if node.Spec.Node.SensorResources.Limits.EphemeralStorage != "" {
+			limitResources["ephemeral-storage"] = resource.MustParse(node.Spec.Node.SensorResources.Limits.EphemeralStorage)
+		}
 		if node.Spec.Node.SensorResources.Requests.CPU != "" {
 			requestsResources["cpu"] = resource.MustParse(node.Spec.Node.SensorResources.Requests.CPU)
+		}
+		if node.Spec.Node.SensorResources.Requests.EphemeralStorage != "" {
+			requestsResources["ephemeral-storage"] = resource.MustParse(node.Spec.Node.SensorResources.Requests.EphemeralStorage)
 		}
 		if node.Spec.Node.SensorResources.Requests.Memory != "" {
 			requestsResources["memory"] = resource.MustParse(node.Spec.Node.SensorResources.Requests.Memory)
@@ -267,19 +294,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 							Command:      common.FalconShellCommand,
 							Args:         initArgs(node),
 							VolumeMounts: volumeMounts(node, "falconstore-hostdir"),
-							Resources: corev1.ResourceRequirements{
-								Limits: corev1.ResourceList{
-									"cpu":               resource.MustParse("10m"),
-									"ephemeral-storage": resource.MustParse("10Mi"),
-									"memory":            resource.MustParse("50Mi"),
-								},
-								Requests: corev1.ResourceList{
-									"cpu":               resource.MustParse("10m"),
-									"ephemeral-storage": resource.MustParse("10Mi"),
-									"memory":            resource.MustParse("50Mi"),
-								},
-								Claims: []corev1.ResourceClaim{},
-							},
+							Resources:    initContainerResources(node),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
@@ -364,23 +379,11 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 					ImagePullSecrets:              pullSecrets(node),
 					InitContainers: []corev1.Container{
 						{
-							Name:    "cleanup-opt-crowdstrike",
-							Image:   image,
-							Command: common.FalconShellCommand,
-							Args:    cleanupArgs(node),
-							Resources: corev1.ResourceRequirements{
-								Limits: corev1.ResourceList{
-									"cpu":               resource.MustParse("10m"),
-									"ephemeral-storage": resource.MustParse("10Mi"),
-									"memory":            resource.MustParse("50Mi"),
-								},
-								Requests: corev1.ResourceList{
-									"cpu":               resource.MustParse("10m"),
-									"ephemeral-storage": resource.MustParse("10Mi"),
-									"memory":            resource.MustParse("50Mi"),
-								},
-								Claims: []corev1.ResourceClaim{},
-							},
+							Name:      "cleanup-opt-crowdstrike",
+							Image:     image,
+							Command:   common.FalconShellCommand,
+							Args:      cleanupArgs(node),
+							Resources: initContainerResources(node),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
@@ -394,23 +397,11 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 					ServiceAccountName: serviceAccount,
 					Containers: []corev1.Container{
 						{
-							Name:    "cleanup-sleep",
-							Image:   image,
-							Command: common.FalconShellCommand,
-							Args:    common.CleanupSleep(),
-							Resources: corev1.ResourceRequirements{
-								Limits: corev1.ResourceList{
-									"cpu":               resource.MustParse("10m"),
-									"ephemeral-storage": resource.MustParse("10Mi"),
-									"memory":            resource.MustParse("50Mi"),
-								},
-								Requests: corev1.ResourceList{
-									"cpu":               resource.MustParse("10m"),
-									"ephemeral-storage": resource.MustParse("10Mi"),
-									"memory":            resource.MustParse("50Mi"),
-								},
-								Claims: []corev1.ResourceClaim{},
-							},
+							Name:      "cleanup-sleep",
+							Image:     image,
+							Command:   common.FalconShellCommand,
+							Args:      common.CleanupSleep(),
+							Resources: initContainerResources(node),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &nonPrivileged,
 								ReadOnlyRootFilesystem:   &readOnlyFs,
