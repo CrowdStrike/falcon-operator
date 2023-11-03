@@ -485,6 +485,8 @@ spec:
       - description: Minimum allowed is 250m.
         displayName: CPU
         path: node.resources.limits.cpu
+      - displayName: Ephemeral Storage
+        path: node.resources.limits.ephemeral-storage
       - description: Minimum allowed is 500Mi.
         displayName: Memory
         path: node.resources.limits.memory
@@ -495,6 +497,8 @@ spec:
       - description: Minimum allowed is 250m.
         displayName: CPU
         path: node.resources.requests.cpu
+      - displayName: Ephemeral Storage
+        path: node.resources.requests.ephemeral-storage
       - description: Minimum allowed is 500Mi.
         displayName: Memory
         path: node.resources.requests.memory

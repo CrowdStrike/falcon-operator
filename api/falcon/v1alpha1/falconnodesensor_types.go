@@ -18,8 +18,10 @@ type FalconNodeSensorSpec struct {
 	// Various configuration for DaemonSet Deployment
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Configuration",order=3
 	Node FalconNodeSensorConfig `json:"node,omitempty"`
+
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Sensor Configuration",order=2
 	Falcon FalconSensor `json:"falcon,omitempty"`
+
 	// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 	//
 	// When configured, it will pull the sensor from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
@@ -36,30 +38,38 @@ type FalconNodeSensorConfig struct {
 	// +kubebuilder:default:={{key: "node-role.kubernetes.io/master", operator: "Exists", effect: "NoSchedule"}, {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"}}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+
 	// Specifies node affinity for scheduling the DaemonSet. Defaults to allowing scheduling on all nodes.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=5
 	NodeAffinity corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
+
 	// +kubebuilder:default=Always
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+
 	// Location of the Falcon Sensor image. Use only in cases when you mirror the original image to your repository/name:tag
 	// +kubebuilder:validation:Pattern="^.*:.*$"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
 	Image string `json:"image,omitempty"`
+
 	// ImagePullSecrets is an optional list of references to secrets in the falcon-system namespace to use for pulling image from image_override location.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+
 	// Type of DaemonSet update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Update Strategy",order=6
 	DSUpdateStrategy FalconNodeUpdateStrategy `json:"updateStrategy,omitempty"`
+
 	// Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.
 	// +kubebuilder:default:=30
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=7
 	TerminationGracePeriod int64 `json:"terminationGracePeriod,omitempty"`
+
 	// Add metadata to the DaemonSet Service Account for IAM roles.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ServiceAccount FalconNodeServiceAccount `json:"serviceAccount,omitempty"`
+
 	// Disables the cleanup of the sensor through DaemonSet on the nodes.
 	// Disabling might have unintended consequences for certain operations such as sensor downgrading.
 	// +kubebuilder:default=false
@@ -106,6 +116,7 @@ type Resources struct {
 	// Sets the resource limits for the DaemonSet Sensor. Only applies when using the eBPF backend.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Limits ResourceList `json:"limits,omitempty"`
+
 	// Sets the resource requests for the DaemonSet Sensor. Only applies when using the eBPF backend.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Requests ResourceList `json:"requests,omitempty"`
@@ -116,10 +127,14 @@ type ResourceList struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// +kubebuilder:validation:Pattern="^(([0-9]{4,}|[2-9][5-9][0-9])m$)|[0-9]+$"
 	CPU string `json:"cpu,omitempty"`
+
 	// Minimum allowed is 500Mi.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	// +kubebuilder:validation:Pattern="^(([5-9][0-9]{2}[Mi]+)|([0-9.]+[iEGTP]+))|(([5-9][0-9]{8})|([0-9]{10,}))$"
 	Memory string `json:"memory,omitempty"`
+
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	EphemeralStorage string `json:"ephemeral-storage,omitempty"`
 }
 
 type AutoPilot struct {

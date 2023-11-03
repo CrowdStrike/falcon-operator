@@ -231,7 +231,7 @@ func GetNamespaceNamesSort(ctx context.Context, cli client.Client) ([]string, er
 	}
 
 	for _, i := range ns.Items {
-		if strings.Contains(i.Name, "openshift") {
+		if strings.Contains(i.Name, "openshift") || strings.Contains(i.Name, "falcon") {
 			nsList = append(nsList, i.Name)
 		}
 	}

@@ -101,7 +101,7 @@ metadata:
     capabilities: Basic Install
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2023-11-01T20:08:53Z"
+    createdAt: "2023-11-02T22:37:36Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     operatorframework.io/suggested-namespace: falcon-operator
     operators.operatorframework.io/builder: operator-sdk-v1.30.0
@@ -582,6 +582,8 @@ spec:
       - description: Minimum allowed is 250m.
         displayName: CPU
         path: node.resources.limits.cpu
+      - displayName: Ephemeral Storage
+        path: node.resources.limits.ephemeral-storage
       - description: Minimum allowed is 500Mi.
         displayName: Memory
         path: node.resources.limits.memory
@@ -592,6 +594,8 @@ spec:
       - description: Minimum allowed is 250m.
         displayName: CPU
         path: node.resources.requests.cpu
+      - displayName: Ephemeral Storage
+        path: node.resources.requests.ephemeral-storage
       - description: Minimum allowed is 500Mi.
         displayName: Memory
         path: node.resources.requests.memory

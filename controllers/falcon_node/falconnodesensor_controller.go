@@ -250,13 +250,14 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		containerVolUpdate := updateDaemonSetContainerVolumes(dsUpdate, dsTarget, logger)
 		volumeUpdates := updateDaemonSetVolumes(dsUpdate, dsTarget, logger)
 		resources := updateDaemonSetResources(dsUpdate, dsTarget, logger)
+		initResources := updateDaemonSetInitContainerResources(dsUpdate, dsTarget, logger)
 		pc := updateDaemonSetPriorityClass(dsUpdate, dsTarget, logger)
 		capabilities := updateDaemonSetCapabilities(dsUpdate, dsTarget, logger)
 		initArgs := updateDaemonSetInitArgs(dsUpdate, dsTarget, logger)
 		updated = updateDaemonSetContainerProxy(dsUpdate, nodesensor, logger)
 
 		// Update the daemonset and re-spin pods with changes
-		if imgUpdate || tolsUpdate || affUpdate || containerVolUpdate || volumeUpdates || resources || pc || capabilities || initArgs || updated {
+		if imgUpdate || tolsUpdate || affUpdate || containerVolUpdate || volumeUpdates || resources || pc || capabilities || initArgs || initResources || updated {
 			err = r.Update(ctx, dsUpdate)
 			if err != nil {
 				err = r.conditionsUpdate(falconv1alpha1.ConditionDaemonSetReady,
@@ -666,6 +667,18 @@ func updateDaemonSetResources(ds, origDS *appsv1.DaemonSet, logger logr.Logger) 
 	if resourcesUpdates {
 		logger.Info("Updating FalconNodeSensor DaemonSet resources")
 		*resources = origDS.Spec.Template.Spec.Containers[0].Resources
+
+	}
+
+	return resourcesUpdates
+}
+
+func updateDaemonSetInitContainerResources(ds, origDS *appsv1.DaemonSet, logger logr.Logger) bool {
+	resources := &ds.Spec.Template.Spec.InitContainers[0].Resources
+	resourcesUpdates := !equality.Semantic.DeepEqual(*resources, origDS.Spec.Template.Spec.InitContainers[0].Resources)
+	if resourcesUpdates {
+		logger.Info("Updating FalconNodeSensor DaemonSet InitContainer resources")
+		*resources = origDS.Spec.Template.Spec.InitContainers[0].Resources
 	}
 
 	return resourcesUpdates

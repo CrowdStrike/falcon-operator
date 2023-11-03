@@ -2972,6 +2972,8 @@ spec:
                             description: Minimum allowed is 250m.
                             pattern: ^(([0-9]{4,}|[2-9][5-9][0-9])m$)|[0-9]+$
                             type: string
+                          ephemeral-storage:
+                            type: string
                           memory:
                             description: Minimum allowed is 500Mi.
                             pattern: ^(([5-9][0-9]{2}[Mi]+)|([0-9.]+[iEGTP]+))|(([5-9][0-9]{8})|([0-9]{10,}))$
@@ -2984,6 +2986,8 @@ spec:
                           cpu:
                             description: Minimum allowed is 250m.
                             pattern: ^(([0-9]{4,}|[2-9][5-9][0-9])m$)|[0-9]+$
+                            type: string
+                          ephemeral-storage:
                             type: string
                           memory:
                             description: Minimum allowed is 500Mi.
