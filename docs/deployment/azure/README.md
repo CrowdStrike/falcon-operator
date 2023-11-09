@@ -110,6 +110,12 @@ The Image push secret is used by the operator to mirror the Falcon Container sen
   kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/azure/falconadmission.yaml --edit=true
   ```
 
+- For Azure AKS workloads, you must disable the Azure Admissions Enforcer for the Falcon Admission Controller.
+  Add the following annotation to the validating webhook configuration to disable the Azure Admissions Enforcer for the Falcon Admission Controller:
+  ```sh
+  kubectl annotate validatingwebhookconfiguration validating.admission.falcon.crowdstrike.com admissions.enforcer/disabled=true
+  ```
+
 </details>
 
 ## Uninstalling

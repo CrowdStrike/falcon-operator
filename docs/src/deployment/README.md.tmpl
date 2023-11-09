@@ -89,7 +89,7 @@ After the Falcon Operator has deployed, you can now deploy the Falcon Node Senso
 <details>
   <summary>Click to expand</summary>
 
-  {{- if eq .Distro "eks-fargate" }}
+{{- if eq .Distro "eks-fargate" }}
 
 - Create an EKS Fargate profile for the FalconAdmission resource deployment:
   ```sh
@@ -99,12 +99,22 @@ After the Falcon Operator has deployed, you can now deploy the Falcon Node Senso
     --name fp-falcon-kac \
     --namespace falcon-kac
   ```
-{{ end}}
+{{ end }}
 
 - Create a new FalconAdmission resource
   ```sh
   {{ .KubeCmd }} create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/docs/deployment/{{ .Distro }}/falconadmission.yaml --edit=true
   ```
+
+{{- if eq .Distro "azure" }}
+
+- For Azure AKS workloads, you must disable the Azure Admissions Enforcer for the Falcon Admission Controller.
+  Add the following annotation to the validating webhook configuration to disable the Azure Admissions Enforcer for the Falcon Admission Controller:
+  ```sh
+  kubectl annotate validatingwebhookconfiguration validating.admission.falcon.crowdstrike.com admissions.enforcer/disabled=true
+  ```
+
+{{- end }}
 
 </details>
 
