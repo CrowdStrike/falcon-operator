@@ -276,7 +276,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 func (r *FalconAdmissionReconciler) reconcileResourceQuota(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
 	existingRQ := &corev1.ResourceQuota{}
-	defaultPodLimit := "2"
+	defaultPodLimit := "5"
 
 	if falconAdmission.Spec.ResQuota.PodLimit != "" {
 		defaultPodLimit = falconAdmission.Spec.ResQuota.PodLimit
