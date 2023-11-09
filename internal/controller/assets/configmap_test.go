@@ -38,6 +38,6 @@ func TestSensorConfigMap(t *testing.T) {
 
 	got := SensorConfigMap("test", "test", common.FalconKernelSensor, config.SensorEnvVars())
 	if diff := cmp.Diff(&want, &got); diff != "" {
-		t.Errorf("getTermGracePeriod() mismatch (-want +got): %s", diff)
+		t.Errorf("SensorConfigMap() mismatch (-want +got): %s", diff)
 	}
 }
