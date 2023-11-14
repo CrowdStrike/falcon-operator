@@ -100,7 +100,7 @@ metadata:
       ]
     capabilities: Basic Install
     categories: Security,Monitoring
-    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:a82e26b3746149dffdad0959d9967e8cfdfab7b0ec6e66e2ed5d3556b332f53d
+    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:425358a8195e4746bdcfeceb5d3d55311fea06f7d0974c394668c3b608bb30fd
     createdAt: "2023-11-03T20:51:49Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     marketplace.openshift.io/remote-workflow: https://marketplace.redhat.com/en-us/operators/falcon-operator-rhmp/pricing?utm_source=openshift_console
@@ -1030,7 +1030,13 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: OPERATOR_NAME
                   value: falcon-operator
-                image: quay.io/crowdstrike/falcon-operator:0.9.1
+                - name: RELATED_IMAGE_NODE_SENSOR
+                  value: registry.crowdstrike.com/falcon-sensor/us-1/release/falcon-sensor@sha256:aede686dc4ec9f5e61fc1ac8b2a56813a10de18b85a317296ea413fbfbdccfca
+                - name: RELATED_IMAGE_SIDECAR_SENSOR
+                  value: registry.crowdstrike.com/falcon-container/us-1/release/falcon-sensor@sha256:5d50db9b29f9a56c518731450913e14a405cbf85d758559d38d8ea8a610f6e59
+                - name: RELATED_IMAGE_ADMISSION_CONTROLLER
+                  value: registry.crowdstrike.com/falcon-kac/us-1/release/falcon-kac@sha256:fe55bbcb50e6c38aeb05558fc9dba46d174d07645f5cd8fb0c3ef2b4045f6617
+                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:425358a8195e4746bdcfeceb5d3d55311fea06f7d0974c394668c3b608bb30fd
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -1066,7 +1072,7 @@ spec:
                 - --upstream=http://127.0.0.1:8080/
                 - --logtostderr=true
                 - --v=0
-                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.1
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:796753816645b35cd08da53d925df5e4fb12df8b2a14db98db361f0ff787a028
                 name: kube-rbac-proxy
                 ports:
                 - containerPort: 8443
@@ -1153,4 +1159,15 @@ spec:
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
+  relatedImages:
+  - image: "registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:425358a8195e4746bdcfeceb5d3d55311fea06f7d0974c394668c3b608bb30fd"
+    name: operator
+  - image: "registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:796753816645b35cd08da53d925df5e4fb12df8b2a14db98db361f0ff787a028"
+    name: rbac-proxy
+  - image: "registry.crowdstrike.com/falcon-sensor/us-1/release/falcon-sensor@sha256:aede686dc4ec9f5e61fc1ac8b2a56813a10de18b85a317296ea413fbfbdccfca"
+    name: node-sensor
+  - image: "registry.crowdstrike.com/falcon-container/us-1/release/falcon-sensor@sha256:5d50db9b29f9a56c518731450913e14a405cbf85d758559d38d8ea8a610f6e59"
+    name: sidecar-sensor
+  - image: "registry.crowdstrike.com/falcon-kac/us-1/release/falcon-kac@sha256:fe55bbcb50e6c38aeb05558fc9dba46d174d07645f5cd8fb0c3ef2b4045f6617"
+    name: admission-controller
   version: 0.9.1
