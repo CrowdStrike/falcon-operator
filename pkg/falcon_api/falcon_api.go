@@ -22,16 +22,14 @@ func RegistryToken(ctx context.Context, client *client.CrowdStrikeAPISpecificati
 		return "", err
 	}
 	resources := payload.Resources
-	resourcesList := resources.([]interface{})
+	resourcesList := resources
 	if len(resourcesList) != 1 {
 		return "", fmt.Errorf("Expected to receive exactly one token, but got %d\n", len(resourcesList))
 	}
-	resourceMap := resourcesList[0].(map[string]interface{})
-	value, ok := resourceMap["token"]
-	if !ok {
-		return "", fmt.Errorf("Expected to receive map containing 'token' key, but got %s\n", resourceMap)
+	valueString := *resourcesList[0].Token
+	if valueString == "" {
+		return "", fmt.Errorf("Received empty token")
 	}
-	valueString := value.(string)
 	return valueString, nil
 }
 
