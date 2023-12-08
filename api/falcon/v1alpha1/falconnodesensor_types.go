@@ -35,7 +35,7 @@ type FalconNodeSensorSpec struct {
 // +k8s:openapi-gen=true
 type FalconNodeSensorConfig struct {
 	// Specifies tolerations for custom taints. Defaults to allowing scheduling on all nodes.
-	// +kubebuilder:default:={{key: "node-role.kubernetes.io/master", operator: "Exists", effect: "NoSchedule"}, {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"}}
+	// +kubebuilder:default:={{key: "node-role.kubernetes.io/master", operator: "Exists", effect: "NoSchedule"}, {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"}, {key: "node-role.kubernetes.io/infra", operator: "Exists", effect: "NoSchedule"}}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 
