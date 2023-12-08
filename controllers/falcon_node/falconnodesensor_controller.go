@@ -200,8 +200,12 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	err = r.Get(ctx, types.NamespacedName{Name: nodesensor.Name, Namespace: nodesensor.TargetNs()}, daemonset)
 	if err != nil && errors.IsNotFound(err) {
-		// Define a new daemonset
-		ds := r.nodeSensorDaemonset(nodesensor.Name, image, serviceAccount, nodesensor, logger)
+		ds := assets.Daemonset(nodesensor.Name, image, serviceAccount, nodesensor)
+
+		err := controllerutil.SetControllerReference(nodesensor, ds, r.Scheme)
+		if err != nil {
+			logger.Error(err, "Unable to assign Controller Reference to the DaemonSet")
+		}
 
 		if len(proxy.ReadProxyVarsFromEnv()) > 0 {
 			for i, container := range ds.Spec.Template.Spec.Containers {
@@ -457,15 +461,17 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, confi
 	var updated bool
 	cmName := nodesensor.Name + "-config"
 	confCm := &corev1.ConfigMap{}
+	configmap := assets.SensorConfigMap(cmName, nodesensor.TargetNs(), common.FalconKernelSensor, config.SensorEnvVars())
 
 	err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: nodesensor.TargetNs()}, confCm)
 	if err != nil && errors.IsNotFound(err) {
 		// does not exist, create
-		configmap, err := r.nodeSensorConfigmap(cmName, config, nodesensor)
+		err = controllerutil.SetControllerReference(nodesensor, configmap, r.Scheme)
 		if err != nil {
 			logger.Error(err, "Failed to format new Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
 			return nil, updated, err
 		}
+
 		if err := r.Create(ctx, configmap); err != nil {
 			if errors.IsAlreadyExists(err) {
 				// We have got NotFound error during the Get(), but then we have got AlreadyExists error from Create(). Client cache is invalid.
@@ -488,11 +494,6 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, confi
 		return nil, updated, err
 	}
 
-	configmap, err := r.nodeSensorConfigmap(cmName, config, nodesensor)
-	if err != nil {
-		logger.Error(err, "Failed to format existing Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
-		return nil, updated, err
-	}
 	if !reflect.DeepEqual(confCm.Data, configmap.Data) {
 		err = r.Update(ctx, configmap)
 		if err != nil {
@@ -538,29 +539,6 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 		logger.Info("Created a new Pull Secret", "Secret.Namespace", nodesensor.TargetNs(), "Secret.Name", common.FalconPullSecretName)
 	}
 	return nil
-}
-
-func (r *FalconNodeSensorReconciler) nodeSensorConfigmap(name string, config *node.ConfigCache, nodesensor *falconv1alpha1.FalconNodeSensor) (*corev1.ConfigMap, error) {
-	cm := assets.SensorConfigMap(name, nodesensor.TargetNs(), common.FalconKernelSensor, config.SensorEnvVars())
-
-	err := controllerutil.SetControllerReference(nodesensor, cm, r.Scheme)
-	if err != nil {
-		return nil, err
-	}
-	return cm, nil
-}
-
-func (r *FalconNodeSensorReconciler) nodeSensorDaemonset(name, image, serviceAccount string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) *appsv1.DaemonSet {
-	ds := assets.Daemonset(name, image, serviceAccount, nodesensor)
-
-	// NOTE: calling SetControllerReference, and setting owner references in
-	// general, is important as it allows deleted objects to be garbage collected.
-	err := controllerutil.SetControllerReference(nodesensor, ds, r.Scheme)
-	if err != nil {
-		logger.Error(err, "unable to set controller reference")
-	}
-
-	return ds
 }
 
 func updateDaemonSetContainerProxy(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
