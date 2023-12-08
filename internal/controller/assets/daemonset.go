@@ -88,6 +88,7 @@ func sensorCapabilities(node *falconv1alpha1.FalconNodeSensor, initContainer boo
 				"SYS_RESOURCE",
 				"NET_RAW",
 				"CHOWN",
+				"NET_ADMIN",
 			},
 		}
 	}
