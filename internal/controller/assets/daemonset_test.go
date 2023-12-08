@@ -158,6 +158,7 @@ func TestSensorCapabilities(t *testing.T) {
 			"SYS_RESOURCE",
 			"NET_RAW",
 			"CHOWN",
+			"NET_ADMIN",
 		},
 	}
 
