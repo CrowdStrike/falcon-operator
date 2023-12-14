@@ -66,6 +66,7 @@ func main() {
 	var enableProfiling bool
 	var ver bool
 	var configFile string
+	var err error
 
 	flag.StringVar(&configFile, "config", "config.yaml",
 		"The controller will load its initial configuration from this file. "+
@@ -99,23 +100,6 @@ func main() {
 
 	version.Print()
 
-	// Get the WATCH_NAMESPACE value
-	watchNamespace, err := getWatchNamespace()
-	if err != nil {
-		setupLog.Error(err, "failed to get watch namespace")
-		os.Exit(1)
-	}
-
-	// `MultiNamespaces` is not a supported InstallMode.
-	if strings.Contains(watchNamespace, ",") {
-		setupLog.Error(err, "falcon-operator has an invalid target namespace. "+
-			"OperatorGroup target namespace must be a single or cluster-scoped value", "target namespace",
-			watchNamespace)
-		os.Exit(1)
-	}
-
-	setupLog.Info("setting up manager to watch resources", "watchNamespace", watchNamespace)
-
 	options := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -123,7 +107,6 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "70435a7a.crowdstrike.com",
-		Namespace:              watchNamespace, // namespaced-scope when the value is not an empty string
 
 		NewCache: cache.BuilderWithOptions(cache.Options{
 			SelectorsByObject: cache.SelectorsByObject{
@@ -199,7 +182,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "FalconContainer")
+		setupLog.Error(err, "unable to create controller", "controller", "FalconAdmission")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
@@ -235,16 +218,4 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
-}
-
-// getWatchNamespace returns the Namespace the operator should be watching for changes
-// An empty value means the operator is running with cluster scope.
-func getWatchNamespace() (string, error) {
-	var watchNamespaceEnvVar = "WATCH_NAMESPACE"
-
-	ns, found := os.LookupEnv(watchNamespaceEnvVar)
-	if !found {
-		return "", fmt.Errorf("%s must be set", watchNamespaceEnvVar)
-	}
-	return ns, nil
 }
