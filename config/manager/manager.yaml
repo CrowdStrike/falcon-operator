@@ -70,6 +70,8 @@ spec:
         - name: WATCH_NAMESPACE
         - name: OPERATOR_NAME
           value: "falcon-operator"
+        #- name: RELATED_IMAGE_ADMISSION_CONTROLLER
+        #  image: ""
         #- name: RELATED_IMAGE_NODE_SENSOR
         #  image: ""
         #- name: RELATED_IMAGE_SIDECAR_SENSOR

@@ -10,7 +10,7 @@ metadata:
     crowdstrike.com/name: clusterrole
     crowdstrike.com/part-of: Falcon
     crowdstrike.com/provider: crowdstrike
-  name: falconcontainer-editor-role
+  name: falconadmission-editor-role
 rules:
 - apiGroups:
   - falcon.crowdstrike.com
