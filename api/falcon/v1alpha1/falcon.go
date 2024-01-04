@@ -14,7 +14,7 @@ type FalconSensor struct {
 	APD *bool `json:"apd,omitempty"`
 
 	// The application proxy host to use for Falcon sensor proxy configuration.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Disable Falcon Proxy Host",order=4
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Proxy Host",order=4
 	APH string `json:"aph,omitempty"`
 
 	// The application proxy port to use for Falcon sensor proxy configuration.
