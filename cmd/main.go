@@ -35,9 +35,9 @@ import (
 	schedulingv1 "k8s.io/api/scheduling/v1"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
-	admissioncontroller "github.com/crowdstrike/falcon-operator/controllers/admission"
-	containercontroller "github.com/crowdstrike/falcon-operator/controllers/falcon_container"
-	nodecontroller "github.com/crowdstrike/falcon-operator/controllers/falcon_node"
+	admissioncontroller "github.com/crowdstrike/falcon-operator/internal/controller/admission"
+	containercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_container"
+	nodecontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_node"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/version"
 	// +kubebuilder:scaffold:imports

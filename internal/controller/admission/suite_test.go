@@ -1,8 +1,4 @@
-/*
-Copyright 2021 CrowdStrike
-*/
-
-package falcon
+package controllers
 
 import (
 	"path/filepath"
@@ -10,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,7 +28,7 @@ var testEnv *envtest.Environment
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "Container Controller Suite")
+	RunSpecs(t, "Admission Controller Controller Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -39,7 +36,7 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 	}
 

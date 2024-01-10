@@ -10,7 +10,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	securityv1 "github.com/openshift/api/security/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,7 +31,7 @@ var testEnv *envtest.Environment
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	RunSpecs(t, "Node Controller Suite")
+	RunSpecs(t, "Container Controller Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -40,7 +39,7 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 	}
 
@@ -49,9 +48,6 @@ var _ = BeforeSuite(func() {
 	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
-
-	err = securityv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
 
 	err = falconv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
