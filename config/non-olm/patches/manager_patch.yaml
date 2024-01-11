@@ -13,15 +13,5 @@ spec:
         env:
         - name: WATCH_NAMESPACE
           value: null
-        args:
-        - "--config=controller_manager_config.yaml"
-        volumeMounts:
-        - name: manager-config
-          mountPath: /controller_manager_config.yaml
-          subPath: controller_manager_config.yaml
       securityContext:
         fsGroup: 65534
-      volumes:
-      - name: manager-config
-        configMap:
-          name: manager-config

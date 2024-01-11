@@ -63,13 +63,8 @@ func main() {
 	var profileAddr string
 	var enableProfiling bool
 	var ver bool
-	var configFile string
 	var err error
 
-	flag.StringVar(&configFile, "config", "config.yaml",
-		"The controller will load its initial configuration from this file. "+
-			"Omit this flag to use the default configuration values. "+
-			"Command-line flags override configuration from this file.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.StringVar(&profileAddr, "profile-bind-address", "localhost:8082", "The address the profiling endpoint binds to.")
@@ -145,14 +140,6 @@ func main() {
 			},
 		},
 		),
-	}
-
-	if configFile != "" {
-		options, err = options.AndFrom(ctrl.ConfigFile().AtPath(configFile))
-		if err != nil {
-			setupLog.Error(err, "unable to load the config file")
-			os.Exit(1)
-		}
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
