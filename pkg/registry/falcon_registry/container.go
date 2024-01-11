@@ -4,10 +4,10 @@ import (
 	"context"
 	"strings"
 
-	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/crowdstrike/gofalcon/falcon"
 )
 
-func (reg *FalconRegistry) LastContainerTag(ctx context.Context, sensorType common.SensorType, versionRequested *string) (string, error) {
+func (reg *FalconRegistry) LastContainerTag(ctx context.Context, sensorType falcon.SensorType, versionRequested *string) (string, error) {
 	systemContext, err := reg.systemContext()
 	if err != nil {
 		return "", err
@@ -20,6 +20,6 @@ func (reg *FalconRegistry) LastContainerTag(ctx context.Context, sensorType comm
 	})
 }
 
-func (fr *FalconRegistry) imageUriContainer(sensorType common.SensorType) string {
-	return SensorImageURI(fr.falconCloud, sensorType)
+func (fr *FalconRegistry) imageUriContainer(sensorType falcon.SensorType) string {
+	return falcon.FalconContainerSensorImageURI(fr.falconCloud, sensorType)
 }

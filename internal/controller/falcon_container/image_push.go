@@ -44,7 +44,7 @@ func (r *FalconContainerReconciler) PushImage(ctx context.Context, log logr.Logg
 	image := image.NewImageRefresher(ctx, log, r.falconApiConfig(ctx, falconContainer), pushAuth, falconContainer.Spec.Registry.TLS.InsecureSkipVerify)
 	version := falconContainer.Spec.Version
 
-	tag, err := image.Refresh(registryUri, common.SensorTypeSidecar, version)
+	tag, err := image.Refresh(registryUri, falcon.SidecarSensor, version)
 	if err != nil {
 		return fmt.Errorf("Cannot push Falcon Container Image: %v", err)
 	}
@@ -134,7 +134,7 @@ func (r *FalconContainerReconciler) registryUri(ctx context.Context, falconConta
 			return "", err
 		}
 
-		return falcon_registry.SensorImageURI(cloud, common.SensorTypeSidecar), nil
+		return falcon.FalconContainerSensorImageURI(cloud, falcon.SidecarSensor), nil
 	default:
 		return "", fmt.Errorf("Unrecognized registry type: %s", falconContainer.Spec.Registry.Type)
 	}
@@ -199,7 +199,7 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 		return "", err
 	}
 
-	tag, err := registry.LastContainerTag(ctx, common.SensorTypeSidecar, falconContainer.Spec.Version)
+	tag, err := registry.LastContainerTag(ctx, falcon.SidecarSensor, falconContainer.Spec.Version)
 	if err == nil {
 		falconContainer.Status.Sensor = common.ImageVersion(tag)
 	}
