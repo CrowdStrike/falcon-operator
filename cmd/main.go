@@ -24,6 +24,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -100,9 +101,8 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "70435a7a.crowdstrike.com",
-
-		NewCache: cache.BuilderWithOptions(cache.Options{
-			SelectorsByObject: cache.SelectorsByObject{
+		Cache: cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
 				&falconv1alpha1.FalconAdmission{}:  {},
 				&falconv1alpha1.FalconNodeSensor{}: {},
 				&falconv1alpha1.FalconContainer{}:  {},
@@ -139,7 +139,6 @@ func main() {
 				},
 			},
 		},
-		),
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
