@@ -3,7 +3,7 @@ kind: Subscription
 metadata:
   name: falcon-operator
 spec:
-  channel: certified-0.8
+  channel: certified-0.9
   name: falcon-operator-rhmp
   source: redhat-marketplace
   sourceNamespace: openshift-marketplace
