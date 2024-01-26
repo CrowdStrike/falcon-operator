@@ -58,11 +58,11 @@ To enable GKE Autopilot and deploy the sensor running in user mode, configure th
        autopilot: true
    ```
 
-3. Optionally, provide a name for an existing priority class, or the operator will create one for you.
+3. Provide a name for an existing priority class. This could be the default `system-node-critical` or a custom one.
    ```yaml
    node:
      priorityClass:
-       Name: my_custom_priorityclass
+       name: my_custom_priorityclass
    ```
 
 4. Based on your workload requirements, set the requests and limits. The default values for GKE Autopilot are `750m` CPU and `1.5Gi` memory. The minimum allowed values are `250m` CPU and `500Mi` memory:

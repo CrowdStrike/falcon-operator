@@ -99,17 +99,9 @@ type FalconNodeSensorConfig struct {
 }
 
 type PriorityClassConfig struct {
-	// Enables the operator to deploy a PriorityClass instead of rolling your own. Default is false.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deploy Priority Class to cluster",order=2
-	Deploy *bool `json:"deploy,omitempty"`
-
 	// Name of the priority class to use for the DaemonSet.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Name of the Priority Class to use",order=2
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Name of the Priority Class to use",order=1
 	Name string `json:"name,omitempty"`
-
-	// Value of the priority class to use for the DaemonSet. Requires the Deploy field to be set to true.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Priority Class Value",order=3
-	Value *int32 `json:"value,omitempty"`
 }
 
 type Resources struct {

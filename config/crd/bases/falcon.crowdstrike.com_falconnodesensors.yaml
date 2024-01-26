@@ -390,18 +390,9 @@ spec:
                     description: Enable priority class for the DaemonSet. This is
                       useful for GKE Autopilot clusters, but can be set for any cluster.
                     properties:
-                      deploy:
-                        description: Enables the operator to deploy a PriorityClass
-                          instead of rolling your own. Default is false.
-                        type: boolean
                       name:
                         description: Name of the priority class to use for the DaemonSet.
                         type: string
-                      value:
-                        description: Value of the priority class to use for the DaemonSet.
-                          Requires the Deploy field to be set to true.
-                        format: int32
-                        type: integer
                     type: object
                   resources:
                     description: Configure resource requests and limits for the DaemonSet

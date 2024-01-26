@@ -15,7 +15,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	schedulingv1 "k8s.io/api/scheduling/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -58,7 +57,6 @@ func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 //+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=get;list;watch;create
 //+kubebuilder:rbac:groups="security.openshift.io",resources=securitycontextconstraints,resourceNames=privileged,verbs=use
-//+kubebuilder:rbac:groups="scheduling.k8s.io",resources=priorityclasses,verbs=get;list;watch;create;delete;update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -114,11 +112,6 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 	if created {
 		return ctrl.Result{Requeue: true}, nil
-	}
-
-	err = r.handlePriorityClass(ctx, nodesensor, logger)
-	if err != nil {
-		return ctrl.Result{}, err
 	}
 
 	serviceAccount := common.NodeServiceAccountName
@@ -383,77 +376,6 @@ func (r *FalconNodeSensorReconciler) handleNamespace(ctx context.Context, nodese
 		return false, err
 	}
 	return true, nil
-}
-
-// handlePriorityClass creates and updates the priority class
-func (r *FalconNodeSensorReconciler) handlePriorityClass(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
-	existingPC := &schedulingv1.PriorityClass{}
-	pcName := nodesensor.Spec.Node.PriorityClass.Name
-	update := false
-
-	if pcName == "" && nodesensor.Spec.Node.GKE.Enabled == nil && nodesensor.Spec.Node.PriorityClass.Deploy == nil {
-		return nil
-	} else if pcName != "" && nodesensor.Spec.Node.PriorityClass.Deploy == nil &&
-		(nodesensor.Spec.Node.GKE.Enabled != nil && *nodesensor.Spec.Node.GKE.Enabled) {
-		//logger.Info("Skipping PriorityClass creation on GKE AutoPilot because an existing priority class name was provided")
-		return nil
-	} else if pcName != "" && (nodesensor.Spec.Node.PriorityClass.Deploy == nil && !*nodesensor.Spec.Node.PriorityClass.Deploy) {
-		logger.Info("Skipping PriorityClass creation because an existing priority class name was provided")
-		return nil
-	} else if pcName == "" && (nodesensor.Spec.Node.GKE.Enabled != nil && *nodesensor.Spec.Node.GKE.Enabled) {
-		pcName = nodesensor.Name + "-priorityclass"
-		nodesensor.Spec.Node.PriorityClass.Name = pcName
-	}
-
-	pc := assets.PriorityClass(pcName, nodesensor.Spec.Node.PriorityClass.Value)
-
-	err := r.Get(ctx, types.NamespacedName{Name: pcName, Namespace: nodesensor.TargetNs()}, existingPC)
-	if err != nil && errors.IsNotFound(err) {
-		err = ctrl.SetControllerReference(nodesensor, pc, r.Scheme)
-		if err != nil {
-			logger.Error(err, "Unable to assign Controller Reference to the PriorityClass")
-		}
-
-		err = r.Create(ctx, pc)
-		if err != nil {
-			logger.Error(err, "Failed to create PriorityClass", "PriorityClass.Name", pcName)
-			return err
-		}
-		logger.Info("Creating FalconNodeSensor PriorityClass")
-
-		return nil
-	} else if err != nil {
-		logger.Error(err, "Failed to get FalconNodeSensor PriorityClass")
-		return err
-	}
-
-	if nodesensor.Spec.Node.PriorityClass.Value != nil && existingPC.Value != *nodesensor.Spec.Node.PriorityClass.Value {
-		update = true
-	}
-
-	if nodesensor.Spec.Node.PriorityClass.Name != "" && existingPC.Name != nodesensor.Spec.Node.PriorityClass.Name {
-		update = true
-	}
-
-	if update {
-		err = r.Delete(ctx, existingPC)
-		if err != nil {
-			return err
-		}
-
-		err = ctrl.SetControllerReference(nodesensor, pc, r.Scheme)
-		if err != nil {
-			logger.Error(err, "Unable to assign Controller Reference to the PriorityClass")
-		}
-
-		err = r.Create(ctx, pc)
-		if err != nil {
-			return err
-		}
-		logger.Info("Updating FalconNodeSensor PriorityClass")
-	}
-
-	return nil
 }
 
 // handleConfigMaps creates and updates the node sensor configmap

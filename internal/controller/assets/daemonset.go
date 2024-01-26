@@ -250,6 +250,14 @@ func volumesCleanup(node *falconv1alpha1.FalconNodeSensor) []corev1.Volume {
 
 }
 
+func priorityClass(node *falconv1alpha1.FalconNodeSensor) string {
+	if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled && node.Spec.Node.PriorityClass.Name == "" {
+		node.Spec.Node.PriorityClass.Name = "system-node-critical"
+	}
+
+	return node.Spec.Node.PriorityClass.Name
+}
+
 func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
 	privileged := true
 	escalation := true
@@ -337,7 +345,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 						},
 					},
 					Volumes:           volumes(node),
-					PriorityClassName: node.Spec.Node.PriorityClass.Name,
+					PriorityClassName: priorityClass(node),
 				},
 			},
 		},
@@ -410,7 +418,8 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 							},
 						},
 					},
-					Volumes: volumesCleanup(node),
+					Volumes:           volumesCleanup(node),
+					PriorityClassName: priorityClass(node),
 				},
 			},
 		},
