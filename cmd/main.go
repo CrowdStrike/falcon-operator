@@ -92,8 +92,6 @@ func main() {
 		os.Exit(0)
 	}
 
-	version.Print()
-
 	options := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -197,7 +195,7 @@ func main() {
 		}()
 	}
 
-	setupLog.Info("starting manager")
+	setupLog.Info("starting manager", "version", version.Get(), "go version", version.GoVersion)
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
