@@ -225,6 +225,32 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
+  - falconimages
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falconimages/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falconimages/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
   - falconnodesensors
   verbs:
   - create
