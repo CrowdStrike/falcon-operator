@@ -16,6 +16,7 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 
+	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/labels"
@@ -28,7 +29,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	imagev1 "github.com/openshift/api/image/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	arv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -45,8 +48,9 @@ import (
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme      = runtime.NewScheme()
+	setupLog    = ctrl.Log.WithName("setup")
+	environment = "Kubernetes"
 )
 
 func init() {
@@ -145,6 +149,38 @@ func main() {
 		os.Exit(1)
 	}
 
+	dc, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil {
+		setupLog.Error(err, "failed to create discovery client")
+		os.Exit(1)
+	}
+
+	openShift, err := isOpenShift(dc)
+	if err != nil {
+		setupLog.Error(err, "could not determine if cluster is running OpenShift")
+		os.Exit(1)
+	}
+
+	if openShift {
+		environment = "OpenShift"
+	}
+	setupLog.Info(fmt.Sprintf("cluster is running %s", environment))
+
+	if openShift && !strings.Contains(version.Get(), "certified") {
+		setupLog.V(1).Info("WARNING: this operator is not certified for OpenShift. Please install and use the certified operator for proper OpenShift support.")
+	}
+
+	certManager, err := isCertManagerInstalled(dc)
+	if err != nil {
+		setupLog.Error(err, "could not determine if cert-manager is installed")
+		os.Exit(1)
+	}
+	if certManager {
+		setupLog.Info("cert-manager installation found")
+	} else {
+		setupLog.Info("cert-manager installation not found")
+	}
+
 	if err = (&containercontroller.FalconContainerReconciler{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
@@ -200,4 +236,12 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func isOpenShift(client discovery.DiscoveryInterface) (bool, error) {
+	return discovery.IsResourceEnabled(client, routev1.GroupVersion.WithResource("routes"))
+}
+
+func isCertManagerInstalled(client discovery.DiscoveryInterface) (bool, error) {
+	return discovery.IsResourceEnabled(client, certv1.SchemeGroupVersion.WithResource("issuers"))
 }
