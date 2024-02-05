@@ -314,5 +314,5 @@ catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
 .PHONY: non-olm
-non-olm: ## Generate non-olm deployment manifest
+non-olm: kustomize ## Generate non-olm deployment manifest
 	$(KUSTOMIZE) build config/non-olm -o deploy/falcon-operator.yaml
