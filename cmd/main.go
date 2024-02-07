@@ -38,6 +38,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	admissioncontroller "github.com/crowdstrike/falcon-operator/internal/controller/admission"
 	containercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_container"
+	imagecontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_image"
 	nodecontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_node"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/version"
@@ -165,6 +166,13 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconAdmission")
+		os.Exit(1)
+	}
+	if err = (&imagecontroller.FalconImageReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "FalconImage")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

@@ -1,0 +1,27 @@
+# permissions for end users to view falconimages.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: falconimage-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: falcon-operator
+    app.kubernetes.io/part-of: falcon-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: falconimage-viewer-role
+rules:
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falconimages
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falconimages/status
+  verbs:
+  - get
