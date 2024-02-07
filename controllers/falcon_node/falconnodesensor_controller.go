@@ -370,10 +370,12 @@ func (r *FalconNodeSensorReconciler) handlePriorityClass(ctx context.Context, no
 		(nodesensor.Spec.Node.GKE.Enabled != nil && *nodesensor.Spec.Node.GKE.Enabled) {
 		//logger.Info("Skipping PriorityClass creation on GKE AutoPilot because an existing priority class name was provided")
 		return nil
-	} else if pcName != "" && (nodesensor.Spec.Node.PriorityClass.Deploy == nil && !*nodesensor.Spec.Node.PriorityClass.Deploy) {
-		logger.Info("Skipping PriorityClass creation because an existing priority class name was provided")
+	} else if pcName != "" && (nodesensor.Spec.Node.PriorityClass.Deploy == nil || !*nodesensor.Spec.Node.PriorityClass.Deploy) {
+		//logger.Info("Skipping PriorityClass creation because an existing priority class name was provided")
 		return nil
-	} else if pcName == "" && (nodesensor.Spec.Node.GKE.Enabled != nil && *nodesensor.Spec.Node.GKE.Enabled) {
+	}
+
+	if pcName == "" {
 		pcName = nodesensor.Name + "-priorityclass"
 		nodesensor.Spec.Node.PriorityClass.Name = pcName
 	}
