@@ -32,6 +32,7 @@ const (
 	FalconKernelSensor        = "kernel_sensor"
 	FalconSidecarSensor       = "container_sensor"
 	FalconAdmissionController = "admission_controller"
+	FalconImageController     = "falcon-imageanalyzer"
 	FalconFinalizer           = "falcon.crowdstrike.com/finalizer"
 	FalconProviderValue       = "crowdstrike"
 	FalconPartOfValue         = "Falcon"
@@ -43,5 +44,6 @@ const (
 	FalconPullSecretName        = "crowdstrike-falcon-pull-secret"
 	NodeServiceAccountName      = "falcon-operator-node-sensor"
 	AdmissionServiceAccountName = "falcon-operator-admission-controller"
+	ImageServiceAccountName     = "falcon-operator-image-analyzer"
 	NodeClusterRoleBindingName  = "crowdstrike-falcon-node-sensor"
 )
