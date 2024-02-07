@@ -248,6 +248,137 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 	}
 }
 
+// ImageDeployment returns a Deployment object for the CrowdStrike Falcon IAR Controller
+func ImageDeployment(name string, namespace string, component string, imageUri string, falconImage *falconv1alpha1.FalconImage) *appsv1.Deployment {
+	azureConfig := "/etc/kubernetes/azure.json"
+	labels := common.CRLabels("deployment", name, component)
+	var replicaCount int32 = 1
+	initContainers := []corev1.Container{}
+	chartName := "falcon-image-analyzer"
+	hostPathFile := corev1.HostPathFile
+	var rootUid int64 = 0
+	initRunAsNonRoot := false
+	privileged := false
+
+	initContainers = append(initContainers, corev1.Container{
+		Name:            chartName + "-init-container",
+		ImagePullPolicy: falconImage.Spec.ImageConfig.ImagePullPolicy,
+		Image:           imageUri,
+		Command: []string{
+			"bash",
+			"-c",
+			"curl -sS -H 'Metadata-Flavor: Google' 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' --retry 30 --retry-connrefused --retry-max-time 60 --connect-timeout 3 --fail --retry-all-errors > /dev/null && exit 0 || echo 'Retry limit exceeded. Failed to wait for metadata server to be available. Check if the gke-metadata-server Pod in the kube-system namespace is healthy.' >&2; exit 1",
+		},
+		SecurityContext: &corev1.SecurityContext{
+			RunAsUser:    &rootUid,
+			RunAsNonRoot: &initRunAsNonRoot,
+			Privileged:   &privileged,
+		},
+	},
+	)
+
+	volumes := []corev1.Volume{
+		{
+			Name: "azure-config",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: azureConfig,
+					Type: &hostPathFile,
+				},
+			},
+		},
+	}
+
+	return &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: appsv1.SchemeGroupVersion.String(),
+			Kind:       "Deployment",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicaCount,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+					Annotations: map[string]string{
+						common.FalconContainerInjection: "disabled",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Affinity: &corev1.Affinity{
+						NodeAffinity: &corev1.NodeAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+								NodeSelectorTerms: []corev1.NodeSelectorTerm{
+									{
+										MatchExpressions: []corev1.NodeSelectorRequirement{
+											{
+												Key:      "kubernetes.io/os",
+												Operator: corev1.NodeSelectorOpIn,
+												Values:   []string{"linux"},
+											},
+											{
+												Key:      "node-role.kubernetes.io/master",
+												Operator: corev1.NodeSelectorOpDoesNotExist,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+						{
+							MaxSkew:           1,
+							TopologyKey:       "kubernetes.io/hostname",
+							WhenUnsatisfiable: corev1.ScheduleAnyway,
+							LabelSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{common.FalconInstanceNameKey: name},
+							},
+						},
+					},
+					InitContainers: initContainers,
+					Containers: []corev1.Container{
+						{
+							Name: "falcon-client",
+							SecurityContext: &corev1.SecurityContext{
+								RunAsUser:  &rootUid,
+								Privileged: &privileged,
+							},
+							Resources:       corev1.ResourceRequirements{},
+							Image:           imageUri,
+							ImagePullPolicy: falconImage.Spec.ImageConfig.ImagePullPolicy,
+							Args:            []string{"-runmode", "watcher"},
+							EnvFrom: []corev1.EnvFromSource{
+								{
+									ConfigMapRef: &corev1.ConfigMapEnvSource{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: name,
+										},
+									},
+								},
+							},
+							VolumeMounts: []corev1.VolumeMount{},
+						},
+					},
+					ServiceAccountName: common.ImageServiceAccountName,
+					SecurityContext:    &corev1.PodSecurityContext{},
+					NodeSelector:       common.NodeSelector,
+					Volumes:            volumes,
+					//Tolerations:        falconImage.Spec.ImageConfig.Tolerations,
+					//PriorityClassName:  falconImage.Spec.ImageConfig.PriorityClass.Name,
+				},
+			},
+		},
+	}
+}
+
 // AdmissionDeployment returns a Deployment object for the CrowdStrike Falcon Admission Controller
 func AdmissionDeployment(name string, namespace string, component string, imageUri string, falconAdmission *falconv1alpha1.FalconAdmission) *appsv1.Deployment {
 	runNonRoot := true
