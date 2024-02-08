@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.3] - 2024-02-08
+
+### Changed
+
+- fix: TestMakeSensorEnvMap should test for automatic proxy vs manual
+- fixing the automatic proxy host config commenting the test TestMakeSensorEnvMapWithAutomaticProxy for refactor
+- fix: priorityclass handling should be deployable to more than just GKE
+- fix: downloaded kustomize if needed when non-olm make target is run
+- Bump channel in docs/src.
+- Fix a readme link so it works from OperatorHub.
+- Bump OpenShift Subscription channel to 0.9.
+- fix: update go crypto version
+- update CRD to fix the display name on the proxy host
+- feat: update to latest gofalcon
+- feat: loosen up the default resource quota the admission controller
+- fix: admission controller doc fixes
+- fix: fix typo in configmap_test.go
+
 ## [0.9.2] - 2023-12-22
 
 ### Changed
