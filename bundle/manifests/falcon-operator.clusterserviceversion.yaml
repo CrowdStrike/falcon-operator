@@ -101,14 +101,14 @@ metadata:
     capabilities: Basic Install
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2023-12-22T00:45:23Z"
+    createdAt: "2024-02-08T20:05:13Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     operatorframework.io/suggested-namespace: falcon-operator
     operators.operatorframework.io/builder: operator-sdk-v1.30.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4-alpha
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
-  name: falcon-operator.v0.9.2
+  name: falcon-operator.v0.9.3
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -243,7 +243,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
       - description: The application proxy host to use for Falcon sensor proxy configuration.
-        displayName: Disable Falcon Proxy Host
+        displayName: Falcon Proxy Host
         path: falcon.aph
       - description: Falcon Customer ID (CID) Override (optional, default is derived
           from the API Key pair)
@@ -398,7 +398,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap
       - description: The application proxy host to use for Falcon sensor proxy configuration.
-        displayName: Disable Falcon Proxy Host
+        displayName: Falcon Proxy Host
         path: falcon.aph
       - description: Falcon Customer ID (CID) Override (optional, default is derived
           from the API Key pair)
@@ -518,7 +518,7 @@ spec:
         displayName: Priority Class Value
         path: node.priorityClass.value
       - description: The application proxy host to use for Falcon sensor proxy configuration.
-        displayName: Disable Falcon Proxy Host
+        displayName: Falcon Proxy Host
         path: falcon.aph
       - description: Falcon Customer ID (CID) Override (optional, default is derived
           from the API Key pair)
@@ -1017,7 +1017,7 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: OPERATOR_NAME
                   value: falcon-operator
-                image: quay.io/crowdstrike/falcon-operator:0.9.2
+                image: quay.io/crowdstrike/falcon-operator:0.9.3
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -1140,4 +1140,4 @@ spec:
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
-  version: 0.9.2
+  version: 0.9.3

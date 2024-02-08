@@ -146,7 +146,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
       - description: The application proxy host to use for Falcon sensor proxy configuration.
-        displayName: Disable Falcon Proxy Host
+        displayName: Falcon Proxy Host
         path: falcon.aph
       - description: Falcon Customer ID (CID) Override (optional, default is derived
           from the API Key pair)
@@ -301,7 +301,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap
       - description: The application proxy host to use for Falcon sensor proxy configuration.
-        displayName: Disable Falcon Proxy Host
+        displayName: Falcon Proxy Host
         path: falcon.aph
       - description: Falcon Customer ID (CID) Override (optional, default is derived
           from the API Key pair)
@@ -421,7 +421,7 @@ spec:
         displayName: Priority Class Value
         path: node.priorityClass.value
       - description: The application proxy host to use for Falcon sensor proxy configuration.
-        displayName: Disable Falcon Proxy Host
+        displayName: Falcon Proxy Host
         path: falcon.aph
       - description: Falcon Customer ID (CID) Override (optional, default is derived
           from the API Key pair)
