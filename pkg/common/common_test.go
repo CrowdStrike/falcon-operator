@@ -87,50 +87,14 @@ func TestProxyPort(t *testing.T) {
 	}
 }
 
-func TestGetProxyInfo(t *testing.T) {
-	os.Setenv("HTTPS_PROXY", "https://test:1234")
-	host, port := "https://test", "1234"
-	gotHost, gotPort := getProxyInfo()
-	if !reflect.DeepEqual(gotHost, host) {
-		t.Errorf("getProxyInfo() = host: %v, want host: %v", gotHost, host)
-	}
-	if !reflect.DeepEqual(gotPort, port) {
-		t.Errorf("getProxyInfo() = port: %v, want port: %v", gotPort, port)
-	}
-
-	os.Setenv("HTTP_PROXY", "http://user:password@test:1234")
-	host, port = "http://user:password@test", "1234"
-	gotHost, gotPort = getProxyInfo()
-	if !reflect.DeepEqual(gotHost, host) {
-		t.Errorf("getProxyInfo() = host: %v, want host: %v", gotHost, host)
-	}
-	if !reflect.DeepEqual(gotPort, port) {
-		t.Errorf("getProxyInfo() = port: %v, want port: %v", gotPort, port)
-	}
-
-	os.Unsetenv("HTTPS_PROXY")
-	os.Unsetenv("HTTP_PROXY")
-	host, port = "", ""
-	gotHost, gotPort = getProxyInfo()
-	if !reflect.DeepEqual(gotHost, host) {
-		t.Errorf("getProxyInfo() = host: %v, want host: %v", gotHost, host)
-	}
-	if !reflect.DeepEqual(gotPort, port) {
-		t.Errorf("getProxyInfo() = port: %v, want port: %v", gotPort, port)
-	}
-}
-
 func TestMakeSensorEnvMap(t *testing.T) {
 	falconNode := falconv1alpha1.FalconNodeSensor{}
 	falconSensor := falconNode.Spec.Falcon
 	sensorConfig := make(map[string]string)
-	proxy := NewProxyInfo()
 	port := 1234
 	pDisabled := false
 	cid := "test"
 
-	falconSensor.APH = "test"
-	falconSensor.APP = &port
 	falconSensor.APD = &pDisabled
 	falconSensor.Billing = "test"
 	falconSensor.CID = &cid
@@ -138,96 +102,33 @@ func TestMakeSensorEnvMap(t *testing.T) {
 	falconSensor.Tags = []string{"test"}
 	falconSensor.Trace = "debug"
 
-	os.Setenv("HTTPS_PROXY", "https://test.proxy:666")
-
-	// Set proxy values from environment variables if they exist
-	if proxy.Host() != "" {
-		sensorConfig["FALCONCTL_OPT_APH"] = proxy.Host()
-	}
-	if proxy.Port() != "" {
-		sensorConfig["FALCONCTL_OPT_APP"] = proxy.Port()
-	}
-
-	// Set sensor values from CRD
-	if falconSensor.APD != nil {
-		sensorConfig["FALCONCTL_OPT_APD"] = strconv.FormatBool(*falconSensor.APD)
-	}
-	if falconSensor.APH != "" {
-		sensorConfig["FALCONCTL_OPT_APH"] = falconSensor.APH
-	}
-	if falconSensor.APP != nil {
-		sensorConfig["FALCONCTL_OPT_APP"] = strconv.Itoa(*falconSensor.APP)
-	}
-	if falconSensor.Billing != "" {
-		sensorConfig["FALCONCTL_OPT_BILLING"] = falconSensor.Billing
-	}
-	if falconSensor.PToken != "" {
-		sensorConfig["FALCONCTL_OPT_PROVISIONING_TOKEN"] = falconSensor.PToken
-	}
-	if len(falconSensor.Tags) > 0 {
-		sensorConfig["FALCONCTL_OPT_TAGS"] = strings.Join(falconSensor.Tags, ",")
-	}
-	if falconSensor.Trace != "" {
-		sensorConfig["FALCONCTL_OPT_TRACE"] = falconSensor.Trace
-	}
-
-	if got := MakeSensorEnvMap(falconSensor); !reflect.DeepEqual(got, sensorConfig) {
-		t.Errorf("MakeSensorEnvMap() = %v, want %v", got, sensorConfig)
-	}
-}
-
-/*
-func TestMakeSensorEnvMapWithAutomaticProxy(t *testing.T) {
-	falconNode := falconv1alpha1.FalconNodeSensor{}
-	falconSensor := falconNode.Spec.Falcon
-	sensorConfig := make(map[string]string)
-	pDisabled := false
-	cid := "test"
-
-	falconSensor.APD = &pDisabled
-	falconSensor.Billing = "test"
-	falconSensor.CID = &cid
-	falconSensor.PToken = "test"
-	falconSensor.Tags = []string{"test"}
-	falconSensor.Trace = "debug"
-
-	os.Setenv("HTTPS_PROXY", "https://test.proxy:666")
+	os.Setenv("HTTPS_PROXY", "https://test-automatic.proxy:666")
 	proxy := NewProxyInfo()
 
-	// Set proxy values from environment variables if they exist
-	if proxy.Host() != "" {
-		sensorConfig["FALCONCTL_OPT_APH"] = strings.TrimPrefix(proxy.Host(), "https://")
-		sensorConfig["FALCONCTL_OPT_APH"] = strings.TrimPrefix(proxy.Host(), "http://")
-	}
-	if proxy.Port() != "" {
-		sensorConfig["FALCONCTL_OPT_APP"] = proxy.Port()
-	}
+	// Test getting proxy from environment
+	sensorConfig["FALCONCTL_OPT_APH"] = strings.TrimPrefix(proxy.Host(), "https://")
+	sensorConfig["FALCONCTL_OPT_APH"] = strings.TrimPrefix(proxy.Host(), "http://")
+	sensorConfig["FALCONCTL_OPT_APP"] = proxy.Port()
 
 	// Set sensor values from CRD
-	if falconSensor.APD != nil {
-		sensorConfig["FALCONCTL_OPT_APD"] = strconv.FormatBool(*falconSensor.APD)
+	sensorConfig["FALCONCTL_OPT_APD"] = strconv.FormatBool(*falconSensor.APD)
+	sensorConfig["FALCONCTL_OPT_BILLING"] = falconSensor.Billing
+	sensorConfig["FALCONCTL_OPT_PROVISIONING_TOKEN"] = falconSensor.PToken
+	sensorConfig["FALCONCTL_OPT_TAGS"] = strings.Join(falconSensor.Tags, ",")
+	sensorConfig["FALCONCTL_OPT_TRACE"] = falconSensor.Trace
+
+	if got := MakeSensorEnvMap(falconSensor); !reflect.DeepEqual(got, sensorConfig) {
+		t.Errorf("MakeSensorEnvMap() = %v, want %v", got, sensorConfig)
 	}
-	if falconSensor.APH != "" {
-		sensorConfig["FALCONCTL_OPT_APH"] = falconSensor.APH
-	}
-	if falconSensor.APP != nil {
-		sensorConfig["FALCONCTL_OPT_APP"] = strconv.Itoa(*falconSensor.APP)
-	}
-	if falconSensor.Billing != "" {
-		sensorConfig["FALCONCTL_OPT_BILLING"] = falconSensor.Billing
-	}
-	if falconSensor.PToken != "" {
-		sensorConfig["FALCONCTL_OPT_PROVISIONING_TOKEN"] = falconSensor.PToken
-	}
-	if len(falconSensor.Tags) > 0 {
-		sensorConfig["FALCONCTL_OPT_TAGS"] = strings.Join(falconSensor.Tags, ",")
-	}
-	if falconSensor.Trace != "" {
-		sensorConfig["FALCONCTL_OPT_TRACE"] = falconSensor.Trace
-	}
+
+	// Test getting proxy when APH and APP are set manually
+	falconSensor.APH = "testmanually"
+	falconSensor.APP = &port
+
+	sensorConfig["FALCONCTL_OPT_APH"] = falconSensor.APH
+	sensorConfig["FALCONCTL_OPT_APP"] = strconv.Itoa(*falconSensor.APP)
 
 	if got := MakeSensorEnvMap(falconSensor); !reflect.DeepEqual(got, sensorConfig) {
 		t.Errorf("MakeSensorEnvMap() = %v, want %v", got, sensorConfig)
 	}
 }
-*/
