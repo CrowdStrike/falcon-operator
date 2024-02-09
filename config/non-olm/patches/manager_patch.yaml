@@ -9,7 +9,6 @@ spec:
     spec:
       containers:
       - name: manager
-        imagePullPolicy: Always
         env:
         - name: WATCH_NAMESPACE
           value: null
