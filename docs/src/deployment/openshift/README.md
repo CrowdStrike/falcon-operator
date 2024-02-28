@@ -20,6 +20,22 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 >  - Falcon Images Download: **Read**
 >  - Sensor Download: **Read**
 
+### Managed OpenShift Considerations
+> [!IMPORTANT]
+> Managed OpenShift services (e.g. ROSA, ARO, RHOIC, OSD) do not support running user workloads on control plane and infrastructure nodes. However, not deploying the sensor to some nodes in the cluster would create a gap in protection. For this reason, we recommend deploying the sensor to all nodes in the cluster by using the default tolerations. Please be aware that Red Hat site reliability engineering (SRE) may be unable to maintain your cluster's service level agreement (SLA) for availability, and you may have to remove the sensor from control plane and infrastructure nodes during troubleshooting. For more information, see the Red Hat support article [Running custom workloads in OSD/ROSA control plane or infra nodes](https://access.redhat.com/solutions/6972101).
+>
+> If you would prefer to maintain your SLA and SRE support by limiting your protection to worker nodes, override the tolerations in FalconNodeSensor to be an empty list:
+>
+> ```yaml
+> apiVersion: falcon.crowdstrike.com/v1alpha1
+> kind: FalconNodeSensor
+> metadata:
+> spec:
+>   node:
+>     tolerations: []
+> # ...
+> ```
+
 ## Installing the operator through the Web Console (GUI)
 
 <details>
