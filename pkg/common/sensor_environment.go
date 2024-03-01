@@ -13,7 +13,8 @@ func MakeSensorEnvMap(falconSensor falconv1alpha1.FalconSensor) map[string]strin
 
 	// Set proxy values from environment variables if they exist
 	if proxy.Host() != "" {
-		sensorConfig["FALCONCTL_OPT_APH"] = proxy.Host()
+		sensorConfig["FALCONCTL_OPT_APH"] = strings.TrimPrefix(proxy.Host(), "https://")
+		sensorConfig["FALCONCTL_OPT_APH"] = strings.TrimPrefix(proxy.Host(), "http://")
 	}
 	if proxy.Port() != "" {
 		sensorConfig["FALCONCTL_OPT_APP"] = proxy.Port()
