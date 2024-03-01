@@ -227,7 +227,7 @@ func GetNamespaceNamesSort(ctx context.Context, cli client.Client) ([]string, er
 	ns := &corev1.NamespaceList{}
 	err := cli.List(ctx, ns)
 	if err != nil {
-		return nil, err
+		return []string{}, err
 	}
 
 	for _, i := range ns.Items {
