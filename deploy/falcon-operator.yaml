@@ -3832,7 +3832,6 @@ spec:
         - name: OPERATOR_NAME
           value: falcon-operator
         image: quay.io/crowdstrike/falcon-operator:0.9.1
-        imagePullPolicy: Always
         livenessProbe:
           httpGet:
             path: /healthz
