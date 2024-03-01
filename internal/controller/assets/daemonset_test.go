@@ -202,7 +202,7 @@ func TestDaemonset(t *testing.T) {
 	want := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
-			Namespace: falconNode.Namespace,
+			Namespace: falconNode.Spec.InstallNamespace,
 			Labels:    common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -310,7 +310,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 	want := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
-			Namespace: falconNode.Namespace,
+			Namespace: falconNode.Spec.InstallNamespace,
 			Labels:    common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
 		},
 		Spec: appsv1.DaemonSetSpec{

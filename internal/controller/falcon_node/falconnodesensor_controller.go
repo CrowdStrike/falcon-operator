@@ -6,6 +6,7 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
+	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/node"
@@ -85,6 +86,23 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 		// Error reading the object - requeue the request.
 		logger.Error(err, "Failed to get FalconNodeSensor")
+		return ctrl.Result{}, err
+	}
+
+	validate, err := k8sutils.CheckRunningPodLabels(r.Client, ctx, nodesensor.Spec.InstallNamespace, common.CRLabels("daemonset", nodesensor.Name, common.FalconKernelSensor))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !validate {
+		err = r.conditionsUpdate(falconv1alpha1.ConditionFailed,
+			metav1.ConditionFalse,
+			falconv1alpha1.ReasonReqNotMet,
+			"FalconNodeSensor must not be installed in a namespace with other workloads running. Please change the namespace in the CR configuration.",
+			ctx, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		logger.Error(nil, "FalconNodeSensor is attempting to install in a namespace with existing pods. Please update the CR configuration to a namespace that does not have workoads already running.")
 		return ctrl.Result{}, err
 	}
 
@@ -206,7 +224,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Check if the daemonset already exists, if not create a new one
 	daemonset := &appsv1.DaemonSet{}
 
-	err = r.Get(ctx, types.NamespacedName{Name: nodesensor.Name, Namespace: nodesensor.TargetNs()}, daemonset)
+	err = r.Get(ctx, types.NamespacedName{Name: nodesensor.Name, Namespace: nodesensor.Spec.InstallNamespace}, daemonset)
 	if err != nil && errors.IsNotFound(err) {
 		ds := assets.Daemonset(nodesensor.Name, image, serviceAccount, nodesensor)
 
@@ -380,7 +398,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 // handleNamespace creates and updates the namespace
 func (r *FalconNodeSensorReconciler) handleNamespace(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
 	ns := corev1.Namespace{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: nodesensor.TargetNs()}, &ns)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: nodesensor.Spec.InstallNamespace}, &ns)
 	if err == nil || (err != nil && !errors.IsNotFound(err)) {
 		return false, err
 	}
@@ -391,7 +409,7 @@ func (r *FalconNodeSensorReconciler) handleNamespace(ctx context.Context, nodese
 			Kind:       "Namespace",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: nodesensor.TargetNs(),
+			Name: nodesensor.Spec.InstallNamespace,
 		},
 	}
 	err = ctrl.SetControllerReference(nodesensor, &ns, r.Scheme)
@@ -400,7 +418,7 @@ func (r *FalconNodeSensorReconciler) handleNamespace(ctx context.Context, nodese
 	}
 	err = r.Client.Create(ctx, &ns)
 	if err != nil && !errors.IsAlreadyExists(err) {
-		logger.Error(err, "Failed to create new namespace", "Namespace.Name", nodesensor.TargetNs())
+		logger.Error(err, "Failed to create new namespace", "Namespace.Name", nodesensor.Spec.InstallNamespace)
 		return false, err
 	}
 	return true, nil
@@ -430,7 +448,7 @@ func (r *FalconNodeSensorReconciler) handlePriorityClass(ctx context.Context, no
 
 	pc := assets.PriorityClass(pcName, nodesensor.Spec.Node.PriorityClass.Value)
 
-	err := r.Get(ctx, types.NamespacedName{Name: pcName, Namespace: nodesensor.TargetNs()}, existingPC)
+	err := r.Get(ctx, types.NamespacedName{Name: pcName, Namespace: nodesensor.Spec.InstallNamespace}, existingPC)
 	if err != nil && errors.IsNotFound(err) {
 		err = ctrl.SetControllerReference(nodesensor, pc, r.Scheme)
 		if err != nil {
@@ -484,14 +502,14 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, confi
 	var updated bool
 	cmName := nodesensor.Name + "-config"
 	confCm := &corev1.ConfigMap{}
-	configmap := assets.SensorConfigMap(cmName, nodesensor.TargetNs(), common.FalconKernelSensor, config.SensorEnvVars())
+	configmap := assets.SensorConfigMap(cmName, nodesensor.Spec.InstallNamespace, common.FalconKernelSensor, config.SensorEnvVars())
 
-	err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: nodesensor.TargetNs()}, confCm)
+	err := r.Get(ctx, types.NamespacedName{Name: cmName, Namespace: nodesensor.Spec.InstallNamespace}, confCm)
 	if err != nil && errors.IsNotFound(err) {
 		// does not exist, create
 		err = controllerutil.SetControllerReference(nodesensor, configmap, r.Scheme)
 		if err != nil {
-			logger.Error(err, "Failed to format new Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
+			logger.Error(err, "Failed to format new Configmap", "Configmap.Namespace", nodesensor.Spec.InstallNamespace, "Configmap.Name", cmName)
 			return nil, updated, err
 		}
 
@@ -500,11 +518,11 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, confi
 				// We have got NotFound error during the Get(), but then we have got AlreadyExists error from Create(). Client cache is invalid.
 				err = r.Update(ctx, configmap)
 				if err != nil {
-					logger.Error(err, "Failed to update Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
+					logger.Error(err, "Failed to update Configmap", "Configmap.Namespace", nodesensor.Spec.InstallNamespace, "Configmap.Name", cmName)
 				}
 				return configmap, updated, nil
 			} else {
-				logger.Error(err, "Failed to create new Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
+				logger.Error(err, "Failed to create new Configmap", "Configmap.Namespace", nodesensor.Spec.InstallNamespace, "Configmap.Name", cmName)
 				return nil, updated, err
 
 			}
@@ -520,7 +538,7 @@ func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, confi
 	if !reflect.DeepEqual(confCm.Data, configmap.Data) {
 		err = r.Update(ctx, configmap)
 		if err != nil {
-			logger.Error(err, "Failed to update Configmap", "Configmap.Namespace", nodesensor.TargetNs(), "Configmap.Name", cmName)
+			logger.Error(err, "Failed to update Configmap", "Configmap.Namespace", nodesensor.Spec.InstallNamespace, "Configmap.Name", cmName)
 			return nil, updated, err
 		}
 
@@ -536,7 +554,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 		return nil
 	}
 	secret := corev1.Secret{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: nodesensor.TargetNs()}, &secret)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: nodesensor.Spec.InstallNamespace}, &secret)
 	if err == nil || !errors.IsNotFound(err) {
 		return err
 	}
@@ -547,7 +565,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 	}
 
 	secretData := map[string][]byte{corev1.DockerConfigJsonKey: common.CleanDecodedBase64(pulltoken)}
-	secret = *assets.Secret(common.FalconPullSecretName, nodesensor.TargetNs(), common.FalconKernelSensor, secretData, corev1.SecretTypeDockerConfigJson)
+	secret = *assets.Secret(common.FalconPullSecretName, nodesensor.Spec.InstallNamespace, common.FalconKernelSensor, secretData, corev1.SecretTypeDockerConfigJson)
 	err = ctrl.SetControllerReference(nodesensor, &secret, r.Scheme)
 	if err != nil {
 		logger.Error(err, "Unable to assign Controller Reference to the Pull Secret")
@@ -555,11 +573,11 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 	err = r.Client.Create(ctx, &secret)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
-			logger.Error(err, "Failed to create new Pull Secret", "Secret.Namespace", nodesensor.TargetNs(), "Secret.Name", common.FalconPullSecretName)
+			logger.Error(err, "Failed to create new Pull Secret", "Secret.Namespace", nodesensor.Spec.InstallNamespace, "Secret.Name", common.FalconPullSecretName)
 			return err
 		}
 	} else {
-		logger.Info("Created a new Pull Secret", "Secret.Namespace", nodesensor.TargetNs(), "Secret.Name", common.FalconPullSecretName)
+		logger.Info("Created a new Pull Secret", "Secret.Namespace", nodesensor.Spec.InstallNamespace, "Secret.Name", common.FalconPullSecretName)
 	}
 	return nil
 }
@@ -770,7 +788,7 @@ func (r *FalconNodeSensorReconciler) handleClusterRoleBinding(ctx context.Contex
 			{
 				Kind:      "ServiceAccount",
 				Name:      common.NodeServiceAccountName,
-				Namespace: nodesensor.TargetNs(),
+				Namespace: nodesensor.Spec.InstallNamespace,
 			},
 		},
 	}
@@ -791,7 +809,7 @@ func (r *FalconNodeSensorReconciler) handleClusterRoleBinding(ctx context.Contex
 // handleServiceAccount creates and updates the service account and grants necessary permissions to it
 func (r *FalconNodeSensorReconciler) handleServiceAccount(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
 	sa := corev1.ServiceAccount{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.TargetNs()}, &sa)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.Spec.InstallNamespace}, &sa)
 	if err == nil || (err != nil && !errors.IsNotFound(err)) {
 		return false, err
 	}
@@ -801,7 +819,7 @@ func (r *FalconNodeSensorReconciler) handleServiceAccount(ctx context.Context, n
 			Kind:       "ServiceAccount",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: nodesensor.TargetNs(),
+			Namespace: nodesensor.Spec.InstallNamespace,
 			Name:      common.NodeServiceAccountName,
 			Labels:    common.CRLabels("serviceaccount", common.NodeServiceAccountName, common.FalconKernelSensor),
 		},
@@ -813,7 +831,7 @@ func (r *FalconNodeSensorReconciler) handleServiceAccount(ctx context.Context, n
 	logger.Info("Creating FalconNodeSensor ServiceAccount")
 	err = r.Client.Create(ctx, &sa)
 	if err != nil && !errors.IsAlreadyExists(err) {
-		logger.Error(err, "Failed to create new ServiceAccount", "Namespace.Name", nodesensor.TargetNs())
+		logger.Error(err, "Failed to create new ServiceAccount", "Namespace.Name", nodesensor.Spec.InstallNamespace)
 		return false, err
 	}
 	return true, nil
@@ -824,7 +842,7 @@ func (r *FalconNodeSensorReconciler) handleSAAnnotations(ctx context.Context, no
 	sa := corev1.ServiceAccount{}
 	saAnnotations := nodesensor.Spec.Node.ServiceAccount.Annotations
 
-	err := r.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.TargetNs()}, &sa)
+	err := r.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.Spec.InstallNamespace}, &sa)
 	if err != nil && errors.IsNotFound(err) {
 		logger.Error(err, "Could not get FalconNodeSensor ServiceAccount")
 		return err
@@ -842,7 +860,7 @@ func (r *FalconNodeSensorReconciler) handleSAAnnotations(ctx context.Context, no
 
 	err = r.Update(ctx, &sa)
 	if err != nil {
-		logger.Error(err, "Failed to update ServiceAccount Annotations", "ServiceAccount.Namespace", nodesensor.TargetNs(), "Annotations", saAnnotations)
+		logger.Error(err, "Failed to update ServiceAccount Annotations", "ServiceAccount.Namespace", nodesensor.Spec.InstallNamespace, "Annotations", saAnnotations)
 		return err
 	}
 	logger.Info("Updating FalconNodeSensor ServiceAccount Annotations", "Annotations", saAnnotations)
@@ -884,7 +902,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 	// Get a list of DS and return the DS within the correct NS
 	if err := r.List(ctx, dsList, &client.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
-		Namespace:     nodesensor.TargetNs(),
+		Namespace:     nodesensor.Spec.InstallNamespace,
 	}); err != nil {
 		return err
 	}
@@ -893,7 +911,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 	if err := r.Delete(ctx,
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: nodesensor.Name, Namespace: nodesensor.TargetNs(),
+				Name: nodesensor.Name, Namespace: nodesensor.Spec.InstallNamespace,
 			},
 		}); err != nil && !errors.IsNotFound(err) {
 		logger.Error(err, "Failed to cleanup Falcon sensor DaemonSet pods")
@@ -901,7 +919,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 	}
 
 	// Check if the cleanup DS is created. If not, create it.
-	err := r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.TargetNs()}, daemonset)
+	err := r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.Spec.InstallNamespace}, daemonset)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new DS for cleanup
 		ds := assets.RemoveNodeDirDaemonset(dsCleanupName, image, serviceAccount, nodesensor)
@@ -918,7 +936,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 			// List all pods with the "cleanup" label in the appropriate NS
 			if err := r.List(ctx, &pods, &client.ListOptions{
 				LabelSelector: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "cleanup"}),
-				Namespace:     nodesensor.TargetNs(),
+				Namespace:     nodesensor.Spec.InstallNamespace,
 			}); err != nil {
 				return err
 			}
@@ -946,7 +964,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 				logger.Info("Waiting for cleanup pods to complete. Retrying....", "Number of pods still processing task", completedCount)
 			}
 
-			err = r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.TargetNs()}, daemonset)
+			err = r.Get(ctx, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.Spec.InstallNamespace}, daemonset)
 			if err != nil && errors.IsNotFound(err) {
 				logger.Info("Clean-up daemonset has been removed")
 				break
@@ -957,7 +975,7 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 		if err := r.Delete(ctx,
 			&appsv1.DaemonSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: dsCleanupName, Namespace: nodesensor.TargetNs(),
+					Name: dsCleanupName, Namespace: nodesensor.Spec.InstallNamespace,
 				},
 			}); err != nil && !errors.IsNotFound(err) {
 			logger.Error(err, "Failed to cleanup Falcon sensor DaemonSet pods")
