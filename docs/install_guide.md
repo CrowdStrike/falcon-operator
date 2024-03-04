@@ -87,17 +87,23 @@ NAME                                                  READY   STATUS      RESTAR
 falcon-operator-controller-manager-77d7b44f96-t6jsr   1/2     OOMKilled   2 (45s ago)   98s
 ```
 
-To remediate this problem, increase the memory limit of the operator:
-Find and edit the memory limit with OpenShift:
+To remediate this problem in an OpenShift cluster, increase the memory limit of the operator by adding the desired resource configuration to the Subscription:
 
 ```shell
-oc edit csv falcon-operator.v0.8.0 -n falcon-operator
+oc edit subscription falcon-operator-rhmp -n falcon-operator
 ```
 
-Search for the default operator memory limit in the output (for example: 256Mi), and update to something more appropriate, such as 512Mi or 1Gi.
-Find and edit the memory limit on a non-OpenShift cluster:
+and add/edit the resource configuration to the `spec`. For example:
 
+```yaml
+spec:
+  channel: certified-0.9
+  config:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 128Mi
+      requests:
+        cpu: 250m
+        memory: 64Mi
 ```
-kubectl edit deploy falcon-operator-controller-manager -n falcon-operator
-```
-
