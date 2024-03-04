@@ -9,6 +9,3 @@ spec:
     cloud_region: autodiscover
   registry:
     type: acr
-    acr_name: PLEASE_FILL_IN
-  injector:
-    azureConfigPath: "/etc/kubernetes/azure.json"
