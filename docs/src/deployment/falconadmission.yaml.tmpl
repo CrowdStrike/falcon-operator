@@ -10,11 +10,6 @@ spec:
     cloud_region: autodiscover
   registry:
     type: {{ get $registry .Distro }}
-{{- if eq .Distro "azure" }}
-    acr_name: PLEASE_FILL_IN
-  injector:
-    azureConfigPath: "/etc/kubernetes/azure.json"
-{{- end }}
 {{- if eq .Distro "openshift" }}
     tls:
       insecure_skip_verify: false
