@@ -2,11 +2,13 @@
 
 This document will guide you through the installation of the Falcon Operator and deployment of the following custom resources provided by the Falcon Operator:
 - [FalconAdmission](../../resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
-- [FalconContainer](resources/container/README.md) with Falcon Container image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
 - [FalconNodeSensor](resources/node/README.md) custom resource to the cluster.
 
 You can choose to install the operator and custom resources through the [web console (GUI)](#installing-the-operator-through-the-web-console-gui) or through the [CLI](#installing-the-operator-through-the-cli).
 If you want to automate the deployment of the operator, the CLI method is recommended.
+
+> [!WARNING]
+> Previous versions of this guide dicussed deployment of the [FalconContainer](resources/container/README.md) resource, but this is no longer recommended for OpenShift. Instead, OpenShift users should only use the FalconNodeSensor for runtime protection. FalconContainer is designed for other Kubernetes environments and is not intended for OpenShift.
 
 ## Prerequisites
 
@@ -86,27 +88,6 @@ If you want to automate the deployment of the operator, the CLI method is recomm
    3. Click `Create` to deploy the FalconNodeSensor Kind
 
 - If more configuration is needed for your organization or deployment, `Falcon Sensor Configuration` will provide additional ways to configure the CrowdStrike Falcon Sensor. `DaemonSet Configuration` provides more ways to configure deployment and behavior of the DaemonSet including the ability to deploy the sensor without having to use the CrowdStrike API.
-
-</details>
-
-### Deploy the Sidecar Sensor
-
-<details>
-  <summary>Click to expand</summary>
-
-- To deploy the Falon Sidecar Sensor, click `Create Instance` for the `Falcon Container` Kind under the `Provided APIs` for the Falcon Operator.
-
-   ![OpenShift CrowdStrike Falcon Sidecar Sensor](images/ocp-fcs.png)
-
-- If using the CrowdStrike API method which connects to the CrowdStrike cloud and will attempt to discover your Falcon Customer ID as well as download the Falcon Sensor container image, make sure that you have a new [CrowdStrike API key pair](#prerequisites) before continuing.
-
-   ![OpenShift CrowdStrike Falcon Sidecar Sensor](images/ocp-fcsinstall.png)
-
-   1. Replace with your CrowdStrike API Client ID value
-   2. Replace with your CrowdStrike API Client Secret value
-   3. Click `Create` to deploy the FalconContainer Kind
-
-- If more configuration is needed for your organization or deployment, `Falcon Sensor Configuration` will provide additional ways to configure the CrowdStrike Falcon Sensor.
 
 </details>
 
@@ -290,17 +271,6 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
 
 </details>
 
-### Deploy the Sidecar Sensor
-
-<details>
-  <summary>Click to expand</summary>
-
-- Deploy FalconContainer through the cli using the `oc` command:
-  ```
-  oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/falconcontainer.yaml --edit=true
-  ```
-</details>
-
 ### Deploy the Admission Controller
 
 <details>
@@ -339,6 +309,8 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
    ![OpenShift CrowdStrike Node Sensor Uninstall](images/ocp-nodedel.png)
 
 #### Uninstall the Sidecar Sensor
+
+The sidecar sensor is not intended for OpenShift. If you installed it by mistake, follow these steps:
 
 - Click on the `CrowdStrike Falcon Platform - Operator` listing, followed by clicking on the `Falcon Container` tab.
 
@@ -407,6 +379,8 @@ Once the Krew plugin is installed:
   ```
 
 ##### Uninstall the Sidecar Sensor
+
+The sidecar sensor is not intended for OpenShift. If you installed it by mistake, follow these steps:
 
 - To uninstall Falcon Container simply remove FalconContainer resource. The operator will uninstall Falcon Container product from the cluster.
   ```
