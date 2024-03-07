@@ -320,11 +320,12 @@ func (r *FalconAdmissionReconciler) reconcileTLSSecret(ctx context.Context, req 
 		}
 
 		certInfo := tls.CertInfo{
-			CommonName: fmt.Sprintf("%s.%s.svc", name, falconAdmission.Spec.InstallNamespace),
-			DNSNames:   []string{fmt.Sprintf("%s.%s.svc", name, falconAdmission.Spec.InstallNamespace), fmt.Sprintf("%s.%s.svc.cluster.local", name, falconAdmission.Spec.InstallNamespace)},
+			CommonName: fmt.Sprintf("%s.%s.svc", falconAdmission.Name, falconAdmission.Spec.InstallNamespace),
+			DNSNames: []string{fmt.Sprintf("%s.%s.svc", falconAdmission.Name, falconAdmission.Spec.InstallNamespace), fmt.Sprintf("%s.%s.svc.cluster.local", falconAdmission.Name, falconAdmission.Spec.InstallNamespace),
+				fmt.Sprintf("%s.%s", falconAdmission.Name, falconAdmission.Spec.InstallNamespace), falconAdmission.Name},
 		}
 
-		c, k, b, err := tls.CertSetup(validity, certInfo)
+		c, k, b, err := tls.CertSetup(falconAdmission.Spec.InstallNamespace, validity, certInfo)
 		if err != nil {
 			log.Error(err, "Failed to generate FalconAdmission PKI")
 			return &corev1.Secret{}, err
@@ -347,7 +348,7 @@ func (r *FalconAdmissionReconciler) reconcileTLSSecret(ctx context.Context, req 
 		return &corev1.Secret{}, err
 	}
 
-	return &corev1.Secret{}, nil
+	return existingTLSSecret, nil
 }
 
 func (r *FalconAdmissionReconciler) reconcileService(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) (bool, error) {
@@ -389,7 +390,7 @@ func (r *FalconAdmissionReconciler) reconcileService(ctx context.Context, req ct
 func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission, cabundle []byte) (bool, error) {
 	existingWebhook := &arv1.ValidatingWebhookConfiguration{}
 	disabledNamespaces := append(common.DefaultDisabledNamespaces, falconAdmission.Spec.AdmissionConfig.DisabledNamespaces.Namespaces...)
-	const name = "validating.admission.falcon.crowdstrike.com"
+	const webhookName = "validating.admission.falcon.crowdstrike.com"
 	failPolicy := arv1.Ignore
 	port := int32(443)
 
@@ -409,10 +410,10 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx cont
 		port = *falconAdmission.Spec.AdmissionConfig.Port
 	}
 
-	webhook := assets.ValidatingWebhook(name, falconAdmission.Spec.InstallNamespace, name, cabundle, port, failPolicy, disabledNamespaces)
+	webhook := assets.ValidatingWebhook(falconAdmission.Name, falconAdmission.Spec.InstallNamespace, webhookName, cabundle, port, failPolicy, disabledNamespaces)
 	updated := false
 
-	err := r.Get(ctx, types.NamespacedName{Name: name}, existingWebhook)
+	err := r.Get(ctx, types.NamespacedName{Name: webhookName}, existingWebhook)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, webhook)
 		if err != nil {
