@@ -2,7 +2,7 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: falconimages.falcon.crowdstrike.com
+  name: falconimageanalyzers.falcon.crowdstrike.com
 spec:
   conversion:
     strategy: Webhook
