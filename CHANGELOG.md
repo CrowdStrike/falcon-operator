@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.4] - 2024-03-07
+
+### Changed
+
+- Clarify FalconContainer is not intended for OpenShift.
+- fix(admission): Fix admission controller yaml for azure
+- docs: add managed OpenShift control plan/infra caveats
+- feat: add new OpenShift feature annotations to CSV
+- fix: update oom guidance for openshift to makes changes to the subscription
+- fix(admission): always return existing tls certs on reconciliation
+
 ## [0.9.3] - 2024-02-08
 
 ### Changed

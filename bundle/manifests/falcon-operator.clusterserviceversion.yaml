@@ -101,17 +101,28 @@ metadata:
     capabilities: Basic Install
     categories: Security,Monitoring
     containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:c6f0a99ed83db3850bc6ec934c0051477d9bd6fba479a6b1c7b096216c126313
-    createdAt: "2024-02-08T20:05:13Z"
-    description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     marketplace.openshift.io/remote-workflow: https://marketplace.redhat.com/en-us/operators/falcon-operator-rhmp/pricing?utm_source=openshift_console
     marketplace.openshift.io/support-workflow: https://marketplace.redhat.com/en-us/operators/falcon-operator-rhmp/support?utm_source=openshift_console
+    containerImage: quay.io/crowdstrike/falcon-operator
+    createdAt: "2024-03-07T18:18:21Z"
+    description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "true"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
     operatorframework.io/suggested-namespace: falcon-operator
     operators.openshift.io/valid-subscription: Not required to use this operator
     operators.operatorframework.io/builder: operator-sdk-v1.30.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4-alpha
     repository: registry.connect.redhat.com/crowdstrike/falcon-operator
     support: CrowdStrike
-  name: falcon-operator.v0.9.3
+  name: falcon-operator.v0.9.4
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1170,4 +1181,4 @@ spec:
     name: sidecar-sensor
   - image: "registry.crowdstrike.com/falcon-kac/us-1/release/falcon-kac@sha256:e38c957d9632f15b23a806580cecdcd6e68f671145b67aa7b2b9ff0d4a7da4e7"
     name: admission-controller
-  version: 0.9.3
+  version: 0.9.4
