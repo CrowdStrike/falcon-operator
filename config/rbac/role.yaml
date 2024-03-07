@@ -258,7 +258,7 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimages
+  - falconimageanalyzer
   verbs:
   - create
   - delete
@@ -270,13 +270,13 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimages/finalizers
+  - falconimageanalyzer/finalizers
   verbs:
   - update
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimages/status
+  - falconimageanalyzer/status
   verbs:
   - get
   - patch

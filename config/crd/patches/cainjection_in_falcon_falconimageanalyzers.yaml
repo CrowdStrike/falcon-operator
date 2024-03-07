@@ -4,4 +4,4 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: CERTIFICATE_NAMESPACE/CERTIFICATE_NAME
-  name: falconimages.falcon.crowdstrike.com
+  name: falconimageanalyzers.falcon.crowdstrike.com

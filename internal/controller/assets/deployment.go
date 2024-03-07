@@ -248,8 +248,8 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 	}
 }
 
-// ImageDeployment returns a Deployment object for the CrowdStrike Falcon IAR Controller
-func ImageDeployment(name string, namespace string, component string, imageUri string, falconImage *falconv1alpha1.FalconImage) *appsv1.Deployment {
+// ImageAnalyzerDeployment returns a Deployment object for the CrowdStrike Falcon IAR Controller
+func ImageAnalyzerDeployment(name string, namespace string, component string, imageUri string, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) *appsv1.Deployment {
 	azureConfig := "/etc/kubernetes/azure.json"
 	labels := common.CRLabels("deployment", name, component)
 	var replicaCount int32 = 1
@@ -262,7 +262,7 @@ func ImageDeployment(name string, namespace string, component string, imageUri s
 
 	initContainers = append(initContainers, corev1.Container{
 		Name:            chartName + "-init-container",
-		ImagePullPolicy: falconImage.Spec.ImageConfig.ImagePullPolicy,
+		ImagePullPolicy: falconImageAnalyzer.Spec.ImageAnalyzerConfig.ImagePullPolicy,
 		Image:           imageUri,
 		Command: []string{
 			"bash",
@@ -353,7 +353,7 @@ func ImageDeployment(name string, namespace string, component string, imageUri s
 							},
 							Resources:       corev1.ResourceRequirements{},
 							Image:           imageUri,
-							ImagePullPolicy: falconImage.Spec.ImageConfig.ImagePullPolicy,
+							ImagePullPolicy: falconImageAnalyzer.Spec.ImageAnalyzerConfig.ImagePullPolicy,
 							Args:            []string{"-runmode", "watcher"},
 							EnvFrom: []corev1.EnvFromSource{
 								{
@@ -371,8 +371,8 @@ func ImageDeployment(name string, namespace string, component string, imageUri s
 					SecurityContext:    &corev1.PodSecurityContext{},
 					NodeSelector:       common.NodeSelector,
 					Volumes:            volumes,
-					//Tolerations:        falconImage.Spec.ImageConfig.Tolerations,
-					//PriorityClassName:  falconImage.Spec.ImageConfig.PriorityClass.Name,
+					//Tolerations:        falconImageAnalyzer.Spec.ImageAnalyzerConfig.Tolerations,
+					//PriorityClassName:  falconImageAnalyzer.Spec.ImageAnalyzerConfig.PriorityClass.Name,
 				},
 			},
 		},

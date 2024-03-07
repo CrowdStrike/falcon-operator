@@ -32,7 +32,7 @@ const (
 	FalconKernelSensor        = "kernel_sensor"
 	FalconSidecarSensor       = "container_sensor"
 	FalconAdmissionController = "admission_controller"
-	FalconImageController     = "falcon-imageanalyzer"
+	FalconImageAnalyzer       = "falcon-imageanalyzer"
 	FalconFinalizer           = "falcon.crowdstrike.com/finalizer"
 	FalconProviderValue       = "crowdstrike"
 	FalconPartOfValue         = "Falcon"

@@ -2575,14 +2575,14 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.13.0
-  name: falconimages.falcon.crowdstrike.com
+  name: falconimageanalyzers.falcon.crowdstrike.com
 spec:
   group: falcon.crowdstrike.com
   names:
-    kind: FalconImage
-    listKind: FalconImageList
-    plural: falconimages
-    singular: falconimage
+    kind: FalconImageAnalyzer
+    listKind: FalconImageAnalyzerList
+    plural: falconimageanalyzers
+    singular: falconimageanalyzer
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -2597,7 +2597,8 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: FalconImage is the Schema for the falconimages API
+        description: FalconImageAnalyzer is the Schema for the falconImageAnalyzers
+          API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -2612,12 +2613,133 @@ spec:
           metadata:
             type: object
           spec:
-            description: FalconImageSpec defines the desired state of FalconImage
+            description: FalconImageAnalyzerSpec defines the desired state of FalconImageAnalyzer
             properties:
-              ImageConfig:
-                description: Additional configuration for Falcon Image Controller
-                  deployment.
+              falcon:
+                description: CrowdStrike Falcon sensor configuration
                 properties:
+                  apd:
+                    default: false
+                    description: Disable the Falcon Sensor's use of a proxy.
+                    type: boolean
+                  aph:
+                    description: The application proxy host to use for Falcon sensor
+                      proxy configuration.
+                    type: string
+                  app:
+                    description: The application proxy port to use for Falcon sensor
+                      proxy configuration.
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
+                  billing:
+                    description: Utilize default or Pay-As-You-Go billing.
+                    enum:
+                    - default
+                    - metered
+                    type: string
+                  cid:
+                    description: Falcon Customer ID (CID)
+                    pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
+                    type: string
+                  provisioning_token:
+                    description: Installation token that prevents unauthorized hosts
+                      from being accidentally or maliciously added to your customer
+                      ID (CID).
+                    pattern: ^[0-9a-fA-F]{8}$
+                    type: string
+                  tags:
+                    description: 'Sensor grouping tags are optional, user-defined
+                      identifiers that can used to group and filter hosts. Allowed
+                      characters: all alphanumerics, ''/'', ''-'', and ''_''.'
+                    items:
+                      type: string
+                    type: array
+                  trace:
+                    default: none
+                    description: Set sensor trace level.
+                    enum:
+                    - none
+                    - err
+                    - warn
+                    - info
+                    - debug
+                    type: string
+                type: object
+              falcon_api:
+                description: "FalconAPI configures connection from your local Falcon
+                  operator to CrowdStrike Falcon platform. \n When configured, it
+                  will pull the sensor from registry.crowdstrike.com and deploy the
+                  appropriate sensor to the cluster. \n If using the API is not desired,
+                  the sensor can be manually configured by setting the Image and Version
+                  fields."
+                properties:
+                  cid:
+                    description: Falcon Customer ID (CID) Override (optional, default
+                      is derived from the API Key pair)
+                    pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
+                    type: string
+                  client_id:
+                    description: Falcon OAuth2 API Client ID
+                    type: string
+                  client_secret:
+                    description: Falcon OAuth2 API Client Secret
+                    type: string
+                  cloud_region:
+                    description: Cloud Region defines CrowdStrike Falcon Cloud Region
+                      to which the operator will connect and register.
+                    enum:
+                    - autodiscover
+                    - us-1
+                    - us-2
+                    - eu-1
+                    - us-gov-1
+                    type: string
+                required:
+                - client_id
+                - client_secret
+                - cloud_region
+                type: object
+              image:
+                description: Location of the Falcon Sensor image. Use only in cases
+                  when you mirror the original image to your repository/name:tag,
+                  and CrowdStrike OAuth2 API is not used.
+                pattern: ^.*:.*$
+                type: string
+              imageAnalyzerConfig:
+                description: Additional configuration for Falcon Image Analyzer deployment.
+                properties:
+                  containerPort:
+                    default: 4443
+                    description: Port on which the Falcon Image Analyzer container
+                      will listen for requests.
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
+                    x-kubernetes-int-or-string: true
+                  disabledNamespaces:
+                    description: Ignore Image Analyzer for a specific set of namespaces.
+                    properties:
+                      ignoreOpenShiftNamespaces:
+                        description: For OpenShift clusters, ignore openshift-specific
+                          namespaces for Image Analyzer.
+                        type: boolean
+                      namespaces:
+                        description: Configure a list of namespaces to ignore Image
+                          Analyzer.
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  failurePolicy:
+                    default: Ignore
+                    description: Configure the failure policy for the Falcon Image
+                      Analyzer.
+                    enum:
+                    - Ignore
+                    - Fail
+                    type: string
                   imagePullPolicy:
                     default: Always
                     description: PullPolicy describes a policy for if/when to pull
@@ -2641,6 +2763,129 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     type: array
+                  replicas:
+                    default: 2
+                    description: Number of replicas for the Falcon Image Analyzer
+                      deployment.
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
+                    x-kubernetes-int-or-string: true
+                  resources:
+                    default:
+                      limits:
+                        cpu: 300m
+                        memory: 512Mi
+                      requests:
+                        cpu: 300m
+                        memory: 512Mi
+                    description: ResourceRequirements describes the compute resource
+                      requirements.
+                    properties:
+                      claims:
+                        description: "Claims lists the names of resources, defined
+                          in spec.resourceClaims, that are used by this container.
+                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
+                          feature gate. \n This field is immutable. It can only be
+                          set for containers."
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: Name must match the name of one entry in
+                                pod.spec.resourceClaims of the Pod where this field
+                                is used. It makes that resource available inside a
+                                container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Limits describes the maximum amount of compute
+                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Requests describes the minimum amount of compute
+                          resources required. If Requests is omitted for a container,
+                          it defaults to Limits if that is explicitly specified, otherwise
+                          to an implementation-defined value. Requests cannot exceed
+                          Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                    type: object
+                  resourcesClient:
+                    default:
+                      limits:
+                        cpu: 750m
+                        memory: 256Mi
+                      requests:
+                        cpu: 500m
+                        memory: 256Mi
+                    description: ResourceRequirements describes the compute resource
+                      requirements.
+                    properties:
+                      claims:
+                        description: "Claims lists the names of resources, defined
+                          in spec.resourceClaims, that are used by this container.
+                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
+                          feature gate. \n This field is immutable. It can only be
+                          set for containers."
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: Name must match the name of one entry in
+                                pod.spec.resourceClaims of the Pod where this field
+                                is used. It makes that resource available inside a
+                                container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Limits describes the maximum amount of compute
+                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Requests describes the minimum amount of compute
+                          resources required. If Requests is omitted for a container,
+                          it defaults to Limits if that is explicitly specified, otherwise
+                          to an implementation-defined value. Requests cannot exceed
+                          Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                    type: object
                   serviceAccount:
                     description: Define annotations that will be passed down to admision
                       controller service account. This is useful for passing along
@@ -2654,14 +2899,127 @@ spec:
                           IAM Role or GCP Workload Identity.
                         type: object
                     type: object
+                  servicePort:
+                    default: 443
+                    description: Port on which the Falcon Image Analyzer service will
+                      listen for requests from the cluster.
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
+                    x-kubernetes-int-or-string: true
+                  updateStrategy:
+                    default:
+                      rollingUpdate:
+                        maxSurge: 1
+                        maxUnavailable: 0
+                    description: Type of Deployment update. Can be "RollingUpdate"
+                      or "OnDelete". Default is RollingUpdate.
+                    properties:
+                      rollingUpdate:
+                        description: RollingUpdate is used to specify the strategy
+                          used to roll out a deployment
+                        properties:
+                          maxSurge:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: 'The maximum number of pods that can be scheduled
+                              above the desired number of pods. Value can be an absolute
+                              number (ex: 5) or a percentage of desired pods (ex:
+                              10%). This can not be 0 if MaxUnavailable is 0. Absolute
+                              number is calculated from percentage by rounding up.
+                              Defaults to 25%. Example: when this is set to 30%, the
+                              new ReplicaSet can be scaled up immediately when the
+                              rolling update starts, such that the total number of
+                              old and new pods do not exceed 130% of desired pods.
+                              Once old pods have been killed, new ReplicaSet can be
+                              scaled up further, ensuring that total number of pods
+                              running at any time during the update is at most 130%
+                              of desired pods.'
+                            x-kubernetes-int-or-string: true
+                          maxUnavailable:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: 'The maximum number of pods that can be unavailable
+                              during the update. Value can be an absolute number (ex:
+                              5) or a percentage of desired pods (ex: 10%). Absolute
+                              number is calculated from percentage by rounding down.
+                              This can not be 0 if MaxSurge is 0. Defaults to 25%.
+                              Example: when this is set to 30%, the old ReplicaSet
+                              can be scaled down to 70% of desired pods immediately
+                              when the rolling update starts. Once new pods are ready,
+                              old ReplicaSet can be scaled down further, followed
+                              by scaling up the new ReplicaSet, ensuring that the
+                              total number of pods available at all times during the
+                              update is at least 70% of desired pods.'
+                            x-kubernetes-int-or-string: true
+                        type: object
+                    type: object
                 type: object
               installNamespace:
-                default: falcon-imageanalyzer
-                description: Namespace where the Falcon Image Controller should be
-                  installed. For best security practices, this should be a dedicated
-                  namespace that is not used for any other purpose. It also should
-                  not be the same namespace where the Falcon Operator or the Falcon
-                  Sensor is installed.
+                default: falcon-image-analyzer
+                description: Namespace where the Falcon Image Analyzer should be installed.
+                  For best security practices, this should be a dedicated namespace
+                  that is not used for any other purpose. It also should not be the
+                  same namespace where the Falcon Operator or the Falcon Sensor is
+                  installed.
+                type: string
+              registry:
+                description: Registry configures container image registry to which
+                  the Image Analyzer image will be pushed.
+                properties:
+                  acr_name:
+                    description: Azure Container Registry Name represents the name
+                      of the ACR for the Falcon Container push. Only applicable to
+                      Azure cloud.
+                    type: string
+                  tls:
+                    description: TLS configures TLS connection for push of Falcon
+                      Container image to the registry
+                    properties:
+                      caCertificate:
+                        description: Allow for users to provide a CA Cert Bundle,
+                          as either a string or base64 encoded string
+                        type: string
+                      caCertificateConfigMap:
+                        description: Allow for users to provide a ConfigMap containing
+                          a CA Cert Bundle under a key ending in .crt
+                        type: string
+                      insecure_skip_verify:
+                        description: Allow pushing to docker registries over HTTPS
+                          with failed TLS verification. Note that this does not affect
+                          other TLS connections.
+                        type: boolean
+                    type: object
+                  type:
+                    description: Type of container registry to be used
+                    enum:
+                    - acr
+                    - ecr
+                    - gcr
+                    - crowdstrike
+                    - openshift
+                    type: string
+                required:
+                - type
+                type: object
+              resourcequota:
+                description: ResourceQuota configures the ResourceQuota for the Falcon
+                  Image Analyzer. This is useful for limiting the number of pods that
+                  can be created in the namespace.
+                properties:
+                  pods:
+                    default: "2"
+                    description: Limits the number of Image Analyzer pods that can
+                      be created in the namespace.
+                    type: string
+                type: object
+              version:
+                description: 'Falcon Image Analyzer Version. The latest version will
+                  be selected when version specifier is missing. Example: 6.31, 6.31.0,
+                  6.31.0-1409, etc.'
                 type: string
             type: object
           status:
@@ -3815,7 +4173,7 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimages
+  - falconimageanalyzer
   verbs:
   - create
   - delete
@@ -3827,13 +4185,13 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimages/finalizers
+  - falconimageanalyzer/finalizers
   verbs:
   - update
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimages/status
+  - falconimageanalyzer/status
   verbs:
   - get
   - patch
