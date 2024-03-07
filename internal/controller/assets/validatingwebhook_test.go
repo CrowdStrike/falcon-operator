@@ -24,7 +24,7 @@ func testValidatingWebhook(name string, namespace string, webhookName string, ca
 	failurePolicy := arv1.Ignore
 	matchPolicy := arv1.Equivalent
 	sideEffects := arv1.SideEffectClassNone
-	timeoutSeconds := int32(5)
+	timeoutSeconds := int32(10)
 	operatorSelector := metav1.LabelSelectorOpNotIn
 	path := "/validate"
 	scope := arv1.AllScopes
@@ -37,9 +37,10 @@ func testValidatingWebhook(name string, namespace string, webhookName string, ca
 			Kind:       "ValidatingWebhookConfiguration",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-			Labels:    labels,
+			Name:        name,
+			Namespace:   namespace,
+			Labels:      labels,
+			Annotations: map[string]string{"admissions.enforcer/disabled": "true"},
 		},
 		Webhooks: []arv1.ValidatingWebhook{
 			{

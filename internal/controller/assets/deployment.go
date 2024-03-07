@@ -439,7 +439,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: *falconAdmission.Spec.AdmissionConfig.ContainerPort,
-									Name:          common.FalconAdmissionServiceHTTPSName,
+									Name:          common.FalconServiceHTTPSName,
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},

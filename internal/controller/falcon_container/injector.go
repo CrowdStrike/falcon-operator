@@ -42,7 +42,7 @@ func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Conte
 				DNSNames:   []string{fmt.Sprintf("%s.%s.svc", injectorName, r.Namespace()), fmt.Sprintf("%s.%s.svc.cluster.local", injectorName, r.Namespace())},
 			}
 
-			c, k, b, err := tls.CertSetup(validity, certInfo)
+			c, k, b, err := tls.CertSetup(r.Namespace(), validity, certInfo)
 			if err != nil {
 				return &corev1.Secret{}, fmt.Errorf("failed to generate Falcon Container PKI: %v", err)
 			}

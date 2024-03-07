@@ -17,18 +17,18 @@ type CertInfo struct {
 }
 
 // CertSetup will generate and return tls certs
-func CertSetup(days int, certInfo CertInfo) ([]byte, []byte, []byte, error) {
+func CertSetup(namespace string, days int, certInfo CertInfo) ([]byte, []byte, []byte, error) {
 	// set up our CA certificate
 	ca := &x509.Certificate{
 		SerialNumber: new(big.Int).Lsh(big.NewInt(1), 128),
 		Subject: pkix.Name{
-			CommonName: "falcon-system ca",
+			CommonName: namespace + " ca",
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(0, 0, days),
 		IsCA:                  true,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
 
@@ -67,12 +67,13 @@ func CertSetup(days int, certInfo CertInfo) ([]byte, []byte, []byte, error) {
 		Subject: pkix.Name{
 			CommonName: certInfo.CommonName,
 		},
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().AddDate(0, 0, days),
-		SubjectKeyId: []byte("234567"),
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:     x509.KeyUsageDigitalSignature,
-		DNSNames:     certInfo.DNSNames,
+		NotBefore:      time.Now(),
+		NotAfter:       time.Now().AddDate(0, 0, days),
+		AuthorityKeyId: ca.SubjectKeyId,
+		ExtKeyUsage:    []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:       x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		IsCA:           false,
+		DNSNames:       certInfo.DNSNames,
 	}
 
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, 2048)
