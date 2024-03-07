@@ -9,13 +9,15 @@ namespace: falcon-operator
 namePrefix: falcon-operator-
 
 # Labels to add to all resources and selectors.
-#commonLabels:
-#  someName: someValue
+#labels:
+#- includeSelectors: true
+#  pairs:
+#    someName: someValue
 
-bases:
-  - ../crd
-  - ../rbac
-  - ../manager
+resources:
+- ../crd
+- ../rbac
+- ../manager
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
 # crd/kustomization.yaml
 #- ../webhook
@@ -24,24 +26,11 @@ bases:
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
 #- ../prometheus
 
-patchesStrategicMerge:
-  - patches/auth_proxy_client_clusterrole.yaml
-  - patches/auth_proxy_role.yaml
-  - patches/auth_proxy_role_binding.yaml
-  - patches/auth_proxy_service.yaml
-  - patches/manager_patch.yaml
-  - patches/namespace_patch.yaml
-  - patches/falconnodesensor_role.yaml
-
-# Since the WATCH_NAMESPACE value needs to be null for terraform, we need to use a JSON Patch
-# to add a null value, because kustomize will strip it. When kustomize version 5 or greater is used
-# this patch can be revisited and probably removed.
-patchesJson6902:
-  - target:
-      version: v1
-      kind: Deployment
-      name: controller-manager
-    patch: |-
-      - op: add
-        path: /spec/template/spec/containers/0/env/0/value
-        value: null
+patches:
+- path: patches/auth_proxy_client_clusterrole.yaml
+- path: patches/auth_proxy_role.yaml
+- path: patches/auth_proxy_role_binding.yaml
+- path: patches/auth_proxy_service.yaml
+- path: patches/manager_patch.yaml
+- path: patches/namespace_patch.yaml
+- path: patches/falconnodesensor_role.yaml
