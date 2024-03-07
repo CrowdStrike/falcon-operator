@@ -9,8 +9,5 @@ spec:
     spec:
       containers:
       - name: manager
-        env:
-        - name: WATCH_NAMESPACE
-          value: null
       securityContext:
         fsGroup: 65534
