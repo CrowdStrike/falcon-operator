@@ -99,7 +99,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "70435a7a.crowdstrike.com",
+		LeaderElectionID:       "falcon-operator-lock",
 		Cache: cache.Options{
 			ByObject: map[client.Object]cache.ByObject{
 				&falconv1alpha1.FalconAdmission{}:  {},
