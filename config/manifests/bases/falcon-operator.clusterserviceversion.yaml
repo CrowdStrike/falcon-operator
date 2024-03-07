@@ -590,7 +590,7 @@ spec:
   - email: integrations@crowdstrike.com
     name: CrowdStrike Solutions Architecture
   maturity: alpha
-  minKubeVersion: 1.17.0
+  minKubeVersion: 1.22.0
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com

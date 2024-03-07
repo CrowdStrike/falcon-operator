@@ -6,7 +6,7 @@ The following tools are required to develop the Falcon Operator:
 
 - [git][git-tool]
 - [go][go-tool] version 1.20
-- [operator-sdk][operator-sdk] version 1.33.0
+- [operator-sdk][operator-sdk] version 1.34.1
 - [docker][docker] (required for multi-arch builds) or [podman][podman] (if desired for single arch builds)
 
 Running `make` at any point will install additional tooling and go dependencies as required by the various `Makefile` targets. For example:

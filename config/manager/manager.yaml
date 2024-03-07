@@ -56,9 +56,8 @@ spec:
                       - linux
       securityContext:
         runAsNonRoot: true
-        # Uncomment the following code when OpenShift < 4.11 is no longer supported.
-        # seccompProfile:
-        #   type: RuntimeDefault
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - command:
         - /manager

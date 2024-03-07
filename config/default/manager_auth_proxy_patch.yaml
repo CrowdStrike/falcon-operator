@@ -30,8 +30,8 @@ spec:
           allowPrivilegeEscalation: false
           capabilities:
             drop:
-              - "ALL"
-        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1
+            - "ALL"
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.15.0
         args:
         - "--secure-listen-address=0.0.0.0:8443"
         - "--upstream=http://127.0.0.1:8080/"
@@ -48,3 +48,8 @@ spec:
           requests:
             cpu: 5m
             memory: 64Mi
+      - name: manager
+        args:
+        - "--health-probe-bind-address=:8081"
+        - "--metrics-bind-address=127.0.0.1:8080"
+        - "--leader-elect"
