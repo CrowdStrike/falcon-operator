@@ -100,12 +100,11 @@ metadata:
       ]
     capabilities: Basic Install
     categories: Security,Monitoring
-    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:c6f0a99ed83db3850bc6ec934c0051477d9bd6fba479a6b1c7b096216c126313
-    marketplace.openshift.io/remote-workflow: https://marketplace.redhat.com/en-us/operators/falcon-operator-rhmp/pricing?utm_source=openshift_console
-    marketplace.openshift.io/support-workflow: https://marketplace.redhat.com/en-us/operators/falcon-operator-rhmp/support?utm_source=openshift_console
-    containerImage: quay.io/crowdstrike/falcon-operator
+    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:3f37d82650c42d5e0483d6ca19a153f3136215ba885a6b8e5f6ca9eb23344660
     createdAt: "2024-03-07T18:18:21Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
+    marketplace.openshift.io/remote-workflow: https://marketplace.redhat.com/en-us/operators/falcon-operator-rhmp/pricing?utm_source=openshift_console
+    marketplace.openshift.io/support-workflow: https://marketplace.redhat.com/en-us/operators/falcon-operator-rhmp/support?utm_source=openshift_console
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "false"
@@ -1047,7 +1046,7 @@ spec:
                   value: registry.crowdstrike.com/falcon-container/us-1/release/falcon-sensor@sha256:205a5aea14739ffedf8290d86971af7d78c26d3e55d490b9d12bd10f2561a387
                 - name: RELATED_IMAGE_ADMISSION_CONTROLLER
                   value: registry.crowdstrike.com/falcon-kac/us-1/release/falcon-kac@sha256:e38c957d9632f15b23a806580cecdcd6e68f671145b67aa7b2b9ff0d4a7da4e7
-                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:c6f0a99ed83db3850bc6ec934c0051477d9bd6fba479a6b1c7b096216c126313
+                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:3f37d82650c42d5e0483d6ca19a153f3136215ba885a6b8e5f6ca9eb23344660
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -1171,7 +1170,7 @@ spec:
     name: CrowdStrike
     url: https://crowdStrike.com
   relatedImages:
-  - image: "registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:c6f0a99ed83db3850bc6ec934c0051477d9bd6fba479a6b1c7b096216c126313"
+  - image: "registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:3f37d82650c42d5e0483d6ca19a153f3136215ba885a6b8e5f6ca9eb23344660"
     name: operator
   - image: "registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:8518397a35aec283f59771cb115312363d0c92af18333991bd27460ca00bc8d3"
     name: rbac-proxy
