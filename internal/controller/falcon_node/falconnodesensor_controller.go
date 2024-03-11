@@ -213,7 +213,10 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			}
 		}
 
-		_ = updateDaemonSetTolerations(ds, nodesensor, logger)
+		_, err = r.updateDaemonSetTolerations(ctx, ds, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 
 		err = r.Create(ctx, ds)
 		if err != nil {
@@ -249,7 +252,6 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 		// Objects to check for updates to re-spin pods
 		imgUpdate := updateDaemonSetImages(dsUpdate, image, nodesensor, logger)
-		tolsUpdate := updateDaemonSetTolerations(dsUpdate, nodesensor, logger)
 		affUpdate := updateDaemonSetAffinity(dsUpdate, dsTarget, nodesensor, logger)
 		containerVolUpdate := updateDaemonSetContainerVolumes(dsUpdate, dsTarget, logger)
 		volumeUpdates := updateDaemonSetVolumes(dsUpdate, dsTarget, logger)
@@ -258,10 +260,14 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		pc := updateDaemonSetPriorityClass(dsUpdate, dsTarget, logger)
 		capabilities := updateDaemonSetCapabilities(dsUpdate, dsTarget, logger)
 		initArgs := updateDaemonSetInitArgs(dsUpdate, dsTarget, logger)
-		updated = updateDaemonSetContainerProxy(dsUpdate, nodesensor, logger)
+		proxyUpdates := updateDaemonSetContainerProxy(dsUpdate, nodesensor, logger)
+		tolsUpdate, err := r.updateDaemonSetTolerations(ctx, dsUpdate, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 
 		// Update the daemonset and re-spin pods with changes
-		if imgUpdate || tolsUpdate || affUpdate || containerVolUpdate || volumeUpdates || resources || pc || capabilities || initArgs || initResources || updated {
+		if imgUpdate || tolsUpdate || affUpdate || containerVolUpdate || volumeUpdates || resources || pc || capabilities || initArgs || initResources || proxyUpdates || updated {
 			err = r.Update(ctx, dsUpdate)
 			if err != nil {
 				err = r.conditionsUpdate(falconv1alpha1.ConditionDaemonSetReady,
@@ -567,15 +573,22 @@ func updateDaemonSetContainerProxy(ds *appsv1.DaemonSet, nodesensor *falconv1alp
 }
 
 // If an update is needed, this will update the tolerations from the given DaemonSet
-func updateDaemonSetTolerations(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+func (r *FalconNodeSensorReconciler) updateDaemonSetTolerations(ctx context.Context, ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
 	tolerations := &ds.Spec.Template.Spec.Tolerations
 	origTolerations := nodesensor.Spec.Node.Tolerations
 	tolerationsUpdate := !equality.Semantic.DeepEqual(*tolerations, origTolerations)
 	if tolerationsUpdate {
 		logger.Info("Updating FalconNodeSensor DaemonSet Tolerations")
-		*tolerations = origTolerations
+		mergedTolerations := k8s_utils.MergeTolerations(*tolerations, origTolerations)
+		*tolerations = mergedTolerations
+		nodesensor.Spec.Node.Tolerations = mergedTolerations
+
+		if err := r.Update(ctx, nodesensor); err != nil {
+			logger.Error(err, "Failed to update FalconNodeSensor Tolerations")
+			return false, err
+		}
 	}
-	return tolerationsUpdate
+	return tolerationsUpdate, nil
 }
 
 // If an update is needed, this will update the affinity from the given DaemonSet
