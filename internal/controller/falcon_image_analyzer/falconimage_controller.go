@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"time"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -213,24 +214,24 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	// configUpdated, err := r.reconcileConfigMap(ctx, req, log, falconImageAnalyzer)
-	// if err != nil {
-	// 	return ctrl.Result{}, err
-	// }
+	configUpdated, err := r.reconcileConfigMap(ctx, req, log, falconImageAnalyzer)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	// serviceUpdated, err := r.reconcileService(ctx, req, log, falconImageAnalyzer)
 	// if err != nil {
 	// 	return ctrl.Result{}, err
 	// }
 
-	// if configUpdated || serviceUpdated {
-	// 	err = r.ImageAnalyzerDeploymentUpdate(ctx, req, log, falconImageAnalyzer)
-	// 	if err != nil {
-	// 		return ctrl.Result{}, err
-	// 	}
+	if configUpdated {
+		err = r.imageAnalyzerDeploymentUpdate(ctx, req, log, falconImageAnalyzer)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 
-	// 	return ctrl.Result{}, nil
-	// }
+		return ctrl.Result{}, nil
+	}
 
 	if err := k8sutils.ConditionsUpdate(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, metav1.Condition{
 		Status:             metav1.ConditionTrue,
@@ -511,33 +512,33 @@ func (r *FalconImageAnalyzerReconciler) reconcileNamespace(ctx context.Context, 
 	return nil
 }
 
-// func (r *FalconImageAnalyzerReconciler) imageAnalyzerDeploymentUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) error {
-// 	existingDeployment := &appsv1.Deployment{}
-// 	configVersion := "falcon.config.version"
-// 	err := r.Get(ctx, types.NamespacedName{Name: falconImageAnalyzer.Name, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingDeployment)
-// 	if err != nil && apierrors.IsNotFound(err) {
-// 		return err
-// 	} else if err != nil {
-// 		log.Error(err, "Failed to get FalconImageAnalyzer Deployment")
-// 		return err
-// 	}
+func (r *FalconImageAnalyzerReconciler) imageAnalyzerDeploymentUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) error {
+	existingDeployment := &appsv1.Deployment{}
+	configVersion := "falcon.config.version"
+	err := r.Get(ctx, types.NamespacedName{Name: falconImageAnalyzer.Name, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingDeployment)
+	if err != nil && apierrors.IsNotFound(err) {
+		return err
+	} else if err != nil {
+		log.Error(err, "Failed to get FalconImageAnalyzer Deployment")
+		return err
+	}
 
-// 	_, ok := existingDeployment.Spec.Template.Annotations[configVersion]
-// 	if ok {
-// 		i, err := strconv.Atoi(existingDeployment.Spec.Template.Annotations[configVersion])
-// 		if err != nil {
-// 			return err
-// 		}
+	_, ok := existingDeployment.Spec.Template.Annotations[configVersion]
+	if ok {
+		i, err := strconv.Atoi(existingDeployment.Spec.Template.Annotations[configVersion])
+		if err != nil {
+			return err
+		}
 
-// 		existingDeployment.Spec.Template.Annotations[configVersion] = strconv.Itoa(i + 1)
-// 	} else {
-// 		existingDeployment.Spec.Template.Annotations[configVersion] = "1"
-// 	}
+		existingDeployment.Spec.Template.Annotations[configVersion] = strconv.Itoa(i + 1)
+	} else {
+		existingDeployment.Spec.Template.Annotations[configVersion] = "1"
+	}
 
-// 	log.Info("Rolling FalconImageAnalyzer Deployment due to non-deployment configuration change")
-// 	if err := k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, existingDeployment); err != nil {
-// 		return err
-// 	}
+	log.Info("Rolling FalconImageAnalyzer Deployment due to non-deployment configuration change")
+	if err := k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, existingDeployment); err != nil {
+		return err
+	}
 
-// 	return nil
-// }
+	return nil
+}
