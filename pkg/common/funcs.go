@@ -29,32 +29,6 @@ func InitCleanupArgs() []string {
 	}
 }
 
-func LegacyInitContainerArgs() []string {
-	return []string{
-		"-c",
-		// Versions of falcon-sensor 6.53+ will contain an init binary that we invoke
-		`if [ -x "` + FalconDaemonsetInitBinary + `" ]; then ` +
-			`echo "Executing ` + FalconDaemonsetInitBinaryInvocation + `"; ` + FalconDaemonsetInitBinaryInvocation + ` ; else ` +
-			`if [ -d "` + FalconInitStoreFile + `" ]; then echo "Re-creating ` + FalconStoreFile + ` as it is a directory instead of a file"; rm -rf ` + FalconInitStoreFile + `; fi; ` +
-			`mkdir -p ` + FalconInitDataDir +
-			` && ` +
-			`touch ` + FalconInitStoreFile +
-			`; fi`,
-	}
-}
-
-func LegacyInitCleanupArgs() []string {
-	return []string{
-		"-c",
-		// Versions of falcon-sensor 6.53+ will contain an init binary that we invoke with a cleanup argument
-		`if [ -x "` + FalconDaemonsetCleanupBinary + `" ]; then ` +
-			`echo "Running ` + FalconDaemonsetCleanupBinaryInvocation + `"; ` + FalconDaemonsetCleanupBinaryInvocation + `; else ` +
-			`echo "Manually removing ` + FalconInitDataDir + `"; ` +
-			`rm -rf ` + FalconInitDataDir +
-			`; fi`,
-	}
-}
-
 func CleanupSleep() []string {
 	return []string{
 		"-c",

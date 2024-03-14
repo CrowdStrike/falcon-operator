@@ -163,40 +163,9 @@ func dsResources(node *falconv1alpha1.FalconNodeSensor) corev1.ResourceRequireme
 	return corev1.ResourceRequirements{}
 }
 
-// initArgs - remove this function when 6.53 is no longer supported. 6.53+ will use InitContainerArgs()
-func initArgs(node *falconv1alpha1.FalconNodeSensor) []string {
-	if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled {
-		return common.InitContainerArgs()
-	}
-	return common.LegacyInitContainerArgs()
-}
-
-// cleanupArgs - remove this function when 6.53 is no longer supported. 6.53+ will use InitCleanupArgs()
-func cleanupArgs(node *falconv1alpha1.FalconNodeSensor) []string {
-	if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled {
-		return common.InitCleanupArgs()
-	}
-	return common.LegacyInitCleanupArgs()
-}
-
-// volumes - remove this function when 6.53 is no longer supported. 6.53+ will only use falconstore
-func volumes(node *falconv1alpha1.FalconNodeSensor) []corev1.Volume {
+// volumes returns the volumes for the daemonset
+func volumes() []corev1.Volume {
 	pathTypeUnset := corev1.HostPathUnset
-	pathDirCreate := corev1.HostPathDirectoryOrCreate
-
-	if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled {
-		return []corev1.Volume{
-			{
-				Name: "falconstore",
-				VolumeSource: corev1.VolumeSource{
-					HostPath: &corev1.HostPathVolumeSource{
-						Path: common.FalconStoreFile,
-						Type: &pathTypeUnset,
-					},
-				},
-			},
-		}
-	}
 
 	return []corev1.Volume{
 		{
@@ -205,44 +174,6 @@ func volumes(node *falconv1alpha1.FalconNodeSensor) []corev1.Volume {
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: common.FalconStoreFile,
 					Type: &pathTypeUnset,
-				},
-			},
-		},
-		{
-			Name: "falconstore-hostdir",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: common.FalconHostInstallDir,
-					Type: &pathDirCreate,
-				},
-			},
-		},
-	}
-}
-
-func volumeMounts(node *falconv1alpha1.FalconNodeSensor, name string) []corev1.VolumeMount {
-	if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled {
-		return []corev1.VolumeMount{}
-	}
-
-	return []corev1.VolumeMount{
-		{
-			Name:      name,
-			MountPath: common.FalconInitHostInstallDir,
-		},
-	}
-}
-
-func volumesCleanup(node *falconv1alpha1.FalconNodeSensor) []corev1.Volume {
-	if node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled {
-		return []corev1.Volume{}
-	}
-	return []corev1.Volume{
-		{
-			Name: "opt-crowdstrike",
-			VolumeSource: corev1.VolumeSource{
-				HostPath: &corev1.HostPathVolumeSource{
-					Path: common.FalconHostInstallDir,
 				},
 			},
 		},
@@ -290,12 +221,11 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 					ImagePullSecrets:              pullSecrets(node),
 					InitContainers: []corev1.Container{
 						{
-							Name:         "init-falconstore",
-							Image:        image,
-							Command:      common.FalconShellCommand,
-							Args:         initArgs(node),
-							VolumeMounts: volumeMounts(node, "falconstore-hostdir"),
-							Resources:    initContainerResources(node),
+							Name:      "init-falconstore",
+							Image:     image,
+							Command:   common.FalconShellCommand,
+							Args:      common.InitContainerArgs(),
+							Resources: initContainerResources(node),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
@@ -336,7 +266,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 							Resources: dsResources(node),
 						},
 					},
-					Volumes:           volumes(node),
+					Volumes:           volumes(),
 					PriorityClassName: node.Spec.Node.PriorityClass.Name,
 				},
 			},
@@ -383,7 +313,7 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 							Name:      "cleanup-opt-crowdstrike",
 							Image:     image,
 							Command:   common.FalconShellCommand,
-							Args:      cleanupArgs(node),
+							Args:      common.InitCleanupArgs(),
 							Resources: initContainerResources(node),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
@@ -392,7 +322,6 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 								AllowPrivilegeEscalation: &escalation,
 								Capabilities:             sensorCapabilities(node, true),
 							},
-							VolumeMounts: volumeMounts(node, "opt-crowdstrike"),
 						},
 					},
 					ServiceAccountName: serviceAccount,
@@ -410,7 +339,6 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 							},
 						},
 					},
-					Volumes: volumesCleanup(node),
 				},
 			},
 		},

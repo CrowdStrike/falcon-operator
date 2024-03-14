@@ -10,8 +10,6 @@ const (
 	FalconStoreFile                        = "/opt/CrowdStrike/falconstore"
 	FalconInitStoreFile                    = "/host_opt/CrowdStrike/falconstore"
 	FalconDaemonsetInitBinary              = "/opt/CrowdStrike/falcon-daemonset-init -i"
-	FalconDaemonsetInitBinaryInvocation    = "falcon-daemonset-init -i"
-	FalconDaemonsetCleanupBinaryInvocation = "falcon-daemonset-init -u"
 	FalconDaemonsetCleanupBinary           = "/opt/CrowdStrike/falcon-daemonset-init -u"
 	FalconContainerProbePath               = "/live"
 	FalconAdmissionClientStartupProbePath  = "/startz"
