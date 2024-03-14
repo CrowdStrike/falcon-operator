@@ -31,20 +31,6 @@ func TestInitCleanupArgs(t *testing.T) {
 	}
 }
 
-func TestLegacyInitContainerArgs(t *testing.T) {
-	want := []string{"-c", `if [ -x "/opt/CrowdStrike/falcon-daemonset-init -i" ]; then echo "Executing falcon-daemonset-init -i"; falcon-daemonset-init -i ; else if [ -d "/host_opt/CrowdStrike/falconstore" ]; then echo "Re-creating /opt/CrowdStrike/falconstore as it is a directory instead of a file"; rm -rf /host_opt/CrowdStrike/falconstore; fi; mkdir -p /host_opt/CrowdStrike/ && touch /host_opt/CrowdStrike/falconstore; fi`}
-	if got := LegacyInitContainerArgs(); !reflect.DeepEqual(got, want) {
-		t.Errorf("LegacyInitContainerArgs() = %v, want %v", got, want)
-	}
-}
-
-func TestLegacyInitCleanupArgs(t *testing.T) {
-	want := []string{"-c", `if [ -x "/opt/CrowdStrike/falcon-daemonset-init -u" ]; then echo "Running falcon-daemonset-init -u"; falcon-daemonset-init -u; else echo "Manually removing /host_opt/CrowdStrike/"; rm -rf /host_opt/CrowdStrike/; fi`}
-	if got := LegacyInitCleanupArgs(); !reflect.DeepEqual(got, want) {
-		t.Errorf("LegacyInitCleanupArgs() = %v, want %v", got, want)
-	}
-}
-
 func TestCleanupSleep(t *testing.T) {
 	want := []string{"-c", "sleep 10"}
 	if got := CleanupSleep(); !reflect.DeepEqual(got, want) {
