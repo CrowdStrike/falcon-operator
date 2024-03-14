@@ -198,7 +198,6 @@ func TestDaemonset(t *testing.T) {
 	hostipc := true
 	runAsRoot := int64(0)
 	pathTypeUnset := corev1.HostPathUnset
-	pathDirCreate := corev1.HostPathDirectoryOrCreate
 
 	want := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -231,19 +230,13 @@ func TestDaemonset(t *testing.T) {
 							Name:      "init-falconstore",
 							Image:     image,
 							Command:   common.FalconShellCommand,
-							Args:      initArgs(&falconNode),
+							Args:      common.InitContainerArgs(),
 							Resources: initContainerResources(&falconNode),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
 								ReadOnlyRootFilesystem:   &readOnlyFSEnabled,
 								AllowPrivilegeEscalation: &escalation,
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "falconstore-hostdir",
-									MountPath: common.FalconInitHostInstallDir,
-								},
 							},
 						},
 					},
@@ -284,15 +277,6 @@ func TestDaemonset(t *testing.T) {
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: common.FalconStoreFile,
 									Type: &pathTypeUnset,
-								},
-							},
-						},
-						{
-							Name: "falconstore-hostdir",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: common.FalconHostInstallDir,
-									Type: &pathDirCreate,
 								},
 							},
 						},
@@ -351,19 +335,13 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 							Name:      "cleanup-opt-crowdstrike",
 							Image:     image,
 							Command:   common.FalconShellCommand,
-							Args:      cleanupArgs(&falconNode),
+							Args:      common.InitCleanupArgs(),
 							Resources: initContainerResources(&falconNode),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
 								ReadOnlyRootFilesystem:   &readOnlyFs,
 								AllowPrivilegeEscalation: &escalation,
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "opt-crowdstrike",
-									MountPath: common.FalconInitHostInstallDir,
-								},
 							},
 						},
 					},
@@ -379,16 +357,6 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 								Privileged:               &nonPrivileged,
 								ReadOnlyRootFilesystem:   &readOnlyFs,
 								AllowPrivilegeEscalation: &allowEscalation,
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "opt-crowdstrike",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: common.FalconHostInstallDir,
-								},
 							},
 						},
 					},
