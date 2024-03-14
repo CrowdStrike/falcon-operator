@@ -101,7 +101,7 @@ metadata:
     capabilities: Basic Install
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2024-03-07T18:18:21Z"
+    createdAt: "2024-03-14T17:07:20Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -118,7 +118,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4-alpha
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
-  name: falcon-operator.v0.9.4
+  name: falcon-operator.v0.9.5
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1027,7 +1027,7 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: OPERATOR_NAME
                   value: falcon-operator
-                image: quay.io/crowdstrike/falcon-operator:0.9.4
+                image: quay.io/crowdstrike/falcon-operator:0.9.5
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -1150,4 +1150,4 @@ spec:
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
-  version: 0.9.4
+  version: 0.9.5
