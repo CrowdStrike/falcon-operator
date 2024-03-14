@@ -14,8 +14,13 @@ func (reg *FalconRegistry) LastContainerTag(ctx context.Context, sensorType falc
 	}
 
 	return lastTag(ctx, systemContext, reg.imageUriContainer(sensorType), func(tag string) bool {
+		tagContains := ".container.x86_64"
+		if sensorType == falcon.ImageSensor {
+			tagContains = ""
+		}
+
 		return (tag[0] >= '0' && tag[0] <= '9' &&
-			strings.Contains(tag, ".container.x86_64") &&
+			strings.Contains(tag, tagContains) &&
 			(versionRequested == nil || strings.HasPrefix(tag, *versionRequested)))
 	})
 }
