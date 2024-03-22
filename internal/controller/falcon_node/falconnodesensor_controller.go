@@ -6,6 +6,7 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
+	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/node"
@@ -84,6 +85,23 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 		// Error reading the object - requeue the request.
 		logger.Error(err, "Failed to get FalconNodeSensor")
+		return ctrl.Result{}, err
+	}
+
+	validate, err := k8sutils.CheckRunningPodLabels(r.Client, ctx, nodesensor.Spec.InstallNamespace, common.CRLabels("daemonset", nodesensor.Name, common.FalconKernelSensor))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !validate {
+		err = r.conditionsUpdate(falconv1alpha1.ConditionFailed,
+			metav1.ConditionFalse,
+			falconv1alpha1.ReasonReqNotMet,
+			"FalconNodeSensor must not be installed in a namespace with other workloads running. Please change the namespace in the CR configuration.",
+			ctx, nodesensor, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		logger.Error(nil, "FalconNodeSensor is attempting to install in a namespace with existing pods. Please update the CR configuration to a namespace that does not have workoads already running.")
 		return ctrl.Result{}, err
 	}
 

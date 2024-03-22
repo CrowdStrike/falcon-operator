@@ -15,7 +15,7 @@ type FalconNodeSensorSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Namespace where the Falcon Admission Controller should be installed.
+	// Namespace where the Falcon Sensor should be installed.
 	// For best security practices, this should be a dedicated namespace that is not used for any other purpose.
 	// It also should not be the same namespace where the Falcon Operator, or other Falcon resources.
 	// +kubebuilder:default:=falcon-system
