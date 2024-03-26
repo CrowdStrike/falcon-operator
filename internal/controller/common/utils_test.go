@@ -25,6 +25,51 @@ func getFakeClient(initObjs ...client.Object) (client.WithWatch, error) {
 	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(initObjs...).Build(), nil
 }
 
+func TestCheckRunningPodLabels(t *testing.T) {
+	ctx := context.Background()
+
+	fakeClient, err := getFakeClient()
+	if err != nil {
+		t.Fatalf("TestCheckRunningPodLabels getFakeClient() error = %v", err)
+	}
+
+	err = fakeClient.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}})
+	if err != nil {
+		t.Fatalf("TestCheckRunningPodLabels Create() error = %v", err)
+	}
+
+	testLabel := map[string]string{"crowdstrike.com/provider": "crowdstrike", "testLabel": "testPod"}
+	err = fakeClient.Create(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod", Namespace: "test-namespace", Labels: testLabel}})
+	if err != nil {
+		t.Fatalf("TestCheckRunningPodLabels Create() error = %v", err)
+	}
+
+	matchingLabels := client.MatchingLabels{"testLabel": "testPod"}
+
+	got, err := CheckRunningPodLabels(fakeClient, ctx, "test-namespace", matchingLabels)
+	if err != nil {
+		t.Errorf("CheckRunningPodLabels() error = %v", err)
+	}
+
+	want := true
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("CheckRunningPodLabels() mismatch (-want +got):\n%s", diff)
+	}
+
+	// Test with non-matching labels
+	matchingLabels = client.MatchingLabels{"testLabel": "nonMatchingValue"}
+
+	got, err = CheckRunningPodLabels(fakeClient, ctx, "test-namespace", matchingLabels)
+	if err != nil {
+		t.Errorf("CheckRunningPodLabels() error = %v", err)
+	}
+
+	want = false
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("CheckRunningPodLabels() mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestGetReadyPod(t *testing.T) {
 	ctx := context.Background()
 

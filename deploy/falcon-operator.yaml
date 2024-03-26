@@ -2743,6 +2743,13 @@ spec:
                 - client_secret
                 - cloud_region
                 type: object
+              installNamespace:
+                default: falcon-system
+                description: Namespace where the Falcon Sensor should be installed.
+                  For best security practices, this should be a dedicated namespace
+                  that is not used for any other purpose. It also should not be the
+                  same namespace where the Falcon Operator, or other Falcon resources.
+                type: string
               node:
                 description: Various configuration for DaemonSet Deployment
                 properties:
