@@ -23,7 +23,7 @@ func TestSideCarDeployment(t *testing.T) {
 	port := int32(123)
 	falconContainer.Spec.Injector.ListenPort = &port
 	falconContainer.Spec.Injector.Replicas = &port
-	want := testSideCarDeployment("test", "test", "test", "test", falconContainer)
+	want := testSideCarDeployment("test", "test", "test", falconContainer)
 
 	got := SideCarDeployment("test", "test", "test", "test", falconContainer)
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -77,7 +77,7 @@ func TestAdmissionDepUpdateStrategy(t *testing.T) {
 }
 
 // testSideCarDeployment is a helper function to create a Deployment object for testing
-func testSideCarDeployment(name string, namespace string, component string, imageUri string, falconContainer *falconv1alpha1.FalconContainer) *appsv1.Deployment {
+func testSideCarDeployment(name string, component string, imageUri string, falconContainer *falconv1alpha1.FalconContainer) *appsv1.Deployment {
 	replicas := int32(123)
 	initContainerName := "crowdstrike-falcon-init-container"
 	injectorConfigMapName := "falcon-sidecar-injector-config"

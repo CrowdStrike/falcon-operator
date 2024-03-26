@@ -360,10 +360,8 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 func (r *FalconNodeSensorReconciler) handleNamespace(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
 	ns := corev1.Namespace{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: nodesensor.TargetNs()}, &ns)
-	if err == nil {
-		if err != nil && !errors.IsNotFound(err) {
-			return false, err
-		}
+	if err != nil && !errors.IsNotFound(err) {
+		return false, err
 	}
 
 	ns = corev1.Namespace{
@@ -723,7 +721,7 @@ func (r *FalconNodeSensorReconciler) handlePermissions(ctx context.Context, node
 func (r *FalconNodeSensorReconciler) handleClusterRoleBinding(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
 	binding := rbacv1.ClusterRoleBinding{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeClusterRoleBindingName}, &binding)
-	if err == nil || (err != nil && !errors.IsNotFound(err)) {
+	if err == nil || !errors.IsNotFound(err) {
 		return false, err
 	}
 	binding = rbacv1.ClusterRoleBinding{
@@ -766,7 +764,7 @@ func (r *FalconNodeSensorReconciler) handleClusterRoleBinding(ctx context.Contex
 func (r *FalconNodeSensorReconciler) handleServiceAccount(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
 	sa := corev1.ServiceAccount{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.TargetNs()}, &sa)
-	if err == nil || (err != nil && !errors.IsNotFound(err)) {
+	if err == nil || !errors.IsNotFound(err) {
 		return false, err
 	}
 	sa = corev1.ServiceAccount{

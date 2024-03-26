@@ -52,7 +52,7 @@ func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context,
 }
 
 func (r *FalconContainerReconciler) reconcileClusterRoleBinding(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*rbacv1.ClusterRoleBinding, error) {
-	clusterRoleBinding := r.newClusterRoleBinding(falconContainer)
+	clusterRoleBinding := r.newClusterRoleBinding()
 	existingClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorClusterRoleBindingName}, existingClusterRoleBinding)
 	if err != nil {
@@ -102,7 +102,7 @@ func (r *FalconContainerReconciler) newServiceAccount(falconContainer *falconv1a
 	}
 }
 
-func (r *FalconContainerReconciler) newClusterRoleBinding(falconContainer *falconv1alpha1.FalconContainer) *rbacv1.ClusterRoleBinding {
+func (r *FalconContainerReconciler) newClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: rbacv1.SchemeGroupVersion.String(),
