@@ -248,9 +248,9 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		dsTarget := assets.Daemonset(dsUpdate.Name, image, serviceAccount, nodesensor)
 
 		// Objects to check for updates to re-spin pods
-		imgUpdate := updateDaemonSetImages(dsUpdate, image, nodesensor, logger)
+		imgUpdate := updateDaemonSetImages(dsUpdate, image, logger)
 		tolsUpdate := updateDaemonSetTolerations(dsUpdate, nodesensor, logger)
-		affUpdate := updateDaemonSetAffinity(dsUpdate, dsTarget, nodesensor, logger)
+		affUpdate := updateDaemonSetAffinity(dsUpdate, nodesensor, logger)
 		containerVolUpdate := updateDaemonSetContainerVolumes(dsUpdate, dsTarget, logger)
 		volumeUpdates := updateDaemonSetVolumes(dsUpdate, dsTarget, logger)
 		resources := updateDaemonSetResources(dsUpdate, dsTarget, logger)
@@ -258,7 +258,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		pc := updateDaemonSetPriorityClass(dsUpdate, dsTarget, logger)
 		capabilities := updateDaemonSetCapabilities(dsUpdate, dsTarget, logger)
 		initArgs := updateDaemonSetInitArgs(dsUpdate, dsTarget, logger)
-		updated = updateDaemonSetContainerProxy(dsUpdate, nodesensor, logger)
+		updated = updateDaemonSetContainerProxy(dsUpdate, logger)
 
 		// Update the daemonset and re-spin pods with changes
 		if imgUpdate || tolsUpdate || affUpdate || containerVolUpdate || volumeUpdates || resources || pc || capabilities || initArgs || initResources || updated {
@@ -360,7 +360,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 func (r *FalconNodeSensorReconciler) handleNamespace(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
 	ns := corev1.Namespace{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: nodesensor.TargetNs()}, &ns)
-	if err == nil || (err != nil && !errors.IsNotFound(err)) {
+	if err != nil && !errors.IsNotFound(err) {
 		return false, err
 	}
 
@@ -543,7 +543,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 	return nil
 }
 
-func updateDaemonSetContainerProxy(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+func updateDaemonSetContainerProxy(ds *appsv1.DaemonSet, logger logr.Logger) bool {
 	updated := false
 	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
 		for i, container := range ds.Spec.Template.Spec.Containers {
@@ -579,7 +579,7 @@ func updateDaemonSetTolerations(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1
 }
 
 // If an update is needed, this will update the affinity from the given DaemonSet
-func updateDaemonSetAffinity(ds, origDS *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+func updateDaemonSetAffinity(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
 	nodeAffinity := ds.Spec.Template.Spec.Affinity
 	origNodeAffinity := corev1.Affinity{NodeAffinity: &nodesensor.Spec.Node.NodeAffinity}
 	affinityUpdate := !equality.Semantic.DeepEqual(nodeAffinity.NodeAffinity, origNodeAffinity.NodeAffinity)
@@ -622,7 +622,7 @@ func updateDaemonSetVolumes(ds, origDS *appsv1.DaemonSet, logger logr.Logger) bo
 }
 
 // If an update is needed, this will update the InitContainer image reference from the given DaemonSet
-func updateDaemonSetImages(ds *appsv1.DaemonSet, origImg string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+func updateDaemonSetImages(ds *appsv1.DaemonSet, origImg string, logger logr.Logger) bool {
 	initImage := &ds.Spec.Template.Spec.InitContainers[0].Image
 	imgUpdate := *initImage != origImg
 	if imgUpdate {
@@ -721,7 +721,7 @@ func (r *FalconNodeSensorReconciler) handlePermissions(ctx context.Context, node
 func (r *FalconNodeSensorReconciler) handleClusterRoleBinding(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
 	binding := rbacv1.ClusterRoleBinding{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeClusterRoleBindingName}, &binding)
-	if err == nil || (err != nil && !errors.IsNotFound(err)) {
+	if err == nil || !errors.IsNotFound(err) {
 		return false, err
 	}
 	binding = rbacv1.ClusterRoleBinding{
@@ -764,7 +764,7 @@ func (r *FalconNodeSensorReconciler) handleClusterRoleBinding(ctx context.Contex
 func (r *FalconNodeSensorReconciler) handleServiceAccount(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
 	sa := corev1.ServiceAccount{}
 	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.TargetNs()}, &sa)
-	if err == nil || (err != nil && !errors.IsNotFound(err)) {
+	if err == nil || !errors.IsNotFound(err) {
 		return false, err
 	}
 	sa = corev1.ServiceAccount{
