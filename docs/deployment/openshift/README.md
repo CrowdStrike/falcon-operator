@@ -284,6 +284,17 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
 </details>
 </details>
 
+## Upgrading
+
+<details>
+  <summary>Click to expand</summary>
+
+When the operator was installed in OpenShift, the choice was given to use either an `Automatic` approval strategy or a `Manual` approval strategy.
+If an `Automatic` approval strategy was chosen, the operator will update itself when OpenShift detects a new version in the update channel.
+If a `Manual` approval strategy was chosen, the update must be approved for the operator to update. See [https://docs.openshift.com/container-platform/4.14/operators/admin/olm-upgrading-operators.html#olm-approving-pending-upgrade_olm-upgrading-operators](https://docs.openshift.com/container-platform/4.14/operators/admin/olm-upgrading-operators.html#olm-approving-pending-upgrade_olm-upgrading-operators).
+
+</details>
+
 ## Uninstalling
 
 > [!WARNING]
@@ -414,6 +425,16 @@ The sidecar sensor is not intended for OpenShift. If you installed it by mistake
 - Remove the ClusterServiceVersion for the operator. In this example, version 0.8.0 will be removed:
   ```
   oc delete csv falcon-operator.v0.8.0 -n falcon-operator
+  ```
+
+- Delete the Custom Resource Definitions (CRDs)
+  ```
+  oc delete crd $(oc get crd | grep falcon)
+  ```
+
+- Delete the operator namespace:
+  ```
+  oc delete project falcon-operator
   ```
 
 </details>

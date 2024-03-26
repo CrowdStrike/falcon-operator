@@ -72,6 +72,26 @@ After the Falcon Operator has deployed, you can now deploy the Falcon Node Senso
 
 </details>
 
+## Upgrading
+
+<details>
+  <summary>Click to expand</summary>
+
+To upgrade, run the following command:
+
+```sh
+kubectl apply -f https://github.com/crowdstrike/falcon-operator/releases/latest/download/falcon-operator.yaml
+```
+
+If you want to upgrade to a specific version, replace `latest` with the desired version number in the URL:
+
+```sh
+VERSION=1.2.3
+kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/download/${VERSION}/falcon-operator.yaml
+```
+
+</details>
+
 ## Uninstalling
 
 > [!WARNING]
