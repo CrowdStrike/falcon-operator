@@ -116,13 +116,13 @@ func (r *FalconImageAnalyzerReconciler) reconcileClusterRoleBinding(ctx context.
 	return nil
 }
 
-func Role(name string, namespace string) *rbacv1.Role {
+func Role(name string, namespace string) *rbacv1.ClusterRole {
 	labels := common.CRLabels("role", name, common.FalconImageAnalyzer)
 
-	return &rbacv1.Role{
+	return &rbacv1.ClusterRole{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: rbacv1.SchemeGroupVersion.String(),
-			Kind:       "Role",
+			Kind:       "ClusterRole",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -150,10 +150,10 @@ func Role(name string, namespace string) *rbacv1.Role {
 }
 
 func (r *FalconImageAnalyzerReconciler) reconcileClusterRole(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) error {
-	role := Role("falcon-image-controller-role", falconImageAnalyzer.Spec.InstallNamespace)
+	role := Role(imageClusterRoleName, falconImageAnalyzer.Spec.InstallNamespace)
 	existingRole := &rbacv1.Role{}
 
-	err := r.Get(ctx, types.NamespacedName{Name: "falcon-image-controller-role", Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingRole)
+	err := r.Get(ctx, types.NamespacedName{Name: imageClusterRoleName, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingRole)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, role)
 		if err != nil {
