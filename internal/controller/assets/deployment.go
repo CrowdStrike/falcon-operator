@@ -253,29 +253,9 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 	azureConfig := "/etc/kubernetes/azure.json"
 	labels := common.CRLabels("deployment", name, component)
 	var replicaCount int32 = 1
-	initContainers := []corev1.Container{}
-	chartName := "falcon-image-analyzer"
 	hostPathFile := corev1.HostPathFile
 	var rootUid int64 = 0
-	initRunAsNonRoot := false
 	privileged := false
-
-	initContainers = append(initContainers, corev1.Container{
-		Name:            chartName + "-init-container",
-		ImagePullPolicy: falconImageAnalyzer.Spec.ImageAnalyzerConfig.ImagePullPolicy,
-		Image:           imageUri,
-		Command: []string{
-			"bash",
-			"-c",
-			"curl -sS -H 'Metadata-Flavor: Google' 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' --retry 30 --retry-connrefused --retry-max-time 60 --connect-timeout 3 --fail --retry-all-errors > /dev/null && exit 0 || echo 'Retry limit exceeded. Failed to wait for metadata server to be available. Check if the gke-metadata-server Pod in the kube-system namespace is healthy.' >&2; exit 1",
-		},
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser:    &rootUid,
-			RunAsNonRoot: &initRunAsNonRoot,
-			Privileged:   &privileged,
-		},
-	},
-	)
 
 	volumes := []corev1.Volume{
 		{
@@ -333,17 +313,6 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 							},
 						},
 					},
-					TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
-						{
-							MaxSkew:           1,
-							TopologyKey:       "kubernetes.io/hostname",
-							WhenUnsatisfiable: corev1.ScheduleAnyway,
-							LabelSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{common.FalconInstanceNameKey: name},
-							},
-						},
-					},
-					InitContainers: initContainers,
 					Containers: []corev1.Container{
 						{
 							Name: "falcon-client",
@@ -359,7 +328,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: name,
+											Name: name + "-config",
 										},
 									},
 								},
