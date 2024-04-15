@@ -148,31 +148,3 @@ func Role(name string, namespace string) *rbacv1.ClusterRole {
 		},
 	}
 }
-
-func (r *FalconImageAnalyzerReconciler) reconcileClusterRole(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) error {
-	role := Role(imageClusterRoleName, falconImageAnalyzer.Spec.InstallNamespace)
-	existingRole := &rbacv1.Role{}
-
-	err := r.Get(ctx, types.NamespacedName{Name: imageClusterRoleName, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingRole)
-	if err != nil && apierrors.IsNotFound(err) {
-		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, role)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	} else if err != nil {
-		log.Error(err, "Failed to get FalconImageAnalyzer Role")
-		return err
-	}
-
-	if !reflect.DeepEqual(role.Rules, existingRole.Rules) {
-		existingRole.Rules = role.Rules
-		err = k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, existingRole)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
