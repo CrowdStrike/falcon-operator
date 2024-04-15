@@ -926,7 +926,6 @@ func (in *FalconImageAnalyzerSpec) DeepCopyInto(out *FalconImageAnalyzerSpec) {
 		*out = new(FalconAPI)
 		(*in).DeepCopyInto(*out)
 	}
-	out.ResQuota = in.ResQuota
 	in.Registry.DeepCopyInto(&out.Registry)
 	in.ImageAnalyzerConfig.DeepCopyInto(&out.ImageAnalyzerConfig)
 	if in.Version != nil {
