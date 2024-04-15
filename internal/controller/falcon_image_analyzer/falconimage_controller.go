@@ -20,11 +20,11 @@ import (
 	"github.com/operator-framework/operator-lib/proxy"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -43,28 +43,26 @@ type FalconImageAnalyzerReconciler struct {
 func (r *FalconImageAnalyzerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&falconv1alpha1.FalconImageAnalyzer{}).
+		Owns(&corev1.Namespace{}).
 		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.ResourceQuota{}).
 		Owns(&corev1.Secret{}).
 		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.Service{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&rbacv1.ClusterRoleBinding{}).
 		Complete(r)
 }
 
-//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconimageanalyzer,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconimageanalyzer/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconimageanalyzer/finalizers,verbs=update
+//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconimageanalyzers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconimageanalyzers/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconimageanalyzers/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;delete
-//+kubebuilder:rbac:groups="",resources=resourcequotas,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;delete
-//+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;delete
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;update
-//+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch;
 //+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;delete
-//+kubebuilder:rbac:groups="coordination.k8s.io",resources=leases,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="image.openshift.io",resources=imagestreams,verbs=get;list;watch;create;update;delete
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=create;get;list;update;watch;delete
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=create;get;list;update;watch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=create;get;list;update;watch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -188,11 +186,8 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 
-	if err := r.reconcileClusterRole(ctx, req, log, falconImageAnalyzer); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if err := r.reconcileResourceQuota(ctx, req, log, falconImageAnalyzer); err != nil {
+	configUpdated, err := r.reconcileConfigMap(ctx, req, log, falconImageAnalyzer)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -200,29 +195,6 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	pod, err := k8sutils.GetReadyPod(r.Client, ctx, falconImageAnalyzer.Spec.InstallNamespace, map[string]string{common.FalconComponentKey: common.FalconImageAnalyzer})
-	if err != nil && err.Error() != "No webhook service pod found in a Ready state" {
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		log.Error(err, "Failed to find Ready Image Analyzer pod")
-		return ctrl.Result{}, err
-	}
-	if pod.Name == "" {
-		log.Info("Looking for a Ready Image Analyzer pod", "namespace", falconImageAnalyzer.Spec.InstallNamespace)
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-	}
-
-	configUpdated, err := r.reconcileConfigMap(ctx, req, log, falconImageAnalyzer)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// serviceUpdated, err := r.reconcileService(ctx, req, log, falconImageAnalyzer)
-	// if err != nil {
-	// 	return ctrl.Result{}, err
-	// }
 
 	if configUpdated {
 		err = r.imageAnalyzerDeploymentUpdate(ctx, req, log, falconImageAnalyzer)
@@ -246,85 +218,10 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 	return ctrl.Result{}, nil
 }
 
-func (r *FalconImageAnalyzerReconciler) reconcileResourceQuota(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) error {
-	existingRQ := &corev1.ResourceQuota{}
-	defaultPodLimit := "5"
-
-	if falconImageAnalyzer.Spec.ResQuota.PodLimit != "" {
-		defaultPodLimit = falconImageAnalyzer.Spec.ResQuota.PodLimit
-	}
-
-	rq := assets.ResourceQuota(falconImageAnalyzer.Name, falconImageAnalyzer.Spec.InstallNamespace, common.FalconImageAnalyzer, defaultPodLimit)
-
-	err := r.Get(ctx, types.NamespacedName{Name: falconImageAnalyzer.Name, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingRQ)
-	if err != nil && apierrors.IsNotFound(err) {
-		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, rq)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	} else if err != nil {
-		log.Error(err, "Failed to get FalconImageAnalyzer ResourceQuota")
-		return err
-	}
-
-	podLimit := resource.MustParse(defaultPodLimit)
-	if existingRQ.Spec.Hard["pods"] != podLimit {
-		err = k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, rq)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// func (r *FalconImageAnalyzerReconciler) reconcileService(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) (bool, error) {
-// 	existingService := &corev1.Service{}
-// 	selector := map[string]string{common.FalconComponentKey: common.FalconImageAnalyzer}
-// 	port := int32(443)
-
-// 	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.Port != nil {
-// 		port = *falconImageAnalyzer.Spec.ImageAnalyzerConfig.Port
-// 	}
-
-// 	service := assets.Service(falconImageAnalyzer.Name, falconImageAnalyzer.Spec.InstallNamespace, common.FalconImageAnalyzer, selector, common.FalconImageAnalyzerServiceHTTPSName, port)
-
-// 	err := r.Get(ctx, types.NamespacedName{Name: falconImageAnalyzer.Name, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingService)
-// 	if err != nil && apierrors.IsNotFound(err) {
-// 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, service)
-// 		if err != nil {
-// 			return false, err
-// 		}
-
-// 		return false, nil
-// 	} else if err != nil {
-// 		log.Error(err, "Failed to get FalconImageAnalyzer Service")
-// 		return false, err
-// 	}
-
-// 	if !reflect.DeepEqual(service.Spec.Ports, existingService.Spec.Ports) {
-// 		existingService.Spec.Ports = service.Spec.Ports
-// 		if err := k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, existingService); err != nil {
-// 			return false, err
-// 		}
-
-// 		return true, nil
-// 	}
-
-// 	return false, nil
-// }
-
 func (r *FalconImageAnalyzerReconciler) reconcileImageAnalyzerDeployment(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) error {
 	imageUri, err := r.imageUri(ctx, falconImageAnalyzer)
 	if err != nil {
 		return fmt.Errorf("unable to determine falcon container image URI: %v", err)
-	}
-
-	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.ContainerPort == nil {
-		port := int32(4443)
-		falconImageAnalyzer.Spec.ImageAnalyzerConfig.ContainerPort = &port
 	}
 
 	existingDeployment := &appsv1.Deployment{}
@@ -391,33 +288,6 @@ func (r *FalconImageAnalyzerReconciler) reconcileImageAnalyzerDeployment(ctx con
 	if !reflect.DeepEqual(existingDeployment.Spec.Strategy.RollingUpdate, dep.Spec.Strategy.RollingUpdate) {
 		existingDeployment.Spec.Strategy.RollingUpdate = dep.Spec.Strategy.RollingUpdate
 		updated = true
-	}
-
-	if !reflect.DeepEqual(dep.Spec.Replicas, existingDeployment.Spec.Replicas) {
-		existingDeployment.Spec.Replicas = dep.Spec.Replicas
-		updated = true
-	}
-
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.TopologySpreadConstraints, existingDeployment.Spec.Template.Spec.TopologySpreadConstraints) {
-		existingDeployment.Spec.Template.Spec.TopologySpreadConstraints = dep.Spec.Template.Spec.TopologySpreadConstraints
-		updated = true
-	}
-
-	for i, containers := range dep.Spec.Template.Spec.Containers {
-		if !reflect.DeepEqual(containers.Resources, existingDeployment.Spec.Template.Spec.Containers[i].Resources) {
-			existingDeployment.Spec.Template.Spec.Containers[i].Resources = containers.Resources
-			updated = true
-		}
-
-		if !reflect.DeepEqual(containers.LivenessProbe.ProbeHandler.HTTPGet.Port, existingDeployment.Spec.Template.Spec.Containers[i].LivenessProbe.ProbeHandler.HTTPGet.Port) {
-			existingDeployment.Spec.Template.Spec.Containers[i].LivenessProbe.ProbeHandler.HTTPGet.Port = containers.LivenessProbe.ProbeHandler.HTTPGet.Port
-			updated = true
-		}
-
-		if !reflect.DeepEqual(containers.StartupProbe.ProbeHandler.HTTPGet.Port, existingDeployment.Spec.Template.Spec.Containers[i].StartupProbe.ProbeHandler.HTTPGet.Port) {
-			existingDeployment.Spec.Template.Spec.Containers[i].StartupProbe.ProbeHandler.HTTPGet.Port = containers.StartupProbe.ProbeHandler.HTTPGet.Port
-			updated = true
-		}
 	}
 
 	if updated {
