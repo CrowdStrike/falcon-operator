@@ -3005,17 +3005,6 @@ spec:
                 required:
                 - type
                 type: object
-              resourcequota:
-                description: ResourceQuota configures the ResourceQuota for the Falcon
-                  Image Analyzer. This is useful for limiting the number of pods that
-                  can be created in the namespace.
-                properties:
-                  pods:
-                    default: "2"
-                    description: Limits the number of Image Analyzer pods that can
-                      be created in the namespace.
-                    type: string
-                type: object
               version:
                 description: 'Falcon Image Analyzer Version. The latest version will
                   be selected when version specifier is missing. Example: 6.31, 6.31.0,
@@ -4385,6 +4374,7 @@ spec:
         - name: OPERATOR_NAME
           value: falcon-operator
         image: quay.io/crowdstrike/falcon-operator:0.9.1
+        imagePullPolicy: Always
         livenessProbe:
           httpGet:
             path: /healthz

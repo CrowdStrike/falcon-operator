@@ -18,7 +18,7 @@ type FalconImageAnalyzerSpec struct {
 	// Namespace where the Falcon Image Analyzer should be installed.
 	// For best security practices, this should be a dedicated namespace that is not used for any other purpose.
 	// It also should not be the same namespace where the Falcon Operator or the Falcon Sensor is installed.
-	// +kubebuilder:default:=falcon-image-analyzer
+	// +kubebuilder:default:=falcon-iar
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1,xDescriptors={"urn:alm:descriptor:io.kubernetes:Namespace"}
 	InstallNamespace string `json:"installNamespace,omitempty"`
 
@@ -33,10 +33,6 @@ type FalconImageAnalyzerSpec struct {
 	// If using the API is not desired, the sensor can be manually configured by setting the Image and Version fields.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
-
-	// ResourceQuota configures the ResourceQuota for the Falcon Image Analyzer. This is useful for limiting the number of pods that can be created in the namespace.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Resource Quota",order=4
-	ResQuota FalconImageAnalyzerRQSpec `json:"resourcequota,omitempty"`
 
 	// Registry configures container image registry to which the Image Analyzer image will be pushed.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Registry Configuration",order=6

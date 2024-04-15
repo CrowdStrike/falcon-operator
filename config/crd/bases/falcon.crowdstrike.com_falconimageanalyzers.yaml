@@ -388,7 +388,7 @@ spec:
                     type: object
                 type: object
               installNamespace:
-                default: falcon-image-analyzer
+                default: falcon-iar
                 description: Namespace where the Falcon Image Analyzer should be installed.
                   For best security practices, this should be a dedicated namespace
                   that is not used for any other purpose. It also should not be the
@@ -433,17 +433,6 @@ spec:
                     type: string
                 required:
                 - type
-                type: object
-              resourcequota:
-                description: ResourceQuota configures the ResourceQuota for the Falcon
-                  Image Analyzer. This is useful for limiting the number of pods that
-                  can be created in the namespace.
-                properties:
-                  pods:
-                    default: "2"
-                    description: Limits the number of Image Analyzer pods that can
-                      be created in the namespace.
-                    type: string
                 type: object
               version:
                 description: 'Falcon Image Analyzer Version. The latest version will
