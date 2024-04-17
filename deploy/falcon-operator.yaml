@@ -2959,7 +2959,7 @@ spec:
                     type: object
                 type: object
               installNamespace:
-                default: falcon-image-analyzer
+                default: falcon-iar
                 description: Namespace where the Falcon Image Analyzer should be installed.
                   For best security practices, this should be a dedicated namespace
                   that is not used for any other purpose. It also should not be the
@@ -3906,6 +3906,30 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  labels:
+    crowdstrike.com/component: rbac
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: image-controller-role
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: clusterrole
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
+  name: falcon-operator-image-controller-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - pods
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
   name: falcon-operator-manager-role
 rules:
 - apiGroups:
@@ -4162,7 +4186,7 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimageanalyzer
+  - falconimageanalyzers
   verbs:
   - create
   - delete
@@ -4174,13 +4198,13 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimageanalyzer/finalizers
+  - falconimageanalyzers/finalizers
   verbs:
   - update
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimageanalyzer/status
+  - falconimageanalyzers/status
   verbs:
   - get
   - patch
@@ -4226,6 +4250,17 @@ rules:
   - rbac.authorization.k8s.io
   resources:
   - clusterrolebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
   verbs:
   - create
   - delete
@@ -4373,7 +4408,7 @@ spec:
         - name: WATCH_NAMESPACE
         - name: OPERATOR_NAME
           value: falcon-operator
-        image: quay.io/crowdstrike/falcon-operator:0.9.1
+        image: quay.io/crowdstrike/falcon-operator:iartest
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
