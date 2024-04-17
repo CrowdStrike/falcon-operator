@@ -4408,7 +4408,7 @@ spec:
         - name: WATCH_NAMESPACE
         - name: OPERATOR_NAME
           value: falcon-operator
-        image: quay.io/crowdstrike/falcon-operator:iartest
+        image: quay.io/crowdstrike/falcon-operator:0.9.1
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
