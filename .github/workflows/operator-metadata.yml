@@ -63,7 +63,7 @@ jobs:
             echo
             echo -e "\e[31mGenerating manifests leaves tracked fields in a modified state."
             echo -e "\e[31mEnsure to include updated manifests in this PR."
-            echo -e "\e[31mThis is usually done by running 'make manifests generate' and running 'git add ...' for the files that was modified by generating manifests.\e[0m"
+            echo -e "\e[31mThis is usually done by running 'make manifests generate non-olm' and running 'git add ...' for the files that was modified by generating manifests.\e[0m"
             git status -s
             git diff --color
             exit 1
