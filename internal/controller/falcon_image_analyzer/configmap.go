@@ -20,11 +20,11 @@ const (
 	isKubernetes            = "true"
 	enableDebug             = "false"
 	agentRunmode            = "watcher"
-	agentRegion             = "us-1"
 	agentMaxConsumerThreads = "1"
 )
 
 func (r *FalconImageAnalyzerReconciler) reconcileConfigMap(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) (bool, error) {
+	log.Info("config map")
 	return r.reconcileGenericConfigMap(falconImageAnalyzer.Name+"-config", r.newConfigMap, ctx, req, log, falconImageAnalyzer)
 }
 
@@ -76,18 +76,23 @@ func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name s
 		}
 	}
 
+	if falconImageAnalyzer.Spec.FalconAPI.ClientId != "" {
+		data["AGENT_CLIENT_ID"] = falconImageAnalyzer.Spec.FalconAPI.ClientId
+	}
+
+	if falconImageAnalyzer.Spec.FalconAPI.ClientId != "" {
+		data["AGENT_CLIENT_SECRET"] = falconImageAnalyzer.Spec.FalconAPI.ClientSecret
+	}
+
+	if falconImageAnalyzer.Spec.FalconAPI.CloudRegion != "" {
+		data["AGENT_REGION"] = falconImageAnalyzer.Spec.FalconAPI.CloudRegion
+	}
+
 	data["IS_KUBERNETES"] = isKubernetes
 	data["AGENT_CID"] = cid
-	// data["AGENT_CLUSTER_NAME"] =
 	data["AGENT_DEBUG"] = enableDebug
 	data["AGENT_RUNMODE"] = agentRunmode
-	data["AGENT_REGION"] = agentRegion
-	// data["AGENT_RUNTIME"] =
-	// data["AGENT_RUNTIME_SOCKET"] =
 	data["AGENT_MAX_CONSUMER_THREADS"] = agentMaxConsumerThreads
-	// data["HTTP_PROXY"] =
-	// data["HTTPS_PROXY"] =
-	// data["NO_PROXY"] =
 
 	return assets.SensorConfigMap(name, falconImageAnalyzer.Spec.InstallNamespace, common.FalconImageAnalyzer, data), nil
 }
