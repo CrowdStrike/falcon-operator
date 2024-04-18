@@ -20,7 +20,9 @@ metadata:
   name: falcon-admission
 spec:
   falcon:
-    tags: 'test-cluster,dev'
+    tags:
+      - test-cluster
+      - dev
   falcon_api:
     client_id: PLEASE_FILL_IN
     client_secret: PLEASE_FILL_IN

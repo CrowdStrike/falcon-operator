@@ -31,7 +31,7 @@ metadata:
   name: falcon-sidecar-sensor
 spec:
   falcon:
-    tags: 
+    tags:
       - test-cluster
       - dev
   falcon_api:
