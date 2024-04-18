@@ -256,6 +256,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 	hostPathFile := corev1.HostPathFile
 	var rootUid int64 = 0
 	privileged := false
+	allowPrivilegeEscalation := false
 
 	volumes := []corev1.Volume{
 		{
@@ -317,8 +318,17 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 						{
 							Name: "falcon-client",
 							SecurityContext: &corev1.SecurityContext{
-								RunAsUser:  &rootUid,
-								Privileged: &privileged,
+								RunAsUser:                &rootUid,
+								Privileged:               &privileged,
+								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{
+										"ALL",
+									},
+								},
+								SeccompProfile: &corev1.SeccompProfile{
+									Type: corev1.SeccompProfileTypeRuntimeDefault,
+								},
 							},
 							Resources:       corev1.ResourceRequirements{},
 							Image:           imageUri,
