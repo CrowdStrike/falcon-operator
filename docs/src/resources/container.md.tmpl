@@ -31,7 +31,9 @@ metadata:
   name: falcon-sidecar-sensor
 spec:
   falcon:
-    tags: 'test-cluster,dev'
+    tags:
+      - test-cluster
+      - dev
   falcon_api:
     client_id: PLEASE_FILL_IN
     client_secret: PLEASE_FILL_IN
