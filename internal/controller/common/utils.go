@@ -191,13 +191,9 @@ func ConditionsUpdate(r client.Client, ctx context.Context, req ctrl.Request, lo
 
 func CheckRunningPodLabels(r client.Client, ctx context.Context, namespace string, matchingLabels client.MatchingLabels) (bool, error) {
 	podList := &corev1.PodList{}
-	falconSelector := client.MatchingLabels{
-		"crowdstrike.com/provider": "crowdstrike",
-	}
 
 	listOpts := []client.ListOption{
 		client.InNamespace(namespace),
-		falconSelector,
 	}
 
 	if err := r.List(ctx, podList, listOpts...); err != nil {

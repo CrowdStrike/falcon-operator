@@ -373,7 +373,7 @@ var _ = Describe("falcon", Ordered, func() {
 				)
 				status, err := utils.Run(cmd)
 				fmt.Println(string(status))
-				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
 				if !strings.Contains(string(status), "Success") {
 					return fmt.Errorf("status condition with type Success should be set")
 				}
