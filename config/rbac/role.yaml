@@ -59,6 +59,14 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - replicationcontrollers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - resourcequotas
   verbs:
   - create
@@ -144,6 +152,31 @@ rules:
   - get
   - list
   - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - coordination.k8s.io
