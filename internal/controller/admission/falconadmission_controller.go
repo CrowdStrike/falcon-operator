@@ -234,6 +234,11 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	webhookUpdated, err := r.reconcileAdmissionValidatingWebHook(ctx, req, log, falconAdmission, admissionTLSSecret.Data["ca.crt"])
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	err = r.reconcileAdmissionDeployment(ctx, req, log, falconAdmission)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -250,11 +255,6 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if pod.Name == "" {
 		log.Info("Looking for a Ready admission controller pod", "namespace", falconAdmission.Spec.InstallNamespace)
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-	}
-
-	webhookUpdated, err := r.reconcileAdmissionValidatingWebHook(ctx, req, log, falconAdmission, admissionTLSSecret.Data["ca.crt"])
-	if err != nil {
-		return ctrl.Result{}, err
 	}
 
 	if configUpdated || serviceUpdated || webhookUpdated {
