@@ -3359,6 +3359,9 @@ rules:
   resources:
   - namespaces
   - nodes
+  - pods
+  - replicationcontrollers
+  - services
   verbs:
   - get
   - list
@@ -3368,6 +3371,25 @@ rules:
   resources:
   - daemonsets
   - deployments
+  - replicasets
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - validatingwebhookconfigurations
   verbs:
   - get
   - list
@@ -3449,6 +3471,14 @@ rules:
   - get
   - list
   - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - replicationcontrollers
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - ""
@@ -3538,6 +3568,31 @@ rules:
   - get
   - list
   - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - coordination.k8s.io
