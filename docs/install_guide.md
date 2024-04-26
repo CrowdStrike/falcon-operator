@@ -20,24 +20,19 @@ For an optimal experience, use the following preferred methods when installing f
 
 ## Upgrading
 
-### Operator Upgrades
-
-Currently, the CrowdStrike Falcon Operator does not support operator upgrades. To upgrade the operator, perform the following steps:
-
-1. Uninstall the deployed custom resources, the operator, and the CRDs (if they still exist).
-2. Install the newer operator and re-deploy the custom resources.
-
-### Sensor Upgrades
-
-Falcon Sensor management and upgrades are best handled by using GitOps methodologies and workflows. Multi-Cluster Management tools such as [Red Hat Advanced Cluster Management for Kubernetes](https://www.redhat.com/en/technologies/management/advanced-cluster-management) or [SuSE Rancher](https://www.rancher.com/products/rancher) can help when needing to scale management across multiple clusters from Git workflows.
-
-Using GitOps ensures several best operational and security practices around Kubernetes as it is the configuration management tool of Kubernetes:
+Falcon Operator and Sensor management and upgrades are best handled by using GitOps methodologies and workflows. Multi-Cluster Management tools such as [Red Hat Advanced Cluster Management for Kubernetes](https://www.redhat.com/en/technologies/management/advanced-cluster-management) or [SuSE Rancher](https://www.rancher.com/products/rancher) can help when needing to scale management across multiple clusters from Git workflows. Using GitOps ensures several best operational and security practices around Kubernetes as it is the configuration management tool of Kubernetes:
 
 1. Containers are immutable and are meant to be immutable. This means that a container should not be modified during its life: no updates, no patches, no configuration changes. Immutable containers ensures
    deployments are safe, consistently repeatable, and makes it easier to roll back an upgrade in case of a problem. If a container is modified or drifts from its original build, this could be an indication of an attack compromise.
 2. Kubernetes expands on the concept of container immutability by creating and coalescing around the concept of Immutable Infrastructure: changes e.g. upgrades deploy a new version with no upgrade in place.
 3. Latest versions of released components should always be used which means no more N-1, N-2, etc. for sensor deployments.
 4. No upgrades should happen outside the configuration management tool.
+
+### Operator Upgrades
+
+[See the individual deployment guides for commands on how to upgrade the operator](#kubernetes-distribution-installation-and-deployment). 
+
+### Sensor Upgrades
 
 To effectively deploy and use the Falcon sensor in a Kubernetes environment, the following is recommended for the reasons listed above:
 
