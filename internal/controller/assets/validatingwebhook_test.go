@@ -5,6 +5,7 @@ import (
 
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/google/go-cmp/cmp"
+	"golang.org/x/exp/maps"
 	arv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -30,6 +31,12 @@ func testValidatingWebhook(name string, namespace string, webhookName string, ca
 	scope := arv1.AllScopes
 	admissionOperatorValues := []string{"disabled"}
 	labels := common.CRLabels("validatingwebhook", name, common.FalconAdmissionController)
+	helmLabels := map[string]string{
+		"app":                         "falcon-kac",
+		"app.kubernetes.io/name":      "falcon-kac",
+		"app.kubernetes.io/component": "kac",
+	}
+	maps.Copy(labels, helmLabels)
 
 	return &arv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{
