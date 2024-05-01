@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -164,19 +165,21 @@ func ConditionsUpdate(r client.Client, ctx context.Context, req ctrl.Request, lo
 	if !meta.IsStatusConditionPresentAndEqual(falconStatus.Conditions, falconCondition.Type, falconCondition.Status) {
 		fgvk := falconObject.GetObjectKind().GroupVersionKind()
 
-		// Re-fetch the Custom Resource before update the status
-		// so that we have the latest state of the resource on the cluster and we will avoid
-		// raise the issue "the object has been modified, please apply
-		// your changes to the latest version and try again" which would re-trigger the reconciliation
-		err := r.Get(ctx, req.NamespacedName, falconObject)
-		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to re-fetch %s for status update", fgvk.Kind))
-			return err
-		}
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			// Re-fetch the Custom Resource before update the status
+			// so that we have the latest state of the resource on the cluster and we will avoid
+			// raise the issue "the object has been modified, please apply
+			// your changes to the latest version and try again" which would re-trigger the reconciliation
+			err := r.Get(ctx, req.NamespacedName, falconObject)
+			if err != nil {
+				log.Error(err, fmt.Sprintf("Failed to re-fetch %s for status update", fgvk.Kind))
+				return err
+			}
 
-		// The following implementation will update the status
-		meta.SetStatusCondition(&falconStatus.Conditions, falconCondition)
-		err = r.Status().Update(ctx, falconObject)
+			// The following implementation will update the status
+			meta.SetStatusCondition(&falconStatus.Conditions, falconCondition)
+			return r.Status().Update(ctx, falconObject)
+		})
 		if err != nil {
 			log.Error(err, fmt.Sprintf("Failed to update %s status", fgvk.Kind))
 			return err
