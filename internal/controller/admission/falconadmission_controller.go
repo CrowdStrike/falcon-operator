@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -106,35 +107,28 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Let's just set the status as Unknown when no status is available
 	if falconAdmission.Status.Conditions == nil || len(falconAdmission.Status.Conditions) == 0 {
-		meta.SetStatusCondition(&falconAdmission.Status.Conditions, metav1.Condition{Type: falconv1alpha1.ConditionPending, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Starting reconciliation"})
-		if err = r.Status().Update(ctx, falconAdmission); err != nil {
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			meta.SetStatusCondition(&falconAdmission.Status.Conditions, metav1.Condition{Type: falconv1alpha1.ConditionPending, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Starting reconciliation"})
+			return r.Status().Update(ctx, falconAdmission)
+		})
+		if err != nil {
 			log.Error(err, "Failed to update FalconAdmission status")
-			return ctrl.Result{}, err
-		}
-
-		// Let's re-fetch the Custom Resource after update the status
-		// so that we have the latest state of the resource on the cluster and we will avoid
-		// raise the issue "the object has been modified, please apply
-		// your changes to the latest version and try again" which would re-trigger the reconciliation
-		// if we try to update it again in the following operations
-		if err := r.Get(ctx, req.NamespacedName, falconAdmission); err != nil {
-			log.Error(err, "Failed to re-fetch FalconAdmission")
 			return ctrl.Result{}, err
 		}
 	}
 
 	if falconAdmission.Status.Version != version.Get() {
 		falconAdmission.Status.Version = version.Get()
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			err := r.Get(ctx, req.NamespacedName, falconAdmission)
+			if err != nil {
+				return err
+			}
 
-		err = r.Status().Update(ctx, falconAdmission)
+			return r.Status().Update(ctx, falconAdmission)
+		})
 		if err != nil {
 			log.Error(err, "Failed to update FalconAdmission status for falconAdmission.Status.Version")
-			return ctrl.Result{}, err
-		}
-
-		err = r.Get(ctx, req.NamespacedName, falconAdmission)
-		if err != nil {
-			log.Error(err, "Failed to re-fetch FalconAdmission for status update")
 			return ctrl.Result{}, err
 		}
 	}

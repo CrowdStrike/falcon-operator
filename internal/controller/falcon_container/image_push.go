@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/image"
@@ -57,14 +58,18 @@ func (r *FalconContainerReconciler) PushImage(ctx context.Context, log logr.Logg
 		return fmt.Errorf("Cannot identify Falcon Container Image: %v", err)
 	}
 
-	meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
-		Type:    "ImageReady",
-		Status:  metav1.ConditionTrue,
-		Message: imageUri,
-		Reason:  "Pushed",
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
+			Type:    "ImageReady",
+			Status:  metav1.ConditionTrue,
+			Message: imageUri,
+			Reason:  "Pushed",
+		})
+
+		return r.Client.Status().Update(ctx, falconContainer)
 	})
 
-	return r.Client.Status().Update(ctx, falconContainer)
+	return err
 }
 
 func (r *FalconContainerReconciler) verifyCrowdStrikeRegistry(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (bool, error) {
@@ -83,15 +88,19 @@ func (r *FalconContainerReconciler) verifyCrowdStrikeRegistry(ctx context.Contex
 		return false, nil
 	}
 
-	meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
-		Status:             metav1.ConditionTrue,
-		Reason:             falconv1alpha1.ReasonDiscovered,
-		Message:            imageUri,
-		Type:               falconv1alpha1.ConditionImageReady,
-		ObservedGeneration: falconContainer.GetGeneration(),
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
+			Status:             metav1.ConditionTrue,
+			Reason:             falconv1alpha1.ReasonDiscovered,
+			Message:            imageUri,
+			Type:               falconv1alpha1.ConditionImageReady,
+			ObservedGeneration: falconContainer.GetGeneration(),
+		})
+
+		return r.Client.Status().Update(ctx, falconContainer)
 	})
 
-	return true, r.Client.Status().Update(ctx, falconContainer)
+	return true, err
 }
 
 func (r *FalconContainerReconciler) registryUri(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer) (string, error) {

@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -29,13 +30,19 @@ func (r *FalconContainerReconciler) Create(ctx context.Context, log logr.Logger,
 				return fmt.Errorf("failed to create %s %s in namespace %s: %v", gvk.Kind, name, namespace, err)
 			}
 		}
-		meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
-			Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
-			Status:  metav1.ConditionTrue,
-			Reason:  "Created",
-			Message: fmt.Sprintf("Successfully created %s %s in %s", gvk.Kind, name, namespace),
+
+		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
+				Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
+				Status:  metav1.ConditionTrue,
+				Reason:  "Created",
+				Message: fmt.Sprintf("Successfully created %s %s in %s", gvk.Kind, name, namespace),
+			})
+
+			return r.Client.Status().Update(ctx, falconContainer)
 		})
-		return r.Client.Status().Update(ctx, falconContainer)
+
+		return err
 	default:
 		return fmt.Errorf("Unrecognized kube object type: %T", obj)
 	}
@@ -55,13 +62,19 @@ func (r *FalconContainerReconciler) Update(ctx context.Context, log logr.Logger,
 			}
 			return fmt.Errorf("Cannot update object %s %s in namespace %s: %v", gvk.Kind, name, namespace, err)
 		}
-		meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
-			Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
-			Status:  metav1.ConditionTrue,
-			Reason:  "Updated",
-			Message: fmt.Sprintf("Successfully updated %s %s in %s", gvk.Kind, name, namespace),
+
+		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
+				Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
+				Status:  metav1.ConditionTrue,
+				Reason:  "Updated",
+				Message: fmt.Sprintf("Successfully updated %s %s in %s", gvk.Kind, name, namespace),
+			})
+
+			return r.Client.Status().Update(ctx, falconContainer)
 		})
-		return r.Client.Status().Update(ctx, falconContainer)
+
+		return err
 	default:
 		return fmt.Errorf("Unrecognized kube object type: %T", obj)
 	}
@@ -81,13 +94,19 @@ func (r *FalconContainerReconciler) Delete(ctx context.Context, log logr.Logger,
 			}
 			return fmt.Errorf("Cannot delete object %s %s in namespace %s: %v", gvk.Kind, name, namespace, err)
 		}
-		meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
-			Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
-			Status:  metav1.ConditionFalse,
-			Reason:  "Deleted",
-			Message: fmt.Sprintf("Successfully deleted %s %s in %s", gvk.Kind, name, namespace),
+
+		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
+				Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
+				Status:  metav1.ConditionFalse,
+				Reason:  "Deleted",
+				Message: fmt.Sprintf("Successfully deleted %s %s in %s", gvk.Kind, name, namespace),
+			})
+
+			return r.Client.Status().Update(ctx, falconContainer)
 		})
-		return r.Client.Status().Update(ctx, falconContainer)
+
+		return err
 	default:
 		return fmt.Errorf("Unrecognized kube object type: %T", obj)
 	}

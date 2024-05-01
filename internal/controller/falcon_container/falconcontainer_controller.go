@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -97,7 +98,14 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if falconContainer.Status.Version != version.Get() {
 		falconContainer.Status.Version = version.Get()
-		err := r.Status().Update(ctx, falconContainer)
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			err := r.Get(ctx, req.NamespacedName, falconContainer)
+			if err != nil {
+				return err
+			}
+
+			return r.Status().Update(ctx, falconContainer)
+		})
 		if err != nil {
 			log.Error(err, "Failed to update FalconContainer status for falconcontainer.Status.Version")
 			return ctrl.Result{}, err
@@ -275,26 +283,26 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 }
 
 func (r *FalconContainerReconciler) StatusUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer, condType string, status metav1.ConditionStatus, reason string, message string) error {
-	meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
-		Status:             status,
-		Reason:             reason,
-		Message:            message,
-		Type:               condType,
-		ObservedGeneration: falconContainer.GetGeneration(),
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := r.Get(ctx, req.NamespacedName, falconContainer)
+		if err != nil {
+			return err
+		}
+
+		meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
+			Status:             status,
+			Reason:             reason,
+			Message:            message,
+			Type:               condType,
+			ObservedGeneration: falconContainer.GetGeneration(),
+		})
+
+		return r.Status().Update(ctx, falconContainer)
 	})
-	if err := r.Status().Update(ctx, falconContainer); err != nil {
+	if err != nil {
 		log.Error(err, "Failed to update FalconContainer status")
 		return err
 	}
 
-	// Let's re-fetch the memcached Custom Resource after update the status
-	// so that we have the latest state of the resource on the cluster and we will avoid
-	// raise the issue "the object has been modified, please apply
-	// your changes to the latest version and try again" which would re-trigger the reconciliation
-	// if we try to update it again in the following operations
-	if err := r.Get(ctx, req.NamespacedName, falconContainer); err != nil {
-		log.Error(err, "Failed to re-fetch FalconContainer")
-		return err
-	}
 	return nil
 }

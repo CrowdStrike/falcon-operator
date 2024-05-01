@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -101,7 +102,14 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	if nodesensor.Status.Version != version.Get() {
 		nodesensor.Status.Version = version.Get()
-		err = r.Status().Update(ctx, nodesensor)
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			err := r.Get(ctx, req.NamespacedName, nodesensor)
+			if err != nil {
+				return err
+			}
+
+			return r.Status().Update(ctx, nodesensor)
+		})
 		if err != nil {
 			log.Error(err, "Failed to update FalconNodeSensor status for nodesensor.Status.Version")
 			return ctrl.Result{}, err
@@ -300,7 +308,14 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	imgVer := common.ImageVersion(image)
 	if nodesensor.Status.Sensor != imgVer {
 		nodesensor.Status.Sensor = imgVer
-		err = r.Status().Update(ctx, nodesensor)
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			err := r.Get(ctx, req.NamespacedName, nodesensor)
+			if err != nil {
+				return err
+			}
+
+			return r.Status().Update(ctx, nodesensor)
+		})
 		if err != nil {
 			log.Error(err, "Failed to update FalconNodeSensor status for nodesensor.Status.Sensor")
 			return ctrl.Result{}, err
@@ -838,15 +853,18 @@ func (r *FalconNodeSensorReconciler) handleSAAnnotations(ctx context.Context, no
 // statusUpdate updates the FalconNodeSensor CR conditions
 func (r *FalconNodeSensorReconciler) conditionsUpdate(condType string, status metav1.ConditionStatus, reason string, message string, ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
 	if !meta.IsStatusConditionPresentAndEqual(nodesensor.Status.Conditions, condType, status) {
-		meta.SetStatusCondition(&nodesensor.Status.Conditions, metav1.Condition{
-			Status:             status,
-			Reason:             reason,
-			Message:            message,
-			Type:               condType,
-			ObservedGeneration: nodesensor.GetGeneration(),
-		})
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			meta.SetStatusCondition(&nodesensor.Status.Conditions, metav1.Condition{
+				Status:             status,
+				Reason:             reason,
+				Message:            message,
+				Type:               condType,
+				ObservedGeneration: nodesensor.GetGeneration(),
+			})
 
-		if err := r.Status().Update(ctx, nodesensor); err != nil {
+			return r.Status().Update(ctx, nodesensor)
+		})
+		if err != nil {
 			logger.Error(err, "Failed to update FalconNodeSensor status", "Failed to update the Condition at Reasoning", reason)
 			return err
 		}
