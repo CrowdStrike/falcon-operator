@@ -154,10 +154,6 @@ type FalconAdmissionNamespace struct {
 	// Configure a list of namespaces to ignore admission control.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=1
 	Namespaces []string `json:"namespaces,omitempty"`
-
-	// For OpenShift clusters, ignore openshift-specific namespaces for admission control.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore OpenShift Namespaces",order=2,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
-	IgnoreOpenShiftNamespaces bool `json:"ignoreOpenShiftNamespaces,omitempty"`
 }
 
 // FalconAdmissionStatus defines the observed state of FalconAdmission

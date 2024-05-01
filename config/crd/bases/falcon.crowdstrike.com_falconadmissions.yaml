@@ -59,10 +59,6 @@ spec:
                   disabledNamespaces:
                     description: Ignore admission control for a specific set of namespaces.
                     properties:
-                      ignoreOpenShiftNamespaces:
-                        description: For OpenShift clusters, ignore openshift-specific
-                          namespaces for admission control.
-                        type: boolean
                       namespaces:
                         description: Configure a list of namespaces to ignore admission
                           control.

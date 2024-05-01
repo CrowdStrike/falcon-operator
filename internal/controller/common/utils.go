@@ -9,6 +9,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/go-logr/logr"
+	"golang.org/x/exp/slices"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -249,7 +250,27 @@ func GetDeployment(r client.Client, ctx context.Context, namespace string, match
 	return &depList.Items[0], nil
 }
 
-func GetNamespaceNamesSort(ctx context.Context, cli client.Client) ([]string, error) {
+func GetRunningFalconNS(r client.Client, ctx context.Context) ([]string, error) {
+	podList := &corev1.PodList{}
+	falconNamespaces := []string{}
+	listOpts := []client.ListOption{
+		client.MatchingLabels{"crowdstrike.com/provider": "crowdstrike"},
+	}
+
+	if err := r.List(ctx, podList, listOpts...); err != nil {
+		return []string{}, fmt.Errorf("unable to list pods: %v", err)
+	}
+
+	for _, pod := range podList.Items {
+		if !slices.Contains(falconNamespaces, pod.GetNamespace()) {
+			falconNamespaces = append(falconNamespaces, pod.GetNamespace())
+		}
+	}
+
+	return falconNamespaces, nil
+}
+
+func GetOpenShiftNamespaceNamesSort(ctx context.Context, cli client.Client) ([]string, error) {
 	nsList := []string{}
 	ns := &corev1.NamespaceList{}
 	err := cli.List(ctx, ns)
@@ -258,7 +279,7 @@ func GetNamespaceNamesSort(ctx context.Context, cli client.Client) ([]string, er
 	}
 
 	for _, i := range ns.Items {
-		if strings.Contains(i.Name, "openshift") || strings.Contains(i.Name, "falcon") {
+		if strings.Contains(i.Name, "openshift") && !slices.Contains(nsList, i.Name) {
 			nsList = append(nsList, i.Name)
 		}
 	}
