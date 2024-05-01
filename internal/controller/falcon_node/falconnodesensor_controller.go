@@ -410,6 +410,12 @@ func (r *FalconNodeSensorReconciler) handleNamespace(ctx context.Context, nodese
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: nodesensor.Spec.InstallNamespace,
+			Labels: map[string]string{
+				"pod-security.kubernetes.io/enforce":             "privileged",
+				"pod-security.kubernetes.io/warn":                "privileged",
+				"pod-security.kubernetes.io/audit":               "privileged",
+				"security.openshift.io/scc.podSecurityLabelSync": "false",
+			},
 		},
 	}
 	err = ctrl.SetControllerReference(nodesensor, &ns, r.Scheme)
