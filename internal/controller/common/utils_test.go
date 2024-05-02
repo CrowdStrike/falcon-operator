@@ -138,7 +138,36 @@ func TestGetDeployment(t *testing.T) {
 	}
 }
 
-func TestGetNamespaceNamesSort(t *testing.T) {
+func TestGetRunningFalconNS(t *testing.T) {
+	ctx := context.Background()
+
+	fakeClient, err := getFakeClient()
+	if err != nil {
+		t.Errorf("TestGetRunningFalconNS getFakeClient() error = %v", err)
+	}
+
+	err = fakeClient.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-namespace"}})
+	if err != nil {
+		t.Errorf("TestGetRunningFalconNS Create() error = %v", err)
+	}
+
+	err = fakeClient.Create(ctx, &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod", Namespace: "test-namespace", Labels: map[string]string{"crowdstrike.com/provider": "crowdstrike"}}})
+	if err != nil {
+		t.Errorf("TestGetRunningFalconNS Create() error = %v", err)
+	}
+
+	want := []string{"test-namespace"}
+	got, err := GetRunningFalconNS(fakeClient, ctx)
+	if err != nil {
+		t.Errorf("GetRunningFalconNS() error = %v", err)
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("GetRunningFalconNS() mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestGetOpenShiftNamespaceNamesSort(t *testing.T) {
 	ctx := context.Background()
 
 	fakeClient, err := getFakeClient()
@@ -153,8 +182,8 @@ func TestGetNamespaceNamesSort(t *testing.T) {
 		}
 	}
 
-	want := []string{"falcon-system", "openshift"}
-	got, err := GetNamespaceNamesSort(ctx, fakeClient)
+	want := []string{"openshift"}
+	got, err := GetOpenShiftNamespaceNamesSort(ctx, fakeClient)
 	if err != nil {
 		t.Errorf("GetNamespaceNamesSort() error = %v", err)
 	}

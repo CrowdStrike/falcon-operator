@@ -39,13 +39,15 @@ import (
 // FalconAdmissionReconciler reconciles a FalconAdmission object
 type FalconAdmissionReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme    *runtime.Scheme
+	OpenShift bool
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *FalconAdmissionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&falconv1alpha1.FalconAdmission{}).
+		Owns(&corev1.Namespace{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.ResourceQuota{}).
 		Owns(&corev1.Secret{}).
@@ -412,13 +414,20 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx cont
 	failPolicy := arv1.Ignore
 	port := int32(443)
 
-	if falconAdmission.Spec.AdmissionConfig.DisabledNamespaces.IgnoreOpenShiftNamespaces {
-		ocpNS, err := k8sutils.GetNamespaceNamesSort(ctx, r.Client)
+	if r.OpenShift {
+		ocpNS, err := k8sutils.GetOpenShiftNamespaceNamesSort(ctx, r.Client)
 		if err != nil {
 			return false, err
 		}
 		disabledNamespaces = append(disabledNamespaces, ocpNS...)
 	}
+
+	falconNS, err := k8sutils.GetRunningFalconNS(r.Client, ctx)
+	if err != nil {
+		return false, err
+	}
+
+	disabledNamespaces = append(disabledNamespaces, falconNS...)
 
 	if falconAdmission.Spec.AdmissionConfig.FailurePolicy != "" {
 		failPolicy = falconAdmission.Spec.AdmissionConfig.FailurePolicy
@@ -431,7 +440,7 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx cont
 	webhook := assets.ValidatingWebhook(falconAdmission.Name, falconAdmission.Spec.InstallNamespace, webhookName, cabundle, port, failPolicy, disabledNamespaces)
 	updated := false
 
-	err := r.Get(ctx, types.NamespacedName{Name: webhookName}, existingWebhook)
+	err = r.Get(ctx, types.NamespacedName{Name: webhookName}, existingWebhook)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, webhook)
 		if err != nil {
