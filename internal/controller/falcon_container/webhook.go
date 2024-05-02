@@ -25,7 +25,7 @@ func (r *FalconContainerReconciler) reconcileWebhook(ctx context.Context, log lo
 		disableDefaultNSInjection = falconContainer.Spec.Injector.DisableDefaultNSInjection
 	}
 
-	webhook := assets.MutatingWebhook(injectorName, r.Namespace(), webhookName, caBundle, disableDefaultNSInjection, falconContainer)
+	webhook := assets.MutatingWebhook(injectorName, falconContainer.Spec.InstallNamespace, webhookName, caBundle, disableDefaultNSInjection, falconContainer)
 	existingWebhook := &arv1.MutatingWebhookConfiguration{}
 
 	err := r.Client.Get(ctx, types.NamespacedName{Name: webhookName}, existingWebhook)

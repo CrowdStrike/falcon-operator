@@ -55,6 +55,7 @@ spec:
 #### Sidecar Injection Configuration Settings
 | Spec                                      | Description                                                                                                                                                                                                             |
 | :----------------------------------       | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| installNamespace                          | (optional) Override the default namespace of falcon-sidecar                                                                                                                                                                 |
 | image                                     | (optional) Leverage a Falcon Container Sensor image that is not managed by the operator; typically used with custom repositories; overrides all registry settings; might require injector.imagePullSecretName to be set |
 | version                                   | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                                                                                                       |
 | registry.type                             | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift)                                              |

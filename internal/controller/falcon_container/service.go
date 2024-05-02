@@ -17,11 +17,11 @@ import (
 
 func (r *FalconContainerReconciler) reconcileService(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.Service, error) {
 	selector := map[string]string{common.FalconComponentKey: common.FalconSidecarSensor}
-	service := assets.Service(injectorName, r.Namespace(), common.FalconSidecarSensor, selector, common.FalconServiceHTTPSName, *falconContainer.Spec.Injector.ListenPort)
+	service := assets.Service(injectorName, falconContainer.Spec.InstallNamespace, common.FalconSidecarSensor, selector, common.FalconServiceHTTPSName, *falconContainer.Spec.Injector.ListenPort)
 	updated := false
 	existingService := &corev1.Service{}
 
-	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorName, Namespace: r.Namespace()}, existingService)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorName, Namespace: falconContainer.Spec.InstallNamespace}, existingService)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, service, r.Scheme); err != nil {

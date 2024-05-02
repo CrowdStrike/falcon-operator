@@ -14,10 +14,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-const (
-	injectorNamespace = "falcon-system"
-)
-
 var (
 	namespaceLabels = map[string]string{
 		common.FalconContainerInjection: "disabled",
@@ -25,12 +21,8 @@ var (
 	}
 )
 
-func (r *FalconContainerReconciler) Namespace() string {
-	return injectorNamespace
-}
-
-func (r *FalconContainerReconciler) NamespaceLabels() map[string]string {
-	nsLabels := common.CRLabels("namespace", r.Namespace(), common.FalconSidecarSensor)
+func (r *FalconContainerReconciler) NamespaceLabels(falconContainer *falconv1alpha1.FalconContainer) map[string]string {
+	nsLabels := common.CRLabels("namespace", falconContainer.Spec.InstallNamespace, common.FalconSidecarSensor)
 	for k, v := range namespaceLabels {
 		nsLabels[k] = v
 	}
@@ -38,9 +30,9 @@ func (r *FalconContainerReconciler) NamespaceLabels() map[string]string {
 }
 
 func (r *FalconContainerReconciler) reconcileNamespace(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.Namespace, error) {
-	namespace := r.newNamespace()
+	namespace := r.newNamespace(falconContainer)
 	existingNamespace := &corev1.Namespace{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: r.Namespace()}, existingNamespace)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: falconContainer.Spec.InstallNamespace}, existingNamespace)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, namespace, r.Scheme); err != nil {
@@ -48,21 +40,21 @@ func (r *FalconContainerReconciler) reconcileNamespace(ctx context.Context, log 
 			}
 			return namespace, r.Create(ctx, log, falconContainer, namespace)
 		}
-		return &corev1.Namespace{}, fmt.Errorf("unable to query existing namespace %s: %v", r.Namespace(), err)
+		return &corev1.Namespace{}, fmt.Errorf("unable to query existing namespace %s: %v", falconContainer.Spec.InstallNamespace, err)
 	}
 
 	return existingNamespace, nil
 }
 
-func (r *FalconContainerReconciler) newNamespace() *corev1.Namespace {
+func (r *FalconContainerReconciler) newNamespace(falconContainer *falconv1alpha1.FalconContainer) *corev1.Namespace {
 	return &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "Namespace",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   r.Namespace(),
-			Labels: r.NamespaceLabels(),
+			Name:   falconContainer.Spec.InstallNamespace,
+			Labels: r.NamespaceLabels(falconContainer),
 		},
 	}
 }

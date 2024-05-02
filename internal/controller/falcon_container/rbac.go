@@ -25,7 +25,7 @@ func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context,
 	update := false
 	serviceAccount := r.newServiceAccount(falconContainer)
 	existingServiceAccount := &corev1.ServiceAccount{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: common.SidecarServiceAccountName, Namespace: r.Namespace()}, existingServiceAccount)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: common.SidecarServiceAccountName, Namespace: falconContainer.Spec.InstallNamespace}, existingServiceAccount)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, serviceAccount, r.Scheme); err != nil {
@@ -94,7 +94,7 @@ func (r *FalconContainerReconciler) newServiceAccount(falconContainer *falconv1a
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        common.SidecarServiceAccountName,
-			Namespace:   r.Namespace(),
+			Namespace:   falconContainer.Spec.InstallNamespace,
 			Labels:      common.CRLabels("serviceaccount", common.SidecarServiceAccountName, common.FalconSidecarSensor),
 			Annotations: falconContainer.Spec.Injector.ServiceAccount.Annotations,
 		},
@@ -115,7 +115,7 @@ func (r *FalconContainerReconciler) newClusterRoleBinding(falconContainer *falco
 		Subjects: []rbacv1.Subject{{
 			Kind:      "ServiceAccount",
 			Name:      common.SidecarServiceAccountName,
-			Namespace: r.Namespace(),
+			Namespace: falconContainer.Spec.InstallNamespace,
 		}},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",

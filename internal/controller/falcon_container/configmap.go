@@ -32,7 +32,7 @@ func (r *FalconContainerReconciler) reconcileGenericConfigMap(name string, genFu
 		return configMap, fmt.Errorf("unable to render expected configmap: %v", err)
 	}
 	existingConfigMap := &corev1.ConfigMap{}
-	err = r.Client.Get(ctx, types.NamespacedName{Name: name, Namespace: r.Namespace()}, existingConfigMap)
+	err = r.Client.Get(ctx, types.NamespacedName{Name: name, Namespace: falconContainer.Spec.InstallNamespace}, existingConfigMap)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, configMap, r.Scheme); err != nil {
@@ -55,14 +55,14 @@ func (r *FalconContainerReconciler) newCABundleConfigMap(ctx context.Context, lo
 	if falconContainer.Spec.Registry.TLS.CACertificate != "" {
 		data["tls.crt"] = string(common.DecodeBase64Interface(falconContainer.Spec.Registry.TLS.CACertificate))
 
-		return assets.SensorConfigMap(registryCABundleConfigMapName, r.Namespace(), common.FalconSidecarSensor, data), nil
+		return assets.SensorConfigMap(registryCABundleConfigMapName, falconContainer.Spec.InstallNamespace, common.FalconSidecarSensor, data), nil
 	}
 	return &corev1.ConfigMap{}, fmt.Errorf("unable to determine contents of Registry TLS CACertificate attribute")
 }
 
 func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.ConfigMap, error) {
 	data := common.MakeSensorEnvMap(falconContainer.Spec.Falcon)
-	data["CP_NAMESPACE"] = r.Namespace()
+	data["CP_NAMESPACE"] = falconContainer.Spec.InstallNamespace
 	data["FALCON_INJECTOR_LISTEN_PORT"] = strconv.Itoa(int(*falconContainer.Spec.Injector.ListenPort))
 
 	imageUri, err := r.imageUri(ctx, falconContainer)
@@ -117,5 +117,5 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.L
 		}
 	}
 
-	return assets.SensorConfigMap(injectorConfigMapName, r.Namespace(), common.FalconSidecarSensor, data), nil
+	return assets.SensorConfigMap(injectorConfigMapName, falconContainer.Spec.InstallNamespace, common.FalconSidecarSensor, data), nil
 }
