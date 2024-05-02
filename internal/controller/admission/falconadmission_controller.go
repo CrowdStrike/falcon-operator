@@ -105,6 +105,25 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	validate, err := k8sutils.CheckRunningPodLabels(r.Client, ctx, falconAdmission.Spec.InstallNamespace, common.CRLabels("deployment", falconAdmission.Name, common.FalconAdmissionController))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !validate {
+		err = k8sutils.ConditionsUpdate(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, metav1.Condition{
+			Status:             metav1.ConditionFalse,
+			Reason:             falconv1alpha1.ReasonReqNotMet,
+			Type:               falconv1alpha1.ConditionFailed,
+			Message:            "FalconAdmission must not be installed in a namespace with other workloads running. Please change the namespace in the CR configuration.",
+			ObservedGeneration: falconAdmission.GetGeneration(),
+		})
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		log.Error(nil, "FalconAdmission is attempting to install in a namespace with existing pods. Please update the CR configuration to a namespace that does not have workoads already running.")
+		return ctrl.Result{}, err
+	}
+
 	// Let's just set the status as Unknown when no status is available
 	if falconAdmission.Status.Conditions == nil || len(falconAdmission.Status.Conditions) == 0 {
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {

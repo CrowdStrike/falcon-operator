@@ -15,6 +15,13 @@ type FalconNodeSensorSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// Namespace where the Falcon Sensor should be installed.
+	// For best security practices, this should be a dedicated namespace that is not used for any other purpose.
+	// It also should not be the same namespace where the Falcon Operator, or other Falcon resources are deployed.
+	// +kubebuilder:default:=falcon-system
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1,xDescriptors={"urn:alm:descriptor:io.kubernetes:Namespace"}
+	InstallNamespace string `json:"installNamespace,omitempty"`
+
 	// Various configuration for DaemonSet Deployment
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Configuration",order=3
 	Node FalconNodeSensorConfig `json:"node,omitempty"`

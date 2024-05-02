@@ -189,6 +189,30 @@ func ConditionsUpdate(r client.Client, ctx context.Context, req ctrl.Request, lo
 	return nil
 }
 
+func CheckRunningPodLabels(r client.Client, ctx context.Context, namespace string, matchingLabels client.MatchingLabels) (bool, error) {
+	podList := &corev1.PodList{}
+
+	listOpts := []client.ListOption{
+		client.InNamespace(namespace),
+	}
+
+	if err := r.List(ctx, podList, listOpts...); err != nil {
+		return false, fmt.Errorf("unable to list pods: %v", err)
+	}
+
+	for _, pod := range podList.Items {
+		if pod.ObjectMeta.Labels != nil {
+			for k, v := range matchingLabels {
+				if pod.ObjectMeta.Labels[k] != v {
+					return false, nil
+				}
+			}
+		}
+	}
+
+	return true, nil
+}
+
 func GetReadyPod(r client.Client, ctx context.Context, namespace string, matchingLabels client.MatchingLabels) (*corev1.Pod, error) {
 	podList := &corev1.PodList{}
 	listOpts := []client.ListOption{

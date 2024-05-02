@@ -57,6 +57,7 @@ spec:
 #### Node Configuration Settings
 | Spec                                | Description                                                                                                                               |
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
+| installNamespace                    | (optional) Override the default namespace of falcon-system                                                                                |
 | node.tolerations                    | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ for examples on configuring tolerations      |
 | node.nodeAffinity                   | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity          |
 | node.image                          | (optional) Location of the Falcon Sensor Image. Specify only when you mirror the original image to your own image repository              |
