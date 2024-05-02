@@ -43,5 +43,5 @@ const (
 	FalconPullSecretName        = "crowdstrike-falcon-pull-secret"
 	NodeServiceAccountName      = "falcon-operator-node-sensor"
 	AdmissionServiceAccountName = "falcon-operator-admission-controller"
-	NodeClusterRoleBindingName  = "crowdstrike-falcon-node-sensor"
+	NodeClusterRoleBindingName  = "falcon-operator-node-sensor-rolebinding"
 )
