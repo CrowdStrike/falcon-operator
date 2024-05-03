@@ -91,6 +91,14 @@ type FalconImageAnalyzerConfigSpec struct {
 	// +kubebuilder:default:={"rollingUpdate":{"maxUnavailable":0,"maxSurge":1}}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=11
 	DepUpdateStrategy FalconImageAnalyzerUpdateStrategy `json:"updateStrategy,omitempty"`
+
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Volumes",order=12
+	// +kubebuilder:default:={name: "tmp-volume", emptyDir: {SizeLimit: "20Gi"}}
+	IARVolumes []corev1.Volume `json:"volumes,omitempty"`
+
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Volume Mounts",order=13
+	// +kubebuilder:default:={name: "tmp-volume", mountPath: "/tmp"}
+	IARVolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
 }
 
 type FalconImageAnalyzerPriorityClass struct {

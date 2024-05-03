@@ -250,26 +250,31 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 
 // ImageAnalyzerDeployment returns a Deployment object for the CrowdStrike Falcon IAR Controller
 func ImageAnalyzerDeployment(name string, namespace string, component string, imageUri string, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) *appsv1.Deployment {
-	azureConfig := "/etc/kubernetes/azure.json"
 	labels := common.CRLabels("deployment", name, component)
 	var replicaCount int32 = 1
 	hostPathFile := corev1.HostPathFile
 	var rootUid int64 = 0
 	privileged := false
 	allowPrivilegeEscalation := false
-	volumes := []corev1.Volume{}
+	volumes := falconImageAnalyzer.Spec.ImageAnalyzerConfig.IARVolumes
+	volumeMounts := falconImageAnalyzer.Spec.ImageAnalyzerConfig.IARVolumeMounts
 
 	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.AzureConfigPath != "" {
 		volumes = append(volumes, corev1.Volume{
 			Name: "azure-config",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
-					Path: azureConfig,
+					Path: falconImageAnalyzer.Spec.ImageAnalyzerConfig.AzureConfigPath,
 					Type: &hostPathFile,
 				},
 			},
 		},
 		)
+
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "azure-config",
+			MountPath: "/etc/kubernetes/azure.json",
+		})
 	}
 
 	return &appsv1.Deployment{
@@ -319,7 +324,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 					},
 					Containers: []corev1.Container{
 						{
-							Name: "falcon-client",
+							Name: "falcon-image-analyzer",
 							SecurityContext: &corev1.SecurityContext{
 								RunAsUser:                &rootUid,
 								Privileged:               &privileged,
@@ -346,7 +351,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 									},
 								},
 							},
-							VolumeMounts: []corev1.VolumeMount{},
+							VolumeMounts: volumeMounts,
 						},
 					},
 					ServiceAccountName: common.ImageServiceAccountName,
