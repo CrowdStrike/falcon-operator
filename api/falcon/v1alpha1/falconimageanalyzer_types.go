@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	arv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,40 +51,10 @@ type FalconImageAnalyzerSpec struct {
 	Version *string `json:"version,omitempty"`
 }
 
-type FalconImageAnalyzerRQSpec struct {
-	// Limits the number of Image Analyzer pods that can be created in the namespace.
-	// +kubebuilder:default:="2"
-	// +kubebuilder:validation:String
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Resource Quota Pod Limit",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
-	PodLimit string `json:"pods,omitempty"`
-}
-
 type FalconImageAnalyzerConfigSpec struct {
 	// Define annotations that will be passed down to admision controller service account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Service Account Configuration",order=7
 	ServiceAccount FalconImageAnalyzerServiceAccount `json:"serviceAccount,omitempty"`
-
-	// Port on which the Falcon Image Analyzer service will listen for requests from the cluster.
-	// +kubebuilder:default:=443
-	// +kubebuilder:validation:XIntOrString
-	// +kubebuilder:validation:Minimum:=0
-	// +kubebuilder:validation:Maximum:=65535
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Service Port",order=3,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
-	Port *int32 `json:"servicePort,omitempty"`
-
-	// Port on which the Falcon Image Analyzer container will listen for requests.
-	// +kubebuilder:default:=4443
-	// +kubebuilder:validation:XIntOrString
-	// +kubebuilder:validation:Minimum:=0
-	// +kubebuilder:validation:Maximum:=65535
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Container Port",order=4,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
-	ContainerPort *int32 `json:"containerPort,omitempty"`
-
-	// Configure the failure policy for the Falcon Image Analyzer.
-	// +kubebuilder:default:=Ignore
-	// +kubebuilder:validation:Enum=Ignore;Fail
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Failure Policy",order=6
-	FailurePolicy arv1.FailurePolicyType `json:"failurePolicy,omitempty"`
 
 	// Ignore Image Analyzer for a specific set of namespaces.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=12
@@ -108,18 +77,26 @@ type FalconImageAnalyzerConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1,displayName="Falcon Image Analyzer Image Pull Secrets",xDescriptors={"urn:alm:descriptor:io.kubernetes:Secret"}
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Client Resources",order=9,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	//+kubebuilder:default:={"limits":{"cpu":"750m","memory":"256Mi"},"requests":{"cpu":"500m","memory":"256Mi"}}
-	ResourcesClient *corev1.ResourceRequirements `json:"resourcesClient,omitempty"`
-
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Resources",order=10,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	//+kubebuilder:default:={"limits":{"cpu":"300m","memory":"512Mi"},"requests":{"cpu":"300m","memory":"512Mi"}}
-	ResourcesAC *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Azure Config file path",order=12
+	AzureConfigPath string `json:"azureConfigPath,omitempty"`
+
+	// Enable priority class for the Falcon Image Analyzer deployment.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Priority Class",order=12
+	PriorityClass FalconImageAnalyzerPriorityClass `json:"priorityClass,omitempty"`
 
 	// Type of Deployment update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
 	// +kubebuilder:default:={"rollingUpdate":{"maxUnavailable":0,"maxSurge":1}}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=11
 	DepUpdateStrategy FalconImageAnalyzerUpdateStrategy `json:"updateStrategy,omitempty"`
+}
+
+type FalconImageAnalyzerPriorityClass struct {
+	// Name of the priority class to use.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Name of the Priority Class to use",order=1
+	Name string `json:"name,omitempty"`
 }
 
 type FalconImageAnalyzerServiceAccount struct {
@@ -138,10 +115,6 @@ type FalconImageAnalyzerNamespace struct {
 	// Configure a list of namespaces to ignore Image Analyzer.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=1
 	Namespaces []string `json:"namespaces,omitempty"`
-
-	// For OpenShift clusters, ignore openshift-specific namespaces for Image Analyzer.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore OpenShift Namespaces",order=2,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
-	IgnoreOpenShiftNamespaces bool `json:"ignoreOpenShiftNamespaces,omitempty"`
 }
 
 // FalconImageAnalyzerStatus defines the observed state of FalconImageAnalyzer

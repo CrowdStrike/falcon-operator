@@ -94,5 +94,13 @@ func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name s
 	data["AGENT_RUNMODE"] = agentRunmode
 	data["AGENT_MAX_CONSUMER_THREADS"] = agentMaxConsumerThreads
 
+	/*
+		AGENT_CLUSTER_NAME: {{ .Values.crowdstrikeConfig.clusterName | quote }}
+		AGENT_REGISTRY_CREDENTIALS: {{ .Values.privateRegistries.credentials | quote }}
+		AGENT_NAMESPACE_EXCLUSIONS: {{ .Values.exclusions.namespace | quote }}
+		AGENT_REGISTRY_EXCLUSIONS: {{ .Values.exclusions.registry | quote }}
+		AGENT_REGION: {{ .Values.crowdstrikeConfig.agentRegion | quote }}
+		AGENT_TEMP_MOUNT_SIZE: {{ include "falcon-image-analyzer.tempvolsize" . | quote }}
+	*/
 	return assets.SensorConfigMap(name, falconImageAnalyzer.Spec.InstallNamespace, common.FalconImageAnalyzer, data), nil
 }

@@ -116,7 +116,7 @@ func (r *FalconImageAnalyzerReconciler) registryUri(ctx context.Context, falconI
 
 		return "gcr.io/" + projectId + "/falcon-imageanalyzer", nil
 	case falconv1alpha1.RegistryTypeECR:
-		repo, err := aws.UpsertECRRepo(ctx, "falcon-image-nalyzer")
+		repo, err := aws.UpsertECRRepo(ctx, "falcon-image-analyzer")
 		if err != nil {
 			return "", fmt.Errorf("Cannot get target docker URI for ECR repository: %v", err)
 		}
@@ -163,7 +163,7 @@ func (r *FalconImageAnalyzerReconciler) imageUri(ctx context.Context, falconImag
 	return fmt.Sprintf("%s:%s", registryUri, imageTag), nil
 }
 
-func (r *FalconImageAnalyzerReconciler) getImageTag(ctx context.Context, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) (string, error) {
+func (r *FalconImageAnalyzerReconciler) getImageTag(falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) (string, error) {
 	if falconImageAnalyzer.Status.Sensor != nil && *falconImageAnalyzer.Status.Sensor != "" {
 		return *falconImageAnalyzer.Status.Sensor, nil
 	}
@@ -174,7 +174,7 @@ func (r *FalconImageAnalyzerReconciler) getImageTag(ctx context.Context, falconI
 func (r *FalconImageAnalyzerReconciler) setImageTag(ctx context.Context, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) (string, error) {
 	// If version locking is enabled and a version is already set in status, return the current version
 	if r.versionLock(falconImageAnalyzer) {
-		if tag, err := r.getImageTag(ctx, falconImageAnalyzer); err == nil {
+		if tag, err := r.getImageTag(falconImageAnalyzer); err == nil {
 			return tag, err
 		}
 	}

@@ -138,22 +138,11 @@ spec:
               imageAnalyzerConfig:
                 description: Additional configuration for Falcon Image Analyzer deployment.
                 properties:
-                  containerPort:
-                    default: 4443
-                    description: Port on which the Falcon Image Analyzer container
-                      will listen for requests.
-                    format: int32
-                    maximum: 65535
-                    minimum: 0
-                    type: integer
-                    x-kubernetes-int-or-string: true
+                  azureConfigPath:
+                    type: string
                   disabledNamespaces:
                     description: Ignore Image Analyzer for a specific set of namespaces.
                     properties:
-                      ignoreOpenShiftNamespaces:
-                        description: For OpenShift clusters, ignore openshift-specific
-                          namespaces for Image Analyzer.
-                        type: boolean
                       namespaces:
                         description: Configure a list of namespaces to ignore Image
                           Analyzer.
@@ -161,14 +150,6 @@ spec:
                           type: string
                         type: array
                     type: object
-                  failurePolicy:
-                    default: Ignore
-                    description: Configure the failure policy for the Falcon Image
-                      Analyzer.
-                    enum:
-                    - Ignore
-                    - Fail
-                    type: string
                   imagePullPolicy:
                     default: Always
                     description: PullPolicy describes a policy for if/when to pull
@@ -192,6 +173,14 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     type: array
+                  priorityClass:
+                    description: Enable priority class for the Falcon Image Analyzer
+                      deployment.
+                    properties:
+                      name:
+                        description: Name of the priority class to use.
+                        type: string
+                    type: object
                   replicas:
                     default: 2
                     description: Number of replicas for the Falcon Image Analyzer
@@ -202,70 +191,6 @@ spec:
                     type: integer
                     x-kubernetes-int-or-string: true
                   resources:
-                    default:
-                      limits:
-                        cpu: 300m
-                        memory: 512Mi
-                      requests:
-                        cpu: 300m
-                        memory: 512Mi
-                    description: ResourceRequirements describes the compute resource
-                      requirements.
-                    properties:
-                      claims:
-                        description: "Claims lists the names of resources, defined
-                          in spec.resourceClaims, that are used by this container.
-                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
-                          feature gate. \n This field is immutable. It can only be
-                          set for containers."
-                        items:
-                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
-                          properties:
-                            name:
-                              description: Name must match the name of one entry in
-                                pod.spec.resourceClaims of the Pod where this field
-                                is used. It makes that resource available inside a
-                                container.
-                              type: string
-                          required:
-                          - name
-                          type: object
-                        type: array
-                        x-kubernetes-list-map-keys:
-                        - name
-                        x-kubernetes-list-type: map
-                      limits:
-                        additionalProperties:
-                          anyOf:
-                          - type: integer
-                          - type: string
-                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                          x-kubernetes-int-or-string: true
-                        description: 'Limits describes the maximum amount of compute
-                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
-                        type: object
-                      requests:
-                        additionalProperties:
-                          anyOf:
-                          - type: integer
-                          - type: string
-                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                          x-kubernetes-int-or-string: true
-                        description: 'Requests describes the minimum amount of compute
-                          resources required. If Requests is omitted for a container,
-                          it defaults to Limits if that is explicitly specified, otherwise
-                          to an implementation-defined value. Requests cannot exceed
-                          Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
-                        type: object
-                    type: object
-                  resourcesClient:
-                    default:
-                      limits:
-                        cpu: 750m
-                        memory: 256Mi
-                      requests:
-                        cpu: 500m
-                        memory: 256Mi
                     description: ResourceRequirements describes the compute resource
                       requirements.
                     properties:
@@ -328,15 +253,6 @@ spec:
                           IAM Role or GCP Workload Identity.
                         type: object
                     type: object
-                  servicePort:
-                    default: 443
-                    description: Port on which the Falcon Image Analyzer service will
-                      listen for requests from the cluster.
-                    format: int32
-                    maximum: 65535
-                    minimum: 0
-                    type: integer
-                    x-kubernetes-int-or-string: true
                   updateStrategy:
                     default:
                       rollingUpdate:

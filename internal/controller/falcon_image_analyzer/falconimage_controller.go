@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -93,6 +94,25 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 
+	validate, err := k8sutils.CheckRunningPodLabels(r.Client, ctx, falconImageAnalyzer.Spec.InstallNamespace, common.CRLabels("deployment", falconImageAnalyzer.Name, common.FalconImageAnalyzer))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !validate {
+		err = k8sutils.ConditionsUpdate(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, metav1.Condition{
+			Status:             metav1.ConditionFalse,
+			Reason:             falconv1alpha1.ReasonReqNotMet,
+			Type:               falconv1alpha1.ConditionFailed,
+			Message:            "falconImageAnalyzer must not be installed in a namespace with other workloads running. Please change the namespace in the CR configuration.",
+			ObservedGeneration: falconImageAnalyzer.GetGeneration(),
+		})
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		log.Error(nil, "falconImageAnalyzer is attempting to install in a namespace with existing pods. Please update the CR configuration to a namespace that does not have workoads already running.")
+		return ctrl.Result{}, err
+	}
+
 	// Let's just set the status as Unknown when no status is available
 	if falconImageAnalyzer.Status.Conditions == nil || len(falconImageAnalyzer.Status.Conditions) == 0 {
 		meta.SetStatusCondition(&falconImageAnalyzer.Status.Conditions, metav1.Condition{Type: falconv1alpha1.ConditionPending, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Starting reconciliation"})
@@ -114,18 +134,19 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	if falconImageAnalyzer.Status.Version != version.Get() {
 		falconImageAnalyzer.Status.Version = version.Get()
-
-		err = r.Status().Update(ctx, falconImageAnalyzer)
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			err = r.Get(ctx, req.NamespacedName, falconImageAnalyzer)
+			if err != nil {
+				log.Error(err, "Failed to re-fetch FalconImageAnalyzer for status update")
+				return err
+			}
+			return r.Status().Update(ctx, falconImageAnalyzer)
+		})
 		if err != nil {
 			log.Error(err, "Failed to update FalconImageAnalyzer status for falconImageAnalyzer.Status.Version")
 			return ctrl.Result{}, err
 		}
 
-		err = r.Get(ctx, req.NamespacedName, falconImageAnalyzer)
-		if err != nil {
-			log.Error(err, "Failed to re-fetch FalconImageAnalyzer for status update")
-			return ctrl.Result{}, err
-		}
 	}
 
 	if err := r.reconcileNamespace(ctx, req, log, falconImageAnalyzer); err != nil {
@@ -135,11 +156,11 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 	// Image being set will override other image based settings
 	if falconImageAnalyzer.Spec.Image != "" {
 		if _, err := r.setImageTag(ctx, falconImageAnalyzer); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Image  Image version: %v", err)
+			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Image Analyzer version: %v", err)
 		}
 	} else if os.Getenv("RELATED_IMAGE_IMAGE_ANALYZER") != "" && falconImageAnalyzer.Spec.FalconAPI == nil {
 		if _, err := r.setImageTag(ctx, falconImageAnalyzer); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Image  Image version: %v", err)
+			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Image Analyzer version: %v", err)
 		}
 	} else {
 		switch falconImageAnalyzer.Spec.Registry.Type {

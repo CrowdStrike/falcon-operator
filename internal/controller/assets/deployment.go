@@ -257,9 +257,10 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 	var rootUid int64 = 0
 	privileged := false
 	allowPrivilegeEscalation := false
+	volumes := []corev1.Volume{}
 
-	volumes := []corev1.Volume{
-		{
+	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.AzureConfigPath != "" {
+		volumes = append(volumes, corev1.Volume{
 			Name: "azure-config",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
@@ -268,6 +269,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 				},
 			},
 		},
+		)
 	}
 
 	return &appsv1.Deployment{
@@ -305,8 +307,9 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 												Values:   []string{"linux"},
 											},
 											{
-												Key:      "node-role.kubernetes.io/master",
-												Operator: corev1.NodeSelectorOpDoesNotExist,
+												Key:      "kubernetes.io/arch",
+												Operator: corev1.NodeSelectorOpIn,
+												Values:   []string{"amd64"},
 											},
 										},
 									},
@@ -351,7 +354,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 					NodeSelector:       common.NodeSelector,
 					Volumes:            volumes,
 					//Tolerations:        falconImageAnalyzer.Spec.ImageAnalyzerConfig.Tolerations,
-					//PriorityClassName:  falconImageAnalyzer.Spec.ImageAnalyzerConfig.PriorityClass.Name,
+					PriorityClassName: falconImageAnalyzer.Spec.ImageAnalyzerConfig.PriorityClass.Name,
 				},
 			},
 		},
