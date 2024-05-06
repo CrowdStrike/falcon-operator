@@ -25,7 +25,6 @@ type FalconImageAnalyzerSpec struct {
 	//
 	// When configured, it will pull the sensor from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
 	//
-	// If using the API is not desired, the sensor can be manually configured by setting the Image and Version fields.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
@@ -37,7 +36,7 @@ type FalconImageAnalyzerSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Configuration",order=5
 	ImageAnalyzerConfig FalconImageAnalyzerConfigSpec `json:"imageAnalyzerConfig,omitempty"`
 
-	// Location of the Falcon Sensor image. Use only in cases when you mirror the original image to your repository/name:tag, and CrowdStrike OAuth2 API is not used.
+	// Location of the Image Analyzer image. Use only in cases when you mirror the original image to your repository/name:tag
 	// +kubebuilder:validation:Pattern="^.*:.*$"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Image URI",order=7
 	Image string `json:"image,omitempty"`
@@ -48,21 +47,9 @@ type FalconImageAnalyzerSpec struct {
 }
 
 type FalconImageAnalyzerConfigSpec struct {
-	// Define annotations that will be passed down to admision controller service account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Service Account Configuration",order=7
+	// Define annotations that will be passed down to Image Analyzer service account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Service Account Configuration",order=1
 	ServiceAccount FalconImageAnalyzerServiceAccount `json:"serviceAccount,omitempty"`
-
-	// Ignore Image Analyzer for a specific set of namespaces.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=12
-	DisabledNamespaces FalconImageAnalyzerNamespace `json:"disabledNamespaces,omitempty"`
-
-	// Number of replicas for the Falcon Image Analyzer deployment.
-	// +kubebuilder:default:=2
-	// +kubebuilder:validation:XIntOrString
-	// +kubebuilder:validation:Minimum:=0
-	// +kubebuilder:validation:Maximum:=65535
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Image Analyzer Replica Count",order=5,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
-	Replicas *int32 `json:"replicas,omitempty"`
 
 	// +kubebuilder:default:=Always
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
@@ -70,31 +57,44 @@ type FalconImageAnalyzerConfigSpec struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 
 	// ImagePullSecrets is an optional list of references to secrets to use for pulling image from the image location.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1,displayName="Falcon Image Analyzer Image Pull Secrets",xDescriptors={"urn:alm:descriptor:io.kubernetes:Secret"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=3,displayName="Falcon Image Analyzer Image Pull Secrets",xDescriptors={"urn:alm:descriptor:io.kubernetes:Secret"}
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Resources",order=10,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Resources",order=4,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Azure Config file path",order=12
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Azure Config file path",order=5
 	AzureConfigPath string `json:"azureConfigPath,omitempty"`
 
 	// Enable priority class for the Falcon Image Analyzer deployment.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Priority Class",order=12
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Priority Class",order=6
 	PriorityClass FalconImageAnalyzerPriorityClass `json:"priorityClass,omitempty"`
 
 	// Type of Deployment update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
 	// +kubebuilder:default:={"rollingUpdate":{"maxUnavailable":0,"maxSurge":1}}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=11
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=7
 	DepUpdateStrategy FalconImageAnalyzerUpdateStrategy `json:"updateStrategy,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Volumes",order=12
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Volumes",order=8
 	// +kubebuilder:default:={name: "tmp-volume", emptyDir: {SizeLimit: "20Gi"}}
 	IARVolumes []corev1.Volume `json:"volumes,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Volume Mounts",order=13
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Volume Mounts",order=9
 	// +kubebuilder:default:={name: "tmp-volume", mountPath: "/tmp"}
 	IARVolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
+
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Cluster Name",order=10
+	ClusterName string `json:"clusterName,omitempty"`
+
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Exclusions",order=11
+	Exclusions Exclusions `json:"exclusions,omitempty"`
+
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Registry Configuration Options",order=12
+	RegistryConfig RegistryConfig `json:"registryConfig,omitempty"`
+
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Enable Debugging",order=13
+	// +kubebuilder:default:=false
+	EnableDebug bool `json:"debug,omitempty"`
 }
 
 type FalconImageAnalyzerPriorityClass struct {
@@ -115,10 +115,26 @@ type FalconImageAnalyzerUpdateStrategy struct {
 	RollingUpdate appsv1.RollingUpdateDeployment `json:"rollingUpdate,omitempty"`
 }
 
-type FalconImageAnalyzerNamespace struct {
-	// Configure a list of namespaces to ignore Image Analyzer.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=1
+type Exclusions struct {
+	// Configure a list of exclusions for the Falcon Image Analyzer.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Exclusions List",order=1
+	Registries []string `json:"exclusions,omitempty"`
+
+	// Configure a list of namespaces for Image Analyzer to ignore.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=2
 	Namespaces []string `json:"namespaces,omitempty"`
+}
+
+type RegistryConfig struct {
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Registry Credentials",order=1
+	Credentials []RegistryCreds `json:"credentials,omitempty"`
+}
+
+type RegistryCreds struct {
+	// Namespace where the registry container secret is located.
+	Namespace string `json:"namespace,omitempty"`
+	// Name of the registry container secret.
+	SecretName string `json:"secretName,omitempty"`
 }
 
 // FalconImageAnalyzerStatus defines the observed state of FalconImageAnalyzer

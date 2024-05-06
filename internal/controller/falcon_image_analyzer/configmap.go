@@ -2,7 +2,10 @@ package falcon
 
 import (
 	"context"
+	"fmt"
 	"reflect"
+	"strconv"
+	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
@@ -18,7 +21,6 @@ import (
 
 const (
 	isKubernetes            = "true"
-	enableDebug             = "false"
 	agentRunmode            = "watcher"
 	agentMaxConsumerThreads = "1"
 )
@@ -62,12 +64,8 @@ func (r *FalconImageAnalyzerReconciler) reconcileGenericConfigMap(name string, g
 
 func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name string, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) (*corev1.ConfigMap, error) {
 	var err error
-	data := common.MakeSensorEnvMap(falconImageAnalyzer.Spec.Falcon)
-
+	data := map[string]string{}
 	cid := ""
-	if falconImageAnalyzer.Spec.Falcon.CID != nil {
-		cid = *falconImageAnalyzer.Spec.Falcon.CID
-	}
 
 	if cid == "" && falconImageAnalyzer.Spec.FalconAPI != nil {
 		cid, err = falcon_api.FalconCID(ctx, falconImageAnalyzer.Spec.FalconAPI.CID, falconImageAnalyzer.Spec.FalconAPI.ApiConfig())
@@ -88,19 +86,36 @@ func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name s
 		data["AGENT_REGION"] = falconImageAnalyzer.Spec.FalconAPI.CloudRegion
 	}
 
+	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.ClusterName != "" {
+		data["AGENT_CLUSTER_NAME"] = falconImageAnalyzer.Spec.ImageAnalyzerConfig.ClusterName
+	}
+
+	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.RegistryConfig.Credentials != nil {
+		for _, v := range falconImageAnalyzer.Spec.ImageAnalyzerConfig.RegistryConfig.Credentials {
+			data["AGENT_REGISTRY_CREDENTIALS"] = fmt.Sprintf("%s:%s", v.Namespace, v.SecretName)
+		}
+	}
+
+	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.Exclusions.Namespaces != nil {
+		data["AGENT_NAMESPACE_EXCLUSIONS"] = strings.Join(falconImageAnalyzer.Spec.ImageAnalyzerConfig.Exclusions.Namespaces, ",")
+	}
+
+	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.Exclusions.Registries != nil {
+		data["AGENT_REGISTRY_EXCLUSIONS"] = strings.Join(falconImageAnalyzer.Spec.ImageAnalyzerConfig.Exclusions.Registries, ",")
+	}
+
+	data["AGENT_DEBUG"] = strconv.FormatBool(falconImageAnalyzer.Spec.ImageAnalyzerConfig.EnableDebug)
+
 	data["IS_KUBERNETES"] = isKubernetes
 	data["AGENT_CID"] = cid
-	data["AGENT_DEBUG"] = enableDebug
 	data["AGENT_RUNMODE"] = agentRunmode
 	data["AGENT_MAX_CONSUMER_THREADS"] = agentMaxConsumerThreads
 
-	/*
-		AGENT_CLUSTER_NAME: {{ .Values.crowdstrikeConfig.clusterName | quote }}
-		AGENT_REGISTRY_CREDENTIALS: {{ .Values.privateRegistries.credentials | quote }}
-		AGENT_NAMESPACE_EXCLUSIONS: {{ .Values.exclusions.namespace | quote }}
-		AGENT_REGISTRY_EXCLUSIONS: {{ .Values.exclusions.registry | quote }}
-		AGENT_REGION: {{ .Values.crowdstrikeConfig.agentRegion | quote }}
-		AGENT_TEMP_MOUNT_SIZE: {{ include "falcon-image-analyzer.tempvolsize" . | quote }}
-	*/
+	for _, v := range falconImageAnalyzer.Spec.ImageAnalyzerConfig.IARVolumes {
+		if v.Name == "emptyDir" {
+			data["AGENT_TEMP_MOUNT_SIZE"] = v.EmptyDir.SizeLimit.String()
+		}
+	}
+
 	return assets.SensorConfigMap(name, falconImageAnalyzer.Spec.InstallNamespace, common.FalconImageAnalyzer, data), nil
 }

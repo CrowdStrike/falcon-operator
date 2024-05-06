@@ -48,9 +48,7 @@ spec:
                 description: "FalconAPI configures connection from your local Falcon
                   operator to CrowdStrike Falcon platform. \n When configured, it
                   will pull the sensor from registry.crowdstrike.com and deploy the
-                  appropriate sensor to the cluster. \n If using the API is not desired,
-                  the sensor can be manually configured by setting the Image and Version
-                  fields."
+                  appropriate sensor to the cluster."
                 properties:
                   cid:
                     description: Falcon Customer ID (CID) Override (optional, default
@@ -79,9 +77,8 @@ spec:
                 - cloud_region
                 type: object
               image:
-                description: Location of the Falcon Sensor image. Use only in cases
-                  when you mirror the original image to your repository/name:tag,
-                  and CrowdStrike OAuth2 API is not used.
+                description: Location of the Image Analyzer image. Use only in cases
+                  when you mirror the original image to your repository/name:tag
                 pattern: ^.*:.*$
                 type: string
               imageAnalyzerConfig:
@@ -89,12 +86,22 @@ spec:
                 properties:
                   azureConfigPath:
                     type: string
-                  disabledNamespaces:
-                    description: Ignore Image Analyzer for a specific set of namespaces.
+                  clusterName:
+                    type: string
+                  debug:
+                    default: false
+                    type: boolean
+                  exclusions:
                     properties:
+                      exclusions:
+                        description: Configure a list of exclusions for the Falcon
+                          Image Analyzer.
+                        items:
+                          type: string
+                        type: array
                       namespaces:
-                        description: Configure a list of namespaces to ignore Image
-                          Analyzer.
+                        description: Configure a list of namespaces for Image Analyzer
+                          to ignore.
                         items:
                           type: string
                         type: array
@@ -130,15 +137,21 @@ spec:
                         description: Name of the priority class to use.
                         type: string
                     type: object
-                  replicas:
-                    default: 2
-                    description: Number of replicas for the Falcon Image Analyzer
-                      deployment.
-                    format: int32
-                    maximum: 65535
-                    minimum: 0
-                    type: integer
-                    x-kubernetes-int-or-string: true
+                  registryConfig:
+                    properties:
+                      credentials:
+                        items:
+                          properties:
+                            namespace:
+                              description: Namespace where the registry container
+                                secret is located.
+                              type: string
+                            secretName:
+                              description: Name of the registry container secret.
+                              type: string
+                          type: object
+                        type: array
+                    type: object
                   resources:
                     description: ResourceRequirements describes the compute resource
                       requirements.
@@ -190,9 +203,9 @@ spec:
                         type: object
                     type: object
                   serviceAccount:
-                    description: Define annotations that will be passed down to admision
-                      controller service account. This is useful for passing along
-                      AWS IAM Role or GCP Workload Identity.
+                    description: Define annotations that will be passed down to Image
+                      Analyzer service account. This is useful for passing along AWS
+                      IAM Role or GCP Workload Identity.
                     properties:
                       annotations:
                         additionalProperties:
