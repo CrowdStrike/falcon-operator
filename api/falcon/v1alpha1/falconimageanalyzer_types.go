@@ -21,10 +21,6 @@ type FalconImageAnalyzerSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1,xDescriptors={"urn:alm:descriptor:io.kubernetes:Namespace"}
 	InstallNamespace string `json:"installNamespace,omitempty"`
 
-	// CrowdStrike Falcon sensor configuration
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Sensor Configuration",order=3
-	Falcon FalconSensor `json:"falcon,omitempty"`
-
 	// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 	//
 	// When configured, it will pull the sensor from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
