@@ -821,20 +821,6 @@ func (in *FalconImageAnalyzerConfigSpec) DeepCopyInto(out *FalconImageAnalyzerCo
 	}
 	out.PriorityClass = in.PriorityClass
 	in.DepUpdateStrategy.DeepCopyInto(&out.DepUpdateStrategy)
-	if in.IARVolumes != nil {
-		in, out := &in.IARVolumes, &out.IARVolumes
-		*out = make([]corev1.Volume, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
-	if in.IARVolumeMounts != nil {
-		in, out := &in.IARVolumeMounts, &out.IARVolumeMounts
-		*out = make([]corev1.VolumeMount, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
 	in.Exclusions.DeepCopyInto(&out.Exclusions)
 	in.RegistryConfig.DeepCopyInto(&out.RegistryConfig)
 }

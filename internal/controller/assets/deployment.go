@@ -256,8 +256,25 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 	var rootUid int64 = 0
 	privileged := false
 	allowPrivilegeEscalation := false
-	volumes := falconImageAnalyzer.Spec.ImageAnalyzerConfig.IARVolumes
-	volumeMounts := falconImageAnalyzer.Spec.ImageAnalyzerConfig.IARVolumeMounts
+	sizeLimit := resource.MustParse(falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit)
+
+	volumes := []corev1.Volume{
+		{
+			Name: "tmp-volume",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					SizeLimit: &sizeLimit,
+				},
+			},
+		},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "tmp-volume",
+			MountPath: falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeMountPath,
+		},
+	}
 
 	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.AzureConfigPath != "" {
 		volumes = append(volumes, corev1.Volume{

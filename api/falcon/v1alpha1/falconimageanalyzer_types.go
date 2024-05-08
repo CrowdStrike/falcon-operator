@@ -76,12 +76,12 @@ type FalconImageAnalyzerConfigSpec struct {
 	DepUpdateStrategy FalconImageAnalyzerUpdateStrategy `json:"updateStrategy,omitempty"`
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Volumes",order=8
-	// +kubebuilder:default:={name: "tmp-volume", emptyDir: {SizeLimit: "20Gi"}}
-	IARVolumes []corev1.Volume `json:"volumes,omitempty"`
+	// +kubebuilder:default:="20Gi"
+	VolumeSizeLimit string `json:"sizeLimit,omitempty"`
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Volume Mounts",order=9
-	// +kubebuilder:default:={name: "tmp-volume", mountPath: "/tmp"}
-	IARVolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
+	// +kubebuilder:default:="/tmp"
+	VolumeMountPath string `json:"mountPath,omitempty"`
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Cluster Name",order=10
 	ClusterName string `json:"clusterName,omitempty"`
