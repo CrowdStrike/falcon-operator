@@ -29,7 +29,7 @@ const (
 
 func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.Secret, error) {
 	existingInjectorTLSSecret := &corev1.Secret{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorTLSSecretName, Namespace: r.Namespace()}, existingInjectorTLSSecret)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorTLSSecretName, Namespace: falconContainer.Spec.InstallNamespace}, existingInjectorTLSSecret)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			validity := 3650
@@ -38,11 +38,11 @@ func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Conte
 			}
 
 			certInfo := tls.CertInfo{
-				CommonName: fmt.Sprintf("%s.%s.svc", injectorName, r.Namespace()),
-				DNSNames:   []string{fmt.Sprintf("%s.%s.svc", injectorName, r.Namespace()), fmt.Sprintf("%s.%s.svc.cluster.local", injectorName, r.Namespace())},
+				CommonName: fmt.Sprintf("%s.%s.svc", injectorName, falconContainer.Spec.InstallNamespace),
+				DNSNames:   []string{fmt.Sprintf("%s.%s.svc", injectorName, falconContainer.Spec.InstallNamespace), fmt.Sprintf("%s.%s.svc.cluster.local", injectorName, falconContainer.Spec.InstallNamespace)},
 			}
 
-			c, k, b, err := tls.CertSetup(r.Namespace(), validity, certInfo)
+			c, k, b, err := tls.CertSetup(falconContainer.Spec.InstallNamespace, validity, certInfo)
 			if err != nil {
 				return &corev1.Secret{}, fmt.Errorf("failed to generate Falcon Container PKI: %v", err)
 			}
@@ -51,7 +51,7 @@ func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Conte
 				"tls.key": k,
 				"ca.crt":  b,
 			}
-			injectorTLSSecret := assets.Secret(injectorTLSSecretName, r.Namespace(), common.FalconSidecarSensor, secretData, corev1.SecretTypeTLS)
+			injectorTLSSecret := assets.Secret(injectorTLSSecretName, falconContainer.Spec.InstallNamespace, common.FalconSidecarSensor, secretData, corev1.SecretTypeTLS)
 			if err = ctrl.SetControllerReference(falconContainer, injectorTLSSecret, r.Scheme); err != nil {
 				return &corev1.Secret{}, fmt.Errorf("unable to set controller reference on injector TLS Secret%s: %v", injectorTLSSecret.ObjectMeta.Name, err)
 			}
@@ -71,7 +71,7 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log
 		return &appsv1.Deployment{}, fmt.Errorf("unable to determine falcon container image URI: %v", err)
 	}
 
-	deployment := assets.SideCarDeployment(injectorName, r.Namespace(), common.FalconSidecarSensor, imageUri, falconContainer)
+	deployment := assets.SideCarDeployment(injectorName, falconContainer.Spec.InstallNamespace, common.FalconSidecarSensor, imageUri, falconContainer)
 	existingDeployment := &appsv1.Deployment{}
 
 	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
@@ -80,7 +80,7 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log
 		}
 	}
 
-	err = r.Client.Get(ctx, types.NamespacedName{Name: injectorName, Namespace: r.Namespace()}, existingDeployment)
+	err = r.Client.Get(ctx, types.NamespacedName{Name: injectorName, Namespace: falconContainer.Spec.InstallNamespace}, existingDeployment)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, deployment, r.Scheme); err != nil {

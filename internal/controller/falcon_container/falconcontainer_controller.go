@@ -96,6 +96,24 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
+	validate, err := k8sutils.CheckRunningPodLabels(r.Client, ctx, falconContainer.Spec.InstallNamespace, common.CRLabels("deployment", injectorName, common.FalconSidecarSensor))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !validate {
+		err = r.StatusUpdate(ctx, req, log, falconContainer,
+			falconv1alpha1.ConditionFailed,
+			metav1.ConditionFalse,
+			falconv1alpha1.ReasonReqNotMet,
+			"FalconContainer must not be installed in a namespace with other workloads running. Please change the namespace in the CR configuration.",
+		)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		log.Error(nil, "FalconContainer is attempting to install in a namespace with existing pods. Please update the CR configuration to a namespace that does not have workoads already running.", "namespace", falconContainer.Spec.InstallNamespace, "labels", common.CRLabels("deployment", falconContainer.Name, common.FalconSidecarSensor))
+		return ctrl.Result{}, nil
+	}
+
 	if falconContainer.Status.Version != version.Get() {
 		falconContainer.Status.Version = version.Get()
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -250,7 +268,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile injector Service: %v", err)
 	}
 
-	pod, err := k8sutils.GetReadyPod(r.Client, ctx, r.Namespace(), map[string]string{common.FalconComponentKey: common.FalconSidecarSensor})
+	pod, err := k8sutils.GetReadyPod(r.Client, ctx, falconContainer.Spec.InstallNamespace, map[string]string{common.FalconComponentKey: common.FalconSidecarSensor})
 	if err != nil && err.Error() != "No webhook service pod found in a Ready state" {
 		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to find Ready injector pod: %v", err))
 		if err != nil {
@@ -259,7 +277,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("failed to find Ready injector pod: %v", err)
 	}
 	if pod.Name == "" {
-		log.Info("Looking for a Ready injector pod", "namespace", r.Namespace())
+		log.Info("Looking for a Ready injector pod", "namespace", falconContainer.Spec.InstallNamespace)
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 

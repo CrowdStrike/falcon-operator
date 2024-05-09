@@ -43,12 +43,12 @@ func (r *FalconContainerReconciler) reconcileRegistrySecrets(ctx context.Context
 		if disableDefaultNSInjection {
 			// if default namespace injection is disabled, require that the injection label be set to enabled
 			// in both cases below, ensure that we're not blocking pull secret creation within the injector namespace
-			if (ns.Labels == nil || ns.Labels[common.FalconContainerInjection] != injectionEnabledValue) && ns.Name != r.Namespace() {
+			if (ns.Labels == nil || ns.Labels[common.FalconContainerInjection] != injectionEnabledValue) && ns.Name != falconContainer.Spec.InstallNamespace {
 				continue
 			}
 		} else {
 			// otherwise, just ensure the injection label is not set to disabled
-			if ns.Labels != nil && ns.Labels[common.FalconContainerInjection] == injectionDisabledValue && ns.Name != r.Namespace() {
+			if ns.Labels != nil && ns.Labels[common.FalconContainerInjection] == injectionDisabledValue && ns.Name != falconContainer.Spec.InstallNamespace {
 				continue
 			}
 		}
