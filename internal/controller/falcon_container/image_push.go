@@ -172,7 +172,7 @@ func (r *FalconContainerReconciler) imageUri(ctx context.Context, falconContaine
 	return fmt.Sprintf("%s:%s", registryUri, imageTag), nil
 }
 
-func (r *FalconContainerReconciler) getImageTag(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer) (string, error) {
+func (r *FalconContainerReconciler) getImageTag(falconContainer *falconv1alpha1.FalconContainer) (string, error) {
 	if falconContainer.Status.Sensor != nil && *falconContainer.Status.Sensor != "" {
 		return *falconContainer.Status.Sensor, nil
 	}
@@ -183,7 +183,7 @@ func (r *FalconContainerReconciler) getImageTag(ctx context.Context, falconConta
 func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer) (string, error) {
 	// If version locking is enabled and a version is already set in status, return the current version
 	if r.versionLock(falconContainer) {
-		if tag, err := r.getImageTag(ctx, falconContainer); err == nil {
+		if tag, err := r.getImageTag(falconContainer); err == nil {
 			return tag, err
 		}
 	}

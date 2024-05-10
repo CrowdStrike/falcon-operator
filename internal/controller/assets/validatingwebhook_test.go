@@ -71,7 +71,7 @@ func testValidatingWebhook(name string, namespace string, webhookName string, ca
 						{
 							Key:      "kubernetes.io/metadata.name",
 							Operator: operatorSelector,
-							Values:   []string{"ns1", "ns2"},
+							Values:   disabledNamespaces,
 						},
 						{
 							Key:      common.FalconAdmissionReviewKey,

@@ -277,8 +277,8 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		dsTarget := assets.Daemonset(dsUpdate.Name, image, serviceAccount, nodesensor)
 
 		// Objects to check for updates to re-spin pods
-		imgUpdate := updateDaemonSetImages(dsUpdate, image, nodesensor, logger)
-		affUpdate := updateDaemonSetAffinity(dsUpdate, dsTarget, nodesensor, logger)
+		imgUpdate := updateDaemonSetImages(dsUpdate, image, logger)
+		affUpdate := updateDaemonSetAffinity(dsUpdate, nodesensor, logger)
 		containerVolUpdate := updateDaemonSetContainerVolumes(dsUpdate, dsTarget, logger)
 		volumeUpdates := updateDaemonSetVolumes(dsUpdate, dsTarget, logger)
 		resources := updateDaemonSetResources(dsUpdate, dsTarget, logger)
@@ -286,7 +286,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		pc := updateDaemonSetPriorityClass(dsUpdate, dsTarget, logger)
 		capabilities := updateDaemonSetCapabilities(dsUpdate, dsTarget, logger)
 		initArgs := updateDaemonSetInitArgs(dsUpdate, dsTarget, logger)
-		proxyUpdates := updateDaemonSetContainerProxy(dsUpdate, nodesensor, logger)
+		proxyUpdates := updateDaemonSetContainerProxy(dsUpdate, logger)
 		tolsUpdate, err := r.updateDaemonSetTolerations(ctx, dsUpdate, nodesensor, logger)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -588,7 +588,7 @@ func (r *FalconNodeSensorReconciler) handleCrowdStrikeSecrets(ctx context.Contex
 	return nil
 }
 
-func updateDaemonSetContainerProxy(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+func updateDaemonSetContainerProxy(ds *appsv1.DaemonSet, logger logr.Logger) bool {
 	updated := false
 	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
 		for i, container := range ds.Spec.Template.Spec.Containers {
@@ -631,7 +631,7 @@ func (r *FalconNodeSensorReconciler) updateDaemonSetTolerations(ctx context.Cont
 }
 
 // If an update is needed, this will update the affinity from the given DaemonSet
-func updateDaemonSetAffinity(ds, origDS *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+func updateDaemonSetAffinity(ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
 	nodeAffinity := ds.Spec.Template.Spec.Affinity
 	origNodeAffinity := corev1.Affinity{NodeAffinity: &nodesensor.Spec.Node.NodeAffinity}
 	affinityUpdate := !equality.Semantic.DeepEqual(nodeAffinity.NodeAffinity, origNodeAffinity.NodeAffinity)
@@ -674,7 +674,7 @@ func updateDaemonSetVolumes(ds, origDS *appsv1.DaemonSet, logger logr.Logger) bo
 }
 
 // If an update is needed, this will update the InitContainer image reference from the given DaemonSet
-func updateDaemonSetImages(ds *appsv1.DaemonSet, origImg string, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) bool {
+func updateDaemonSetImages(ds *appsv1.DaemonSet, origImg string, logger logr.Logger) bool {
 	initImage := &ds.Spec.Template.Spec.InitContainers[0].Image
 	imgUpdate := *initImage != origImg
 	if imgUpdate {
