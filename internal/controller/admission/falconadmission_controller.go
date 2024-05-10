@@ -186,10 +186,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		// Create a CA Bundle ConfigMap if CACertificate attribute is set; overridden by the presence of a CACertificateConfigMap value
 		if falconAdmission.Spec.Registry.TLS.CACertificateConfigMap == "" && falconAdmission.Spec.Registry.TLS.CACertificate != "" {
 			if _, err := r.reconcileRegistryCABundleConfigMap(ctx, req, log, falconAdmission); err != nil {
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-
+				return ctrl.Result{}, err
 			}
 		}
 
@@ -261,9 +258,6 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	pod, err := k8sutils.GetReadyPod(r.Client, ctx, falconAdmission.Spec.InstallNamespace, map[string]string{common.FalconComponentKey: common.FalconAdmissionController})
 	if err != nil && err.Error() != "No webhook service pod found in a Ready state" {
-		if err != nil {
-			return ctrl.Result{}, err
-		}
 		log.Error(err, "Failed to find Ready admission controller pod")
 		return ctrl.Result{}, err
 	}

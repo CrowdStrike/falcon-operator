@@ -398,36 +398,36 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 // handleNamespace creates and updates the namespace
 func (r *FalconNodeSensorReconciler) handleNamespace(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
 	ns := corev1.Namespace{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: nodesensor.Spec.InstallNamespace}, &ns)
-	if err == nil || (err != nil && !errors.IsNotFound(err)) {
+	err := r.Get(ctx, types.NamespacedName{Name: nodesensor.Spec.InstallNamespace}, &ns)
+	if err != nil && errors.IsNotFound(err) {
+		ns = corev1.Namespace{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Kind:       "Namespace",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: nodesensor.Spec.InstallNamespace,
+			},
+		}
+
+		err = ctrl.SetControllerReference(nodesensor, &ns, r.Scheme)
+		if err != nil {
+			logger.Error(err, "Unable to assign Controller Reference to the Namespace")
+		}
+
+		err = r.Create(ctx, &ns)
+		if err != nil && !errors.IsAlreadyExists(err) {
+			logger.Error(err, "Failed to create new namespace", "Namespace.Name", nodesensor.Spec.InstallNamespace)
+			return false, err
+		}
+
+		return true, nil
+	} else if err != nil {
+		logger.Error(err, "Failed to get FalconNodeSensor Namespace")
 		return false, err
 	}
 
-	ns = corev1.Namespace{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "Namespace",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: nodesensor.Spec.InstallNamespace,
-			Labels: map[string]string{
-				"pod-security.kubernetes.io/enforce":             "privileged",
-				"pod-security.kubernetes.io/warn":                "privileged",
-				"pod-security.kubernetes.io/audit":               "privileged",
-				"security.openshift.io/scc.podSecurityLabelSync": "false",
-			},
-		},
-	}
-	err = ctrl.SetControllerReference(nodesensor, &ns, r.Scheme)
-	if err != nil {
-		logger.Error(err, "Unable to assign Controller Reference to the Namespace")
-	}
-	err = r.Client.Create(ctx, &ns)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		logger.Error(err, "Failed to create new namespace", "Namespace.Name", nodesensor.Spec.InstallNamespace)
-		return false, err
-	}
-	return true, nil
+	return false, nil
 }
 
 // handlePriorityClass creates and updates the priority class
@@ -772,75 +772,88 @@ func (r *FalconNodeSensorReconciler) handlePermissions(ctx context.Context, node
 // handleRoleBinding creates and updates RoleBinding
 func (r *FalconNodeSensorReconciler) handleClusterRoleBinding(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
 	binding := rbacv1.ClusterRoleBinding{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeClusterRoleBindingName}, &binding)
-	if err == nil || (err != nil && !errors.IsNotFound(err)) {
-		return false, err
-	}
-	binding = rbacv1.ClusterRoleBinding{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: rbacv1.SchemeGroupVersion.String(),
-			Kind:       "ClusterRoleBinding",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   common.NodeClusterRoleBindingName,
-			Labels: common.CRLabels("clusterrolebinding", common.NodeClusterRoleBindingName, common.FalconKernelSensor),
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "ClusterRole",
-			Name:     "falcon-operator-node-sensor-role",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      common.NodeServiceAccountName,
-				Namespace: nodesensor.Spec.InstallNamespace,
+	err := r.Get(ctx, types.NamespacedName{Name: common.NodeClusterRoleBindingName}, &binding)
+	if err != nil && errors.IsNotFound(err) {
+		binding = rbacv1.ClusterRoleBinding{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: rbacv1.SchemeGroupVersion.String(),
+				Kind:       "ClusterRoleBinding",
 			},
-		},
-	}
-	err = ctrl.SetControllerReference(nodesensor, &binding, r.Scheme)
-	if err != nil {
-		logger.Error(err, "Unable to assign Controller Reference to the ClusterRoleBinding")
-	}
-	logger.Info("Creating FalconNodeSensor ClusterRoleBinding")
-	err = r.Client.Create(ctx, &binding)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		logger.Error(err, "Failed to create new ClusterRoleBinding", "ClusteRoleBinding.Name", common.NodeClusterRoleBindingName)
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   common.NodeClusterRoleBindingName,
+				Labels: common.CRLabels("clusterrolebinding", common.NodeClusterRoleBindingName, common.FalconKernelSensor),
+			},
+			RoleRef: rbacv1.RoleRef{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "ClusterRole",
+				Name:     "falcon-operator-node-sensor-role",
+			},
+			Subjects: []rbacv1.Subject{
+				{
+					Kind:      "ServiceAccount",
+					Name:      common.NodeServiceAccountName,
+					Namespace: nodesensor.Spec.InstallNamespace,
+				},
+			},
+		}
+
+		err = ctrl.SetControllerReference(nodesensor, &binding, r.Scheme)
+		if err != nil {
+			logger.Error(err, "Unable to assign Controller Reference to the ClusterRoleBinding")
+		}
+
+		logger.Info("Creating FalconNodeSensor ClusterRoleBinding")
+		err = r.Create(ctx, &binding)
+		if err != nil && !errors.IsAlreadyExists(err) {
+			logger.Error(err, "Failed to create new ClusterRoleBinding", "ClusteRoleBinding.Name", common.NodeClusterRoleBindingName)
+			return false, err
+		}
+
+		return true, nil
+	} else if err != nil {
+		logger.Error(err, "Failed to get FalconNodeSensor ClusterRoleBinding")
 		return false, err
 	}
-	return true, nil
 
+	return false, nil
 }
 
 // handleServiceAccount creates and updates the service account and grants necessary permissions to it
 func (r *FalconNodeSensorReconciler) handleServiceAccount(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
 	sa := corev1.ServiceAccount{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.Spec.InstallNamespace}, &sa)
-	if err == nil || (err != nil && !errors.IsNotFound(err)) {
+	err := r.Get(ctx, types.NamespacedName{Name: common.NodeServiceAccountName, Namespace: nodesensor.Spec.InstallNamespace}, &sa)
+	if err != nil && errors.IsNotFound(err) {
+		sa = corev1.ServiceAccount{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Kind:       "ServiceAccount",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: nodesensor.Spec.InstallNamespace,
+				Name:      common.NodeServiceAccountName,
+				Labels:    common.CRLabels("serviceaccount", common.NodeServiceAccountName, common.FalconKernelSensor),
+			},
+		}
+
+		err = ctrl.SetControllerReference(nodesensor, &sa, r.Scheme)
+		if err != nil {
+			logger.Error(err, "Unable to assign Controller Reference to the ServiceAccount")
+		}
+
+		logger.Info("Creating FalconNodeSensor ServiceAccount")
+		err = r.Create(ctx, &sa)
+		if err != nil && !errors.IsAlreadyExists(err) {
+			logger.Error(err, "Failed to create new ServiceAccount", "Namespace.Name", nodesensor.Spec.InstallNamespace, "ServiceAccount.Name", common.NodeServiceAccountName)
+			return false, err
+		}
+
+		return true, nil
+	} else if err != nil {
+		logger.Error(err, "Failed to get FalconNodeSensor ServiceAccount")
 		return false, err
 	}
-	sa = corev1.ServiceAccount{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ServiceAccount",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: nodesensor.Spec.InstallNamespace,
-			Name:      common.NodeServiceAccountName,
-			Labels:    common.CRLabels("serviceaccount", common.NodeServiceAccountName, common.FalconKernelSensor),
-		},
-	}
-	err = ctrl.SetControllerReference(nodesensor, &sa, r.Scheme)
-	if err != nil {
-		logger.Error(err, "Unable to assign Controller Reference to the ServiceAccount")
-	}
-	logger.Info("Creating FalconNodeSensor ServiceAccount")
-	err = r.Client.Create(ctx, &sa)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		logger.Error(err, "Failed to create new ServiceAccount", "Namespace.Name", nodesensor.Spec.InstallNamespace)
-		return false, err
-	}
-	return true, nil
+
+	return false, nil
 }
 
 // handleServiceAccount creates and updates the service account and grants necessary permissions to it
