@@ -3802,7 +3802,7 @@ spec:
           value: null
         - name: OPERATOR_NAME
           value: falcon-operator
-        image: quay.io/crowdstrike/falcon-operator:0.9.5
+        image: quay.io/crowdstrike/falcon-operator:0.9.6
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
