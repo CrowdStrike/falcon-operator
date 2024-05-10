@@ -16,7 +16,7 @@ func (reg *FalconRegistry) LastNodeTag(ctx context.Context, versionRequested *st
 
 	return lastTag(ctx, systemContext, reg.imageUriNode(), func(tag string) bool {
 		return (tag[0] >= '0' && tag[0] <= '9' &&
-			strings.Contains(tag, ".falcon-linux.x86_64") &&
+			strings.Contains(tag, ".falcon-linux") &&
 			(versionRequested == nil || strings.HasPrefix(tag, *versionRequested)))
 	})
 }
