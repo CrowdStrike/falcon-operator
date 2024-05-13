@@ -98,7 +98,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			metav1.ConditionFalse,
 			falconv1alpha1.ReasonReqNotMet,
 			"FalconNodeSensor must not be installed in a namespace with other workloads running. Please change the namespace in the CR configuration.",
-			ctx, nodesensor, logger)
+			ctx, req.NamespacedName, nodesensor, logger)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -112,7 +112,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			metav1.ConditionFalse,
 			falconv1alpha1.ReasonReqNotMet,
 			"FalconNodeSensor progressing",
-			ctx, nodesensor, logger)
+			ctx, req.NamespacedName, nodesensor, logger)
 		if err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
@@ -175,7 +175,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			metav1.ConditionFalse,
 			falconv1alpha1.ReasonInstallFailed,
 			"FalconNodeSensor ConfigMap failed to be installed",
-			ctx, nodesensor, logger)
+			ctx, req.NamespacedName, nodesensor, logger)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -188,7 +188,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			metav1.ConditionTrue,
 			falconv1alpha1.ReasonInstallSucceeded,
 			"FalconNodeSensor ConfigMap has been successfully created",
-			ctx, nodesensor, logger)
+			ctx, req.NamespacedName, nodesensor, logger)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -203,7 +203,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			falconv1alpha1.ReasonUpdateSucceeded,
 			"FalconNodeSensor ConfigMap has been successfully updated",
 
-			ctx, nodesensor, logger)
+			ctx, req.NamespacedName, nodesensor, logger)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -250,7 +250,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				metav1.ConditionFalse,
 				falconv1alpha1.ReasonInstallFailed,
 				"FalconNodeSensor DaemonSet failed to be installed",
-				ctx, nodesensor, logger)
+				ctx, req.NamespacedName, nodesensor, logger)
 			logger.Error(err, "Failed to create new DaemonSet", "DaemonSet.Namespace", ds.Namespace, "DaemonSet.Name", ds.Name)
 			return ctrl.Result{}, err
 		}
@@ -259,7 +259,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			metav1.ConditionTrue,
 			falconv1alpha1.ReasonInstallSucceeded,
 			"FalconNodeSensor DaemonSet has been successfully installed",
-			ctx, nodesensor, logger)
+			ctx, req.NamespacedName, nodesensor, logger)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -300,7 +300,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 					metav1.ConditionTrue,
 					falconv1alpha1.ReasonUpdateFailed,
 					"FalconNodeSensor DaemonSet update has failed",
-					ctx, nodesensor, logger)
+					ctx, req.NamespacedName, nodesensor, logger)
 				logger.Error(err, "Failed to update DaemonSet", "DaemonSet.Namespace", dsUpdate.Namespace, "DaemonSet.Name", dsUpdate.Name)
 				return ctrl.Result{}, err
 			}
@@ -315,7 +315,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				metav1.ConditionTrue,
 				falconv1alpha1.ReasonUpdateSucceeded,
 				"FalconNodeSensor DaemonSet has been successfully updated",
-				ctx, nodesensor, logger)
+				ctx, req.NamespacedName, nodesensor, logger)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -344,7 +344,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		metav1.ConditionTrue,
 		falconv1alpha1.ReasonInstallSucceeded,
 		"FalconNodeSensor installation completed",
-		ctx, nodesensor, logger)
+		ctx, req.NamespacedName, nodesensor, logger)
 	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -888,9 +888,14 @@ func (r *FalconNodeSensorReconciler) handleSAAnnotations(ctx context.Context, no
 }
 
 // statusUpdate updates the FalconNodeSensor CR conditions
-func (r *FalconNodeSensorReconciler) conditionsUpdate(condType string, status metav1.ConditionStatus, reason string, message string, ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
+func (r *FalconNodeSensorReconciler) conditionsUpdate(condType string, status metav1.ConditionStatus, reason string, message string, ctx context.Context, nsType types.NamespacedName, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
 	if !meta.IsStatusConditionPresentAndEqual(nodesensor.Status.Conditions, condType, status) {
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			err := r.Get(ctx, nsType, nodesensor)
+			if err != nil {
+				return err
+			}
+
 			meta.SetStatusCondition(&nodesensor.Status.Conditions, metav1.Condition{
 				Status:             status,
 				Reason:             reason,
