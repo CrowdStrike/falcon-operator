@@ -230,8 +230,9 @@ func testSideCarDeployment(name string, namespace string, component string, imag
 												Values:   []string{"linux"},
 											},
 											{
-												Key:      "node-role.kubernetes.io/master",
-												Operator: corev1.NodeSelectorOpDoesNotExist,
+												Key:      "kubernetes.io/arch",
+												Operator: corev1.NodeSelectorOpIn,
+												Values:   []string{"amd64"},
 											},
 										},
 									},
@@ -370,8 +371,9 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 												Values:   []string{"linux"},
 											},
 											{
-												Key:      "node-role.kubernetes.io/master",
-												Operator: corev1.NodeSelectorOpDoesNotExist,
+												Key:      "kubernetes.io/arch",
+												Operator: corev1.NodeSelectorOpIn,
+												Values:   []string{"amd64"},
 											},
 										},
 									},
