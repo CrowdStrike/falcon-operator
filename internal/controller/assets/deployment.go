@@ -256,6 +256,15 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 	var rootUid int64 = 0
 	privileged := false
 	allowPrivilegeEscalation := false
+
+	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit == "" {
+		falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit = "20Gi"
+	}
+
+	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeMountPath == "" {
+		falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeMountPath = "/tmp"
+	}
+
 	sizeLimit := resource.MustParse(falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit)
 
 	volumes := []corev1.Volume{

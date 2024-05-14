@@ -110,6 +110,10 @@ func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name s
 	data["AGENT_CID"] = cid
 	data["AGENT_RUNMODE"] = agentRunmode
 	data["AGENT_MAX_CONSUMER_THREADS"] = agentMaxConsumerThreads
+	data["AGENT_TEMP_MOUNT_SIZE"] = "20Gi"
+	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit != "" {
+		data["AGENT_TEMP_MOUNT_SIZE"] = falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit
+	}
 	data["AGENT_TEMP_MOUNT_SIZE"] = falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit
 
 	return assets.SensorConfigMap(name, falconImageAnalyzer.Spec.InstallNamespace, common.FalconImageAnalyzer, data), nil
