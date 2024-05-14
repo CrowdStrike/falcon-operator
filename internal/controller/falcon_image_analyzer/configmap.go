@@ -26,7 +26,6 @@ const (
 )
 
 func (r *FalconImageAnalyzerReconciler) reconcileConfigMap(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) (bool, error) {
-	log.Info("config map")
 	return r.reconcileGenericConfigMap(falconImageAnalyzer.Name+"-config", r.newConfigMap, ctx, req, log, falconImageAnalyzer)
 }
 
@@ -90,17 +89,17 @@ func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name s
 		data["AGENT_CLUSTER_NAME"] = falconImageAnalyzer.Spec.ImageAnalyzerConfig.ClusterName
 	}
 
-	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.RegistryConfig.Credentials != nil {
+	if len(falconImageAnalyzer.Spec.ImageAnalyzerConfig.RegistryConfig.Credentials) > 0 {
 		for _, v := range falconImageAnalyzer.Spec.ImageAnalyzerConfig.RegistryConfig.Credentials {
 			data["AGENT_REGISTRY_CREDENTIALS"] = fmt.Sprintf("%s:%s", v.Namespace, v.SecretName)
 		}
 	}
 
-	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.Exclusions.Namespaces != nil {
+	if len(falconImageAnalyzer.Spec.ImageAnalyzerConfig.Exclusions.Namespaces) > 0 {
 		data["AGENT_NAMESPACE_EXCLUSIONS"] = strings.Join(falconImageAnalyzer.Spec.ImageAnalyzerConfig.Exclusions.Namespaces, ",")
 	}
 
-	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.Exclusions.Registries != nil {
+	if len(falconImageAnalyzer.Spec.ImageAnalyzerConfig.Exclusions.Registries) > 0 {
 		data["AGENT_REGISTRY_EXCLUSIONS"] = strings.Join(falconImageAnalyzer.Spec.ImageAnalyzerConfig.Exclusions.Registries, ",")
 	}
 
@@ -114,7 +113,6 @@ func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name s
 	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit != "" {
 		data["AGENT_TEMP_MOUNT_SIZE"] = falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit
 	}
-	data["AGENT_TEMP_MOUNT_SIZE"] = falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit
 
 	return assets.SensorConfigMap(name, falconImageAnalyzer.Spec.InstallNamespace, common.FalconImageAnalyzer, data), nil
 }

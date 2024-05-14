@@ -9,4 +9,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: quay.io/crowdstrike/falcon-operator
-  newTag: 0.9.1
+  newTag: test

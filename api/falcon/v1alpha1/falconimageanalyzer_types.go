@@ -116,9 +116,9 @@ type FalconImageAnalyzerUpdateStrategy struct {
 }
 
 type Exclusions struct {
-	// Configure a list of exclusions for the Falcon Image Analyzer.
+	// Configure a list of registries for the Falcon Image Analyzer to ignore.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Exclusions List",order=1
-	Registries []string `json:"exclusions,omitempty"`
+	Registries []string `json:"registries,omitempty"`
 
 	// Configure a list of namespaces for Image Analyzer to ignore.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=2
