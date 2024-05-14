@@ -201,8 +201,8 @@ func testSideCarDeployment(name string, namespace string, component string, imag
 			Kind:       "Deployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "test",
+			Name:      name,
+			Namespace: namespace,
 			Labels:    common.CRLabels("deployment", "test", "test"),
 		},
 		Spec: appsv1.DeploymentSpec{
