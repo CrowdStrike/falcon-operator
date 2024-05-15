@@ -34,3 +34,4 @@ patches:
 - path: patches/manager_patch.yaml
 - path: patches/namespace_patch.yaml
 - path: patches/falconnodesensor_role.yaml
+- path: patches/falcon_falconimageanalyzer_role.yaml
