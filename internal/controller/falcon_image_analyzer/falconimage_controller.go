@@ -134,13 +134,14 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	if falconImageAnalyzer.Status.Version != version.Get() {
-		falconImageAnalyzer.Status.Version = version.Get()
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			err = r.Get(ctx, req.NamespacedName, falconImageAnalyzer)
 			if err != nil {
 				log.Error(err, "Failed to re-fetch FalconImageAnalyzer for status update")
 				return err
 			}
+
+			falconImageAnalyzer.Status.Version = version.Get()
 			return r.Status().Update(ctx, falconImageAnalyzer)
 		})
 		if err != nil {

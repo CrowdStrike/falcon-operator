@@ -119,13 +119,13 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	if nodesensor.Status.Version != version.Get() {
-		nodesensor.Status.Version = version.Get()
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			err := r.Get(ctx, req.NamespacedName, nodesensor)
 			if err != nil {
 				return err
 			}
 
+			nodesensor.Status.Version = version.Get()
 			return r.Status().Update(ctx, nodesensor)
 		})
 		if err != nil {
@@ -325,13 +325,13 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	imgVer := common.ImageVersion(image)
 	if nodesensor.Status.Sensor != imgVer {
-		nodesensor.Status.Sensor = imgVer
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			err := r.Get(ctx, req.NamespacedName, nodesensor)
 			if err != nil {
 				return err
 			}
 
+			nodesensor.Status.Sensor = imgVer
 			return r.Status().Update(ctx, nodesensor)
 		})
 		if err != nil {

@@ -256,6 +256,10 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 	var rootUid int64 = 0
 	privileged := false
 	allowPrivilegeEscalation := false
+	resources := &corev1.ResourceRequirements{}
+	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.Resources != nil {
+		resources = falconImageAnalyzer.Spec.ImageAnalyzerConfig.Resources
+	}
 
 	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit == "" {
 		falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit = "20Gi"
@@ -364,7 +368,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 									Type: corev1.SeccompProfileTypeRuntimeDefault,
 								},
 							},
-							Resources:       corev1.ResourceRequirements{},
+							Resources:       *resources,
 							Image:           imageUri,
 							ImagePullPolicy: falconImageAnalyzer.Spec.ImageAnalyzerConfig.ImagePullPolicy,
 							Args:            []string{"-runmode", "watcher"},
@@ -381,11 +385,9 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 						},
 					},
 					ServiceAccountName: common.ImageServiceAccountName,
-					SecurityContext:    &corev1.PodSecurityContext{},
 					NodeSelector:       common.NodeSelector,
 					Volumes:            volumes,
-					//Tolerations:        falconImageAnalyzer.Spec.ImageAnalyzerConfig.Tolerations,
-					PriorityClassName: falconImageAnalyzer.Spec.ImageAnalyzerConfig.PriorityClass.Name,
+					PriorityClassName:  falconImageAnalyzer.Spec.ImageAnalyzerConfig.PriorityClass.Name,
 				},
 			},
 		},

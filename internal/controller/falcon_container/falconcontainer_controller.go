@@ -115,13 +115,13 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if falconContainer.Status.Version != version.Get() {
-		falconContainer.Status.Version = version.Get()
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			err := r.Get(ctx, req.NamespacedName, falconContainer)
 			if err != nil {
 				return err
 			}
 
+			falconContainer.Status.Version = version.Get()
 			return r.Status().Update(ctx, falconContainer)
 		})
 		if err != nil {

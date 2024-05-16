@@ -139,13 +139,12 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if falconAdmission.Status.Version != version.Get() {
-		falconAdmission.Status.Version = version.Get()
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			err := r.Get(ctx, req.NamespacedName, falconAdmission)
 			if err != nil {
 				return err
 			}
-
+			falconAdmission.Status.Version = version.Get()
 			return r.Status().Update(ctx, falconAdmission)
 		})
 		if err != nil {
