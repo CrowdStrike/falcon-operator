@@ -3,6 +3,7 @@
 This document will guide you through the installation of the Falcon Operator and deployment of the following custom resources provided by the Falcon Operator:
 - [FalconAdmission](../../resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to GCR (Google Container Registry). A new GCP service account for pushing to GCR registry will be created.
 - [FalconContainer](../../resources/container/README.md) with the Falcon Container image being mirrored from CrowdStrike container registry to GCR (Google Container Registry). A new GCP service account for pushing to GCR registry will be created.
+- [FalconImageAnalyzer](../../resources/imageanalyzer/README.md) with the Falcon Image Analyzer image being mirrored from CrowdStrike container registry.
 - [FalconNodeSensor](../../resources/node/README.md) custom resource to the cluster.
 
 ## Prerequisites
@@ -118,6 +119,20 @@ An image push secret is used by the operator to mirror Falcon Container image fr
 
 </details>
 
+### Deploying the Falcon Image Analyzer
+
+<details>
+  <summary>Click to expand</summary>
+
+After the Falcon Operator has deployed, you can now deploy the Image Analyzer:
+
+- Deploy FalconImageAnalyzer through the cli using the `kubectl` command:
+  ```sh
+  kubectl create -n falcon-operator -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconimageanalyzer.yaml --edit=true
+  ```
+
+</details>
+
 ## Upgrading
 
 <details>
@@ -182,6 +197,19 @@ kubectl delete falconadmission --all
 
 </details>
 
+### Uninstalling the Falcon Image Analyzer
+
+<details>
+  <summary>Click to expand</summary>
+
+Remove the FalconImageAnalyzer resource. The operator will then uninstall the Falcon Image Analyzer from the cluster:
+
+```sh
+kubectl delete falconimageanalyzer --all
+```
+
+</details>
+
 ### Uninstalling the Falcon Operator
 
 <details>
@@ -196,6 +224,9 @@ kubectl delete -f https://github.com/crowdstrike/falcon-operator/releases/latest
 </details>
 
 ## GKE Autopilot configuration
+
+<details>
+  <summary>Click to expand</summary>
 
 ### Setting the PriorityClass
 
@@ -296,6 +327,8 @@ node:
       key: kubernetes.io/arch
       value: amd64
 ```
+
+</details>
 
 </details>
 

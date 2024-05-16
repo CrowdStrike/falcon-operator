@@ -9,4 +9,9 @@ metadata:
     app.kubernetes.io/created-by: falcon-operator
   name: falconimageanalyzer-sample
 spec:
-  # TODO(user): Add fields here
+  falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
+    cloud_region: autodiscover
+  registry:
+    type: crowdstrike

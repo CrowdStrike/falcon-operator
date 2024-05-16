@@ -1,0 +1,51 @@
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconImageAnalyzer
+metadata:
+  labels:
+    app.kubernetes.io/name: falconimageanalyzer
+    app.kubernetes.io/instance: falconimageanalyzer-sample
+    app.kubernetes.io/part-of: falcon-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: falcon-operator
+  name: falconimageanalyzer-sample
+spec:
+  falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
+    cloud_region: autodiscover
+    cid: 00001111222233334444555566667777-12
+  imageAnalyzerConfig:
+    serviceAccount:
+      annotations:
+        # These are just examples, you wouldn't combine AWS & GKE roles at once
+        eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/iam-role-name
+        iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
+    imagePullPolicy: Always
+    imagePullSecret:
+      - name: your-pre-created-secret
+    azureConfigPath: "/etc/azure.json"
+    sizeLimit: "20Gi"
+    mountPath: "/tmp"
+    clusterName: my-cluster
+    debug: true
+    priorityClass:
+      name: my_pc_name
+    exclusions:
+      registries:
+        - myreg
+        - myreg2
+      namespaces:
+        - n1
+        - n2
+    registryConfig:
+      credentials:
+        - namespace: test
+          secretName: secret
+        - namespace: test2
+          secretName: secret2
+  registry:
+    type: acr
+    acr_name: falcon-sensor-repo
+    tls:
+      insecure_skip_verify: false
+  version: 1.2.3.tagname
