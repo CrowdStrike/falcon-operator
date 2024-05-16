@@ -117,4 +117,4 @@ jobs:
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
         with:
-          args: "-exclude=G307 ./..."
+          args: "-exclude=G307 -exclude-dir=docs ./..."

@@ -87,12 +87,6 @@ spec:
         path: resourcequota.pods
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:podCount
-      - description: For OpenShift clusters, ignore openshift-specific namespaces
-          for admission control.
-        displayName: Ignore OpenShift Namespaces
-        path: admissionConfig.disabledNamespaces.ignoreOpenShiftNamespaces
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - displayName: Falcon Admission Controller Image Pull Policy
         path: admissionConfig.imagePullPolicy
         x-descriptors:
@@ -156,7 +150,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
       - description: The application proxy host to use for Falcon sensor proxy configuration.
-        displayName: Disable Falcon Proxy Host
+        displayName: Falcon Proxy Host
         path: falcon.aph
       - description: Falcon Customer ID (CID) Override (optional, default is derived
           from the API Key pair)
@@ -253,6 +247,14 @@ spec:
         path: injector.serviceAccount
       - displayName: Falcon Container Injector TLS Validity Length (days)
         path: injector.tls.validity
+      - description: Namespace where the Falcon Sensor should be installed. For best
+          security practices, this should be a dedicated namespace that is not used
+          for any other purpose. It also should not be the same namespace where the
+          Falcon Operator, or other Falcon resources are deployed.
+        displayName: Install Namespace
+        path: installNamespace
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Namespace
       - description: Allow pushing to docker registries over HTTPS with failed TLS
           verification. Note that this does not affect other TLS connections.
         displayName: Skip Registry TLS Verification
@@ -311,7 +313,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap
       - description: The application proxy host to use for Falcon sensor proxy configuration.
-        displayName: Disable Falcon Proxy Host
+        displayName: Falcon Proxy Host
         path: falcon.aph
       - description: Falcon Customer ID (CID) Override (optional, default is derived
           from the API Key pair)
@@ -366,6 +368,156 @@ spec:
         displayName: Annotations
         path: injector.serviceAccount.annotations
       version: v1alpha1
+    - description: FalconImageAnalyzer is the Schema for the falconImageAnalyzers
+        API
+      displayName: Falcon Image Analyzer
+      kind: FalconImageAnalyzer
+      name: falconimageanalyzers.falcon.crowdstrike.com
+      specDescriptors:
+      - description: Falcon OAuth2 API Client ID
+        displayName: Client ID
+        path: falcon_api.client_id
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: Configure a list of registries for the Falcon Image Analyzer
+          to ignore.
+        displayName: Exclusions List
+        path: imageAnalyzerConfig.exclusions.registries
+      - description: Name of the priority class to use.
+        displayName: Name of the Priority Class to use
+        path: imageAnalyzerConfig.priorityClass.name
+      - description: If neceeary, configure the registry credentials for the Falcon
+          Image Analyzer.
+        displayName: Registry Credentials
+        path: imageAnalyzerConfig.registryConfig.credentials
+      - description: Define annotations that will be passed down to Image Analyzer
+          service account. This is useful for passing along AWS IAM Role or GCP Workload
+          Identity.
+        displayName: Service Account Configuration
+        path: imageAnalyzerConfig.serviceAccount
+      - description: Define annotations that will be passed down to the Service Account.
+          This is useful for passing along AWS IAM Role or GCP Workload Identity.
+        displayName: Service Account Annotations
+        path: imageAnalyzerConfig.serviceAccount.annotations
+      - description: RollingUpdate is used to specify the strategy used to roll out
+          a deployment
+        displayName: Falcon Admisison Controller deployment update configuration
+        path: imageAnalyzerConfig.updateStrategy.rollingUpdate
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+      - description: Namespace where the Falcon Image Analyzer should be installed.
+          For best security practices, this should be a dedicated namespace that is
+          not used for any other purpose. It also should not be the same namespace
+          where the Falcon Operator or the Falcon Sensor is installed.
+        displayName: Install Namespace
+        path: installNamespace
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Namespace
+      - description: Allow pushing to docker registries over HTTPS with failed TLS
+          verification. Note that this does not affect other TLS connections.
+        displayName: Skip Registry TLS Verification
+        path: registry.tls.insecure_skip_verify
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Type of container registry to be used
+        displayName: Registry Type
+        path: registry.type
+      - description: "FalconAPI configures connection from your local Falcon operator
+          to CrowdStrike Falcon platform. \n When configured, it will pull the sensor
+          from registry.crowdstrike.com and deploy the appropriate sensor to the cluster."
+        displayName: Falcon Platform API Configuration
+        path: falcon_api
+      - description: Falcon OAuth2 API Client Secret
+        displayName: Client Secret
+        path: falcon_api.client_secret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: Configure a list of namespaces for Image Analyzer to ignore.
+        displayName: Ignore Namespace List
+        path: imageAnalyzerConfig.exclusions.namespaces
+      - displayName: Falcon Image Analyzer Image Pull Policy
+        path: imageAnalyzerConfig.imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: TLS configures TLS connection for push of Falcon Container image
+          to the registry
+        displayName: Registry TLS Configuration
+        path: registry.tls
+      - description: Allow for users to provide a CA Cert Bundle, as either a string
+          or base64 encoded string
+        displayName: Registry CA Certificate Bundle; optionally (double) base64 encoded
+        path: registry.tls.caCertificate
+      - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
+          the operator will connect and register.
+        displayName: CrowdStrike Falcon Cloud Region
+        path: falcon_api.cloud_region
+      - description: ImagePullSecrets is an optional list of references to secrets
+          to use for pulling image from the image location.
+        displayName: Falcon Image Analyzer Image Pull Secrets
+        path: imageAnalyzerConfig.imagePullSecrets
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Secret
+      - description: Azure Container Registry Name represents the name of the ACR
+          for the Falcon Container push. Only applicable to Azure cloud.
+        displayName: Azure Container Registry Name
+        path: registry.acr_name
+      - description: Allow for users to provide a ConfigMap containing a CA Cert Bundle
+          under a key ending in .crt
+        displayName: ConfigMap containing Registry CA Certificate Bundle
+        path: registry.tls.caCertificateConfigMap
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap
+      - description: Falcon Customer ID (CID) Override (optional, default is derived
+          from the API Key pair)
+        displayName: Falcon Customer ID (CID)
+        path: falcon_api.cid
+      - displayName: Falcon Image Analyzer Resources
+        path: imageAnalyzerConfig.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Additional configuration for Falcon Image Analyzer deployment.
+        displayName: Falcon Image Analyzer Configuration
+        path: imageAnalyzerConfig
+      - displayName: Azure Config file path
+        path: imageAnalyzerConfig.azureConfigPath
+      - description: Enable priority class for the Falcon Image Analyzer deployment.
+        displayName: Priority Class
+        path: imageAnalyzerConfig.priorityClass
+      - description: Registry configures container image registry to which the Image
+          Analyzer image will be pushed.
+        displayName: Falcon Image Analyzer Registry Configuration
+        path: registry
+      - description: Location of the Image Analyzer image. Use only in cases when
+          you mirror the original image to your repository/name:tag
+        displayName: Falcon Image Analyzer Image URI
+        path: image
+      - description: Type of Deployment update. Can be "RollingUpdate" or "OnDelete".
+          Default is RollingUpdate.
+        displayName: Deployment Update Strategy
+        path: imageAnalyzerConfig.updateStrategy
+      - description: Set the falcon image analyzer volume size limit.
+        displayName: Falcon Image Analyzer Volume Size Limit
+        path: imageAnalyzerConfig.sizeLimit
+      - description: 'Falcon Image Analyzer Version. The latest version will be selected
+          when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.'
+        displayName: Falcon Image Analyzer Version
+        path: version
+      - description: Set the falcon image analyzer volume mount path.
+        displayName: Falcon Image Analyzer Volume Mount Path
+        path: imageAnalyzerConfig.mountPath
+      - description: Name of the Kubernetes Cluster.
+        displayName: Falcon Image Analyzer Cluster Name
+        path: imageAnalyzerConfig.clusterName
+      - description: Exclusions for the Falcon Image Analyzer.
+        displayName: Falcon Image Analyzer Exclusions
+        path: imageAnalyzerConfig.exclusions
+      - description: RegistryConfig for the Falcon Image Analyzer.
+        displayName: Falcon Image Analyzer Registry Configuration Options
+        path: imageAnalyzerConfig.registryConfig
+      - description: Enable debugging for the Falcon Image Analyzer.
+        displayName: Falcon Image Analyzer Enable Debugging
+        path: imageAnalyzerConfig.debug
+      version: v1alpha1
     - description: FalconNodeSensor is the Schema for the falconnodesensors API
       displayName: Falcon Node Sensor
       kind: FalconNodeSensor
@@ -385,6 +537,14 @@ spec:
         path: falcon_api.client_id
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:password
+      - description: Namespace where the Falcon Sensor should be installed. For best
+          security practices, this should be a dedicated namespace that is not used
+          for any other purpose. It also should not be the same namespace where the
+          Falcon Operator, or other Falcon resources are deployed.
+        displayName: Install Namespace
+        path: installNamespace
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Namespace
       - description: ImagePullSecrets is an optional list of references to secrets
           in the falcon-system namespace to use for pulling image from image_override
           location.
@@ -431,7 +591,7 @@ spec:
         displayName: Priority Class Value
         path: node.priorityClass.value
       - description: The application proxy host to use for Falcon sensor proxy configuration.
-        displayName: Disable Falcon Proxy Host
+        displayName: Falcon Proxy Host
         path: falcon.aph
       - description: Falcon Customer ID (CID) Override (optional, default is derived
           from the API Key pair)
@@ -533,6 +693,7 @@ spec:
     | Custom Resource                                       | Description                                                      |
     | :--------                                             | :------------                                                    |
     | [FalconAdmission](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/admission/README.md) | Manages installation of Falcon Admission Controller on the cluster |
+    | [FalconImageAnalyzer](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/imageanalyzer/README.md) | Manages installation of Falcon Image Assessment at Runtime on the cluster |
     | [FalconContainer](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/container/README.md) | Manages installation of Falcon Container Sensor on the cluster   |
     | [FalconNodeSensor](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/node/README.md)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
 

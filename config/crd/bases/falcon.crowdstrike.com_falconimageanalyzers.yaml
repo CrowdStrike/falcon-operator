@@ -1,17 +1,17 @@
+---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.13.0
-  creationTimestamp: null
-  name: falconadmissions.falcon.crowdstrike.com
+  name: falconimageanalyzers.falcon.crowdstrike.com
 spec:
   group: falcon.crowdstrike.com
   names:
-    kind: FalconAdmission
-    listKind: FalconAdmissionList
-    plural: falconadmissions
-    singular: falconadmission
+    kind: FalconImageAnalyzer
+    listKind: FalconImageAnalyzerList
+    plural: falconimageanalyzers
+    singular: falconimageanalyzer
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -19,14 +19,15 @@ spec:
       jsonPath: .status.version
       name: Operator Version
       type: string
-    - description: Version of the Falcon Admission Controller
+    - description: Version of the Falcon Image Analyzer
       jsonPath: .status.sensor
       name: Falcon Sensor
       type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: FalconAdmission is the Schema for the falconadmissions API
+        description: FalconImageAnalyzer is the Schema for the falconImageAnalyzers
+          API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -41,39 +42,73 @@ spec:
           metadata:
             type: object
           spec:
-            description: FalconAdmissionSpec defines the desired state of FalconAdmission
+            description: FalconImageAnalyzerSpec defines the desired state of FalconImageAnalyzer
             properties:
-              admissionConfig:
-                description: Additional configuration for Falcon Admission Controller
-                  deployment.
+              falcon_api:
+                description: "FalconAPI configures connection from your local Falcon
+                  operator to CrowdStrike Falcon platform. \n When configured, it
+                  will pull the sensor from registry.crowdstrike.com and deploy the
+                  appropriate sensor to the cluster."
                 properties:
-                  containerPort:
-                    default: 4443
-                    description: Port on which the Falcon Admission Controller container
-                      will listen for requests.
-                    format: int32
-                    maximum: 65535
-                    minimum: 0
-                    type: integer
-                    x-kubernetes-int-or-string: true
-                  disabledNamespaces:
-                    description: Ignore admission control for a specific set of namespaces.
+                  cid:
+                    description: Falcon Customer ID (CID) Override (optional, default
+                      is derived from the API Key pair)
+                    pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
+                    type: string
+                  client_id:
+                    description: Falcon OAuth2 API Client ID
+                    type: string
+                  client_secret:
+                    description: Falcon OAuth2 API Client Secret
+                    type: string
+                  cloud_region:
+                    description: Cloud Region defines CrowdStrike Falcon Cloud Region
+                      to which the operator will connect and register.
+                    enum:
+                    - autodiscover
+                    - us-1
+                    - us-2
+                    - eu-1
+                    - us-gov-1
+                    type: string
+                required:
+                - client_id
+                - client_secret
+                - cloud_region
+                type: object
+              image:
+                description: Location of the Image Analyzer image. Use only in cases
+                  when you mirror the original image to your repository/name:tag
+                pattern: ^.*:.*$
+                type: string
+              imageAnalyzerConfig:
+                description: Additional configuration for Falcon Image Analyzer deployment.
+                properties:
+                  azureConfigPath:
+                    type: string
+                  clusterName:
+                    description: Name of the Kubernetes Cluster.
+                    type: string
+                  debug:
+                    default: false
+                    description: Enable debugging for the Falcon Image Analyzer.
+                    type: boolean
+                  exclusions:
+                    description: Exclusions for the Falcon Image Analyzer.
                     properties:
                       namespaces:
-                        description: Configure a list of namespaces to ignore admission
-                          control.
+                        description: Configure a list of namespaces for Image Analyzer
+                          to ignore.
+                        items:
+                          type: string
+                        type: array
+                      registries:
+                        description: Configure a list of registries for the Falcon
+                          Image Analyzer to ignore.
                         items:
                           type: string
                         type: array
                     type: object
-                  failurePolicy:
-                    default: Ignore
-                    description: Configure the failure policy for the Falcon Admission
-                      Controller.
-                    enum:
-                    - Ignore
-                    - Fail
-                    type: string
                   imagePullPolicy:
                     default: Always
                     description: PullPolicy describes a policy for if/when to pull
@@ -97,80 +132,37 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     type: array
-                  replicas:
-                    default: 2
-                    description: Number of replicas for the Falcon Admission Controller
+                  mountPath:
+                    default: /tmp
+                    description: Set the falcon image analyzer volume mount path.
+                    type: string
+                  priorityClass:
+                    description: Enable priority class for the Falcon Image Analyzer
                       deployment.
-                    format: int32
-                    maximum: 65535
-                    minimum: 0
-                    type: integer
-                    x-kubernetes-int-or-string: true
-                  resources:
-                    default:
-                      limits:
-                        cpu: 300m
-                        memory: 512Mi
-                      requests:
-                        cpu: 300m
-                        memory: 512Mi
-                    description: ResourceRequirements describes the compute resource
-                      requirements.
                     properties:
-                      claims:
-                        description: "Claims lists the names of resources, defined
-                          in spec.resourceClaims, that are used by this container.
-                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
-                          feature gate. \n This field is immutable. It can only be
-                          set for containers."
+                      name:
+                        description: Name of the priority class to use.
+                        type: string
+                    type: object
+                  registryConfig:
+                    description: RegistryConfig for the Falcon Image Analyzer.
+                    properties:
+                      credentials:
+                        description: If neceeary, configure the registry credentials
+                          for the Falcon Image Analyzer.
                         items:
-                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
                           properties:
-                            name:
-                              description: Name must match the name of one entry in
-                                pod.spec.resourceClaims of the Pod where this field
-                                is used. It makes that resource available inside a
-                                container.
+                            namespace:
+                              description: Namespace where the registry container
+                                secret is located.
                               type: string
-                          required:
-                          - name
+                            secretName:
+                              description: Name of the registry container secret.
+                              type: string
                           type: object
                         type: array
-                        x-kubernetes-list-map-keys:
-                        - name
-                        x-kubernetes-list-type: map
-                      limits:
-                        additionalProperties:
-                          anyOf:
-                          - type: integer
-                          - type: string
-                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                          x-kubernetes-int-or-string: true
-                        description: 'Limits describes the maximum amount of compute
-                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
-                        type: object
-                      requests:
-                        additionalProperties:
-                          anyOf:
-                          - type: integer
-                          - type: string
-                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                          x-kubernetes-int-or-string: true
-                        description: 'Requests describes the minimum amount of compute
-                          resources required. If Requests is omitted for a container,
-                          it defaults to Limits if that is explicitly specified, otherwise
-                          to an implementation-defined value. Requests cannot exceed
-                          Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
-                        type: object
                     type: object
-                  resourcesClient:
-                    default:
-                      limits:
-                        cpu: 750m
-                        memory: 256Mi
-                      requests:
-                        cpu: 500m
-                        memory: 256Mi
+                  resources:
                     description: ResourceRequirements describes the compute resource
                       requirements.
                     properties:
@@ -221,9 +213,9 @@ spec:
                         type: object
                     type: object
                   serviceAccount:
-                    description: Define annotations that will be passed down to admision
-                      controller service account. This is useful for passing along
-                      AWS IAM Role or GCP Workload Identity.
+                    description: Define annotations that will be passed down to Image
+                      Analyzer service account. This is useful for passing along AWS
+                      IAM Role or GCP Workload Identity.
                     properties:
                       annotations:
                         additionalProperties:
@@ -233,25 +225,10 @@ spec:
                           IAM Role or GCP Workload Identity.
                         type: object
                     type: object
-                  servicePort:
-                    default: 443
-                    description: Port on which the Falcon Admission Controller service
-                      will listen for requests from the cluster.
-                    format: int32
-                    maximum: 65535
-                    minimum: 0
-                    type: integer
-                    x-kubernetes-int-or-string: true
-                  tls:
-                    description: Configure TLS setings for the Falcon Admission Controller
-                    properties:
-                      validity:
-                        description: Validity of the TLS certificate in days. Default
-                          is 3650 days.
-                        pattern: ^[0-9]{1-4}$
-                        type: integer
-                        x-kubernetes-int-or-string: true
-                    type: object
+                  sizeLimit:
+                    default: 20Gi
+                    description: Set the falcon image analyzer volume size limit.
+                    type: string
                   updateStrategy:
                     default:
                       rollingUpdate:
@@ -302,108 +279,17 @@ spec:
                         type: object
                     type: object
                 type: object
-              falcon:
-                description: CrowdStrike Falcon sensor configuration
-                properties:
-                  apd:
-                    default: false
-                    description: Disable the Falcon Sensor's use of a proxy.
-                    type: boolean
-                  aph:
-                    description: The application proxy host to use for Falcon sensor
-                      proxy configuration.
-                    type: string
-                  app:
-                    description: The application proxy port to use for Falcon sensor
-                      proxy configuration.
-                    maximum: 65535
-                    minimum: 0
-                    type: integer
-                  billing:
-                    description: Utilize default or Pay-As-You-Go billing.
-                    enum:
-                    - default
-                    - metered
-                    type: string
-                  cid:
-                    description: Falcon Customer ID (CID)
-                    pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
-                    type: string
-                  provisioning_token:
-                    description: Installation token that prevents unauthorized hosts
-                      from being accidentally or maliciously added to your customer
-                      ID (CID).
-                    pattern: ^[0-9a-fA-F]{8}$
-                    type: string
-                  tags:
-                    description: 'Sensor grouping tags are optional, user-defined
-                      identifiers that can used to group and filter hosts. Allowed
-                      characters: all alphanumerics, ''/'', ''-'', and ''_''.'
-                    items:
-                      type: string
-                    type: array
-                  trace:
-                    default: none
-                    description: Set sensor trace level.
-                    enum:
-                    - none
-                    - err
-                    - warn
-                    - info
-                    - debug
-                    type: string
-                type: object
-              falcon_api:
-                description: "FalconAPI configures connection from your local Falcon
-                  operator to CrowdStrike Falcon platform. \n When configured, it
-                  will pull the sensor from registry.crowdstrike.com and deploy the
-                  appropriate sensor to the cluster. \n If using the API is not desired,
-                  the sensor can be manually configured by setting the Image and Version
-                  fields."
-                properties:
-                  cid:
-                    description: Falcon Customer ID (CID) Override (optional, default
-                      is derived from the API Key pair)
-                    pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
-                    type: string
-                  client_id:
-                    description: Falcon OAuth2 API Client ID
-                    type: string
-                  client_secret:
-                    description: Falcon OAuth2 API Client Secret
-                    type: string
-                  cloud_region:
-                    description: Cloud Region defines CrowdStrike Falcon Cloud Region
-                      to which the operator will connect and register.
-                    enum:
-                    - autodiscover
-                    - us-1
-                    - us-2
-                    - eu-1
-                    - us-gov-1
-                    type: string
-                required:
-                - client_id
-                - client_secret
-                - cloud_region
-                type: object
-              image:
-                description: Location of the Falcon Sensor image. Use only in cases
-                  when you mirror the original image to your repository/name:tag,
-                  and CrowdStrike OAuth2 API is not used.
-                pattern: ^.*:.*$
-                type: string
               installNamespace:
-                default: falcon-kac
-                description: Namespace where the Falcon Admission Controller should
-                  be installed. For best security practices, this should be a dedicated
-                  namespace that is not used for any other purpose. It also should
-                  not be the same namespace where the Falcon Operator or the Falcon
-                  Sensor is installed.
+                default: falcon-iar
+                description: Namespace where the Falcon Image Analyzer should be installed.
+                  For best security practices, this should be a dedicated namespace
+                  that is not used for any other purpose. It also should not be the
+                  same namespace where the Falcon Operator or the Falcon Sensor is
+                  installed.
                 type: string
               registry:
                 description: Registry configures container image registry to which
-                  the Admission Controller image will be pushed.
+                  the Image Analyzer image will be pushed.
                 properties:
                   acr_name:
                     description: Azure Container Registry Name represents the name
@@ -440,21 +326,10 @@ spec:
                 required:
                 - type
                 type: object
-              resourcequota:
-                description: ResourceQuota configures the ResourceQuota for the Falcon
-                  Admission Controller. This is useful for limiting the number of
-                  pods that can be created in the namespace.
-                properties:
-                  pods:
-                    default: "2"
-                    description: Limits the number of admission controller pods that
-                      can be created in the namespace.
-                    type: string
-                type: object
               version:
-                description: 'Falcon Admission Controller Version. The latest version
-                  will be selected when version specifier is missing. Example: 6.31,
-                  6.31.0, 6.31.0-1409, etc.'
+                description: 'Falcon Image Analyzer Version. The latest version will
+                  be selected when version specifier is missing. Example: 6.31, 6.31.0,
+                  6.31.0-1409, etc.'
                 type: string
             type: object
           status:
@@ -540,9 +415,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: null
-  storedVersions: null

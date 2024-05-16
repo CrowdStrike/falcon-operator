@@ -258,7 +258,7 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimages
+  - falconimageanalyzers
   verbs:
   - create
   - delete
@@ -270,13 +270,13 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimages/finalizers
+  - falconimageanalyzers/finalizers
   verbs:
   - update
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimages/status
+  - falconimageanalyzers/status
   verbs:
   - get
   - patch
@@ -322,6 +322,17 @@ rules:
   - rbac.authorization.k8s.io
   resources:
   - clusterrolebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
   verbs:
   - create
   - delete

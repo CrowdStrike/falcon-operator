@@ -2,6 +2,9 @@
 
 ## GKE Autopilot configuration
 
+<details>
+  <summary>Click to expand</summary>
+
 ### Setting the PriorityClass
 
 When you enable GKE Autopilot deployment in the Falcon Operator, this creates a new PriorityClass to ensure that the sensor DaemonSet has priority over other application pods. This means that it’s possible that some application pods are evicted or pushed back in the scheduling queue depending on cluster resources availability to accommodate sensor Pods. You can either allow the operator to deploy its own PriorityClass or specify an existing PriorityClass.
@@ -101,6 +104,8 @@ node:
       key: kubernetes.io/arch
       value: amd64
 ```
+
+</details>
 
 </details>
 

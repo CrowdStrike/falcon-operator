@@ -3,6 +3,7 @@
 This document will guide you through the installation of the Falcon Operator and deployment of the following custom resources provided by the Falcon Operator:
 - [FalconAdmission](../../resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to ECR (Elastic Container Registry). A new AWS IAM Policy will be created to allow the operator to push to ECR registry.
 - [FalconContainer](../../resources/container/README.md) with the Falcon Container image being mirrored from CrowdStrike container registry to ECR (Elastic Container Registry). A new AWS IAM Policy will be created to allow the operator to push to ECR registry.
+- [FalconImageAnalyzer](../../resources/imageanalyzer/README.md) with the Falcon Image Analyzer image being mirrored from CrowdStrike container registry.
 
 ## Prerequisites
 
@@ -86,6 +87,30 @@ This document will guide you through the installation of the Falcon Operator and
 
 </details>
 
+### Deploying the Falcon Image Analyzer
+
+<details>
+  <summary>Click to expand</summary>
+
+- Create an EKS Fargate profile for the FalconImageAnalyzer resource deployment:
+  ```sh
+  eksctl create fargateprofile \
+    --region "$AWS_REGION" \
+    --cluster eks-fargate-cluster \
+    --name fp-falcon-iar \
+    --namespace falcon-iar
+  ```
+
+
+After the Falcon Operator has deployed, you can now deploy the Image Analyzer:
+
+- Deploy FalconImageAnalyzer through the cli using the `kubectl` command:
+  ```sh
+  kubectl create -n falcon-operator -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconimageanalyzer.yaml --edit=true
+  ```
+
+</details>
+
 ## Upgrading
 
 <details>
@@ -135,6 +160,19 @@ Remove the FalconAdmission resource. The operator will then uninstall the Falcon
 
 ```sh
 kubectl delete falconadmission --all
+```
+
+</details>
+
+### Uninstalling the Falcon Image Analyzer
+
+<details>
+  <summary>Click to expand</summary>
+
+Remove the FalconImageAnalyzer resource. The operator will then uninstall the Falcon Image Analyzer from the cluster:
+
+```sh
+kubectl delete falconimageanalyzer --all
 ```
 
 </details>

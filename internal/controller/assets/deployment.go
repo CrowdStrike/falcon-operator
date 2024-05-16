@@ -248,6 +248,152 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 	}
 }
 
+// ImageAnalyzerDeployment returns a Deployment object for the CrowdStrike Falcon IAR Controller
+func ImageAnalyzerDeployment(name string, namespace string, component string, imageUri string, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) *appsv1.Deployment {
+	labels := common.CRLabels("deployment", name, component)
+	var replicaCount int32 = 1
+	hostPathFile := corev1.HostPathFile
+	var rootUid int64 = 0
+	privileged := false
+	allowPrivilegeEscalation := false
+	resources := &corev1.ResourceRequirements{}
+	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.Resources != nil {
+		resources = falconImageAnalyzer.Spec.ImageAnalyzerConfig.Resources
+	}
+
+	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit == "" {
+		falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit = "20Gi"
+	}
+
+	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeMountPath == "" {
+		falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeMountPath = "/tmp"
+	}
+
+	sizeLimit := resource.MustParse(falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeSizeLimit)
+
+	volumes := []corev1.Volume{
+		{
+			Name: "tmp-volume",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					SizeLimit: &sizeLimit,
+				},
+			},
+		},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "tmp-volume",
+			MountPath: falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeMountPath,
+		},
+	}
+
+	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.AzureConfigPath != "" {
+		volumes = append(volumes, corev1.Volume{
+			Name: "azure-config",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: falconImageAnalyzer.Spec.ImageAnalyzerConfig.AzureConfigPath,
+					Type: &hostPathFile,
+				},
+			},
+		},
+		)
+
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "azure-config",
+			MountPath: "/etc/kubernetes/azure.json",
+		})
+	}
+
+	return &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: appsv1.SchemeGroupVersion.String(),
+			Kind:       "Deployment",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicaCount,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+					Annotations: map[string]string{
+						common.FalconContainerInjection: "disabled",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Affinity: &corev1.Affinity{
+						NodeAffinity: &corev1.NodeAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+								NodeSelectorTerms: []corev1.NodeSelectorTerm{
+									{
+										MatchExpressions: []corev1.NodeSelectorRequirement{
+											{
+												Key:      "kubernetes.io/os",
+												Operator: corev1.NodeSelectorOpIn,
+												Values:   []string{"linux"},
+											},
+											{
+												Key:      "kubernetes.io/arch",
+												Operator: corev1.NodeSelectorOpIn,
+												Values:   []string{"amd64"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					Containers: []corev1.Container{
+						{
+							Name: "falcon-image-analyzer",
+							SecurityContext: &corev1.SecurityContext{
+								RunAsUser:                &rootUid,
+								Privileged:               &privileged,
+								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{
+										"ALL",
+									},
+								},
+								SeccompProfile: &corev1.SeccompProfile{
+									Type: corev1.SeccompProfileTypeRuntimeDefault,
+								},
+							},
+							Resources:       *resources,
+							Image:           imageUri,
+							ImagePullPolicy: falconImageAnalyzer.Spec.ImageAnalyzerConfig.ImagePullPolicy,
+							Args:            []string{"-runmode", "watcher"},
+							EnvFrom: []corev1.EnvFromSource{
+								{
+									ConfigMapRef: &corev1.ConfigMapEnvSource{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: name + "-config",
+										},
+									},
+								},
+							},
+							VolumeMounts: volumeMounts,
+						},
+					},
+					ServiceAccountName: common.ImageServiceAccountName,
+					NodeSelector:       common.NodeSelector,
+					Volumes:            volumes,
+					PriorityClassName:  falconImageAnalyzer.Spec.ImageAnalyzerConfig.PriorityClass.Name,
+				},
+			},
+		},
+	}
+}
+
 // AdmissionDeployment returns a Deployment object for the CrowdStrike Falcon Admission Controller
 func AdmissionDeployment(name string, namespace string, component string, imageUri string, falconAdmission *falconv1alpha1.FalconAdmission) *appsv1.Deployment {
 	runNonRoot := true

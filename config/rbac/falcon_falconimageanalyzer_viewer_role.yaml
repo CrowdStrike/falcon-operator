@@ -1,31 +1,27 @@
-# permissions for end users to edit falconimages.
+# permissions for end users to view falconimageanalyzers.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: falconimage-editor-role
+    app.kubernetes.io/instance: falconimageanalyzer-viewer-role
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: falcon-operator
     app.kubernetes.io/part-of: falcon-operator
     app.kubernetes.io/managed-by: kustomize
-  name: falconimage-editor-role
+  name: falconimageanalyzer-viewer-role
 rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimages
+  - falconimageanalyzers
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconimages/status
+  - falconimageanalyzers/status
   verbs:
   - get

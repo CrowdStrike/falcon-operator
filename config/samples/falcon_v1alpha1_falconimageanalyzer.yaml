@@ -1,0 +1,17 @@
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconImageAnalyzer
+metadata:
+  labels:
+    app.kubernetes.io/name: falconimageanalyzer
+    app.kubernetes.io/instance: falconimageanalyzer-sample
+    app.kubernetes.io/part-of: falcon-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: falcon-operator
+  name: falconimageanalyzer-sample
+spec:
+  falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
+    cloud_region: autodiscover
+  registry:
+    type: crowdstrike

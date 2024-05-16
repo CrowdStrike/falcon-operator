@@ -25,3 +25,6 @@ resources:
 
 # AdmissionController RBAC
 - falconadmission_role.yaml
+
+# ImageAnalyzer RBAC
+- falcon_falconimageanalyzer_role.yaml
