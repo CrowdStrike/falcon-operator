@@ -75,23 +75,29 @@ type FalconImageAnalyzerConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=7
 	DepUpdateStrategy FalconImageAnalyzerUpdateStrategy `json:"updateStrategy,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Volumes",order=8
+	// Set the falcon image analyzer volume size limit.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Volume Size Limit",order=8
 	// +kubebuilder:default:="20Gi"
 	VolumeSizeLimit string `json:"sizeLimit,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Volume Mounts",order=9
+	// Set the falcon image analyzer volume mount path.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Volume Mount Path",order=9
 	// +kubebuilder:default:="/tmp"
 	VolumeMountPath string `json:"mountPath,omitempty"`
 
+	// Name of the Kubernetes Cluster.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Cluster Name",order=10
 	ClusterName string `json:"clusterName,omitempty"`
 
+	// Exclusions for the Falcon Image Analyzer.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Exclusions",order=11
 	Exclusions Exclusions `json:"exclusions,omitempty"`
 
+	// RegistryConfig for the Falcon Image Analyzer.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Registry Configuration Options",order=12
 	RegistryConfig RegistryConfig `json:"registryConfig,omitempty"`
 
+	// Enable debugging for the Falcon Image Analyzer.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Enable Debugging",order=13
 	// +kubebuilder:default:=false
 	EnableDebug bool `json:"debug,omitempty"`
@@ -126,6 +132,7 @@ type Exclusions struct {
 }
 
 type RegistryConfig struct {
+	// If neceeary, configure the registry credentials for the Falcon Image Analyzer.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Registry Credentials",order=1
 	Credentials []RegistryCreds `json:"credentials,omitempty"`
 }

@@ -16,17 +16,17 @@ rules:
   - ""
   resources:
   - namespaces
-  - nodes
+  - pods
+  - secrets
   verbs:
   - get
   - list
   - watch
 - apiGroups:
-  - apps
+  - security.openshift.io
+  resourceNames:
+  - privileged
   resources:
-  - daemonsets
-  - deployments
+  - securitycontextconstraints
   verbs:
-  - get
-  - list
-  - watch
+  - use

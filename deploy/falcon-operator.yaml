@@ -2658,11 +2658,14 @@ spec:
                   azureConfigPath:
                     type: string
                   clusterName:
+                    description: Name of the Kubernetes Cluster.
                     type: string
                   debug:
                     default: false
+                    description: Enable debugging for the Falcon Image Analyzer.
                     type: boolean
                   exclusions:
+                    description: Exclusions for the Falcon Image Analyzer.
                     properties:
                       namespaces:
                         description: Configure a list of namespaces for Image Analyzer
@@ -2702,6 +2705,7 @@ spec:
                     type: array
                   mountPath:
                     default: /tmp
+                    description: Set the falcon image analyzer volume mount path.
                     type: string
                   priorityClass:
                     description: Enable priority class for the Falcon Image Analyzer
@@ -2712,8 +2716,11 @@ spec:
                         type: string
                     type: object
                   registryConfig:
+                    description: RegistryConfig for the Falcon Image Analyzer.
                     properties:
                       credentials:
+                        description: If neceeary, configure the registry credentials
+                          for the Falcon Image Analyzer.
                         items:
                           properties:
                             namespace:
@@ -2791,6 +2798,7 @@ spec:
                     type: object
                   sizeLimit:
                     default: 20Gi
+                    description: Set the falcon image analyzer volume size limit.
                     type: string
                   updateStrategy:
                     default:
@@ -4292,8 +4300,7 @@ spec:
         - name: WATCH_NAMESPACE
         - name: OPERATOR_NAME
           value: falcon-operator
-        image: quay.io/crowdstrike/falcon-operator:test
-        imagePullPolicy: Always
+        image: quay.io/crowdstrike/falcon-operator:0.9.1
         livenessProbe:
           httpGet:
             path: /healthz
