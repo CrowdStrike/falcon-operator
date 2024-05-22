@@ -1389,6 +1389,7 @@ spec:
   - runtime-protection
   labels:
     operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
   links:
   - name: Falcon Operator
