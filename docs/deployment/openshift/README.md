@@ -2,6 +2,7 @@
 
 This document will guide you through the installation of the Falcon Operator and deployment of the following custom resources provided by the Falcon Operator:
 - [FalconAdmission](../../resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
+- [FalconImageAnalyzer](resources/imageanalyzer/README.md) with the Falcon Image Analyzer image being pulled from CrowdStrike container registry.
 - [FalconNodeSensor](resources/node/README.md) custom resource to the cluster.
 
 You can choose to install the operator and custom resources through the [web console (GUI)](#installing-the-operator-through-the-web-console-gui) or through the [CLI](#installing-the-operator-through-the-cli).
@@ -96,7 +97,7 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 <details>
   <summary>Click to expand</summary>
 
-- To deploy the Falon Sidecar Sensor, click `Create Instance` for the `Falcon Admission` Kind under the `Provided APIs` for the Falcon Operator.
+- To deploy the Falcon Sidecar Sensor, click `Create Instance` for the `Falcon Admission` Kind under the `Provided APIs` for the Falcon Operator.
 
    ![OpenShift CrowdStrike Falcon Admission Controller](images/ocp-fkac.png)
 
@@ -109,6 +110,27 @@ If you want to automate the deployment of the operator, the CLI method is recomm
    3. Click `Create` to deploy the FalconAdmission Kind
 
 - If more configuration is needed for your organization or deployment, `Falcon Sensor Configuration` will provide additional ways to configure the CrowdStrike Admission Controller. `Falcon Admission Controller Configuration` provides more ways to configure deployment and behavior of the admission controller.
+
+</details>
+
+### Deploy the Image Analyzer
+
+<details>
+  <summary>Click to expand</summary>
+
+- To deploy the Falcon Image Analyzer, click `Create Instance` for the `Falcon Image Analyzer` Kind under the `Provided APIs` for the Falcon Operator.
+
+   ![OpenShift CrowdStrike Falcon Image Analyzer](images/ocp-iarinstall.png)
+
+- If using the CrowdStrike API method which connects to the CrowdStrike cloud and will attempt to discover your Falcon Customer ID as well as download the Falcon Admission container image, make sure that you have a new [CrowdStrike API key pair](#prerequisites) before continuing.
+  On the `Create FalconImageAnalyzer` page, make sure to:
+
+   1. Replace the `Client ID` with your CrowdStrike API Client ID value
+   2. Replace the `Client Secret` with your CrowdStrike API Client Secret value
+   3. Replace the `CrowdStrike Falcon Cloud Region` with your Falcon cloud region e.g. `us-1`
+   4. Click `Create` to deploy the FalconImageAnalyzer Kind
+
+- If more configuration is needed for your organization or deployment, `Falcon Image Analyzer Configuration` provides more ways to configure the deployment and behavior of the image assessment tool.
 
 </details>
 
@@ -192,12 +214,9 @@ Once the Krew plugin is installed:
   metadata:
     name: falcon-operator
     namespace: falcon-operator
-  spec:
-    targetNamespaces:
-    - MYNAMESPACE
   EOF
   ```
-  Replace `MYNAMESPACE` with the namespace that you will be deploying the node sensor. See [Deploying the Node Sensor to a custom Namespace](#deploying-the-node-sensor-to-a-custom-namespace). Otherwise, replace `MYNAMESPACE` with the `falcon-operator` namespace and create the OperatorGroup.
+  Then, deploy the newly created `OperatorGroup`:
   ```
   oc create -f operatorgroup.yaml -n falcon-operator
   ```
@@ -244,33 +263,6 @@ Once the operator has deployed, you can now deploy the FalconNodeSensor.
   oc create -n falcon-operator -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
   ```
 
-### Deploying the Node Sensor to a custom Namespace
-
-If desired, the FalconNodeSensor can be deployed to a namespace of your choosing instead of deploying to the operator namespace.
-To deploy to a custom namespace (replacing `falcon-system` as desired):
-
-- Create a new project
-  ```
-  oc new-project falcon-system
-  ```
-
-- Create the service account in the new namespace
-  ```
-  oc create sa falcon-operator-node-sensor -n falcon-system
-  ```
-
-- Add the service account to the privileged SCC
-  ```
-  oc adm policy add-scc-to-user privileged system:serviceaccount:falcon-system:falcon-operator-node-sensor
-  ```
-
-- Deploy FalconNodeSensor to the custom namespace:
-  ```
-  oc create -n falcon-system -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/config/samples/falcon_v1alpha1_falconnodesensor.yaml --edit=true
-  ```
-
-</details>
-
 ### Deploy the Admission Controller
 
 <details>
@@ -282,6 +274,21 @@ To deploy to a custom namespace (replacing `falcon-system` as desired):
   ```
 
 </details>
+
+### Deploy the Image Analyzer
+
+<details>
+  <summary>Click to expand</summary>
+
+- Deploy FalconImageAnalyzer through the cli using the `oc` command:
+  ```
+  oc create -f https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconimageanalyzer.yaml --edit=true
+  ```
+
+</details>
+
+</details>
+
 </details>
 
 ## Upgrading
@@ -341,6 +348,16 @@ The sidecar sensor is not intended for OpenShift. If you installed it by mistake
 
    ![OpenShift CrowdStrike Admission Controller Uninstall](images/ocp-fkacdel.png)
 
+#### Uninstall the Image Analyzer
+
+- Click on the `CrowdStrike Falcon Platform - Operator` listing, followed by clicking on the `Falcon Image Analyzer` tab.
+
+   ![OpenShift CrowdStrikeImage Analyzer Uninstall](images/ocp-iaruninstall.png)
+
+- On the deployed `FalconImageAnalyzer` Kind, click the 3 vertical dot action menu on the far right, and click `Delete FalconImageAnalyzer`.
+
+   ![OpenShift CrowdStrike Image Analyzer Uninstall](images/ocp-iaruninstall2.png)
+
 #### Uninstall the Operator
 
 - In the list of `Installed Operators`, click the 3 vertical dot action menu on the far right of the `CrowdStrike Falcon Platform - Operator` listing, and click `Uninstall Operator`.
@@ -386,7 +403,7 @@ Once the Krew plugin is installed:
 
 - To uninstall the node sensor, simply remove the FalconNodeSensor resource.
   ```
-  oc delete falconnodesensor -A --all
+  oc delete falconnodesensor falcon-node-sensor
   ```
 
 ##### Uninstall the Sidecar Sensor
@@ -395,7 +412,7 @@ The sidecar sensor is not intended for OpenShift. If you installed it by mistake
 
 - To uninstall Falcon Container simply remove FalconContainer resource. The operator will uninstall Falcon Container product from the cluster.
   ```
-  oc delete falconadmissions falcon-sidecar-sensor
+  oc delete falconcontainers falcon-sidecar-sensor
   ```
 
 ##### Uninstall the Admission Controller
@@ -403,6 +420,13 @@ The sidecar sensor is not intended for OpenShift. If you installed it by mistake
 - To uninstall Falcon Container simply remove FalconAdmission resource. The operator will then uninstall the Falcon Admission Controller from the cluster:
   ```
   oc delete falconadmissions falcon-admission
+  ```
+
+##### Uninstall the Falcon Image Analyzer
+
+- To uninstall Falcon Container simply remove FalconImageAnalyzer resource. The operator will then uninstall the Falcon Image Analyzer from the cluster:
+  ```
+  oc delete falconimageanalyzers falcon-iar
   ```
 
 ##### Uninstall the Operator

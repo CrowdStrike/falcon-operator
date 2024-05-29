@@ -3,7 +3,7 @@
 This document will guide you through the installation of the Falcon Operator and deployment of the following custom resources provided by the Falcon Operator:
 - [FalconAdmission](../../resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to ECR (Elastic Container Registry). A new AWS IAM Policy will be created to allow the operator to push to ECR registry.
 - [FalconContainer](../../resources/container/README.md) with the Falcon Container image being mirrored from CrowdStrike container registry to ECR (Elastic Container Registry). A new AWS IAM Policy will be created to allow the operator to push to ECR registry.
-- [FalconImageAnalyzer](../../resources/imageanalyzer/README.md) with the Falcon Image Analyzer image being mirrored from CrowdStrike container registry.
+- [FalconImageAnalyzer](../../resources/imageanalyzer/README.md) with the Falcon Image Analyzer image being pull from the CrowdStrike container registry.
 
 ## Prerequisites
 
@@ -45,6 +45,9 @@ This document will guide you through the installation of the Falcon Operator and
   <summary>Click to expand</summary>
 
 #### Create the FalconContainer resource
+
+> [!IMPORTANT]
+> If running in a mixed environment with both Fargate and EKS instances, you must set the installNamespace to a different namespace in the FalconContainer Spec i.e. `spec.installNamespace: falcon-Sidecar` to avoid conflicts with FalconNodeSensor running in the `falcon-system` namespace.
 
 - Create an EKS Fargate profile for the FalconContainer resource deployment:
   ```sh

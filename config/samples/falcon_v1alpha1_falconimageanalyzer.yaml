@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/part-of: falcon-operator
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: falcon-operator
-  name: falconimageanalyzer-sample
+  name: falcon-iar
 spec:
   falcon_api:
     client_id: PLEASE_FILL_IN
