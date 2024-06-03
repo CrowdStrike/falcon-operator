@@ -79,7 +79,7 @@ metadata:
               "app.kubernetes.io/name": "falconimageanalyzer",
               "app.kubernetes.io/part-of": "falcon-operator"
             },
-            "name": "falconimageanalyzer-sample"
+            "name": "falcon-iar"
           },
           "spec": {
             "falcon_api": {
@@ -125,7 +125,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2024-05-16T19:53:46Z"
+    createdAt: "2024-06-03T19:42:25Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -142,7 +142,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
-  name: falcon-operator.v0.9.6
+  name: falcon-operator.v1.0.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1307,7 +1307,7 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: OPERATOR_NAME
                   value: falcon-operator
-                image: quay.io/crowdstrike/falcon-operator:0.9.6
+                image: quay.io/crowdstrike/falcon-operator:1.0.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -1402,4 +1402,4 @@ spec:
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
-  version: 0.9.6
+  version: 1.0.0
