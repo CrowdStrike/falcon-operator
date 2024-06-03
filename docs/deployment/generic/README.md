@@ -3,7 +3,7 @@
 This document will guide you through the installation of the Falcon Operator and deployment of the following custom resources provided by the Falcon Operator:
 - [FalconAdmission](../../resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to .
 - [FalconContainer](../../resources/container/README.md) with the Falcon Container image being mirrored from CrowdStrike container registry to .
-- [FalconImageAnalyzer](../../resources/imageanalyzer/README.md) with the Falcon Image Analyzer image being mirrored from CrowdStrike container registry.
+- [FalconImageAnalyzer](../../resources/imageanalyzer/README.md) with the Falcon Image Analyzer image being pull from the CrowdStrike container registry.
 - [FalconNodeSensor](../../resources/node/README.md) custom resource to the cluster.
 
 ## Prerequisites
