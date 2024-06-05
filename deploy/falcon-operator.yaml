@@ -4300,7 +4300,7 @@ spec:
         - name: WATCH_NAMESPACE
         - name: OPERATOR_NAME
           value: falcon-operator
-        image: quay.io/crowdstrike/falcon-operator:1.0.0
+        image: quay.io/crowdstrike/falcon-operator:1.0.1
         livenessProbe:
           httpGet:
             path: /healthz

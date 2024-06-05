@@ -5,6 +5,138 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2024-06-05
+
+### Changed
+
+- fix handling of invalid tags in artifactory
+- Bumping to version 1.0.0
+- build(deps): bump golangci/golangci-lint-action from 5 to 6
+- docs: update docs for iar and openshift
+- chore(bundle): add arm64 support label
+- cleanup(bundle): remove legacy unused falconcontainer role
+- --- updated-dependencies: - dependency-name: github.com/docker/docker   dependency-type: indirect ...
+- --- updated-dependencies: - dependency-name: github.com/containers/image/v5   dependency-type: direct:production ...
+- Bumping to version 0.9.6
+- regenerate boilerplate code
+- add docs
+- more code cleanup
+- configure ocp scc for iar
+- cleanup old iar code
+- exclude docs in gosec testing
+- configure volumesize before default is generated
+- make volume and volumemount configuration simpler
+- update IAR types for exclusions and registry configs, etc.
+- Remove Falcon sensor settings for IAR
+- add volumes and volumemount configs
+- remove unused functions and add azureconfig and priorityclassname to config
+- security context
+- minor fix
+- non-olm
+- cleanup configmap
+- add bundle
+- add manager config
+- remove unused
+- generate manifest and api
+- add imageanalyzer role
+- remove resourceQuota
+- cleanup deployment
+- cleanup controller
+- image tag
+- update rbac
+- add configmap
+- lint
+- update manifests
+- IAR controller and templates
+- falcon image deployment function
+- falcon image constants
+- falcon image type definitions
+- cleanup: conditionsupdate should get resource
+- cleanup: remove tautological conditions
+- cleanup: remove unused parameters
+- feat: allow sidecar sensor to customize namespace
+- chore: add arch requirements for single-arch deployments
+- feat(admission): automate ocp & falcon ns exclusions
+- docs(nodesensor): update docs
+- fix(nodesensor): use operator naming for node clusterrolebinding
+- chore(nodesensor): add privileged labels to node sensor ns
+- feat(sec): do not allow any workloads to run in falcon install namespaces
+- feat: allow node sensor to customize namespace
+- chore: use retry on conflict to update the status
+- build(deps): bump golangci/golangci-lint-action from 4 to 5
+- build(deps): bump helm/kind-action from 1.9.0 to 1.10.0
+- fix(admission): version 7.14 of admission controller requires webhook to exist before the service can start
+- feat(node): handle multi-arch container images
+- feat: operator upgrade docs
+- chore(admission): sync clusterrole perms
+- fix src
+- build(deps): bump golang.org/x/net from 0.21.0 to 0.23.0
+- fix admission readme
+- make tags array
+- chore(action): update metadata action to add non-olm target
+- fix(ci): fix broken tests due to upstream envtest changes
+- build(deps): bump github.com/docker/docker
+- ran make and added generated files
+- imagePullSecretName is no longer valid, updated readme with imagePullSecret
+- fix(iar): return IAR tags
+- cleanup(nodesensor): remove legacy initContainer code
+- build(deps): bump google.golang.org/protobuf from 1.31.0 to 1.33.0
+- feat: determine cluster install features such as OpenShift and cert-manager
+- build(deps): bump github.com/go-jose/go-jose/v3 from 3.0.1 to 3.0.3
+- build(deps): bump gopkg.in/go-jose/go-jose.v2 from 2.6.1 to 2.6.3
+- cleanup: Remove WATCH_NAMESPACE usage
+- feat: update to operator-sdk 1.34.1
+- fix(admission): always return existing tls certs on reconciliation
+- Clarify FalconContainer is not intended for OpenShift.
+- fix(admission): Fix admission controller yaml for azure
+- feat: update gofalcon to v0.6.0
+- feat: remove CGO_ENABLED=0 references in order to enable FIPS compliance
+- build(deps): bump helm/kind-action from 1.8.0 to 1.9.0
+- build(deps): bump golangci/golangci-lint-action from 3 to 4
+- feat(node): merge tolerations when injected
+- docs: add managed OpenShift control plan/infra caveats
+- feat: add new OpenShift feature annotations to CSV
+- fix: remove deprecated configmap for componentconfig
+- fix: update leader election ID
+- fix: update oom guidance for openshift to makes changes to the subscription
+- fix: operator pull policy should follow the default
+- feat: add some utils tests
+- fix: TestMakeSensorEnvMap should test for automatic proxy vs manual
+- fixing the automatic proxy host config commenting the test TestMakeSensorEnvMapWithAutomaticProxy for refactor
+- fix: priorityclass handling should be deployable to more than just GKE
+- feat: OLM updates
+- feat: generate boilerplate for IAR
+- fix: downloaded kustomize if needed when non-olm make target is run
+- build(deps): bump github.com/opencontainers/runc from 1.1.10 to 1.1.12
+- cleanup: remove logging from version.go
+- Bump channel in docs/src.
+- Fix a readme link so it works from OperatorHub.
+- Bump OpenShift Subscription channel to 0.9.
+- cleanup: remove cloudformation content
+- fix: update go crypto version
+- build(deps): bump github.com/containerd/containerd from 1.7.0 to 1.7.11
+- fix: update manifests
+- fix: update controller-runtime cache handling from deprecated method
+- fix: go mod tidy
+- feat: use gofalcon for registry config and sensor types
+- fix: use valid yaml sequence
+- fix: remove deprecated componentConfig and controller manager options
+- feat: migrate controllers to new folder to match golang project standards
+- fix: use LOCALBIN for opm install
+- build(deps): bump github/codeql-action from 2 to 3
+- build(deps): bump actions/setup-go from 4 to 5
+- update CRD to fix the display name on the proxy host
+- fix: checkout branch to get release commit during release run
+- feat: update to operator-sdk version 1.33.0
+- feat: set operator to be permanently globally scoped
+- feat: add infra node toleration by default
+- clean(node-sensor): remove some unnecessary functions
+- feat: Add network permissions for GKE Autopilot
+- feat: update to latest gofalcon
+- feat: loosen up the default resource quota the admission controller
+- fix: admission controller doc fixes
+- fix: fix typo in configmap_test.go
+
 ## [1.0.0] - 2024-06-03
 
 ### Changed
