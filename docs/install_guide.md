@@ -85,7 +85,7 @@ falcon-operator-controller-manager-77d7b44f96-t6jsr   1/2     OOMKilled   2 (45s
 To remediate this problem in an OpenShift cluster, increase the memory limit of the operator by adding the desired resource configuration to the Subscription:
 
 ```shell
-oc edit subscription falcon-operator-rhmp -n falcon-operator
+oc edit subscription falcon-operator -n falcon-operator
 ```
 
 and add/edit the resource configuration to the `spec`. For example:
