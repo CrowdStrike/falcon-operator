@@ -167,7 +167,7 @@ Once the Krew plugin is installed:
 
 - Using the krew plugin, install the certified operator
    ```
-   oc operator install falcon-operator-rhmp --create-operator-group -n falcon-operator
+   oc operator install falcon-operator --create-operator-group -n falcon-operator
    ```
 
 </details>
@@ -194,16 +194,16 @@ Once the Krew plugin is installed:
 
 - You can view the package manifest by running the following command:
   ```
-  oc describe packagemanifests falcon-operator-rhmp -n openshift-marketplace
+  oc describe packagemanifests falcon-operator -n openshift-certified
   ```
   or to get the package manifest in yaml form:
   ```
-  oc get packagemanifests -n openshift-marketplace falcon-operator-rhmp -o yaml
+  oc get packagemanifests -n openshift-marketplace falcon-operator -o yaml
   ```
   Important information from the package manifest output such as the `defaultChannel`, `catalogSource`, `catalogSourceNamespace`, and `currentCSV` are used to create a `Subscription` Kind in a yaml file (next steps) to have OpenShift install the operator from the cluster's marketplace.
-  You can now install the official [Red Hat Marketplace certified version of the operator](#installing-the-red-hat-marketplace-operator-from-the-console-operatorhub).
+  You can now install the official [Red Hat certified version of the operator](#installing-the-red-hat-certified-operator-from-the-console-operatorhub).
 
-#### Installing the Red Hat Marketplace Operator from the Console OperatorHub
+#### Installing the Red Hat Certified Operator from the Console OperatorHub
 ##### Creating an OperatorGroup
 
 - If using a custom namespace or the `falcon-operator` namespace, you will need to create an `OperatorGroup`:
@@ -222,9 +222,9 @@ Once the Krew plugin is installed:
   ```
   An [example OperatorGroup for you to modify is available](https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/docs/deployment/openshift/operatorgroup.yaml)
 
-##### Installing the Red Hat Marketplace Operator from the Console OperatorHub
+##### Installing the Red Hat Operator from the Console OperatorHub
 
-- Create a subscription `yaml` file to install the official Red Hat Marketplace certified operator (`redhat-marketplace`). In this example, the certified operator will be installed via the `Subscription` Kind:
+- Create a subscription `yaml` file to install the official Red Hat certified operator (`certified-operators`). In this example, the certified operator will be installed via the `Subscription` Kind:
   ```
   cat << EOF >> subscription.yaml
   apiVersion: operators.coreos.com/v1alpha1
@@ -232,13 +232,13 @@ Once the Krew plugin is installed:
   metadata:
     name: falcon-operator
   spec:
-    channel: certified-0.8
-    name: falcon-operator-rhmp
-    source: redhat-marketplace
+    channel: certified-1.0
+    name: falcon-operator
+    source: certified-operators
     sourceNamespace: openshift-marketplace
   EOF
   ```
-  Replace the `channel` in the above spec to the desired deployment channel e.g. `alpha`, `certified-X` (where X is the version), or `stable`, etc. An [example subscription of the official Red Hat Marketplace certified operator is available](redhat-subscription.yaml) to use and modify as appropriate for your cluster. If a specific operator version is desired, add `startingCSV` with the desired operator version e.g. `startingCSV: falcon-operator.v0.1.2`.
+  Replace the `channel` in the above spec to the desired deployment channel e.g. `certified-X` (where X is the version), or `stable`, etc. An [example subscription of the official Red Hat certified operator is available](redhat-subscription.yaml) to use and modify as appropriate for your cluster. If a specific operator version is desired, add `startingCSV` with the desired operator version e.g. `startingCSV: falcon-operator.v0.1.2`.
 
 #### Deploy the operator
 
@@ -389,7 +389,7 @@ Once the Krew plugin is installed:
 
 1. Using the krew plugin, uninstall the certified operator if it is already installed with
    ```
-   oc operator uninstall falcon-operator-rhmp -n falcon-operator -X
+   oc operator uninstall falcon-operator -n falcon-operator -X
    ```
 
 </details>
