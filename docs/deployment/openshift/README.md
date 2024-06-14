@@ -366,8 +366,6 @@ The sidecar sensor is not intended for OpenShift. If you installed it by mistake
 
   This will open an uninstall confirmation box, click `Uninstall` to complete the uninstall.
 
-</details>
-
 #### Clean up remaining resources
 
 You must remove several resources manually that OpenShift's Operator Lifecycle Manager (OLM) does not
@@ -384,6 +382,8 @@ remove automatically when the operator is uninstalled.
 - Navigate to the Administrator perspective, Home, Projects. Type `falcon` in the search box. Delete the Falcon project displayed.
 
   ![OpenShift CrowdStrike project cleanup](images/ocp-delete-project.png)
+
+</details>
 
 ### Uninstall using the CLI
 
