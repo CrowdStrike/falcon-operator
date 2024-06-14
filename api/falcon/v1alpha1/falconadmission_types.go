@@ -99,14 +99,6 @@ type FalconAdmissionConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=12
 	DisabledNamespaces FalconAdmissionNamespace `json:"disabledNamespaces,omitempty"`
 
-	// Number of replicas for the Falcon Admission Controller deployment.
-	// +kubebuilder:default:=2
-	// +kubebuilder:validation:XIntOrString
-	// +kubebuilder:validation:Minimum:=0
-	// +kubebuilder:validation:Maximum:=65535
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Admission Controller Replica Count",order=5,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
-	Replicas *int32 `json:"replicas,omitempty"`
-
 	// +kubebuilder:default:=Always
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Image Pull Policy",order=2,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy"}

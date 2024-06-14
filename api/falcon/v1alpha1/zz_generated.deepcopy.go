@@ -323,11 +323,6 @@ func (in *FalconAdmissionConfigSpec) DeepCopyInto(out *FalconAdmissionConfigSpec
 	}
 	in.TLS.DeepCopyInto(&out.TLS)
 	in.DisabledNamespaces.DeepCopyInto(&out.DisabledNamespaces)
-	if in.Replicas != nil {
-		in, out := &in.Replicas, &out.Replicas
-		*out = new(int32)
-		**out = **in
-	}
 	if in.ImagePullSecrets != nil {
 		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
 		*out = make([]corev1.LocalObjectReference, len(*in))

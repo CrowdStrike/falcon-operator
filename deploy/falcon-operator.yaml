@@ -111,15 +111,6 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     type: array
-                  replicas:
-                    default: 2
-                    description: Number of replicas for the Falcon Admission Controller
-                      deployment.
-                    format: int32
-                    maximum: 65535
-                    minimum: 0
-                    type: integer
-                    x-kubernetes-int-or-string: true
                   resources:
                     default:
                       limits:
