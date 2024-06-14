@@ -9,7 +9,7 @@ You can choose to install the operator and custom resources through the [web con
 If you want to automate the deployment of the operator, the CLI method is recommended.
 
 > [!WARNING]
-> Previous versions of this guide dicussed deployment of the [FalconContainer](resources/container/README.md) resource, but this is no longer recommended for OpenShift. Instead, OpenShift users should only use the FalconNodeSensor for runtime protection. FalconContainer is designed for other Kubernetes environments and is not intended for OpenShift.
+> Previous versions of this guide discussed deployment of the [FalconContainer](resources/container/README.md) resource, but this is no longer recommended for OpenShift. Instead, OpenShift users should only use the FalconNodeSensor for runtime protection. FalconContainer is designed for other Kubernetes environments and is not intended for OpenShift.
 
 ## Prerequisites
 
@@ -366,6 +366,23 @@ The sidecar sensor is not intended for OpenShift. If you installed it by mistake
 
   This will open an uninstall confirmation box, click `Uninstall` to complete the uninstall.
 
+#### Clean up remaining resources
+
+You must remove several resources manually that OpenShift's Operator Lifecycle Manager (OLM) does not
+remove automatically when the operator is uninstalled.
+
+- Navigate to the Administrator perspective, Home, Search. Select `CustomResourceDefinition` from the `Resources` dropdown, ensure the filter dropdown is set to `Label`, and enter `operators.coreos.com/falcon-operator.falcon-operator`. Delete the Falcon CRD's displayed.
+
+  ![OpenShift CrowdStrike CRD cleanup](images/ocp-delete-crd.png)
+
+- Navigate to the Administrator perspective, Home, Search. Select `ClusterRole` and `ClusterRoleBinding` from the `Resources` dropdown, ensure the filter dropdown is set to `Label`, and enter `crowdstrike.com/created-by=falcon-operator`. Delete the Falcon CR's and CRB's displayed.
+
+  ![OpenShift CrowdStrike CR and CRB cleanup](images/ocp-delete-cr-crb.png)
+
+- Navigate to the Administrator perspective, Home, Projects. Type `falcon` in the search box. Delete the Falcon project displayed.
+
+  ![OpenShift CrowdStrike project cleanup](images/ocp-delete-project.png)
+
 </details>
 
 ### Uninstall using the CLI
@@ -441,7 +458,7 @@ The sidecar sensor is not intended for OpenShift. If you installed it by mistake
   oc delete sub falcon-operator -n falcon-operator
   ```
 
-- Get the name of the ClusterServiceVersion for the operator.
+- Get the name of the ClusterServiceVersion for the operator:
   ```
   oc get csv -n falcon-operator
   ```
@@ -451,9 +468,14 @@ The sidecar sensor is not intended for OpenShift. If you installed it by mistake
   oc delete csv falcon-operator.v0.8.0 -n falcon-operator
   ```
 
-- Delete the Custom Resource Definitions (CRDs)
+- Delete the Custom Resource Definitions (CRDs):
   ```
-  oc delete crd $(oc get crd | grep falcon)
+  oc delete $(oc get crd -l operators.coreos.com/falcon-operator.falcon-operator -o name)
+  ```
+
+- Delete ClusterRoles and ClusterRoleBindings created by the operator:
+  ```
+  oc delete $(oc get clusterrole,clusterrolebinding -l crowdstrike.com/created-by=falcon-operator -o name)
   ```
 
 - Delete the operator namespace:
