@@ -23,7 +23,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -96,7 +95,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	falconAdmission := &falconv1alpha1.FalconAdmission{}
 	err := r.Get(ctx, req.NamespacedName, falconAdmission)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// If the custom resource is not found then, it usually means that it was deleted or not created
 			// In this way, we will stop the reconciliation
 			log.Info("FalconAdmission resource not found. Ignoring since object must be deleted")
@@ -123,7 +122,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{}, err
 		}
 		log.Error(nil, "FalconAdmission is attempting to install in a namespace with existing pods. Please update the CR configuration to a namespace that does not have workoads already running.")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, nil
 	}
 
 	// Let's just set the status as Unknown when no status is available
@@ -157,6 +156,10 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	normalResult := ctrl.Result{
+		RequeueAfter: k8sutils.GetSensorUpdateFrequency(falconAdmission.Spec.UpdateFrequency),
+	}
+
 	// Image being set will override other image based settings
 	if falconAdmission.Spec.Image != "" {
 		if _, err := r.setImageTag(ctx, falconAdmission); err != nil {
@@ -178,7 +181,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				return ctrl.Result{}, fmt.Errorf("failed to reconcile Image Stream")
 			}
 			if stream == nil {
-				return ctrl.Result{}, nil
+				return normalResult, nil
 			}
 		}
 
@@ -196,7 +199,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		} else {
 			updated, err = r.verifyCrowdStrike(ctx, log, falconAdmission)
 			if updated {
-				return ctrl.Result{}, nil
+				return normalResult, nil
 			}
 			if err != nil {
 				log.Error(err, "Failed to verify CrowdStrike Admission Image Registry access")
@@ -271,7 +274,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{}, err
 		}
 
-		return ctrl.Result{}, nil
+		return normalResult, nil
 	}
 
 	if err := k8sutils.ConditionsUpdate(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, metav1.Condition{

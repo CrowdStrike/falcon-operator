@@ -134,6 +134,10 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile namespace: %v", err)
 	}
 
+	normalResult := ctrl.Result{
+		RequeueAfter: k8sutils.GetSensorUpdateFrequency(falconContainer.Spec.UpdateFrequency),
+	}
+
 	// Image being set will override other image based settings
 	if falconContainer.Spec.Image != nil && *falconContainer.Spec.Image != "" {
 		if _, err := r.setImageTag(ctx, falconContainer); err != nil {
@@ -163,7 +167,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				return ctrl.Result{}, fmt.Errorf("failed to reconcile Image Stream")
 			}
 			if stream == nil {
-				return ctrl.Result{}, nil
+				return normalResult, nil
 			}
 		}
 
@@ -189,7 +193,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		} else {
 			updated, err := r.verifyCrowdStrikeRegistry(ctx, log, falconContainer)
 			if updated {
-				return ctrl.Result{}, nil
+				return normalResult, nil
 			}
 			if err != nil {
 				log.Error(err, "Failed to verify CrowdStrike Container Image Registry access")
@@ -297,7 +301,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	return normalResult, nil
 }
 
 func (r *FalconContainerReconciler) StatusUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer, condType string, status metav1.ConditionStatus, reason string, message string) error {

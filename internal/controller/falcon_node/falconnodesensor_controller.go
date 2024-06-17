@@ -103,7 +103,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			return ctrl.Result{}, err
 		}
 		logger.Error(nil, "FalconNodeSensor is attempting to install in a namespace with existing pods. Please update the CR configuration to a namespace that does not have workoads already running.")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, nil
 	}
 
 	dsCondition := meta.FindStatusCondition(nodesensor.Status.Conditions, falconv1alpha1.ConditionSuccess)
@@ -169,6 +169,10 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	normalResult := ctrl.Result{
+		RequeueAfter: k8sutils.GetSensorUpdateFrequency(nodesensor.Spec.Node.UpdateFrequency),
+	}
+
 	sensorConf, updated, err := r.handleConfigMaps(ctx, config, nodesensor, logger)
 	if err != nil {
 		err = r.conditionsUpdate(falconv1alpha1.ConditionFailed,
@@ -181,7 +185,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 
 		logger.Error(err, "error handling configmap")
-		return ctrl.Result{}, err
+		return normalResult, nil
 	}
 	if sensorConf == nil {
 		err = r.conditionsUpdate(falconv1alpha1.ConditionConfigMapReady,
@@ -377,7 +381,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			log.Info("Removing finalizer")
 
 		}
-		return ctrl.Result{}, nil
+		return normalResult, nil
 	}
 
 	// Add finalizer for this CR
@@ -392,7 +396,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	}
 
-	return ctrl.Result{}, nil
+	return normalResult, nil
 }
 
 // handleNamespace creates and updates the namespace
