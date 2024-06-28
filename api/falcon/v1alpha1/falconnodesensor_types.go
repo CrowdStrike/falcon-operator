@@ -88,7 +88,7 @@ type FalconNodeSensorConfig struct {
 	SensorResources Resources `json:"resources,omitempty"`
 
 	// Sets the backend to be used by the DaemonSet Sensor.
-	// +kubebuilder:default=kernel
+	// +kubebuilder:default=bpf
 	// +kubebuilder:validation:Enum=kernel;bpf
 	// +operator-sdk-csv:customresourcedefinitions:type=spec,order=10
 	Backend string `json:"backend,omitempty"`
