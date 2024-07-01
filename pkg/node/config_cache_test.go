@@ -10,6 +10,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 )
 
 var falconNode = falconv1alpha1.FalconNodeSensor{}
@@ -210,4 +211,40 @@ func TestGetFalconImage(t *testing.T) {
 	if want != got {
 		t.Errorf("getFalconImage() = %s, want %s", got, want)
 	}
+}
+
+func TestVersionLock_WithDifferentVersion(t *testing.T) {
+	sensor := &falconv1alpha1.FalconNodeSensor{}
+	sensor.Status.Sensor = stringPointer("some sensor")
+	sensor.Spec.Node.Version = stringPointer("different version")
+	assert.False(t, versionLock(sensor))
+}
+
+func TestVersionLock_WithLatestVersion(t *testing.T) {
+	sensor := &falconv1alpha1.FalconNodeSensor{}
+	sensor.Status.Sensor = stringPointer("some sensor")
+	assert.True(t, versionLock(sensor))
+}
+
+func TestVersionLock_WithNoCurrentSensor(t *testing.T) {
+	sensor := &falconv1alpha1.FalconNodeSensor{}
+	assert.False(t, versionLock(sensor))
+}
+
+func TestVersionLock_WithSameVersion(t *testing.T) {
+	sensor := &falconv1alpha1.FalconNodeSensor{}
+	sensor.Status.Sensor = stringPointer("some sensor")
+	sensor.Spec.Node.Version = sensor.Status.Sensor
+	assert.True(t, versionLock(sensor))
+}
+
+func TestVersionLock_WithUpdatePolicy(t *testing.T) {
+	sensor := &falconv1alpha1.FalconNodeSensor{}
+	sensor.Status.Sensor = stringPointer("some sensor")
+	sensor.Spec.Node.UpdatePolicy = stringPointer("some policy")
+	assert.False(t, versionLock(sensor))
+}
+
+func stringPointer(s string) *string {
+	return &s
 }

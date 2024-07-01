@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
@@ -110,11 +111,9 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 		return fmt.Sprintf("%s:%s", imageUri, *nodesensor.Status.Sensor), nil
 	}
 
-	registry, err := falcon_registry.NewFalconRegistry(ctx, nodesensor.Spec.FalconAPI.ApiConfig())
-	if err != nil {
-		return "", err
-	}
-	imageTag, err := registry.LastNodeTag(ctx, nodesensor.Spec.Node.Version)
+	apiConfig := nodesensor.Spec.FalconAPI.ApiConfig()
+	apiConfig.Context = ctx
+	imageTag, err := k8sutils.GetPreferredSensorNodeImage(ctx, nodesensor.Spec.Node.Version, nodesensor.Spec.Node.UpdatePolicy, apiConfig)
 	if err != nil {
 		return "", err
 	}
@@ -123,7 +122,11 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 }
 
 func versionLock(nodesensor *falconv1alpha1.FalconNodeSensor) bool {
-	return (nodesensor.Spec.Node.Version != nil && nodesensor.Status.Sensor != nil && strings.Contains(*nodesensor.Status.Sensor, *nodesensor.Spec.Node.Version)) || (nodesensor.Spec.Node.Version == nil && nodesensor.Status.Sensor != nil)
+	if nodesensor.Status.Sensor == nil || nodesensor.Spec.Node.UpdatePolicy != nil {
+		return false
+	}
+
+	return nodesensor.Spec.Node.Version == nil || strings.Contains(*nodesensor.Status.Sensor, *nodesensor.Spec.Node.Version)
 }
 
 func ConfigCacheTest(cid string, imageUri string, nodeTest *falconv1alpha1.FalconNodeSensor) *ConfigCache {

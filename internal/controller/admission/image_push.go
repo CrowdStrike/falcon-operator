@@ -10,13 +10,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/internal/controller/image"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
-	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pushtoken"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
@@ -193,13 +193,8 @@ func (r *FalconAdmissionReconciler) setImageTag(ctx context.Context, falconAdmis
 		return *falconAdmission.Status.Sensor, r.Client.Status().Update(ctx, falconAdmission)
 	}
 
-	// Otherwise, get the newest version matching the requested version string
-	registry, err := falcon_registry.NewFalconRegistry(ctx, r.falconApiConfig(ctx, falconAdmission))
-	if err != nil {
-		return "", err
-	}
-
-	tag, err := registry.LastContainerTag(ctx, falcon.KacSensor, falconAdmission.Spec.Version)
+	apiConfig := r.falconApiConfig(ctx, falconAdmission)
+	tag, err := k8sutils.GetPreferredSensorImage(ctx, falcon.KacSensor, falconAdmission.Spec.Version, falconAdmission.Spec.UpdatePolicy, apiConfig)
 	if err == nil {
 		falconAdmission.Status.Sensor = common.ImageVersion(tag)
 	}
@@ -234,5 +229,9 @@ func (r *FalconAdmissionReconciler) imageMirroringEnabled(falconAdmission *falco
 }
 
 func (r *FalconAdmissionReconciler) versionLock(falconAdmission *falconv1alpha1.FalconAdmission) bool {
-	return (falconAdmission.Spec.Version != nil && falconAdmission.Status.Sensor != nil && strings.Contains(*falconAdmission.Status.Sensor, *falconAdmission.Spec.Version)) || (falconAdmission.Spec.Version == nil && falconAdmission.Status.Sensor != nil)
+	if falconAdmission.Status.Sensor == nil || falconAdmission.Spec.UpdatePolicy != nil {
+		return false
+	}
+
+	return falconAdmission.Spec.Version == nil || strings.Contains(*falconAdmission.Status.Sensor, *falconAdmission.Spec.Version)
 }

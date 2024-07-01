@@ -54,6 +54,18 @@ type FalconAdmissionSpec struct {
 	// Falcon Admission Controller Version. The latest version will be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Version",order=8
 	Version *string `json:"version,omitempty"`
+
+	// UpdatePolicy is the name of an existing sensor update policy. It is ignored when Image and/or Version are set.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Update Policy",order=9
+	UpdatePolicy *string `json:"updatePolicy,omitempty"`
+
+	// How often to check for new sensor releases, in seconds. It is strongly recommended to stick with the default value of 24 hours.
+	// Using a shorter interval risks throttling from the CrowdStrike API.
+	// +kubebuilder:default:=86400
+	// +kubebuilder:validation:XIntOrString
+	// +kubebuilder:validation:Minimum:=5
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Update Frequency",order=10
+	UpdateFrequency *int32 `json:"updateFrequency,omitempty"`
 }
 
 type FalconAdmissionRQSpec struct {

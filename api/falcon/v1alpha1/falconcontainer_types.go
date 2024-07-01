@@ -43,6 +43,18 @@ type FalconContainerSpec struct {
 	// Falcon Container Version. The latest version will be selected when version specifier is missing; ignored when Image is set.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=6
 	Version *string `json:"version,omitempty"`
+
+	// UpdatePolicy is the name of an existing sensor update policy. It is ignored when Image and/or Version are set.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Update Policy",order=7
+	UpdatePolicy *string `json:"updatePolicy,omitempty"`
+
+	// How often to check for new sensor releases, in seconds. It is strongly recommended to stick with the default value of 24 hours.
+	// Using a shorter interval risks throttling from the CrowdStrike API.
+	// +kubebuilder:default:=86400
+	// +kubebuilder:validation:XIntOrString
+	// +kubebuilder:validation:Minimum:=5
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Update Frequency",order=8
+	UpdateFrequency *int32 `json:"updateFrequency,omitempty"`
 }
 
 type FalconContainerInjectorSpec struct {

@@ -465,6 +465,20 @@ spec:
                       can be created in the namespace.
                     type: string
                 type: object
+              updateFrequency:
+                default: 86400
+                description: How often to check for new sensor releases, in seconds.
+                  It is strongly recommended to stick with the default value of 24
+                  hours. Using a shorter interval risks throttling from the CrowdStrike
+                  API.
+                format: int32
+                minimum: 5
+                type: integer
+                x-kubernetes-int-or-string: true
+              updatePolicy:
+                description: UpdatePolicy is the name of an existing sensor update
+                  policy. It is ignored when Image and/or Version are set.
+                type: string
               version:
                 description: 'Falcon Admission Controller Version. The latest version
                   will be selected when version specifier is missing. Example: 6.31,
@@ -2480,6 +2494,20 @@ spec:
                 required:
                 - type
                 type: object
+              updateFrequency:
+                default: 86400
+                description: How often to check for new sensor releases, in seconds.
+                  It is strongly recommended to stick with the default value of 24
+                  hours. Using a shorter interval risks throttling from the CrowdStrike
+                  API.
+                format: int32
+                minimum: 5
+                type: integer
+                x-kubernetes-int-or-string: true
+              updatePolicy:
+                description: UpdatePolicy is the name of an existing sensor update
+                  policy. It is ignored when Image and/or Version are set.
+                type: string
               version:
                 description: Falcon Container Version. The latest version will be
                   selected when version specifier is missing; ignored when Image is
@@ -3504,6 +3532,20 @@ spec:
                           type: string
                       type: object
                     type: array
+                  updateFrequency:
+                    default: 86400
+                    description: How often to check for new sensor releases, in seconds.
+                      It is strongly recommended to stick with the default value of
+                      24 hours. Using a shorter interval risks throttling from the
+                      CrowdStrike API.
+                    format: int32
+                    minimum: 5
+                    type: integer
+                    x-kubernetes-int-or-string: true
+                  updatePolicy:
+                    description: UpdatePolicy is the name of an existing sensor update
+                      policy. It is ignored when Image and/or Version are set.
+                    type: string
                   updateStrategy:
                     description: Type of DaemonSet update. Can be "RollingUpdate"
                       or "OnDelete". Default is RollingUpdate.
