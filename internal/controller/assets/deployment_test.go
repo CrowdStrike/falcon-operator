@@ -38,7 +38,6 @@ func TestAdmissionDeployment(t *testing.T) {
 	falconAdmission.Spec.AdmissionConfig.ResourcesAC = &corev1.ResourceRequirements{}
 	port := int32(123)
 	falconAdmission.Spec.AdmissionConfig.Port = &port
-	falconAdmission.Spec.AdmissionConfig.Replicas = &port
 	falconAdmission.Spec.AdmissionConfig.ContainerPort = &port
 	want := testAdmissionDeployment("test", "test", "test", "test", falconAdmission)
 
@@ -346,7 +345,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: falconAdmission.Spec.AdmissionConfig.Replicas,
+			Replicas: &enforcedSingleReplica,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},

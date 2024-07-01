@@ -10,6 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+var enforcedSingleReplica = int32(1)
+
 // SideCarDeployment returns a Deployment object for the CrowdStrike Falcon sidecar
 func SideCarDeployment(name string, namespace string, component string, imageUri string, falconContainer *falconv1alpha1.FalconContainer) *appsv1.Deployment {
 	initContainerName := "crowdstrike-falcon-init-container"
@@ -475,7 +477,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: falconAdmission.Spec.AdmissionConfig.Replicas,
+			Replicas: &enforcedSingleReplica,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
