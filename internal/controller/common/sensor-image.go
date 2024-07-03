@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -33,6 +34,10 @@ func GetPreferredSensorImage(ctx context.Context, sensorType falcon.SensorType, 
 	logger := log.FromContext(ctx).
 		WithValues("sensorType", sensorType)
 
+	if apiConfig == nil {
+		return "", errors.New("FalconAPI not set -- cannot lookup sensor image")
+	}
+
 	version, err := getPreferredSensorVersion(versionSpec, updatePolicySpec, apiConfig, logger)
 	if err != nil {
 		return "", err
@@ -55,6 +60,10 @@ func GetPreferredSensorImage(ctx context.Context, sensorType falcon.SensorType, 
 func GetPreferredSensorNodeImage(ctx context.Context, versionSpec *string, updatePolicySpec *string, apiConfig *falcon.ApiConfig) (string, error) {
 	logger := log.FromContext(ctx).
 		WithValues("sensorType", "node")
+
+	if apiConfig == nil {
+		return "", errors.New("FalconAPI not set -- cannot lookup sensor image")
+	}
 
 	version, err := getPreferredSensorVersion(versionSpec, updatePolicySpec, apiConfig, logger)
 	if err != nil {

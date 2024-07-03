@@ -18,6 +18,10 @@ import (
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 func Create(r client.Client, sch *runtime.Scheme, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *v1alpha1.FalconCRStatus, obj runtime.Object) error {
@@ -286,6 +290,21 @@ func GetOpenShiftNamespaceNamesSort(ctx context.Context, cli client.Client) ([]s
 
 	sort.Slice(nsList, func(i, j int) bool { return nsList[i] < nsList[j] })
 	return nsList, nil
+}
+
+func NewReconcileTrigger(c controller.Controller) (func(client.Object), error) {
+	channel := make(chan event.GenericEvent)
+	err := c.Watch(
+		&source.Channel{Source: channel},
+		&handler.EnqueueRequestForObject{},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return func(obj client.Object) {
+		channel <- event.GenericEvent{Object: obj}
+	}, nil
 }
 
 func oLogMessage(kind, obj string) string {

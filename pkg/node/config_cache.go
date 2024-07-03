@@ -111,14 +111,23 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 		return fmt.Sprintf("%s:%s", imageUri, *nodesensor.Status.Sensor), nil
 	}
 
-	apiConfig := nodesensor.Spec.FalconAPI.ApiConfig()
-	apiConfig.Context = ctx
+	apiConfig := falconApiConfig(ctx, nodesensor)
 	imageTag, err := k8sutils.GetPreferredSensorNodeImage(ctx, nodesensor.Spec.Node.Version, nodesensor.Spec.Node.UpdatePolicy, apiConfig)
 	if err != nil {
 		return "", err
 	}
 
 	return fmt.Sprintf("%s:%s", imageUri, imageTag), nil
+}
+
+func falconApiConfig(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) *falcon.ApiConfig {
+	if nodesensor.Spec.FalconAPI == nil {
+		return nil
+	}
+
+	cfg := nodesensor.Spec.FalconAPI.ApiConfig()
+	cfg.Context = ctx
+	return cfg
 }
 
 func versionLock(nodesensor *falconv1alpha1.FalconNodeSensor) bool {

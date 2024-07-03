@@ -7,10 +7,12 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
+	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/node"
 	"github.com/crowdstrike/falcon-operator/version"
+	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
 	"github.com/operator-framework/operator-lib/proxy"
 	appsv1 "k8s.io/api/apps/v1"
@@ -34,18 +36,31 @@ import (
 // FalconNodeSensorReconciler reconciles a FalconNodeSensor object
 type FalconNodeSensorReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log             logr.Logger
+	Scheme          *runtime.Scheme
+	reconcileObject func(client.Object)
+	tracker         sensorversion.Tracker
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager, tracker sensorversion.Tracker) error {
+	nodeSensorController, err := ctrl.NewControllerManagedBy(mgr).
 		For(&falconv1alpha1.FalconNodeSensor{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&appsv1.DaemonSet{}).
 		Owns(&corev1.Secret{}).
-		Complete(r)
+		Build(r)
+	if err != nil {
+		return err
+	}
+
+	r.reconcileObject, err = k8sutils.NewReconcileTrigger(nodeSensorController)
+	if err != nil {
+		return err
+	}
+
+	r.tracker = tracker
+	return nil
 }
 
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete;deletecollection
@@ -78,6 +93,8 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	err := r.Get(ctx, req.NamespacedName, nodesensor)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			r.tracker.StopTracking(req.NamespacedName)
+
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -169,8 +186,11 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	normalResult := ctrl.Result{
-		RequeueAfter: k8sutils.GetSensorUpdateFrequency(nodesensor.Spec.Node.UpdateFrequency),
+	if shouldTrackSensorVersions(nodesensor) {
+		getSensorVersion := sensorversion.NewFalconCloudQuery(falcon.NodeSensor, nodesensor.Spec.FalconAPI.ApiConfig())
+		r.tracker.Track(req.NamespacedName, getSensorVersion, r.reconcileObjectWithName)
+	} else {
+		r.tracker.StopTracking(req.NamespacedName)
 	}
 
 	sensorConf, updated, err := r.handleConfigMaps(ctx, config, nodesensor, logger)
@@ -185,7 +205,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 
 		logger.Error(err, "error handling configmap")
-		return normalResult, nil
+		return ctrl.Result{}, nil
 	}
 	if sensorConf == nil {
 		err = r.conditionsUpdate(falconv1alpha1.ConditionConfigMapReady,
@@ -381,7 +401,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			log.Info("Removing finalizer")
 
 		}
-		return normalResult, nil
+		return ctrl.Result{}, nil
 	}
 
 	// Add finalizer for this CR
@@ -396,7 +416,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	}
 
-	return normalResult, nil
+	return ctrl.Result{}, nil
 }
 
 // handleNamespace creates and updates the namespace
@@ -1019,4 +1039,20 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 
 	logger.Info("Successfully finalized daemonset")
 	return nil
+}
+
+func (r *FalconNodeSensorReconciler) reconcileObjectWithName(ctx context.Context, name types.NamespacedName) error {
+	obj := &falconv1alpha1.FalconNodeSensor{}
+	err := r.Get(ctx, name, obj)
+	if err != nil {
+		return err
+	}
+
+	clog.FromContext(ctx).Info("reconciling FalconNodeSensor object", "namespace", obj.Namespace, "name", obj.Name)
+	r.reconcileObject(obj)
+	return nil
+}
+
+func shouldTrackSensorVersions(obj *falconv1alpha1.FalconNodeSensor) bool {
+	return obj.Spec.FalconAPI != nil
 }

@@ -11,11 +11,13 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
+	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/crowdstrike/falcon-operator/pkg/tls"
 	"github.com/crowdstrike/falcon-operator/version"
+	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/operator-framework/operator-lib/proxy"
@@ -38,13 +40,15 @@ import (
 // FalconAdmissionReconciler reconciles a FalconAdmission object
 type FalconAdmissionReconciler struct {
 	client.Client
-	Scheme    *runtime.Scheme
-	OpenShift bool
+	Scheme          *runtime.Scheme
+	OpenShift       bool
+	reconcileObject func(client.Object)
+	tracker         sensorversion.Tracker
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *FalconAdmissionReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+func (r *FalconAdmissionReconciler) SetupWithManager(mgr ctrl.Manager, tracker sensorversion.Tracker) error {
+	admissionController, err := ctrl.NewControllerManagedBy(mgr).
 		For(&falconv1alpha1.FalconAdmission{}).
 		Owns(&corev1.Namespace{}).
 		Owns(&corev1.ConfigMap{}).
@@ -53,7 +57,18 @@ func (r *FalconAdmissionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&arv1.ValidatingWebhookConfiguration{}).
-		Complete(r)
+		Build(r)
+	if err != nil {
+		return err
+	}
+
+	r.reconcileObject, err = k8sutils.NewReconcileTrigger(admissionController)
+	if err != nil {
+		return err
+	}
+
+	r.tracker = tracker
+	return nil
 }
 
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconadmissions,verbs=get;list;watch;create;update;patch;delete
@@ -96,6 +111,8 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	err := r.Get(ctx, req.NamespacedName, falconAdmission)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
+			r.tracker.StopTracking(req.NamespacedName)
+
 			// If the custom resource is not found then, it usually means that it was deleted or not created
 			// In this way, we will stop the reconciliation
 			log.Info("FalconAdmission resource not found. Ignoring since object must be deleted")
@@ -156,8 +173,11 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
-	normalResult := ctrl.Result{
-		RequeueAfter: k8sutils.GetSensorUpdateFrequency(falconAdmission.Spec.UpdateFrequency),
+	if shouldTrackSensorVersions(falconAdmission) {
+		getSensorVersion := sensorversion.NewFalconCloudQuery(falcon.KacSensor, r.falconApiConfig(ctx, falconAdmission))
+		r.tracker.Track(req.NamespacedName, getSensorVersion, r.reconcileObjectWithName)
+	} else {
+		r.tracker.StopTracking(req.NamespacedName)
 	}
 
 	// Image being set will override other image based settings
@@ -181,7 +201,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				return ctrl.Result{}, fmt.Errorf("failed to reconcile Image Stream")
 			}
 			if stream == nil {
-				return normalResult, nil
+				return ctrl.Result{}, nil
 			}
 		}
 
@@ -199,7 +219,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		} else {
 			updated, err = r.verifyCrowdStrike(ctx, log, falconAdmission)
 			if updated {
-				return normalResult, nil
+				return ctrl.Result{}, nil
 			}
 			if err != nil {
 				log.Error(err, "Failed to verify CrowdStrike Admission Image Registry access")
@@ -274,7 +294,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{}, err
 		}
 
-		return normalResult, nil
+		return ctrl.Result{}, nil
 	}
 
 	if err := k8sutils.ConditionsUpdate(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, metav1.Condition{
@@ -698,4 +718,20 @@ func (r *FalconAdmissionReconciler) admissionDeploymentUpdate(ctx context.Contex
 	}
 
 	return nil
+}
+
+func (r *FalconAdmissionReconciler) reconcileObjectWithName(ctx context.Context, name types.NamespacedName) error {
+	obj := &falconv1alpha1.FalconAdmission{}
+	err := r.Get(ctx, name, obj)
+	if err != nil {
+		return err
+	}
+
+	log.FromContext(ctx).Info("reconciling FalconAdmission object", "namespace", obj.Namespace, "name", obj.Name)
+	r.reconcileObject(obj)
+	return nil
+}
+
+func shouldTrackSensorVersions(obj *falconv1alpha1.FalconAdmission) bool {
+	return obj.Spec.FalconAPI != nil
 }

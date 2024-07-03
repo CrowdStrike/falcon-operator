@@ -7,6 +7,7 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
+	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -84,9 +85,13 @@ var _ = Describe("FalconContainer controller", func() {
 			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Reconciling the custom resource created")
+			tracker, cancel := sensorversion.NewTestTracker()
+			defer cancel()
+
 			falconContainerReconciler := &FalconContainerReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+				Client:  k8sClient,
+				Scheme:  k8sClient.Scheme(),
+				tracker: tracker,
 			}
 
 			_, err = falconContainerReconciler.Reconcile(ctx, reconcile.Request{
