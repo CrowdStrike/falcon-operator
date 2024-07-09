@@ -1,6 +1,7 @@
 package assets
 
 import (
+	"context"
 	"testing"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -11,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // TestDeployment tests the Deployment function
@@ -36,12 +38,14 @@ func TestAdmissionDeployment(t *testing.T) {
 	falconAdmission := &falconv1alpha1.FalconAdmission{}
 	falconAdmission.Spec.AdmissionConfig.ResourcesClient = &corev1.ResourceRequirements{}
 	falconAdmission.Spec.AdmissionConfig.ResourcesAC = &corev1.ResourceRequirements{}
-	port := int32(123)
+	port := int32(1)
 	falconAdmission.Spec.AdmissionConfig.Port = &port
+	falconAdmission.Spec.AdmissionConfig.Replicas = &port
 	falconAdmission.Spec.AdmissionConfig.ContainerPort = &port
 	want := testAdmissionDeployment("test", "test", "test", "test", falconAdmission)
 
-	got := AdmissionDeployment("test", "test", "test", "test", falconAdmission)
+	logger := log.FromContext(context.Background())
+	got := AdmissionDeployment("test", "test", "test", "test", falconAdmission, logger)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("Deployment() mismatch (-want +got): %s", diff)
 	}
@@ -345,7 +349,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: &enforcedSingleReplica,
+			Replicas: falconAdmission.Spec.AdmissionConfig.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},

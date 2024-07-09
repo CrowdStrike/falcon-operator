@@ -3,6 +3,7 @@ package assets
 import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -397,7 +398,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 }
 
 // AdmissionDeployment returns a Deployment object for the CrowdStrike Falcon Admission Controller
-func AdmissionDeployment(name string, namespace string, component string, imageUri string, falconAdmission *falconv1alpha1.FalconAdmission) *appsv1.Deployment {
+func AdmissionDeployment(name string, namespace string, component string, imageUri string, falconAdmission *falconv1alpha1.FalconAdmission, log logr.Logger) *appsv1.Deployment {
 	runNonRoot := true
 	readOnlyRootFilesystem := true
 	allowPrivilegeEscalation := false
@@ -464,6 +465,10 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 				},
 			},
 		})
+	}
+
+	if falconAdmission.Spec.AdmissionConfig.Replicas == nil || *falconAdmission.Spec.AdmissionConfig.Replicas != 1 {
+		log.Info("ignoring Replicas setting as only one is currently supported")
 	}
 
 	return &appsv1.Deployment{
