@@ -3,12 +3,15 @@ package assets
 import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
+
+var enforcedSingleReplica = int32(1)
 
 // SideCarDeployment returns a Deployment object for the CrowdStrike Falcon sidecar
 func SideCarDeployment(name string, namespace string, component string, imageUri string, falconContainer *falconv1alpha1.FalconContainer) *appsv1.Deployment {
@@ -395,7 +398,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 }
 
 // AdmissionDeployment returns a Deployment object for the CrowdStrike Falcon Admission Controller
-func AdmissionDeployment(name string, namespace string, component string, imageUri string, falconAdmission *falconv1alpha1.FalconAdmission) *appsv1.Deployment {
+func AdmissionDeployment(name string, namespace string, component string, imageUri string, falconAdmission *falconv1alpha1.FalconAdmission, log logr.Logger) *appsv1.Deployment {
 	runNonRoot := true
 	readOnlyRootFilesystem := true
 	allowPrivilegeEscalation := false
@@ -464,6 +467,10 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 		})
 	}
 
+	if falconAdmission.Spec.AdmissionConfig.Replicas == nil || *falconAdmission.Spec.AdmissionConfig.Replicas != 1 {
+		log.Info("ignoring Replicas setting as only one is currently supported")
+	}
+
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: appsv1.SchemeGroupVersion.String(),
@@ -475,7 +482,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: falconAdmission.Spec.AdmissionConfig.Replicas,
+			Replicas: &enforcedSingleReplica,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
