@@ -99,7 +99,7 @@ type FalconAdmissionConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=12
 	DisabledNamespaces FalconAdmissionNamespace `json:"disabledNamespaces,omitempty"`
 
-	// Number of replicas for the Falcon Admission Controller deployment.
+	// Currently ignored and internally set to 1.
 	// +kubebuilder:default:=2
 	// +kubebuilder:validation:XIntOrString
 	// +kubebuilder:validation:Minimum:=0

@@ -482,7 +482,7 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 	}
 
 	existingDeployment := &appsv1.Deployment{}
-	dep := assets.AdmissionDeployment(falconAdmission.Name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, imageUri, falconAdmission)
+	dep := assets.AdmissionDeployment(falconAdmission.Name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, imageUri, falconAdmission, log)
 	updated := false
 
 	if len(proxy.ReadProxyVarsFromEnv()) > 0 {

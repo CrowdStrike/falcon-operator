@@ -113,8 +113,7 @@ spec:
                     type: array
                   replicas:
                     default: 2
-                    description: Number of replicas for the Falcon Admission Controller
-                      deployment.
+                    description: Currently ignored and internally set to 1.
                     format: int32
                     maximum: 65535
                     minimum: 0
