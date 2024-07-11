@@ -138,6 +138,11 @@ spec:
               node:
                 description: Various configuration for DaemonSet Deployment
                 properties:
+                  autoUpdate:
+                    description: AutoUpdate determines whether to install new versions
+                      of the sensor as they become available. Defaults to no and is
+                      ignored if FalconAPI is not set.
+                    type: boolean
                   backend:
                     default: kernel
                     description: Sets the backend to be used by the DaemonSet Sensor.

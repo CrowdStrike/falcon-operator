@@ -316,6 +316,11 @@ spec:
                         type: object
                     type: object
                 type: object
+              autoUpdate:
+                description: AutoUpdate determines whether to install new versions
+                  of the sensor as they become available. Defaults to no and is ignored
+                  if FalconAPI is not set.
+                type: boolean
               falcon:
                 description: CrowdStrike Falcon sensor configuration
                 properties:
@@ -603,6 +608,11 @@ spec:
           spec:
             description: FalconContainerSpec defines the desired state of FalconContainer
             properties:
+              autoUpdate:
+                description: AutoUpdate determines whether to install new versions
+                  of the sensor as they become available. Defaults to no and is ignored
+                  if FalconAPI is not set.
+                type: boolean
               falcon:
                 description: CrowdStrike Falcon Sensor configuration settings.
                 properties:
@@ -3134,6 +3144,11 @@ spec:
               node:
                 description: Various configuration for DaemonSet Deployment
                 properties:
+                  autoUpdate:
+                    description: AutoUpdate determines whether to install new versions
+                      of the sensor as they become available. Defaults to no and is
+                      ignored if FalconAPI is not set.
+                    type: boolean
                   backend:
                     default: kernel
                     description: Sets the backend to be used by the DaemonSet Sensor.

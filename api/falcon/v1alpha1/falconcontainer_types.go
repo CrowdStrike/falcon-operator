@@ -47,6 +47,10 @@ type FalconContainerSpec struct {
 	// UpdatePolicy is the name of an existing sensor update policy. It is ignored when Image and/or Version are set.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Update Policy",order=7
 	UpdatePolicy *string `json:"updatePolicy,omitempty"`
+
+	// AutoUpdate determines whether to install new versions of the sensor as they become available. Defaults to no and is ignored if FalconAPI is not set.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Automatic Updates",order=8
+	AutoUpdate *bool `json:"autoUpdate,omitempty"`
 }
 
 type FalconContainerInjectorSpec struct {

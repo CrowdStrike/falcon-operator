@@ -1054,5 +1054,5 @@ func (r *FalconNodeSensorReconciler) reconcileObjectWithName(ctx context.Context
 }
 
 func shouldTrackSensorVersions(obj *falconv1alpha1.FalconNodeSensor) bool {
-	return obj.Spec.FalconAPI != nil
+	return obj.Spec.FalconAPI != nil && obj.Spec.Node.AutoUpdate != nil && *obj.Spec.Node.AutoUpdate
 }

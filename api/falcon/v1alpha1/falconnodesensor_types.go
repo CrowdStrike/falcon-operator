@@ -107,6 +107,10 @@ type FalconNodeSensorConfig struct {
 	// UpdatePolicy is the name of an existing sensor update policy. It is ignored when Image and/or Version are set.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Node Sensor Update Policy",order=13
 	UpdatePolicy *string `json:"updatePolicy,omitempty"`
+
+	// AutoUpdate determines whether to install new versions of the sensor as they become available. Defaults to no and is ignored if FalconAPI is not set.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Node Sensor Automatic Updates",order=14
+	AutoUpdate *bool `json:"autoUpdate,omitempty"`
 }
 
 type PriorityClassConfig struct {
