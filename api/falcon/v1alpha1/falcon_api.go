@@ -28,6 +28,10 @@ type FalconAPI struct {
 	// +kubebuilder:validation:Pattern="^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Customer ID (CID)",order=4
 	CID *string `json:"cid,omitempty"`
+
+	// Specifies the hostname of the API endpoint to use. If blank, the public Falcon API endpoint is used.
+	// Intentionally not exported as a resource property.
+	HostOverride string `json:"-"`
 }
 
 // RegistryTLSSpec configures TLS for registry pushing
@@ -82,6 +86,7 @@ func (fa *FalconAPI) ApiConfig() *falcon.ApiConfig {
 		Cloud:             falcon.Cloud(fa.CloudRegion),
 		ClientId:          fa.ClientId,
 		ClientSecret:      fa.ClientSecret,
+		HostOverride:      fa.HostOverride,
 		UserAgentOverride: fmt.Sprintf("falcon-operator/%s", version.Version),
 	}
 }
