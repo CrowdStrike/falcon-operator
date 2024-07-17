@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2024-07-17
+
+### Changed
+
+- fix: accept 400 errors in config_cache_test
+- fix: ignore the KAC replica setting but say so in the logs
+- add missing OpenShift uninstall steps
+- build(deps): bump docker/build-push-action from 5 to 6
+- feat: make eBPF primary sensor
+- fix: only run release workflow on full releases
+- docs: update openshift installation docs for new certified operator
+- fix changelog
+
 ## [1.0.1] - 2024-06-05
 
 ### Changed

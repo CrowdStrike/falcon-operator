@@ -286,7 +286,7 @@ spec:
       - description: Additional configuration for Falcon Admission Controller deployment.
         displayName: Falcon Admission Controller Configuration
         path: admissionConfig
-      - description: Number of replicas for the Falcon Admission Controller deployment.
+      - description: Currently ignored and internally set to 1.
         displayName: Admission Controller Replica Count
         path: admissionConfig.replicas
         x-descriptors:
