@@ -98,6 +98,8 @@ jobs:
           git push
           git tag -f "${GITHUB_REF#refs/tags/}"
           git push origin "${GITHUB_REF#refs/tags/}" --force
+    outputs:
+      refBranch: ${{ env.REFBRANCH }}
 
   create_release:
     runs-on: ubuntu-latest
@@ -111,8 +113,7 @@ jobs:
       - name: Get Event branch
         id: event_branch
         run: |
-          BASEREF=${{ github.event.base_ref }}
-          REFBRANCH=${BASEREF#refs/heads/}
+          REFBRANCH=${{ needs.bump_release.outputs.refBranch }}
 
           echo "REFBRANCH=${REFBRANCH}" >> $GITHUB_ENV
           git checkout $REFBRANCH
