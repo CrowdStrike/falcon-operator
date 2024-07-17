@@ -33,11 +33,16 @@ jobs:
       - name: Get Event branch
         id: event_branch
         run: |
-          BASEREF=${{ github.event.base_ref }}
-          REFBRANCH=${BASEREF#refs/heads/}
+          REFBRANCH=$(git branch -r --contains ${{ github.ref }} --format "%(refname:lstrip=3)" 'origin/maint-*')
 
           echo "REFBRANCH=${REFBRANCH}" >> $GITHUB_ENV
           echo $REFBRANCH
+
+      - name: Verify event branch name
+        if: ${{ env.REFBRANCH == '' }}
+        uses: actions/github-script@v3
+        with:
+          script: core.setFailed('unable to identify maintenance branch associated with release tag')
 
       - name: Checkout tagged branch
         uses: actions/checkout@v4
