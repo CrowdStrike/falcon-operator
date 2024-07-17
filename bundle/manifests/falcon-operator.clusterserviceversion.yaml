@@ -125,7 +125,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2024-06-05T21:55:55Z"
+    createdAt: "2024-07-17T16:39:35Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -142,7 +142,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
-  name: falcon-operator.v1.0.1
+  name: falcon-operator.v1.1.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -285,7 +285,7 @@ spec:
       - description: Additional configuration for Falcon Admission Controller deployment.
         displayName: Falcon Admission Controller Configuration
         path: admissionConfig
-      - description: Number of replicas for the Falcon Admission Controller deployment.
+      - description: Currently ignored and internally set to 1.
         displayName: Admission Controller Replica Count
         path: admissionConfig.replicas
         x-descriptors:
@@ -1307,7 +1307,7 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: OPERATOR_NAME
                   value: falcon-operator
-                image: quay.io/crowdstrike/falcon-operator:1.0.1
+                image: quay.io/crowdstrike/falcon-operator:1.1.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -1402,4 +1402,4 @@ spec:
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
-  version: 1.0.1
+  version: 1.1.0
