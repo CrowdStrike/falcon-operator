@@ -89,8 +89,10 @@ func TestGetPullToken(t *testing.T) {
 		CloudRegion:  "testRegion",
 	}
 	got, err = config.GetPullToken(context.Background())
-	if isUnauthorizedError(err) {
-		got = []byte("testToken")
+	if err != nil {
+		if strings.Contains(err.Error(), "401 Unauthorized") {
+			got = []byte("testToken")
+		}
 	}
 	if len(got) == 0 {
 		t.Errorf("GetPullToken() = %s, want %v", "empty", got)
@@ -166,8 +168,10 @@ func TestGetFalconImage(t *testing.T) {
 	testVersion := "testVersion"
 	falconNode.Spec.Node.Version = &testVersion
 	got, err := getFalconImage(context.Background(), &falconNode)
-	if isUnauthorizedError(err) {
-		got = fmt.Sprintf("%s:%s", "TestImageEnv", *falconNode.Spec.Node.Version)
+	if err != nil {
+		if strings.Contains(err.Error(), "401 Unauthorized") {
+			got = fmt.Sprintf("%s:%s", "TestImageEnv", *falconNode.Spec.Node.Version)
+		}
 	}
 
 	if len(got) == 0 {
@@ -206,12 +210,4 @@ func TestGetFalconImage(t *testing.T) {
 	if want != got {
 		t.Errorf("getFalconImage() = %s, want %s", got, want)
 	}
-}
-
-func isUnauthorizedError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	return strings.Contains(err.Error(), "400 Bad Request") || strings.Contains(err.Error(), "401 Unauthorized")
 }
