@@ -137,13 +137,7 @@ func listDockerTags(ctx context.Context, sys *types.SystemContext, imgRef types.
 				return nil, fmt.Errorf("Error parsing repository (%s) from image reference. Missing crowdstrike domain: %v", reg, err)
 			}
 
-			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{
-					MinVersion: tls.VersionTLS12,
-				},
-			}
-
-			client := &http.Client{Transport: tr}
+			client := &http.Client{Transport: newHttpTransport()}
 			req, err := http.NewRequest("GET", fmt.Sprintf("https:%s/tags/list", reg), nil)
 			if err != nil {
 				return nil, err
@@ -184,6 +178,14 @@ func listDockerTags(ctx context.Context, sys *types.SystemContext, imgRef types.
 		return nil, fmt.Errorf("Error listing repository (%s) tags: %v", imgRef.StringWithinTransport(), err)
 	}
 	return tags, nil
+}
+
+func newHttpTransport() *http.Transport {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+	return transport
 }
 
 func (fr *FalconRegistry) systemContext() (*types.SystemContext, error) {
