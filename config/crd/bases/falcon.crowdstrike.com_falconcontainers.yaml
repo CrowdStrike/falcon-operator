@@ -1924,6 +1924,11 @@ spec:
                 required:
                 - type
                 type: object
+              updatePolicy:
+                description: UpdatePolicy is the name of a sensor update policy configured
+                  and enabled in Falcon. It is ignored when Image and/or Version are
+                  set.
+                type: string
               version:
                 description: Falcon Container Version. The latest version will be
                   selected when version specifier is missing; ignored when Image is

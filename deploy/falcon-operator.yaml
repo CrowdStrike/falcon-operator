@@ -464,6 +464,11 @@ spec:
                       can be created in the namespace.
                     type: string
                 type: object
+              updatePolicy:
+                description: UpdatePolicy is the name of a sensor update policy configured
+                  and enabled in Falcon. It is ignored when Image and/or Version are
+                  set.
+                type: string
               version:
                 description: 'Falcon Admission Controller Version. The latest version
                   will be selected when version specifier is missing. Example: 6.31,
@@ -2479,6 +2484,11 @@ spec:
                 required:
                 - type
                 type: object
+              updatePolicy:
+                description: UpdatePolicy is the name of a sensor update policy configured
+                  and enabled in Falcon. It is ignored when Image and/or Version are
+                  set.
+                type: string
               version:
                 description: Falcon Container Version. The latest version will be
                   selected when version specifier is missing; ignored when Image is
@@ -3503,6 +3513,11 @@ spec:
                           type: string
                       type: object
                     type: array
+                  updatePolicy:
+                    description: UpdatePolicy is the name of a sensor update policy
+                      configured and enabled in Falcon. It is ignored when Image and/or
+                      Version are set.
+                    type: string
                   updateStrategy:
                     description: Type of DaemonSet update. Can be "RollingUpdate"
                       or "OnDelete". Default is RollingUpdate.

@@ -43,6 +43,10 @@ type FalconContainerSpec struct {
 	// Falcon Container Version. The latest version will be selected when version specifier is missing; ignored when Image is set.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=6
 	Version *string `json:"version,omitempty"`
+
+	// UpdatePolicy is the name of a sensor update policy configured and enabled in Falcon. It is ignored when Image and/or Version are set.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Update Policy",order=7
+	UpdatePolicy *string `json:"updatePolicy,omitempty"`
 }
 
 type FalconContainerInjectorSpec struct {
