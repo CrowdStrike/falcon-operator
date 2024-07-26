@@ -83,11 +83,8 @@ func TestGetPullToken(t *testing.T) {
 		t.Errorf("GetPullToken() = %s, want %s", got, "not empty")
 	}
 
-	config.nodesensor.Spec.FalconAPI = &falconv1alpha1.FalconAPI{
-		ClientId:     "testID",
-		ClientSecret: "testSecret",
-		CloudRegion:  "testRegion",
-	}
+	var noCID *string
+	config.nodesensor.Spec.FalconAPI = newTestFalconAPI(noCID)
 	got, err = config.GetPullToken(context.Background())
 	if err != nil {
 		if strings.Contains(err.Error(), "401 Unauthorized") {
@@ -132,12 +129,7 @@ func TestNewConfigCache(t *testing.T) {
 		t.Errorf("NewConfigCache() = %v, want %v", newCache, want)
 	}
 
-	config.nodesensor.Spec.FalconAPI = &falconv1alpha1.FalconAPI{
-		ClientId:     "testID",
-		ClientSecret: "testSecret",
-		CloudRegion:  "testRegion",
-		CID:          &falconCID,
-	}
+	config.nodesensor.Spec.FalconAPI = newTestFalconAPI(&falconCID)
 	newCache, err = NewConfigCache(context.Background(), logger, &falconNode)
 	if err != nil {
 		t.Errorf("NewConfigCache() error: %v", err)
@@ -158,12 +150,7 @@ func TestConfigCacheTest(t *testing.T) {
 }
 
 func TestGetFalconImage(t *testing.T) {
-	falconNode.Spec.FalconAPI = &falconv1alpha1.FalconAPI{
-		ClientId:     "testID",
-		ClientSecret: "testSecret",
-		CloudRegion:  "testRegion",
-		CID:          &falconCID,
-	}
+	falconNode.Spec.FalconAPI = newTestFalconAPI(&falconCID)
 
 	testVersion := "testVersion"
 	falconNode.Spec.Node.Version = &testVersion
@@ -209,5 +196,15 @@ func TestGetFalconImage(t *testing.T) {
 	}
 	if want != got {
 		t.Errorf("getFalconImage() = %s, want %s", got, want)
+	}
+}
+
+func newTestFalconAPI(cid *string) *falconv1alpha1.FalconAPI {
+	return &falconv1alpha1.FalconAPI{
+		ClientId:     "testID",
+		ClientSecret: "testSecret",
+		CloudRegion:  "testRegion",
+		CID:          cid,
+		HostOverride: strings.TrimSpace(os.Getenv("FALCON_API_HOST")),
 	}
 }
