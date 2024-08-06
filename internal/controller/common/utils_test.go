@@ -80,9 +80,8 @@ func TestGetReadyPod(t *testing.T) {
 
 	testLabel := map[string]string{"testLabel": "testPod"}
 
-	wantErr := "No webhook service pod found in a Ready state"
 	_, gotErr := GetReadyPod(fakeClient, ctx, "test-namespace", testLabel)
-	if diff := cmp.Diff(wantErr, gotErr.Error()); diff != "" {
+	if diff := cmp.Diff(ErrNoWebhookServicePodReady.Error(), gotErr.Error()); diff != "" {
 		t.Errorf("GetReadyPod() mismatch (-want +got):\n%s", diff)
 	}
 

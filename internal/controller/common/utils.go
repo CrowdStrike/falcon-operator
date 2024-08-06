@@ -2,11 +2,11 @@ package common
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/go-logr/logr"
 	"golang.org/x/exp/slices"
@@ -20,7 +20,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Create(r client.Client, sch *runtime.Scheme, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *v1alpha1.FalconCRStatus, obj runtime.Object) error {
+var ErrNoWebhookServicePodReady = errors.New("no webhook service pod found in a Ready state")
+
+func Create(r client.Client, sch *runtime.Scheme, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *falconv1alpha1.FalconCRStatus, obj runtime.Object) error {
 	switch o := obj.(type) {
 	case client.Object:
 		name := o.GetName()
@@ -67,11 +69,11 @@ func Create(r client.Client, sch *runtime.Scheme, ctx context.Context, req ctrl.
 
 		return nil
 	default:
-		return fmt.Errorf("Unrecognized kubernetes object type: %T", obj)
+		return fmt.Errorf("unrecognized kubernetes object type: %T", obj)
 	}
 }
 
-func Update(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *v1alpha1.FalconCRStatus, obj runtime.Object) error {
+func Update(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *falconv1alpha1.FalconCRStatus, obj runtime.Object) error {
 	switch o := obj.(type) {
 	case client.Object:
 		name := o.GetName()
@@ -112,11 +114,11 @@ func Update(r client.Client, ctx context.Context, req ctrl.Request, log logr.Log
 
 		return nil
 	default:
-		return fmt.Errorf("Unrecognized kubernetes object type: %T", obj)
+		return fmt.Errorf("unrecognized kubernetes object type: %T", obj)
 	}
 }
 
-func Delete(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *v1alpha1.FalconCRStatus, obj runtime.Object) error {
+func Delete(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *falconv1alpha1.FalconCRStatus, obj runtime.Object) error {
 	switch o := obj.(type) {
 	case client.Object:
 		name := o.GetName()
@@ -157,12 +159,12 @@ func Delete(r client.Client, ctx context.Context, req ctrl.Request, log logr.Log
 
 		return nil
 	default:
-		return fmt.Errorf("Unrecognized kubernetes object type: %T", obj)
+		return fmt.Errorf("unrecognized kubernetes object type: %T", obj)
 	}
 }
 
 // ConditionsUpdate updates the Falcon Object CR conditions
-func ConditionsUpdate(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *v1alpha1.FalconCRStatus, falconCondition metav1.Condition) error {
+func ConditionsUpdate(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *falconv1alpha1.FalconCRStatus, falconCondition metav1.Condition) error {
 	if !meta.IsStatusConditionPresentAndEqual(falconStatus.Conditions, falconCondition.Type, falconCondition.Status) {
 		fgvk := falconObject.GetObjectKind().GroupVersionKind()
 
@@ -233,7 +235,7 @@ func GetReadyPod(r client.Client, ctx context.Context, namespace string, matchin
 		}
 	}
 
-	return &corev1.Pod{}, fmt.Errorf("No webhook service pod found in a Ready state")
+	return &corev1.Pod{}, ErrNoWebhookServicePodReady
 }
 
 func GetDeployment(r client.Client, ctx context.Context, namespace string, matchingLabels client.MatchingLabels) (*appsv1.Deployment, error) {

@@ -143,7 +143,7 @@ var _ = Describe("FalconAdmission controller", func() {
 			By("Checking if pods were successfully created in the reconciliation")
 			Eventually(func() error {
 				pod, err := k8sutils.GetReadyPod(k8sClient, ctx, AdmissionControllerNamespace, map[string]string{common.FalconComponentKey: common.FalconAdmissionController})
-				if err != nil && err.Error() != "No webhook service pod found in a Ready state" {
+				if err != nil && err != k8sutils.ErrNoWebhookServicePodReady {
 					return err
 				}
 				if pod.Name == "" {

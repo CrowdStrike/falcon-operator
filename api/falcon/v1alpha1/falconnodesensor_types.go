@@ -103,6 +103,10 @@ type FalconNodeSensorConfig struct {
 
 	// Version of the sensor to be installed. The latest version will be selected when this version specifier is missing.
 	Version *string `json:"version,omitempty"`
+
+	// UpdatePolicy is the name of a sensor update policy configured and enabled in Falcon. It is ignored when Image and/or Version are set.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Node Sensor Update Policy",order=13
+	UpdatePolicy *string `json:"updatePolicy,omitempty"`
 }
 
 type PriorityClassConfig struct {

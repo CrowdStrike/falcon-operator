@@ -54,6 +54,10 @@ type FalconAdmissionSpec struct {
 	// Falcon Admission Controller Version. The latest version will be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Version",order=8
 	Version *string `json:"version,omitempty"`
+
+	// UpdatePolicy is the name of a sensor update policy configured and enabled in Falcon. It is ignored when Image and/or Version are set.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Update Policy",order=9
+	UpdatePolicy *string `json:"updatePolicy,omitempty"`
 }
 
 type FalconAdmissionRQSpec struct {
