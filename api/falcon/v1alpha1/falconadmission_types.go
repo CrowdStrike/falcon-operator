@@ -54,6 +54,12 @@ type FalconAdmissionSpec struct {
 	// Falcon Admission Controller Version. The latest version will be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Version",order=8
 	Version *string `json:"version,omitempty"`
+
+	// FalconUnsafe configures various options that go against industry practices or are otherwise not recommended for use.
+	// Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
+	// For more information, please see https://github.com/CrowdStrike/falcon-operator/blob/main/UNSAFE.md.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Unsafe Settings"
+	Unsafe FalconUnsafe `json:"unsafe,omitempty"`
 }
 
 type FalconAdmissionRQSpec struct {

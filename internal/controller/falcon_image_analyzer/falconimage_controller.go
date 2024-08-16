@@ -115,7 +115,7 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	// Let's just set the status as Unknown when no status is available
-	if falconImageAnalyzer.Status.Conditions == nil || len(falconImageAnalyzer.Status.Conditions) == 0 {
+	if len(falconImageAnalyzer.Status.Conditions) == 0 {
 		meta.SetStatusCondition(&falconImageAnalyzer.Status.Conditions, metav1.Condition{Type: falconv1alpha1.ConditionPending, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Starting reconciliation"})
 		if err = r.Status().Update(ctx, falconImageAnalyzer); err != nil {
 			log.Error(err, "Failed to update FalconImageAnalyzer status")

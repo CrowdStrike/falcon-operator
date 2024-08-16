@@ -127,7 +127,7 @@ var _ = Describe("FalconNodeSensor controller", func() {
 
 			By("Checking the latest Status Condition added to the FalconNodeSensor instance")
 			Eventually(func() error {
-				if falconNode.Status.Conditions != nil && len(falconNode.Status.Conditions) != 0 {
+				if len(falconNode.Status.Conditions) != 0 {
 					latestStatusCondition := falconNode.Status.Conditions[len(falconNode.Status.Conditions)-1]
 					expectedLatestStatusCondition := metav1.Condition{Type: falconv1alpha1.ConditionDaemonSetReady,
 						Status: metav1.ConditionTrue, Reason: falconv1alpha1.ReasonInstallSucceeded,

@@ -143,7 +143,7 @@ var _ = Describe("FalconAdmission controller", func() {
 			By("Checking if pods were successfully created in the reconciliation")
 			Eventually(func() error {
 				pod, err := k8sutils.GetReadyPod(k8sClient, ctx, AdmissionControllerNamespace, map[string]string{common.FalconComponentKey: common.FalconAdmissionController})
-				if err != nil && err.Error() != "No webhook service pod found in a Ready state" {
+				if err != nil && err != k8sutils.ErrNoWebhookServicePodReady {
 					return err
 				}
 				if pod.Name == "" {
@@ -156,7 +156,7 @@ var _ = Describe("FalconAdmission controller", func() {
 
 			By("Checking the latest Status Condition added to the FalconAdmission instance")
 			Eventually(func() error {
-				if falconAdmission.Status.Conditions != nil && len(falconAdmission.Status.Conditions) != 0 {
+				if len(falconAdmission.Status.Conditions) != 0 {
 					latestStatusCondition := falconAdmission.Status.Conditions[len(falconAdmission.Status.Conditions)-1]
 					expectedLatestStatusCondition := metav1.Condition{Type: falconv1alpha1.ConditionDeploymentReady,
 						Status: metav1.ConditionTrue, Reason: falconv1alpha1.ReasonInstallSucceeded,
