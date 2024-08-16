@@ -2,11 +2,13 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensor"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
@@ -14,6 +16,8 @@ import (
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
 )
+
+var ErrFalconAPINotConfigured = errors.New("missing falcon_api configuration")
 
 // ConfigCache holds config values for node sensor. Those values are either provided by user or fetched dynamically. That happens transparently to the caller.
 type ConfigCache struct {
@@ -46,7 +50,7 @@ func (cc *ConfigCache) GetImageURI(ctx context.Context, logger logr.Logger) (str
 
 func (cc *ConfigCache) GetPullToken(ctx context.Context) ([]byte, error) {
 	if cc.nodesensor.Spec.FalconAPI == nil {
-		return nil, fmt.Errorf("Missing falcon_api configuration")
+		return nil, ErrFalconAPINotConfigured
 	}
 	return pulltoken.CrowdStrike(ctx, cc.nodesensor.Spec.FalconAPI.ApiConfig())
 }
@@ -97,7 +101,7 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 	}
 
 	if nodesensor.Spec.FalconAPI == nil {
-		return "", fmt.Errorf("Missing falcon_api configuration")
+		return "", ErrFalconAPINotConfigured
 	}
 
 	cloud, err := nodesensor.Spec.FalconAPI.FalconCloud(ctx)
@@ -110,11 +114,14 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 		return fmt.Sprintf("%s:%s", imageUri, *nodesensor.Status.Sensor), nil
 	}
 
-	registry, err := falcon_registry.NewFalconRegistry(ctx, nodesensor.Spec.FalconAPI.ApiConfig())
+	apiConfig := nodesensor.Spec.FalconAPI.ApiConfig()
+	apiConfig.Context = ctx
+	imageRepo, err := sensor.NewImageRepository(ctx, apiConfig)
 	if err != nil {
 		return "", err
 	}
-	imageTag, err := registry.LastNodeTag(ctx, nodesensor.Spec.Node.Version)
+
+	imageTag, err := imageRepo.GetPreferredImage(ctx, falcon.NodeSensor, nodesensor.Spec.Node.Version, nodesensor.Spec.Node.Unsafe.UpdatePolicy)
 	if err != nil {
 		return "", err
 	}

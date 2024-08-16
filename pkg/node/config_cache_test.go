@@ -50,7 +50,7 @@ func TestGetImageURI(t *testing.T) {
 	config.imageUri = ""
 	got, err := config.GetImageURI(context.Background(), logger)
 	if err != nil {
-		if err.Error() != "Missing falcon_api configuration" {
+		if err != ErrFalconAPINotConfigured {
 			t.Errorf("GetImageURI() error: %v", err)
 		}
 	}
@@ -75,7 +75,7 @@ func TestGetImageURI(t *testing.T) {
 func TestGetPullToken(t *testing.T) {
 	got, err := config.GetPullToken(context.Background())
 	if err != nil {
-		if err.Error() != "Missing falcon_api configuration" {
+		if err != ErrFalconAPINotConfigured {
 			t.Errorf("GetPullToken() error: %v", err)
 		}
 	}
@@ -168,7 +168,7 @@ func TestGetFalconImage(t *testing.T) {
 	falconNode.Spec.FalconAPI = nil
 	_, err = getFalconImage(context.Background(), &falconNode)
 	if err != nil {
-		if err.Error() != "Missing falcon_api configuration" {
+		if err != ErrFalconAPINotConfigured {
 			t.Errorf("getFalconImage() error: %v", err)
 		}
 	}
