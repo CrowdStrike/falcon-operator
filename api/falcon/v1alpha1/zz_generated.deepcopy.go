@@ -323,6 +323,21 @@ func (in *FalconAdmissionConfigSpec) DeepCopyInto(out *FalconAdmissionConfigSpec
 	}
 	in.TLS.DeepCopyInto(&out.TLS)
 	in.DisabledNamespaces.DeepCopyInto(&out.DisabledNamespaces)
+	if in.SnapshotsEnabled != nil {
+		in, out := &in.SnapshotsEnabled, &out.SnapshotsEnabled
+		*out = new(bool)
+		**out = **in
+	}
+	if in.SnapshotsInterval != nil {
+		in, out := &in.SnapshotsInterval, &out.SnapshotsInterval
+		*out = new(v1.Duration)
+		**out = **in
+	}
+	if in.WatcherEnabled != nil {
+		in, out := &in.WatcherEnabled, &out.WatcherEnabled
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
 		*out = new(int32)
@@ -335,6 +350,11 @@ func (in *FalconAdmissionConfigSpec) DeepCopyInto(out *FalconAdmissionConfigSpec
 	}
 	if in.ResourcesClient != nil {
 		in, out := &in.ResourcesClient, &out.ResourcesClient
+		*out = new(corev1.ResourceRequirements)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.ResourcesWatcher != nil {
+		in, out := &in.ResourcesWatcher, &out.ResourcesWatcher
 		*out = new(corev1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}

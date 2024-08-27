@@ -113,7 +113,8 @@ spec:
                     type: array
                   replicas:
                     default: 2
-                    description: Currently ignored and internally set to 1.
+                    description: Number of replicas for the Falcon Admission Controller
+                      deployment.
                     format: int32
                     maximum: 65535
                     minimum: 0
@@ -233,6 +234,63 @@ spec:
                           Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                         type: object
                     type: object
+                  resourcesWatcher:
+                    default:
+                      limits:
+                        cpu: 750m
+                        memory: 256Mi
+                      requests:
+                        cpu: 500m
+                        memory: 256Mi
+                    description: ResourceRequirements describes the compute resource
+                      requirements.
+                    properties:
+                      claims:
+                        description: "Claims lists the names of resources, defined
+                          in spec.resourceClaims, that are used by this container.
+                          \n This is an alpha field and requires enabling the DynamicResourceAllocation
+                          feature gate. \n This field is immutable. It can only be
+                          set for containers."
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: Name must match the name of one entry in
+                                pod.spec.resourceClaims of the Pod where this field
+                                is used. It makes that resource available inside a
+                                container.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Limits describes the maximum amount of compute
+                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Requests describes the minimum amount of compute
+                          resources required. If Requests is omitted for a container,
+                          it defaults to Limits if that is explicitly specified, otherwise
+                          to an implementation-defined value. Requests cannot exceed
+                          Limits. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                    type: object
                   serviceAccount:
                     description: Define annotations that will be passed down to admision
                       controller service account. This is useful for passing along
@@ -255,6 +313,17 @@ spec:
                     minimum: 0
                     type: integer
                     x-kubernetes-int-or-string: true
+                  snapshotsEnabled:
+                    default: true
+                    description: Determines if snapshots of Kubernetes resources are
+                      periodically taken for cluster visibility.
+                    type: boolean
+                  snapshotsInterval:
+                    default: 22h
+                    description: Time interval between two snapshots of Kubernetes
+                      resources in the cluster.
+                    format: duration
+                    type: string
                   tls:
                     description: Configure TLS setings for the Falcon Admission Controller
                     properties:
@@ -314,6 +383,11 @@ spec:
                             x-kubernetes-int-or-string: true
                         type: object
                     type: object
+                  watcherEnabled:
+                    default: true
+                    description: Determines if Kubernetes resources are watched for
+                      cluster visibility.
+                    type: boolean
                 type: object
               falcon:
                 description: CrowdStrike Falcon sensor configuration

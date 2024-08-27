@@ -573,6 +573,12 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		}
 	}
 
+	// TODO(hirendra): Add reconciliation logic for following fields in admissionConfig.
+	// admissionConfig:
+	//   snapshotsEnabled: false
+	//   snapshotsInterval: 10h
+	//   watcherEnabled: false
+
 	if updated {
 		if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingDeployment); err != nil {
 			return err

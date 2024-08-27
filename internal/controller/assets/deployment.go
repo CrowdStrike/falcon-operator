@@ -1,6 +1,8 @@
 package assets
 
 import (
+	"strconv"
+
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/go-logr/logr"
@@ -9,6 +11,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+)
+
+type EAdmissionContainer int
+
+const (
+	// These names are based on the container names used for AdmissionController deployment.
+	FalconKac EAdmissionContainer = iota
+	FalconClient
+	FalconWatcher
 )
 
 var enforcedSingleReplica = int32(1)
@@ -404,15 +415,22 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 	allowPrivilegeEscalation := false
 	shareProcessNamespace := true
 	resourcesClient := &corev1.ResourceRequirements{}
+	resourcesWatcher := &corev1.ResourceRequirements{}
 	resourcesAC := &corev1.ResourceRequirements{}
 	sizeLimitTmp := resource.MustParse("256Mi")
 	sizeLimitPrivate := resource.MustParse("4Ki")
+	sizeLimitWatcher := resource.MustParse("64Mi")
 	labels := common.CRLabels("deployment", name, component)
 	registryCAConfigMapName := ""
 	registryCABundleConfigMapName := name + "-registry-certs"
+	portWatcherHealthCheck := int32(4080)
 
 	if falconAdmission.Spec.AdmissionConfig.ResourcesClient != nil {
 		resourcesClient = falconAdmission.Spec.AdmissionConfig.ResourcesClient
+	}
+
+	if falconAdmission.Spec.AdmissionConfig.ResourcesWatcher != nil {
+		resourcesWatcher = falconAdmission.Spec.AdmissionConfig.ResourcesWatcher
 	}
 
 	if falconAdmission.Spec.AdmissionConfig.ResourcesAC != nil {
@@ -441,6 +459,14 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{
 					SizeLimit: &sizeLimitPrivate,
+				},
+			},
+		},
+		{
+			Name: "crowdstrike-falcon-vol2",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					SizeLimit: &sizeLimitWatcher,
 				},
 			},
 		},
@@ -598,7 +624,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
-							VolumeMounts: admissionDepVolumeMounts(name, registryCAConfigMapName, true),
+							VolumeMounts: admissionDepVolumeMounts(name, registryCAConfigMapName, FalconClient),
 							StartupProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -629,6 +655,80 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 							},
 							Resources: *resourcesClient,
 						},
+						// TODO(hirendra): Add logic to skip adding the container for "falcon-watcher" if sensor version
+						// is earlier than 7.20.
+						{
+							Name:            "falcon-watcher",
+							Image:           imageUri,
+							ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
+							Args: []string{
+								"client",
+								"-app=watcher",
+							},
+							SecurityContext: &corev1.SecurityContext{
+								ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
+								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+								RunAsNonRoot:             &runNonRoot,
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{
+										"ALL",
+									},
+								},
+							},
+							Env: admissionDepWatcherEnvVars(falconAdmission),
+							EnvFrom: []corev1.EnvFromSource{
+								{
+									ConfigMapRef: &corev1.ConfigMapEnvSource{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: name + "-config",
+										},
+									},
+								},
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: portWatcherHealthCheck,
+									Name:          common.FalconServiceHTTPSName,
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+							VolumeMounts: admissionDepVolumeMounts(name, registryCAConfigMapName, FalconWatcher),
+							StartupProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: common.FalconAdmissionClientStartupProbePath,
+										Port: intstr.IntOrString{
+											Type:   intstr.Int,
+											IntVal: portWatcherHealthCheck,
+										},
+										Scheme: corev1.URISchemeHTTP,
+									},
+								},
+								InitialDelaySeconds: 5,
+								TimeoutSeconds:      1,
+								PeriodSeconds:       2,
+								SuccessThreshold:    1,
+								FailureThreshold:    30,
+							},
+							LivenessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: common.FalconAdmissionClientLivenessProbePath,
+										Port: intstr.IntOrString{
+											Type:   intstr.Int,
+											IntVal: portWatcherHealthCheck,
+										},
+										Scheme: corev1.URISchemeHTTP,
+									},
+								},
+								InitialDelaySeconds: 5,
+								TimeoutSeconds:      1,
+								PeriodSeconds:       10,
+								SuccessThreshold:    1,
+								FailureThreshold:    3,
+							},
+							Resources: *resourcesWatcher,
+						},
 						{
 							Name:            "falcon-kac",
 							Image:           imageUri,
@@ -653,7 +753,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 									},
 								},
 							},
-							VolumeMounts: admissionDepVolumeMounts(name, registryCAConfigMapName, false),
+							VolumeMounts: admissionDepVolumeMounts(name, registryCAConfigMapName, FalconKac),
 							StartupProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
@@ -692,7 +792,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 	}
 }
 
-func admissionDepVolumeMounts(name string, registryCAConfigMapName string, client bool) []corev1.VolumeMount {
+func admissionDepVolumeMounts(name string, registryCAConfigMapName string, container EAdmissionContainer) []corev1.VolumeMount {
 	certPath := "/etc/docker/certs.d/falcon-admission-certs"
 
 	volumeMounts := []corev1.VolumeMount{
@@ -706,11 +806,18 @@ func admissionDepVolumeMounts(name string, registryCAConfigMapName string, clien
 		},
 	}
 
-	if client {
+	if container == FalconClient {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      name + "-tls-certs",
 			MountPath: "/run/secrets/tls",
 			ReadOnly:  true,
+		})
+	}
+
+	if container == FalconKac || container == FalconWatcher {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "crowdstrike-falcon-vol2",
+			MountPath: "/var/falcon-watcher",
 		})
 	}
 
@@ -740,4 +847,59 @@ func admissionDepUpdateStrategy(admission *falconv1alpha1.FalconAdmission) appsv
 		Type:          appsv1.RollingUpdateDeploymentStrategyType,
 		RollingUpdate: &rollingUpdateSettings,
 	}
+}
+
+func admissionDepWatcherEnvVars(admission *falconv1alpha1.FalconAdmission) []corev1.EnvVar {
+	envVars := []corev1.EnvVar{
+		corev1.EnvVar{
+			Name: "__CS_POD_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.namespace",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "__CS_POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.name",
+				},
+			},
+		},
+		corev1.EnvVar{
+			Name: "__CS_POD_NODENAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "spec.nodeName",
+				},
+			},
+		},
+	}
+
+	if admission.Spec.AdmissionConfig.SnapshotsEnabled != nil {
+		envVars = append(envVars, corev1.EnvVar{
+			Name:  "__CS_SNAPSHOTS_ENABLED",
+			Value: strconv.FormatBool(*admission.Spec.AdmissionConfig.SnapshotsEnabled),
+		})
+	}
+
+	if admission.Spec.AdmissionConfig.SnapshotsInterval != nil {
+		envVars = append(envVars, corev1.EnvVar{
+			Name:  "__CS_SNAPSHOT_INTERVAL",
+			Value: admission.Spec.AdmissionConfig.SnapshotsInterval.Duration.String(),
+		})
+	}
+
+	if admission.Spec.AdmissionConfig.WatcherEnabled != nil {
+		envVars = append(envVars, corev1.EnvVar{
+			Name:  "__CS_WATCH_EVENTS_ENABLED",
+			Value: strconv.FormatBool(*admission.Spec.AdmissionConfig.WatcherEnabled),
+		})
+	}
+
+	return envVars
 }

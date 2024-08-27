@@ -105,7 +105,24 @@ type FalconAdmissionConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=12
 	DisabledNamespaces FalconAdmissionNamespace `json:"disabledNamespaces,omitempty"`
 
-	// Currently ignored and internally set to 1.
+	// Determines if snapshots of Kubernetes resources are periodically taken for cluster visibility.
+	// +kubebuilder:default:=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Resource Snapshots",order=14
+	SnapshotsEnabled *bool `json:"snapshotsEnabled,omitempty"`
+
+	// Time interval between two snapshots of Kubernetes resources in the cluster.
+	// +kubebuilder:default:="22h"
+	// +kubebuilder:validation:Type:=string
+	// +kubebuilder:validation:Format:=duration
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Time Interval Between Two Snapshots",order=15
+	SnapshotsInterval *metav1.Duration `json:"snapshotsInterval,omitempty"`
+
+	// Determines if Kubernetes resources are watched for cluster visibility.
+	// +kubebuilder:default:=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Resource Watcher",order=16
+	WatcherEnabled *bool `json:"watcherEnabled,omitempty"`
+
+	// Currently ignored and internally set to 1
 	// +kubebuilder:default:=2
 	// +kubebuilder:validation:XIntOrString
 	// +kubebuilder:validation:Minimum:=0
@@ -123,8 +140,12 @@ type FalconAdmissionConfigSpec struct {
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Client Resources",order=9,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	//+kubebuilder:default:={"limits":{"cpu":"750m","memory":"256Mi"},"requests":{"cpu":"500m","memory":"256Mi"}}
+	// +kubebuilder:default:={"limits":{"cpu":"750m","memory":"256Mi"},"requests":{"cpu":"500m","memory":"256Mi"}}
 	ResourcesClient *corev1.ResourceRequirements `json:"resourcesClient,omitempty"`
+
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Watcher Resources",order=13,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	// +kubebuilder:default:={"limits":{"cpu":"750m","memory":"256Mi"},"requests":{"cpu":"500m","memory":"256Mi"}}
+	ResourcesWatcher *corev1.ResourceRequirements `json:"resourcesWatcher,omitempty"`
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Resources",order=10,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	//+kubebuilder:default:={"limits":{"cpu":"300m","memory":"512Mi"},"requests":{"cpu":"300m","memory":"512Mi"}}
