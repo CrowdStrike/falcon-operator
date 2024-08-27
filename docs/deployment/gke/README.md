@@ -236,6 +236,8 @@ When you enable GKE Autopilot deployment in the Falcon Operator, this creates a 
 
 GKE Autopilot enforces supported minimum and maximum values for the total resources requested by your deployment configuration and will adjust the limits and requests to be within the min/max range. GKE Autopilot lets you set requests but not limits, and will mutate the limits to match the request values.
 
+
+
 ```yaml
 resources:
   requests:
@@ -249,7 +251,9 @@ To understand how GKE Autopilot adjusts limits, and the minimum and maximum reso
 The Falcon sensor resource usage depends on application workloads and therefore requires more resources if the sensor observes more events. The sensor defaults defined for memory and CPU are only for a successful sensor deployment. Consider adjusting the sensor memory and CPU within the allowed range enforced by GKE Autopilot to ensure the sensor deploys correctly.
 
 > [!WARNING]
-> If you set the requests or limits too low, you can potentially cause the sensor deployment to fail or cause loss of clouded events.
+> Incorrect resource settings can lead to sensor deployment failure or a loss of clouded events. Avoid the following:
+> * Setting requests or limits that are too low
+> * Setting requests and limits that do not match ([more info](https://cloud.google.com/kubernetes-engine/docs/concepts/autopilot-resource-requests#resource-limits))
 
 If the sensor fails to start, it’s likely because the application workload requires more resources. If this is the case, set the resource requests to a value higher within the acceptable GKE Autopilot min/max range.
 If you notice that the resource allocation is too high for the application workloads, lower the resource requests as needed.
