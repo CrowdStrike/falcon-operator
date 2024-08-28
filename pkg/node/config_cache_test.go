@@ -270,10 +270,6 @@ func newTestFalconAPI(cid *string) *falconv1alpha1.FalconAPI {
 	}
 }
 
-func boolPointer(b bool) *bool {
-	return &b
-}
-
 func stringPointer(s string) *string {
 	return &s
 }

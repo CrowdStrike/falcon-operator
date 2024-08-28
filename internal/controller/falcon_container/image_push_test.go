@@ -76,10 +76,6 @@ func TestVersionLock_WithUpdatePolicy(t *testing.T) {
 	assert.False(t, reconciler.versionLock(container))
 }
 
-func boolPointer(b bool) *bool {
-	return &b
-}
-
 func stringPointer(s string) *string {
 	return &s
 }
