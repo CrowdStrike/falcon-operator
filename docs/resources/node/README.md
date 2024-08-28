@@ -81,6 +81,16 @@ spec:
 |	falcon.tags                         | (optional)  Sensor grouping tags are optional, user-defined identifiers that can used to group and filter hosts. Allowed characters: all alphanumerics, '/', '-', and '_'. |
 |	falcon.trace                        | (optional)  Set sensor trace level.                                                                                                                                        |
 
+#### Unsafe Settings
+The following settings provide an alternative means to select which version of Falcon sensor is deployed. Their use is not recommended. Instead, an explicit SHA256 hash should be configured using the `node.image` property above.
+
+See `docs/UNSAFE.md` for more details.
+
+| Spec | Default Value | Description |
+| :- | :- | :- |
+| node.unsafe.autoUpdate | `off` | Automatically updates a deployed Falcon sensor as new versions are released. This has no effect if a specific image or version has been requested. Valid settings are:<ul><li>`force` -- Reconciles the resource after every check for a new version</li><li>`normal` -- Reconciles the resource whenever a new version is detected</li><li>`off` -- No automatic updates</li></ul>
+| node.unsafe.updatePolicy | _none_ | If set, applies the named Linux sensor update policy, configured in Falcon UI, to select which version of Falcon sensor to install. The policy must be enabled and must match the CPU architecture of the cluster (AMD64 or ARM64). |
+
 > [!IMPORTANT]
 > All arguments are optional, but successful deployment requires either **client_id and falcon_secret or the Falcon cid and image**. When deploying using the CrowdStrike Falcon API, the container image and CID will be fetched from CrowdStrike Falcon API. While in the latter case, the CID and image location is explicitly specified by the user.
 

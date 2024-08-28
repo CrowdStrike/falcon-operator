@@ -10,13 +10,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
-	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensor"
 	"github.com/crowdstrike/falcon-operator/internal/controller/image"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pushtoken"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
@@ -193,13 +193,13 @@ func (r *FalconAdmissionReconciler) setImageTag(ctx context.Context, falconAdmis
 		return *falconAdmission.Status.Sensor, r.Client.Status().Update(ctx, falconAdmission)
 	}
 
-	apiConfig := r.falconApiConfig(ctx, falconAdmission)
-	imageRepo, err := sensor.NewImageRepository(ctx, apiConfig)
+	// Otherwise, get the newest version matching the requested version string
+	registry, err := falcon_registry.NewFalconRegistry(ctx, r.falconApiConfig(ctx, falconAdmission))
 	if err != nil {
 		return "", err
 	}
 
-	tag, err := imageRepo.GetPreferredImage(ctx, falcon.KacSensor, falconAdmission.Spec.Version, falconAdmission.Spec.Unsafe.UpdatePolicy)
+	tag, err := registry.LastContainerTag(ctx, falcon.KacSensor, falconAdmission.Spec.Version)
 	if err == nil {
 		falconAdmission.Status.Sensor = common.ImageVersion(tag)
 	}
@@ -223,9 +223,12 @@ func (r *FalconAdmissionReconciler) imageNamespace(falconAdmission *falconv1alph
 }
 
 func (r *FalconAdmissionReconciler) falconApiConfig(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission) *falcon.ApiConfig {
+	if falconAdmission.Spec.FalconAPI == nil {
+		return nil
+	}
+
 	cfg := falconAdmission.Spec.FalconAPI.ApiConfig()
 	cfg.Context = ctx
-
 	return cfg
 }
 

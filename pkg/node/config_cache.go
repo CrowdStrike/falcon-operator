@@ -129,8 +129,22 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 	return fmt.Sprintf("%s:%s", imageUri, imageTag), nil
 }
 
+func falconApiConfig(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) *falcon.ApiConfig {
+	if nodesensor.Spec.FalconAPI == nil {
+		return nil
+	}
+
+	cfg := nodesensor.Spec.FalconAPI.ApiConfig()
+	cfg.Context = ctx
+	return cfg
+}
+
 func versionLock(nodesensor *falconv1alpha1.FalconNodeSensor) bool {
-	return (nodesensor.Spec.Node.Version != nil && nodesensor.Status.Sensor != nil && strings.Contains(*nodesensor.Status.Sensor, *nodesensor.Spec.Node.Version)) || (nodesensor.Spec.Node.Version == nil && nodesensor.Status.Sensor != nil)
+	if nodesensor.Status.Sensor == nil || nodesensor.Spec.Node.Unsafe.HasUpdatePolicy() || nodesensor.Spec.Node.Unsafe.IsAutoUpdating() {
+		return false
+	}
+
+	return nodesensor.Spec.Node.Version == nil || strings.Contains(*nodesensor.Status.Sensor, *nodesensor.Spec.Node.Version)
 }
 
 func ConfigCacheTest(cid string, imageUri string, nodeTest *falconv1alpha1.FalconNodeSensor) *ConfigCache {

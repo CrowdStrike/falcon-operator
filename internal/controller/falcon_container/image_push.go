@@ -232,9 +232,12 @@ func (r *FalconContainerReconciler) imageNamespace(falconContainer *falconv1alph
 }
 
 func (r *FalconContainerReconciler) falconApiConfig(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer) *falcon.ApiConfig {
+	if falconContainer.Spec.FalconAPI == nil {
+		return nil
+	}
+
 	cfg := falconContainer.Spec.FalconAPI.ApiConfig()
 	cfg.Context = ctx
-
 	return cfg
 }
 
@@ -243,5 +246,9 @@ func (r *FalconContainerReconciler) imageMirroringEnabled(falconContainer *falco
 }
 
 func (r *FalconContainerReconciler) versionLock(falconContainer *falconv1alpha1.FalconContainer) bool {
-	return (falconContainer.Spec.Version != nil && falconContainer.Status.Sensor != nil && strings.Contains(*falconContainer.Status.Sensor, *falconContainer.Spec.Version)) || (falconContainer.Spec.Version == nil && falconContainer.Status.Sensor != nil)
+	if falconContainer.Status.Sensor == nil || falconContainer.Spec.Unsafe.HasUpdatePolicy() || falconContainer.Spec.Unsafe.IsAutoUpdating() {
+		return false
+	}
+
+	return falconContainer.Spec.Version == nil || strings.Contains(*falconContainer.Status.Sensor, *falconContainer.Spec.Version)
 }

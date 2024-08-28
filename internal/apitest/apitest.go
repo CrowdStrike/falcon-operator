@@ -8,23 +8,25 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type Test struct {
+type Test[T any] struct {
 	expectedOutputs []any
 	goTest          *testing.T
 	inputs          []any
 	m               *mock.Mock
 	mockCalls       []*mock.Call
 	name            string
+	runnerArgs      T
 }
 
-func NewTest(name string) *Test {
-	test := Test{
-		name: name,
+func NewTest[T any](name string, runnerArgs T) *Test[T] {
+	test := Test[T]{
+		name:       name,
+		runnerArgs: runnerArgs,
 	}
 	return &test
 }
 
-func (test Test) AssertExpectations(outputs ...any) {
+func (test Test[T]) AssertExpectations(outputs ...any) {
 	test.m.AssertExpectations(test.goTest)
 
 	for i, expectedValue := range test.expectedOutputs {
@@ -32,24 +34,24 @@ func (test Test) AssertExpectations(outputs ...any) {
 	}
 }
 
-func (test *Test) ExpectOutputs(outputs ...any) *Test {
+func (test *Test[T]) ExpectOutputs(outputs ...any) *Test[T] {
 	test.expectedOutputs = outputs
 	return test
 }
 
-func (test Test) GetInput(index int) any {
+func (test Test[T]) GetInput(index int) any {
 	return test.inputs[index]
 }
 
-func (test Test) GetStringPointerInput(index int) *string {
+func (test Test[T]) GetStringPointerInput(index int) *string {
 	return test.GetInput(index).(*string)
 }
 
-func (test Test) GetMock() *mock.Mock {
+func (test Test[T]) GetMock() *mock.Mock {
 	return test.m
 }
 
-func (test Test) Run(goTest *testing.T, runner func(Test)) {
+func (test Test[T]) Run(goTest *testing.T, runner func(Test[T], T)) {
 	test.m = &mock.Mock{}
 	for _, call := range test.mockCalls {
 		call.Parent = test.m
@@ -58,16 +60,16 @@ func (test Test) Run(goTest *testing.T, runner func(Test)) {
 
 	goTest.Run(test.name, func(goTest *testing.T) {
 		test.goTest = goTest
-		runner(test)
+		runner(test, test.runnerArgs)
 	})
 }
 
-func (test *Test) WithMockCall(call *mock.Mock) *Test {
+func (test *Test[T]) WithMockCall(call *mock.Mock) *Test[T] {
 	test.mockCalls = append(test.mockCalls, call.ExpectedCalls...)
 	return test
 }
 
-func (test *Test) WithInputs(inputs ...any) *Test {
+func (test *Test[T]) WithInputs(inputs ...any) *Test[T] {
 	test.inputs = inputs
 	return test
 }

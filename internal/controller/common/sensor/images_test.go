@@ -16,11 +16,12 @@ import (
 func TestGetPreferredImage(t *testing.T) {
 	ctx := context.Background()
 
-	runner := func(t apitest.Test) {
+	runner := func(t apitest.Test[string], architecture string) {
 		m := &mockFalcon{Mock: *t.GetMock()}
 		images := ImageRepository{
-			api:  m,
-			tags: m,
+			api:                   m,
+			getSystemArchitecture: func() string { return architecture },
+			tags:                  m,
 		}
 
 		image, err := images.GetPreferredImage(
@@ -36,82 +37,124 @@ func TestGetPreferredImage(t *testing.T) {
 	noUpdatePolicyRequested := (*string)(nil)
 	noVersionRequested := (*string)(nil)
 
+	const policyDoesNotExist = false
+	const policyExists = true
+
+	const excludeArmVersion = false
+	const includeArmVersion = true
+
 	const policyDisabled = false
 	const policyEnabled = true
 
-	apitest.NewTest("latestVersion").
+	apitest.NewTest("latestVersion", arm64).
 		WithInputs(falcon.SidecarSensor, noVersionRequested, noUpdatePolicyRequested).
 		ExpectOutputs("someImageTag", noError).
 		WithMockCall(newLastContainerTagCall(ctx, falcon.SidecarSensor, noVersionRequested, "someImageTag", noError)).
 		Run(t, runner)
 
-	apitest.NewTest("latestNodeSensorVersion").
+	apitest.NewTest("latestNodeSensorVersion", arm64).
 		WithInputs(falcon.NodeSensor, noVersionRequested, noUpdatePolicyRequested).
 		ExpectOutputs("someNodeImageTag", noError).
 		WithMockCall(newLastNodeTagCall(ctx, noVersionRequested, "someNodeImageTag", noError)).
 		Run(t, runner)
 
-	apitest.NewTest("specificVersion").
+	apitest.NewTest("specificVersion", arm64).
 		WithInputs(falcon.SidecarSensor, stringPointer("someSpecificVersion"), noUpdatePolicyRequested).
 		ExpectOutputs("imageByVersion", noError).
 		WithMockCall(newLastContainerTagCall(ctx, falcon.SidecarSensor, stringPointer("someSpecificVersion"), "imageByVersion", noError)).
 		Run(t, runner)
 
-	apitest.NewTest("versionByPolicy").
+	apitest.NewTest("amdVersionByPolicy", amd64).
 		WithInputs(falcon.SidecarSensor, noVersionRequested, stringPointer("somePolicyName")).
 		ExpectOutputs("imageByPolicy", noError).
 		WithMockCall(newQuerySensorUpdatePoliciesCall("somePolicyName", "somePolicyID", noError)).
-		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", "1.2.3", policyEnabled, noError)).
+		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", policyExists, includeArmVersion, stringPointer("1.2.3"), policyEnabled, noError)).
 		WithMockCall(newLastContainerTagCall(ctx, falcon.SidecarSensor, stringPointer("1.2"), "imageByPolicy", noError)).
 		Run(t, runner)
 
-	apitest.NewTest("querySensorUpdatePoliciesFails").
+	apitest.NewTest("armVersionByPolicy", arm64).
+		WithInputs(falcon.SidecarSensor, noVersionRequested, stringPointer("somePolicyName")).
+		ExpectOutputs("imageByPolicy", noError).
+		WithMockCall(newQuerySensorUpdatePoliciesCall("somePolicyName", "somePolicyID", noError)).
+		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", policyExists, includeArmVersion, stringPointer("1.2.3"), policyEnabled, noError)).
+		WithMockCall(newLastContainerTagCall(ctx, falcon.SidecarSensor, stringPointer("1.2"), "imageByPolicy", noError)).
+		Run(t, runner)
+
+	apitest.NewTest("querySensorUpdatePoliciesFails", arm64).
 		WithInputs(falcon.SidecarSensor, noVersionRequested, stringPointer("somePolicyName")).
 		ExpectOutputs("", assert.AnError).
 		WithMockCall(newQuerySensorUpdatePoliciesCall("somePolicyName", "", assert.AnError)).
 		Run(t, runner)
 
-	apitest.NewTest("getSensorUpdatePoliciesFails").
+	apitest.NewTest("getSensorUpdatePoliciesFails", arm64).
 		WithInputs(falcon.SidecarSensor, noVersionRequested, stringPointer("somePolicyName")).
 		ExpectOutputs("", assert.AnError).
 		WithMockCall(newQuerySensorUpdatePoliciesCall("somePolicyName", "somePolicyID", noError)).
-		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", "", policyDisabled, assert.AnError)).
+		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", policyExists, includeArmVersion, nil, policyDisabled, assert.AnError)).
 		Run(t, runner)
 
-	apitest.NewTest("policyNameNotFound").
+	apitest.NewTest("policyNameNotFound", arm64).
 		WithInputs(falcon.SidecarSensor, noVersionRequested, stringPointer("somePolicyName")).
 		ExpectOutputs("", errors.New("update-policy somePolicyName not found")).
 		WithMockCall(newQuerySensorUpdatePoliciesCall("somePolicyName", "", noError)).
 		Run(t, runner)
 
-	apitest.NewTest("policyIDNotFound").
+	apitest.NewTest("policyIDNotFound", arm64).
 		WithInputs(falcon.SidecarSensor, noVersionRequested, stringPointer("somePolicyName")).
 		ExpectOutputs("", errors.New("update-policy with ID somePolicyID not found")).
 		WithMockCall(newQuerySensorUpdatePoliciesCall("somePolicyName", "somePolicyID", noError)).
-		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", "", policyDisabled, noError)).
+		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", policyDoesNotExist, includeArmVersion, nil, policyDisabled, noError)).
 		Run(t, runner)
 
-	apitest.NewTest("policyDisabled").
+	apitest.NewTest("policyDisabled", arm64).
 		WithInputs(falcon.SidecarSensor, noVersionRequested, stringPointer("somePolicyName")).
 		ExpectOutputs("", errors.New("update-policy with ID somePolicyID is disabled")).
 		WithMockCall(newQuerySensorUpdatePoliciesCall("somePolicyName", "somePolicyID", noError)).
-		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", "1.2.3", policyDisabled, noError)).
+		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", policyExists, includeArmVersion, stringPointer("1.2.3"), policyDisabled, noError)).
 		Run(t, runner)
 
-	apitest.NewTest("invalidSensorVersion").
+	apitest.NewTest("nilSensorVersion", arm64).
+		WithInputs(falcon.SidecarSensor, noVersionRequested, stringPointer("somePolicyName")).
+		ExpectOutputs("", errors.New("update-policy with ID somePolicyID contains no version for system architecture arm64")).
+		WithMockCall(newQuerySensorUpdatePoliciesCall("somePolicyName", "somePolicyID", noError)).
+		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", policyExists, includeArmVersion, nil, policyEnabled, noError)).
+		Run(t, runner)
+
+	apitest.NewTest("blankSensorVersion", arm64).
+		WithInputs(falcon.SidecarSensor, noVersionRequested, stringPointer("somePolicyName")).
+		ExpectOutputs("", errors.New("update-policy with ID somePolicyID contains no version for system architecture arm64")).
+		WithMockCall(newQuerySensorUpdatePoliciesCall("somePolicyName", "somePolicyID", noError)).
+		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", policyExists, includeArmVersion, stringPointer(""), policyEnabled, noError)).
+		Run(t, runner)
+
+	apitest.NewTest("invalidSensorVersion", arm64).
 		WithInputs(falcon.SidecarSensor, noVersionRequested, stringPointer("somePolicyName")).
 		ExpectOutputs("", errors.New("update-policy with ID somePolicyID has an invalid sensor version")).
 		WithMockCall(newQuerySensorUpdatePoliciesCall("somePolicyName", "somePolicyID", noError)).
-		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", "1.2", policyEnabled, noError)).
+		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", policyExists, includeArmVersion, stringPointer("1.2"), policyEnabled, noError)).
 		Run(t, runner)
 
-	apitest.NewTest("lastContainerTagFails").
+	apitest.NewTest("unconfiguredArmVariantNotFound", arm64).
+		WithInputs(falcon.SidecarSensor, noVersionRequested, stringPointer("somePolicyName")).
+		ExpectOutputs("", errors.New("update-policy with ID somePolicyID contains no version for system architecture arm64")).
+		WithMockCall(newQuerySensorUpdatePoliciesCall("somePolicyName", "somePolicyID", noError)).
+		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", policyExists, excludeArmVersion, stringPointer("1.2.3"), policyEnabled, noError)).
+		Run(t, runner)
+
+	apitest.NewTest("unknownArchitectureVariantNotFound", "unknownArchitecture").
+		WithInputs(falcon.SidecarSensor, noVersionRequested, stringPointer("somePolicyName")).
+		ExpectOutputs("", errors.New("update-policy with ID somePolicyID contains no version for system architecture unknownArchitecture")).
+		WithMockCall(newQuerySensorUpdatePoliciesCall("somePolicyName", "somePolicyID", noError)).
+		WithMockCall(newGetSensorUpdatePoliciesCall("somePolicyID", policyExists, includeArmVersion, stringPointer("1.2.3"), policyEnabled, noError)).
+		Run(t, runner)
+
+	apitest.NewTest("lastContainerTagFails", arm64).
 		WithInputs(falcon.SidecarSensor, noVersionRequested, noUpdatePolicyRequested).
 		ExpectOutputs("", assert.AnError).
 		WithMockCall(newLastContainerTagCall(ctx, falcon.SidecarSensor, noVersionRequested, "", assert.AnError)).
 		Run(t, runner)
 
-	apitest.NewTest("lastNodeTagFails").
+	apitest.NewTest("lastNodeTagFails", arm64).
 		WithInputs(falcon.NodeSensor, noVersionRequested, noUpdatePolicyRequested).
 		ExpectOutputs("", assert.AnError).
 		WithMockCall(newLastNodeTagCall(ctx, noVersionRequested, "", assert.AnError)).
@@ -142,18 +185,27 @@ func (m *mockFalcon) QuerySensorUpdatePolicies(params *sensor_update_policies.Qu
 	return args.Get(0).(*sensor_update_policies.QuerySensorUpdatePoliciesOK), args.Error(1)
 }
 
-func newGetSensorUpdatePoliciesCall(policyID string, expectedVersion string, expectedStatus bool, expectedError error) *mock.Mock {
+func newGetSensorUpdatePoliciesCall(policyID string, policyExists bool, includeArmVersion bool, expectedVersion *string, expectedStatus bool, expectedError error) *mock.Mock {
 	params := sensor_update_policies.NewGetSensorUpdatePoliciesV2Params().WithIds([]string{policyID})
 
 	payload := &models.SensorUpdateRespV2{}
-	if expectedVersion != "" {
+	if policyExists {
 		payload.Resources = []*models.SensorUpdatePolicyV2{
 			{
 				Enabled: &expectedStatus,
 				Settings: &models.SensorUpdateSettingsRespV2{
-					SensorVersion: stringPointer(expectedVersion),
+					SensorVersion: expectedVersion,
 				},
 			},
+		}
+
+		if includeArmVersion {
+			payload.Resources[0].Settings.Variants = []*models.SensorUpdateBuildRespV1{
+				{
+					Platform:      stringPointer(arm64Platform),
+					SensorVersion: expectedVersion,
+				},
+			}
 		}
 	}
 
