@@ -2,20 +2,33 @@ package sensor
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/crowdstrike/gofalcon/falcon/client/sensor_update_policies"
+	"github.com/crowdstrike/gofalcon/falcon/models"
 	"github.com/go-logr/logr"
 	"github.com/go-openapi/swag"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const amd64 = "amd64"
+const arm64 = "arm64"
+const arm64Platform = "LinuxArm64"
+
+var (
+	errInvalidSensorVersion  = errors.New("invalid sensor version")
+	errSensorVersionNotFound = errors.New("sensor version not found")
+)
+
 type ImageRepository struct {
-	api  sensorUpdatePoliciesAPI
-	tags tagRegistry
+	api                   sensorUpdatePoliciesAPI
+	getSystemArchitecture func() string
+	tags                  tagRegistry
 }
 
 func NewImageRepository(ctx context.Context, apiConfig *falcon.ApiConfig) (ImageRepository, error) {
@@ -30,13 +43,15 @@ func NewImageRepository(ctx context.Context, apiConfig *falcon.ApiConfig) (Image
 	}
 
 	return ImageRepository{
-		api:  apiClient.SensorUpdatePolicies,
-		tags: registry,
+		api:                   apiClient.SensorUpdatePolicies,
+		getSystemArchitecture: func() string { return runtime.GOARCH },
+		tags:                  registry,
 	}, nil
 }
 
 func (images ImageRepository) GetPreferredImage(ctx context.Context, sensorType falcon.SensorType, versionSpec *string, updatePolicySpec *string) (string, error) {
 	logger := log.FromContext(ctx).
+		WithValues("architecture", images.getSystemArchitecture()).
 		WithValues("sensorType", sensorType)
 
 	version, err := images.getPreferredSensorVersion(versionSpec, updatePolicySpec, logger)
@@ -80,7 +95,11 @@ func (images ImageRepository) findSensorVersionByUpdatePolicy(updatePolicy strin
 	}
 
 	version, err := images.getSensorVersionForPolicy(policyID)
-	if err != nil {
+	if err == errInvalidSensorVersion {
+		return "", fmt.Errorf("update-policy with ID %s has an invalid sensor version", policyID)
+	} else if err == errSensorVersionNotFound {
+		return "", fmt.Errorf("update-policy with ID %s contains no version for system architecture %s", policyID, images.getSystemArchitecture())
+	} else if err != nil {
 		return "", err
 	}
 
@@ -116,6 +135,17 @@ func (images ImageRepository) getPreferredSensorVersion(versionSpec *string, upd
 	return nil, nil
 }
 
+func (images ImageRepository) getSensorVersionForCurrentRuntimeArchitecture(policy *models.SensorUpdatePolicyV2) (string, error) {
+	switch images.getSystemArchitecture() {
+	case amd64:
+		return trimVersion(policy.Settings.SensorVersion)
+	case arm64:
+		return getARM64Variant(policy)
+	}
+
+	return "", errSensorVersionNotFound
+}
+
 func (images ImageRepository) getSensorVersionForPolicy(policyID string) (string, error) {
 	params := sensor_update_policies.NewGetSensorUpdatePoliciesV2Params().WithIds([]string{policyID})
 	response, err := images.api.GetSensorUpdatePoliciesV2(params)
@@ -133,12 +163,17 @@ func (images ImageRepository) getSensorVersionForPolicy(policyID string) (string
 		return "", fmt.Errorf("update-policy with ID %s is disabled", policyID)
 	}
 
-	parts := strings.Split(*policy.Settings.SensorVersion, ".")
-	if len(parts) != 3 {
-		return "", fmt.Errorf("update-policy with ID %s has an invalid sensor version", policyID)
+	return images.getSensorVersionForCurrentRuntimeArchitecture(policy)
+}
+
+func getARM64Variant(policy *models.SensorUpdatePolicyV2) (string, error) {
+	for _, variant := range policy.Settings.Variants {
+		if *variant.Platform == arm64Platform {
+			return trimVersion(variant.SensorVersion)
+		}
 	}
 
-	return strings.Join(parts[0:2], "."), nil
+	return "", errSensorVersionNotFound
 }
 
 func getNonZeroValuesInSlice[T any](input []T) []T {
@@ -151,6 +186,24 @@ func getNonZeroValuesInSlice[T any](input []T) []T {
 	}
 
 	return output
+}
+
+func trimVersion(version *string) (string, error) {
+	if version == nil {
+		return "", errSensorVersionNotFound
+	}
+
+	trimmed := strings.TrimSpace(*version)
+	if trimmed == "" {
+		return "", errSensorVersionNotFound
+	}
+
+	parts := strings.Split(trimmed, ".")
+	if len(parts) != 3 {
+		return "", errInvalidSensorVersion
+	}
+
+	return strings.Join(parts[0:2], "."), nil
 }
 
 type falconFilter struct {

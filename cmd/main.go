@@ -40,6 +40,7 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	admissioncontroller "github.com/crowdstrike/falcon-operator/internal/controller/admission"
+	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
 	containercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_container"
 	imageanalyzercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_image_analyzer"
 	nodecontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_node"
@@ -47,6 +48,8 @@ import (
 	"github.com/crowdstrike/falcon-operator/version"
 	// +kubebuilder:scaffold:imports
 )
+
+const defaultSensorAutoUpdateInterval = time.Hour * 24
 
 var (
 	scheme      = runtime.NewScheme()
@@ -70,6 +73,7 @@ func main() {
 	var enableProfiling bool
 	var ver bool
 	var err error
+	var sensorAutoUpdateInterval time.Duration
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -79,6 +83,7 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&ver, "version", false, "Print version")
+	flag.DurationVar(&sensorAutoUpdateInterval, "sensor-auto-update-interval", defaultSensorAutoUpdateInterval, "The rate at which the Falcon API is queried for new sensor versions")
 
 	if env := os.Getenv("ARGS"); env != "" {
 		os.Args = append(os.Args, strings.Split(env, " ")...)
@@ -182,18 +187,21 @@ func main() {
 		setupLog.Info("cert-manager installation not found")
 	}
 
+	ctx := ctrl.SetupSignalHandler()
+	tracker := sensorversion.NewTracker(ctx, sensorAutoUpdateInterval)
+
 	if err = (&containercontroller.FalconContainerReconciler{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		RestConfig: mgr.GetConfig(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, tracker); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconContainer")
 		os.Exit(1)
 	}
 	if err = (&nodecontroller.FalconNodeSensorReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, tracker); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconNodeSensor")
 		os.Exit(1)
 	}
@@ -240,8 +248,10 @@ func main() {
 		}()
 	}
 
+	go tracker.StartTracking()
+
 	setupLog.Info("starting manager", "version", version.Get(), "go version", version.GoVersion)
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}

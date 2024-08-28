@@ -8,9 +8,11 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
+	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/version"
+	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
 	arv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -20,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,14 +33,16 @@ import (
 // FalconContainerReconciler reconciles a FalconContainer object
 type FalconContainerReconciler struct {
 	client.Client
-	Log        logr.Logger
-	Scheme     *runtime.Scheme
-	RestConfig *rest.Config
+	Log             logr.Logger
+	Scheme          *runtime.Scheme
+	RestConfig      *rest.Config
+	reconcileObject func(client.Object)
+	tracker         sensorversion.Tracker
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *FalconContainerReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+func (r *FalconContainerReconciler) SetupWithManager(mgr ctrl.Manager, tracker sensorversion.Tracker) error {
+	containerController, err := ctrl.NewControllerManagedBy(mgr).
 		For(&falconv1alpha1.FalconContainer{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Namespace{}).
@@ -47,7 +52,18 @@ func (r *FalconContainerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&arv1.MutatingWebhookConfiguration{}).
-		Complete(r)
+		Build(r)
+	if err != nil {
+		return err
+	}
+
+	r.reconcileObject, err = k8sutils.NewReconcileTrigger(containerController)
+	if err != nil {
+		return err
+	}
+
+	r.tracker = tracker
+	return nil
 }
 
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconcontainers,verbs=get;list;watch;create;update;patch;delete
@@ -77,6 +93,8 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if err := r.Get(ctx, req.NamespacedName, falconContainer); err != nil {
 		if errors.IsNotFound(err) {
+			r.tracker.StopTracking(req.NamespacedName)
+
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -132,6 +150,13 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if _, err := r.reconcileNamespace(ctx, log, falconContainer); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile namespace: %v", err)
+	}
+
+	if shouldTrackSensorVersions(falconContainer) {
+		getSensorVersion := sensorversion.NewFalconCloudQuery(falcon.SidecarSensor, r.falconApiConfig(ctx, falconContainer))
+		r.tracker.Track(req.NamespacedName, getSensorVersion, r.reconcileObjectWithName, falconContainer.Spec.Unsafe.IsAutoUpdatingForced())
+	} else {
+		r.tracker.StopTracking(req.NamespacedName)
 	}
 
 	// Image being set will override other image based settings
@@ -293,11 +318,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		metav1.ConditionTrue,
 		falconv1alpha1.ReasonInstallSucceeded,
 		"FalconContainer installation completed")
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, err
 }
 
 func (r *FalconContainerReconciler) StatusUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer, condType string, status metav1.ConditionStatus, reason string, message string) error {
@@ -323,4 +344,20 @@ func (r *FalconContainerReconciler) StatusUpdate(ctx context.Context, req ctrl.R
 	}
 
 	return nil
+}
+
+func (r *FalconContainerReconciler) reconcileObjectWithName(ctx context.Context, name types.NamespacedName) error {
+	obj := &falconv1alpha1.FalconContainer{}
+	err := r.Get(ctx, name, obj)
+	if err != nil {
+		return err
+	}
+
+	log.FromContext(ctx).Info("reconciling FalconContainer object", "namespace", obj.Namespace, "name", obj.Name)
+	r.reconcileObject(obj)
+	return nil
+}
+
+func shouldTrackSensorVersions(obj *falconv1alpha1.FalconContainer) bool {
+	return obj.Spec.FalconAPI != nil && obj.Spec.Unsafe.IsAutoUpdating()
 }

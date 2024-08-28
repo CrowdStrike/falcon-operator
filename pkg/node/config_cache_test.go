@@ -10,6 +10,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 )
 
 var falconNode = falconv1alpha1.FalconNodeSensor{}
@@ -199,6 +200,66 @@ func TestGetFalconImage(t *testing.T) {
 	}
 }
 
+func TestVersionLock_WithAutoUpdateDisabled(t *testing.T) {
+	admission := &falconv1alpha1.FalconNodeSensor{}
+	admission.Status.Sensor = stringPointer("some sensor")
+	admission.Spec.Node.Unsafe.AutoUpdate = stringPointer(falconv1alpha1.Off)
+	assert.True(t, versionLock(admission))
+}
+
+func TestVersionLock_WithForcedAutoUpdate(t *testing.T) {
+	admission := &falconv1alpha1.FalconNodeSensor{}
+	admission.Status.Sensor = stringPointer("some sensor")
+	admission.Spec.Node.Unsafe.AutoUpdate = stringPointer(falconv1alpha1.Force)
+	assert.False(t, versionLock(admission))
+}
+
+func TestVersionLock_WithNormalAutoUpdate(t *testing.T) {
+	admission := &falconv1alpha1.FalconNodeSensor{}
+	admission.Status.Sensor = stringPointer("some sensor")
+	admission.Spec.Node.Unsafe.AutoUpdate = stringPointer(falconv1alpha1.Normal)
+	assert.False(t, versionLock(admission))
+}
+
+func TestVersionLock_WithBlankUpdatePolicy(t *testing.T) {
+	sensor := &falconv1alpha1.FalconNodeSensor{}
+	sensor.Status.Sensor = stringPointer("some sensor")
+	sensor.Spec.Node.Unsafe.UpdatePolicy = stringPointer("")
+	assert.True(t, versionLock(sensor))
+}
+
+func TestVersionLock_WithDifferentVersion(t *testing.T) {
+	sensor := &falconv1alpha1.FalconNodeSensor{}
+	sensor.Status.Sensor = stringPointer("some sensor")
+	sensor.Spec.Node.Version = stringPointer("different version")
+	assert.False(t, versionLock(sensor))
+}
+
+func TestVersionLock_WithLatestVersion(t *testing.T) {
+	sensor := &falconv1alpha1.FalconNodeSensor{}
+	sensor.Status.Sensor = stringPointer("some sensor")
+	assert.True(t, versionLock(sensor))
+}
+
+func TestVersionLock_WithNoCurrentSensor(t *testing.T) {
+	sensor := &falconv1alpha1.FalconNodeSensor{}
+	assert.False(t, versionLock(sensor))
+}
+
+func TestVersionLock_WithSameVersion(t *testing.T) {
+	sensor := &falconv1alpha1.FalconNodeSensor{}
+	sensor.Status.Sensor = stringPointer("some sensor")
+	sensor.Spec.Node.Version = sensor.Status.Sensor
+	assert.True(t, versionLock(sensor))
+}
+
+func TestVersionLock_WithUpdatePolicy(t *testing.T) {
+	sensor := &falconv1alpha1.FalconNodeSensor{}
+	sensor.Status.Sensor = stringPointer("some sensor")
+	sensor.Spec.Node.Unsafe.UpdatePolicy = stringPointer("some policy")
+	assert.False(t, versionLock(sensor))
+}
+
 func newTestFalconAPI(cid *string) *falconv1alpha1.FalconAPI {
 	return &falconv1alpha1.FalconAPI{
 		ClientId:     "testID",
@@ -207,4 +268,8 @@ func newTestFalconAPI(cid *string) *falconv1alpha1.FalconAPI {
 		CID:          cid,
 		HostOverride: strings.TrimSpace(os.Getenv("FALCON_API_HOST")),
 	}
+}
+
+func stringPointer(s string) *string {
+	return &s
 }
