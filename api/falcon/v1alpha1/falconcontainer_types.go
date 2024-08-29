@@ -43,6 +43,12 @@ type FalconContainerSpec struct {
 	// Falcon Container Version. The latest version will be selected when version specifier is missing; ignored when Image is set.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=6
 	Version *string `json:"version,omitempty"`
+
+	// Advanced configures various options that go against industry practices or are otherwise not recommended for use.
+	// Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
+	// For more information, please see https://github.com/CrowdStrike/falcon-operator/blob/main/docs/ADVANCED.md.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Advanced Settings"
+	Advanced FalconAdvanced `json:"advanced,omitempty"`
 }
 
 type FalconContainerInjectorSpec struct {

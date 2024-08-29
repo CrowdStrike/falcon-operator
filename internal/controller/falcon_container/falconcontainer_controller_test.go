@@ -7,6 +7,7 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
+	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -84,9 +85,13 @@ var _ = Describe("FalconContainer controller", func() {
 			}, time.Minute, time.Second).Should(Succeed())
 
 			By("Reconciling the custom resource created")
+			tracker, cancel := sensorversion.NewTestTracker()
+			defer cancel()
+
 			falconContainerReconciler := &FalconContainerReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+				Client:  k8sClient,
+				Scheme:  k8sClient.Scheme(),
+				tracker: tracker,
 			}
 
 			_, err = falconContainerReconciler.Reconcile(ctx, reconcile.Request{
@@ -149,7 +154,7 @@ var _ = Describe("FalconContainer controller", func() {
 			By("Checking if pods were successfully created in the reconciliation")
 			Eventually(func() error {
 				pod, err := k8sutils.GetReadyPod(k8sClient, ctx, SidecarSensorNamespace, map[string]string{common.FalconComponentKey: common.FalconSidecarSensor})
-				if err != nil && err.Error() != "No webhook service pod found in a Ready state" {
+				if err != nil && err != k8sutils.ErrNoWebhookServicePodReady {
 					return err
 				}
 				if pod.Name == "" {
@@ -162,7 +167,7 @@ var _ = Describe("FalconContainer controller", func() {
 
 			By("Checking the latest Status Condition added to the FalconContainer instance")
 			Eventually(func() error {
-				if falconContainer.Status.Conditions != nil && len(falconContainer.Status.Conditions) != 0 {
+				if len(falconContainer.Status.Conditions) != 0 {
 					latestStatusCondition := falconContainer.Status.Conditions[len(falconContainer.Status.Conditions)-1]
 					expectedLatestStatusCondition := metav1.Condition{Type: falconv1alpha1.ConditionDeploymentReady,
 						Status: metav1.ConditionTrue, Reason: falconv1alpha1.ReasonInstallSucceeded,
