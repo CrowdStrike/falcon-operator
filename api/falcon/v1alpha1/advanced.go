@@ -8,10 +8,10 @@ const (
 	Off    = "off"
 )
 
-// FalconUnsafe configures various options that go against industry practices or are otherwise not recommended for use.
+// FalconAdvanced configures various options that go against industry practices or are otherwise not recommended for use.
 // Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
-// For more information, please see https://github.com/CrowdStrike/falcon-operator/blob/main/UNSAFE.md.
-type FalconUnsafe struct {
+// For more information, please see https://github.com/CrowdStrike/falcon-operator/blob/main/docs/ADVANCED.md.
+type FalconAdvanced struct {
 	// UpdatePolicy is the name of a sensor update policy configured and enabled in Falcon UI. It is ignored when Image and/or Version are set.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Sensor Update Policy",order=1
 	UpdatePolicy *string `json:"updatePolicy,omitempty"`
@@ -24,30 +24,30 @@ type FalconUnsafe struct {
 	AutoUpdate *string `json:"autoUpdate,omitempty"`
 }
 
-func (notSafe FalconUnsafe) GetUpdatePolicy() string {
-	if notSafe.UpdatePolicy == nil {
+func (advanced FalconAdvanced) GetUpdatePolicy() string {
+	if advanced.UpdatePolicy == nil {
 		return ""
 	}
 
-	return strings.TrimSpace(*notSafe.UpdatePolicy)
+	return strings.TrimSpace(*advanced.UpdatePolicy)
 }
 
-func (notSafe FalconUnsafe) HasUpdatePolicy() bool {
-	return notSafe.GetUpdatePolicy() != ""
+func (advanced FalconAdvanced) HasUpdatePolicy() bool {
+	return advanced.GetUpdatePolicy() != ""
 }
 
-func (notSafe FalconUnsafe) IsAutoUpdating() bool {
-	if notSafe.AutoUpdate == nil {
+func (advanced FalconAdvanced) IsAutoUpdating() bool {
+	if advanced.AutoUpdate == nil {
 		return false
 	}
 
-	return *notSafe.AutoUpdate != "off"
+	return *advanced.AutoUpdate != "off"
 }
 
-func (notSafe FalconUnsafe) IsAutoUpdatingForced() bool {
-	if notSafe.AutoUpdate == nil {
+func (advanced FalconAdvanced) IsAutoUpdatingForced() bool {
+	if advanced.AutoUpdate == nil {
 		return false
 	}
 
-	return *notSafe.AutoUpdate == "force"
+	return *advanced.AutoUpdate == "force"
 }

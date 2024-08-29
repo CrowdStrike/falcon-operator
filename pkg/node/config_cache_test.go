@@ -203,28 +203,28 @@ func TestGetFalconImage(t *testing.T) {
 func TestVersionLock_WithAutoUpdateDisabled(t *testing.T) {
 	admission := &falconv1alpha1.FalconNodeSensor{}
 	admission.Status.Sensor = stringPointer("some sensor")
-	admission.Spec.Node.Unsafe.AutoUpdate = stringPointer(falconv1alpha1.Off)
+	admission.Spec.Node.Advanced.AutoUpdate = stringPointer(falconv1alpha1.Off)
 	assert.True(t, versionLock(admission))
 }
 
 func TestVersionLock_WithForcedAutoUpdate(t *testing.T) {
 	admission := &falconv1alpha1.FalconNodeSensor{}
 	admission.Status.Sensor = stringPointer("some sensor")
-	admission.Spec.Node.Unsafe.AutoUpdate = stringPointer(falconv1alpha1.Force)
+	admission.Spec.Node.Advanced.AutoUpdate = stringPointer(falconv1alpha1.Force)
 	assert.False(t, versionLock(admission))
 }
 
 func TestVersionLock_WithNormalAutoUpdate(t *testing.T) {
 	admission := &falconv1alpha1.FalconNodeSensor{}
 	admission.Status.Sensor = stringPointer("some sensor")
-	admission.Spec.Node.Unsafe.AutoUpdate = stringPointer(falconv1alpha1.Normal)
+	admission.Spec.Node.Advanced.AutoUpdate = stringPointer(falconv1alpha1.Normal)
 	assert.False(t, versionLock(admission))
 }
 
 func TestVersionLock_WithBlankUpdatePolicy(t *testing.T) {
 	sensor := &falconv1alpha1.FalconNodeSensor{}
 	sensor.Status.Sensor = stringPointer("some sensor")
-	sensor.Spec.Node.Unsafe.UpdatePolicy = stringPointer("")
+	sensor.Spec.Node.Advanced.UpdatePolicy = stringPointer("")
 	assert.True(t, versionLock(sensor))
 }
 
@@ -256,7 +256,7 @@ func TestVersionLock_WithSameVersion(t *testing.T) {
 func TestVersionLock_WithUpdatePolicy(t *testing.T) {
 	sensor := &falconv1alpha1.FalconNodeSensor{}
 	sensor.Status.Sensor = stringPointer("some sensor")
-	sensor.Spec.Node.Unsafe.UpdatePolicy = stringPointer("some policy")
+	sensor.Spec.Node.Advanced.UpdatePolicy = stringPointer("some policy")
 	assert.False(t, versionLock(sensor))
 }
 

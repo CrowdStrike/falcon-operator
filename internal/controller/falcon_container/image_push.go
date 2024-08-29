@@ -208,7 +208,7 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 		return "", err
 	}
 
-	tag, err := imageRepo.GetPreferredImage(ctx, falcon.SidecarSensor, falconContainer.Spec.Version, falconContainer.Spec.Unsafe.UpdatePolicy)
+	tag, err := imageRepo.GetPreferredImage(ctx, falcon.SidecarSensor, falconContainer.Spec.Version, falconContainer.Spec.Advanced.UpdatePolicy)
 	if err == nil {
 		falconContainer.Status.Sensor = common.ImageVersion(tag)
 	}
@@ -246,7 +246,7 @@ func (r *FalconContainerReconciler) imageMirroringEnabled(falconContainer *falco
 }
 
 func (r *FalconContainerReconciler) versionLock(falconContainer *falconv1alpha1.FalconContainer) bool {
-	if falconContainer.Status.Sensor == nil || falconContainer.Spec.Unsafe.HasUpdatePolicy() || falconContainer.Spec.Unsafe.IsAutoUpdating() {
+	if falconContainer.Status.Sensor == nil || falconContainer.Spec.Advanced.HasUpdatePolicy() || falconContainer.Spec.Advanced.IsAutoUpdating() {
 		return false
 	}
 
