@@ -188,7 +188,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	if shouldTrackSensorVersions(nodesensor) {
 		getSensorVersion := sensorversion.NewFalconCloudQuery(falcon.NodeSensor, nodesensor.Spec.FalconAPI.ApiConfig())
-		r.tracker.Track(req.NamespacedName, getSensorVersion, r.reconcileObjectWithName, nodesensor.Spec.Node.Unsafe.IsAutoUpdatingForced())
+		r.tracker.Track(req.NamespacedName, getSensorVersion, r.reconcileObjectWithName, nodesensor.Spec.Node.Advanced.IsAutoUpdatingForced())
 	} else {
 		r.tracker.StopTracking(req.NamespacedName)
 	}
@@ -1054,5 +1054,5 @@ func (r *FalconNodeSensorReconciler) reconcileObjectWithName(ctx context.Context
 }
 
 func shouldTrackSensorVersions(obj *falconv1alpha1.FalconNodeSensor) bool {
-	return obj.Spec.FalconAPI != nil && obj.Spec.Node.Unsafe.IsAutoUpdating()
+	return obj.Spec.FalconAPI != nil && obj.Spec.Node.Advanced.IsAutoUpdating()
 }

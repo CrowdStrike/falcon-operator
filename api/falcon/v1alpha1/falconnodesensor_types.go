@@ -104,11 +104,11 @@ type FalconNodeSensorConfig struct {
 	// Version of the sensor to be installed. The latest version will be selected when this version specifier is missing.
 	Version *string `json:"version,omitempty"`
 
-	// FalconUnsafe configures various options that go against industry practices or are otherwise not recommended for use.
+	// Advanced configures various options that go against industry practices or are otherwise not recommended for use.
 	// Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
-	// For more information, please see https://github.com/CrowdStrike/falcon-operator/blob/main/UNSAFE.md.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Unsafe Settings"
-	Unsafe FalconUnsafe `json:"unsafe,omitempty"`
+	// For more information, please see https://github.com/CrowdStrike/falcon-operator/blob/main/docs/ADVANCED.md.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Advanced Settings"
+	Advanced FalconAdvanced `json:"advanced,omitempty"`
 }
 
 type PriorityClassConfig struct {

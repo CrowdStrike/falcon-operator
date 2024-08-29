@@ -121,7 +121,7 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 		return "", err
 	}
 
-	imageTag, err := imageRepo.GetPreferredImage(ctx, falcon.NodeSensor, nodesensor.Spec.Node.Version, nodesensor.Spec.Node.Unsafe.UpdatePolicy)
+	imageTag, err := imageRepo.GetPreferredImage(ctx, falcon.NodeSensor, nodesensor.Spec.Node.Version, nodesensor.Spec.Node.Advanced.UpdatePolicy)
 	if err != nil {
 		return "", err
 	}
@@ -130,7 +130,7 @@ func getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSe
 }
 
 func versionLock(nodesensor *falconv1alpha1.FalconNodeSensor) bool {
-	if nodesensor.Status.Sensor == nil || nodesensor.Spec.Node.Unsafe.HasUpdatePolicy() || nodesensor.Spec.Node.Unsafe.IsAutoUpdating() {
+	if nodesensor.Status.Sensor == nil || nodesensor.Spec.Node.Advanced.HasUpdatePolicy() || nodesensor.Spec.Node.Advanced.IsAutoUpdating() {
 		return false
 	}
 

@@ -11,7 +11,7 @@ func TestVersionLock_WithAutoUpdateDisabled(t *testing.T) {
 	reconciler := &FalconContainerReconciler{}
 	container := &falconv1alpha1.FalconContainer{}
 	container.Status.Sensor = stringPointer("some sensor")
-	container.Spec.Unsafe.AutoUpdate = stringPointer(falconv1alpha1.Off)
+	container.Spec.Advanced.AutoUpdate = stringPointer(falconv1alpha1.Off)
 	assert.True(t, reconciler.versionLock(container))
 }
 
@@ -19,7 +19,7 @@ func TestVersionLock_WithForcedAutoUpdate(t *testing.T) {
 	reconciler := &FalconContainerReconciler{}
 	container := &falconv1alpha1.FalconContainer{}
 	container.Status.Sensor = stringPointer("some sensor")
-	container.Spec.Unsafe.AutoUpdate = stringPointer(falconv1alpha1.Force)
+	container.Spec.Advanced.AutoUpdate = stringPointer(falconv1alpha1.Force)
 	assert.False(t, reconciler.versionLock(container))
 }
 
@@ -27,7 +27,7 @@ func TestVersionLock_WithNormalAutoUpdate(t *testing.T) {
 	reconciler := &FalconContainerReconciler{}
 	container := &falconv1alpha1.FalconContainer{}
 	container.Status.Sensor = stringPointer("some sensor")
-	container.Spec.Unsafe.AutoUpdate = stringPointer(falconv1alpha1.Normal)
+	container.Spec.Advanced.AutoUpdate = stringPointer(falconv1alpha1.Normal)
 	assert.False(t, reconciler.versionLock(container))
 }
 
@@ -35,7 +35,7 @@ func TestVersionLock_WithBlankUpdatePolicy(t *testing.T) {
 	reconciler := &FalconContainerReconciler{}
 	container := &falconv1alpha1.FalconContainer{}
 	container.Status.Sensor = stringPointer("some sensor")
-	container.Spec.Unsafe.UpdatePolicy = stringPointer("")
+	container.Spec.Advanced.UpdatePolicy = stringPointer("")
 	assert.True(t, reconciler.versionLock(container))
 }
 
@@ -72,7 +72,7 @@ func TestVersionLock_WithUpdatePolicy(t *testing.T) {
 	reconciler := &FalconContainerReconciler{}
 	container := &falconv1alpha1.FalconContainer{}
 	container.Status.Sensor = stringPointer("some sensor")
-	container.Spec.Unsafe.UpdatePolicy = stringPointer("some policy")
+	container.Spec.Advanced.UpdatePolicy = stringPointer("some policy")
 	assert.False(t, reconciler.versionLock(container))
 }
 
