@@ -231,6 +231,10 @@ spec:
       kind: FalconContainer
       name: falconcontainers.falcon.crowdstrike.com
       specDescriptors:
+      - description: UpdatePolicy is the name of a sensor update policy configured
+          and enabled in Falcon UI. It is ignored when Image and/or Version are set.
+        displayName: Falcon Sensor Update Policy
+        path: advanced.updatePolicy
       - displayName: Falcon Sensor Configuration
         path: falcon
       - description: Falcon Customer ID (CID)
@@ -264,6 +268,13 @@ spec:
       - description: Type of container registry to be used
         displayName: Registry Type
         path: registry.type
+      - description: AutoUpdate determines whether to install new versions of the
+          sensor as they become available. Defaults to "off" and is ignored if FalconAPI
+          is not set. Setting this to "force" causes the reconciler to run on every
+          polling cycle, even if a new sensor version is not available. Setting it
+          to "normal" only reconciles when a new version is detected.
+        displayName: Falcon Sensor Automatic Updates
+        path: advanced.autoUpdate
       - description: Installation token that prevents unauthorized hosts from being
           accidentally or maliciously added to your customer ID (CID).
         displayName: Provisioning Token
@@ -363,6 +374,12 @@ spec:
         path: injector.azureConfigPath
       - displayName: Injector replica count
         path: injector.replicas
+      - description: Advanced configures various options that go against industry
+          practices or are otherwise not recommended for use. Adjusting these settings
+          may result in incorrect or undesirable behavior. Proceed at your own risk.
+          For more information, please see https://github.com/CrowdStrike/falcon-operator/blob/main/docs/ADVANCED.md.
+        displayName: Falcon Container Advanced Settings
+        path: advanced
       - description: Define annotations that will be passed down to the Service Account.
           This is useful for passing along AWS IAM Role or GCP Workload Identity.
         displayName: Annotations
@@ -545,6 +562,10 @@ spec:
         path: installNamespace
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes:Namespace
+      - description: UpdatePolicy is the name of a sensor update policy configured
+          and enabled in Falcon UI. It is ignored when Image and/or Version are set.
+        displayName: Falcon Sensor Update Policy
+        path: node.advanced.updatePolicy
       - description: ImagePullSecrets is an optional list of references to secrets
           in the falcon-system namespace to use for pulling image from image_override
           location.
@@ -561,6 +582,13 @@ spec:
         path: falcon_api.client_secret
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:password
+      - description: AutoUpdate determines whether to install new versions of the
+          sensor as they become available. Defaults to "off" and is ignored if FalconAPI
+          is not set. Setting this to "force" causes the reconciler to run on every
+          polling cycle, even if a new sensor version is not available. Setting it
+          to "normal" only reconciles when a new version is detected.
+        displayName: Falcon Sensor Automatic Updates
+        path: node.advanced.autoUpdate
       - description: Location of the Falcon Sensor image. Use only in cases when you
           mirror the original image to your repository/name:tag
         displayName: Image
@@ -645,6 +673,12 @@ spec:
           Autopilot clusters, but can be set for any cluster.
         displayName: Priority Class
         path: node.priorityClass
+      - description: Advanced configures various options that go against industry
+          practices or are otherwise not recommended for use. Adjusting these settings
+          may result in incorrect or undesirable behavior. Proceed at your own risk.
+          For more information, please see https://github.com/CrowdStrike/falcon-operator/blob/main/docs/ADVANCED.md.
+        displayName: DaemonSet Advanced Settings
+        path: node.advanced
       - description: Enables the use of GKE Autopilot.
         displayName: Enabled
         path: node.gke.autopilot

@@ -10,13 +10,13 @@ import (
 	"k8s.io/client-go/util/retry"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensor"
 	"github.com/crowdstrike/falcon-operator/internal/controller/image"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
-	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pushtoken"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
@@ -202,13 +202,13 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 		return *falconContainer.Status.Sensor, r.Client.Status().Update(ctx, falconContainer)
 	}
 
-	// Otherwise, get the newest version matching the requested version string
-	registry, err := falcon_registry.NewFalconRegistry(ctx, r.falconApiConfig(ctx, falconContainer))
+	apiConfig := r.falconApiConfig(ctx, falconContainer)
+	imageRepo, err := sensor.NewImageRepository(ctx, apiConfig)
 	if err != nil {
 		return "", err
 	}
 
-	tag, err := registry.LastContainerTag(ctx, falcon.SidecarSensor, falconContainer.Spec.Version)
+	tag, err := imageRepo.GetPreferredImage(ctx, falcon.SidecarSensor, falconContainer.Spec.Version, falconContainer.Spec.Advanced.UpdatePolicy)
 	if err == nil {
 		falconContainer.Status.Sensor = common.ImageVersion(tag)
 	}
@@ -232,9 +232,12 @@ func (r *FalconContainerReconciler) imageNamespace(falconContainer *falconv1alph
 }
 
 func (r *FalconContainerReconciler) falconApiConfig(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer) *falcon.ApiConfig {
+	if falconContainer.Spec.FalconAPI == nil {
+		return nil
+	}
+
 	cfg := falconContainer.Spec.FalconAPI.ApiConfig()
 	cfg.Context = ctx
-
 	return cfg
 }
 
@@ -243,5 +246,9 @@ func (r *FalconContainerReconciler) imageMirroringEnabled(falconContainer *falco
 }
 
 func (r *FalconContainerReconciler) versionLock(falconContainer *falconv1alpha1.FalconContainer) bool {
-	return (falconContainer.Spec.Version != nil && falconContainer.Status.Sensor != nil && strings.Contains(*falconContainer.Status.Sensor, *falconContainer.Spec.Version)) || (falconContainer.Spec.Version == nil && falconContainer.Status.Sensor != nil)
+	if falconContainer.Status.Sensor == nil || falconContainer.Spec.Advanced.HasUpdatePolicy() || falconContainer.Spec.Advanced.IsAutoUpdating() {
+		return false
+	}
+
+	return falconContainer.Spec.Version == nil || strings.Contains(*falconContainer.Status.Sensor, *falconContainer.Spec.Version)
 }

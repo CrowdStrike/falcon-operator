@@ -23,7 +23,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -96,7 +95,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	falconAdmission := &falconv1alpha1.FalconAdmission{}
 	err := r.Get(ctx, req.NamespacedName, falconAdmission)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// If the custom resource is not found then, it usually means that it was deleted or not created
 			// In this way, we will stop the reconciliation
 			log.Info("FalconAdmission resource not found. Ignoring since object must be deleted")
@@ -123,11 +122,11 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{}, err
 		}
 		log.Error(nil, "FalconAdmission is attempting to install in a namespace with existing pods. Please update the CR configuration to a namespace that does not have workoads already running.")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, nil
 	}
 
 	// Let's just set the status as Unknown when no status is available
-	if falconAdmission.Status.Conditions == nil || len(falconAdmission.Status.Conditions) == 0 {
+	if len(falconAdmission.Status.Conditions) == 0 {
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			meta.SetStatusCondition(&falconAdmission.Status.Conditions, metav1.Condition{Type: falconv1alpha1.ConditionPending, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Starting reconciliation"})
 			return r.Status().Update(ctx, falconAdmission)
@@ -256,7 +255,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	pod, err := k8sutils.GetReadyPod(r.Client, ctx, falconAdmission.Spec.InstallNamespace, map[string]string{common.FalconComponentKey: common.FalconAdmissionController})
-	if err != nil && err.Error() != "No webhook service pod found in a Ready state" {
+	if err != nil && err != k8sutils.ErrNoWebhookServicePodReady {
 		log.Error(err, "Failed to find Ready admission controller pod")
 		return ctrl.Result{}, err
 	}

@@ -223,9 +223,12 @@ func (r *FalconAdmissionReconciler) imageNamespace(falconAdmission *falconv1alph
 }
 
 func (r *FalconAdmissionReconciler) falconApiConfig(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission) *falcon.ApiConfig {
+	if falconAdmission.Spec.FalconAPI == nil {
+		return nil
+	}
+
 	cfg := falconAdmission.Spec.FalconAPI.ApiConfig()
 	cfg.Context = ctx
-
 	return cfg
 }
 

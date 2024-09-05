@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2024-09-04
+
+### Changed
+
+- fix: bump version to 1.2.0 across the project
+- fix: bump Makefile version to 1.2.0
+- feat: advanced settings
+- fix: remove unused functions to satisfy linter
+- feat: automatic sensor updates
+- fix: disable provenance in Docker builds
+- fix: add warning in docs about AutoPilot resource mismatches
+- fix: corrected display names in unsafe sub-specs
+- feat: add support for sensor version selection by update policy
+- build(deps): bump github.com/docker/docker
+- build(deps): bump github.com/docker/docker
+- fix: bumped Golang to 1.21 in the docs and GitHub Actions
+- bump: golang to 1.21 and container/image to 5.31
+- revert: PR #549 -- artifactory tag workaround
+- revert: "fix: accept 400 errors in config_cache_test"
+- feat: allow API host override during NodeSensor config-cache tests
+- fix: correct documentation template
+- fix: ignore the KAC replica setting but say so in the logs
+- build(deps): bump docker/build-push-action from 5 to 6
+- fix: only run release workflow on full releases
+- fix: force the use of a single replica in FalconAdmission
+- Fix GUI uninstall </details> location. Fix delete-project image name.
+- Add missing OpenShift cleanup steps. Closes CrowdStrike/falcon-operator#552
+- docs: update openshift installation docs for new certified operator
+- fix handling of invalid tags in artifactory
+- feat: make eBPF primary sensor
+- Bumping to version 1.0.0
+
 ## [1.1.0] - 2024-07-17
 
 ### Changed
