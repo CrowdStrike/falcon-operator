@@ -124,7 +124,7 @@ metadata:
       ]
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
-    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:388942b33a4f50fba9640c645b9881e5f6cefd11b14ee2087a89e2a9057c53ff
+    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:a720e6fcc4d7db4e47f5dcb548d3b47cc0b61e96f23cef2ff27f97869695d4c5
     createdAt: "2024-06-05T21:55:55Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
@@ -143,7 +143,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: registry.connect.redhat.com/crowdstrike/falcon-operator
     support: CrowdStrike
-  name: falcon-operator.v1.1.0
+  name: falcon-operator.v1.2.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1326,7 +1326,7 @@ spec:
                   value: registry.crowdstrike.com/falcon-kac/us-1/release/falcon-kac@sha256:266139e8a06ddc158c386b283517220b666deb7aa3b2dff0694e8f5c510f0af3
                 - name: RELATED_IMAGE_IMAGE_ANALYZER
                   value: registry.crowdstrike.com/falcon-imageanalyzer/us-1/release/falcon-imageanalyzer@sha256:99824dd0ebf319d453f841bdd0ec024ec349d909a2c01b9b6a8fcaf6194a265e
-                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:388942b33a4f50fba9640c645b9881e5f6cefd11b14ee2087a89e2a9057c53ff
+                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:a720e6fcc4d7db4e47f5dcb548d3b47cc0b61e96f23cef2ff27f97869695d4c5
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -1422,7 +1422,7 @@ spec:
     name: CrowdStrike
     url: https://crowdStrike.com
   relatedImages:
-  - image: "registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:388942b33a4f50fba9640c645b9881e5f6cefd11b14ee2087a89e2a9057c53ff"
+  - image: "registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:a720e6fcc4d7db4e47f5dcb548d3b47cc0b61e96f23cef2ff27f97869695d4c5"
     name: operator
   - image: "registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:77df668a9591bbaae675d0553f8dca5423c0f257317bc08fe821d965f44ed019"
     name: rbac-proxy
@@ -1434,5 +1434,5 @@ spec:
     name: admission-controller
   - image: "registry.crowdstrike.com/falcon-imageanalyzer/us-1/release/falcon-imageanalyzer@sha256:99824dd0ebf319d453f841bdd0ec024ec349d909a2c01b9b6a8fcaf6194a265e"
     name: image-analyzer
-  replaces: falcon-operator.v1.0.1
-  version: 1.1.0
+  replaces: falcon-operator.v1.1.0
+  version: 1.2.0
