@@ -699,7 +699,7 @@ spec:
 
     ## Installation and Deployment
 
-    For installation and deployment of the CrowdStrike Falcon Operator and its Custom Resources, please read the [Installation and Deployment Guide](./docs/install_guide.md) and choose the deployment method that is right for your target environment.
+    For installation and deployment of the CrowdStrike Falcon Operator and its Custom Resources, please read the [Installation and Deployment Guide](https://github.com/CrowdStrike/falcon-operator/blob/main/docs/install_guide.md) and choose the deployment method that is right for your target environment.
 
     ## Getting Help
     If you encounter any issues while using the Falcon Operator, you can create an issue on our [Github repo](https://github.com/CrowdStrike/falcon-operator) for bugs, enhancements, or other requests.
