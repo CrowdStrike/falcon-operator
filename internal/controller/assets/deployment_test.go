@@ -38,14 +38,28 @@ func TestAdmissionDeployment(t *testing.T) {
 	falconAdmission := &falconv1alpha1.FalconAdmission{}
 	falconAdmission.Spec.AdmissionConfig.ResourcesClient = &corev1.ResourceRequirements{}
 	falconAdmission.Spec.AdmissionConfig.ResourcesAC = &corev1.ResourceRequirements{}
+
 	port := int32(1)
 	falconAdmission.Spec.AdmissionConfig.Port = &port
 	falconAdmission.Spec.AdmissionConfig.Replicas = &port
 	falconAdmission.Spec.AdmissionConfig.ContainerPort = &port
+
+	var deployWatcher *bool = new(bool)
+	*deployWatcher = false
+	falconAdmission.Spec.AdmissionConfig.DeployWatcher = deployWatcher
 	want := testAdmissionDeployment("test", "test", "test", "test", falconAdmission)
 
 	logger := log.FromContext(context.Background())
 	got := AdmissionDeployment("test", "test", "test", "test", falconAdmission, logger)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("Deployment() mismatch (-want +got): %s", diff)
+	}
+
+	*deployWatcher = true
+	falconAdmission.Spec.AdmissionConfig.DeployWatcher = deployWatcher
+
+	want = testAdmissionDeployment("test", "test", "test", "test", falconAdmission)
+	got = AdmissionDeployment("test", "test", "test", "test", falconAdmission, logger)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("Deployment() mismatch (-want +got): %s", diff)
 	}
@@ -325,17 +339,328 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 	allowPrivilegeEscalation := false
 	shareProcessNamespace := true
 	resourcesClient := &corev1.ResourceRequirements{}
+	resourcesWatcher := &corev1.ResourceRequirements{}
 	resourcesAC := &corev1.ResourceRequirements{}
 	sizeLimitTmp := resource.MustParse("256Mi")
 	sizeLimitPrivate := resource.MustParse("4Ki")
+	sizeLimitWatcher := resource.MustParse("64Mi")
+	portWatcherHealthCheck := int32(4080)
 	labels := common.CRLabels("deployment", name, component)
 
 	if falconAdmission.Spec.AdmissionConfig.ResourcesClient != nil {
 		resourcesClient = falconAdmission.Spec.AdmissionConfig.ResourcesClient
 	}
 
+	if falconAdmission.Spec.AdmissionConfig.ResourcesWatcher != nil {
+		resourcesWatcher = falconAdmission.Spec.AdmissionConfig.ResourcesWatcher
+	}
+
 	if falconAdmission.Spec.AdmissionConfig.ResourcesAC != nil {
 		resourcesAC = falconAdmission.Spec.AdmissionConfig.ResourcesAC
+	}
+
+	kacContainers := &[]corev1.Container{
+		{
+			Name:            "falcon-client",
+			Image:           imageUri,
+			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
+			Args:            []string{"client"},
+			SecurityContext: &corev1.SecurityContext{
+				ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
+				AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+				RunAsNonRoot:             &runNonRoot,
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{
+						"ALL",
+					},
+				},
+			},
+			Env: []corev1.EnvVar{
+				{
+					Name: "__CS_POD_NAMESPACE",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							APIVersion: "v1",
+							FieldPath:  "metadata.namespace",
+						},
+					},
+				},
+				{
+					Name: "__CS_POD_NAME",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							APIVersion: "v1",
+							FieldPath:  "metadata.name",
+						},
+					},
+				},
+				{
+					Name: "__CS_POD_NODENAME",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							APIVersion: "v1",
+							FieldPath:  "spec.nodeName",
+						},
+					},
+				},
+			},
+			EnvFrom: []corev1.EnvFromSource{
+				{
+					ConfigMapRef: &corev1.ConfigMapEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: name + "-config",
+						},
+					},
+				},
+			},
+			Ports: []corev1.ContainerPort{
+				{
+					ContainerPort: *falconAdmission.Spec.AdmissionConfig.Port,
+					Name:          common.FalconServiceHTTPSName,
+					Protocol:      corev1.ProtocolTCP,
+				},
+			},
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "crowdstrike-falcon-vol0",
+					MountPath: "/tmp",
+				},
+				{
+					Name:      "crowdstrike-falcon-vol1",
+					MountPath: "/var/private",
+				},
+				{
+					Name:      name + "-tls-certs",
+					MountPath: "/run/secrets/tls",
+					ReadOnly:  true,
+				},
+			},
+			StartupProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path:   common.FalconAdmissionClientStartupProbePath,
+						Port:   intstr.IntOrString{IntVal: *falconAdmission.Spec.AdmissionConfig.ContainerPort},
+						Scheme: corev1.URISchemeHTTPS,
+					},
+				},
+				InitialDelaySeconds: 5,
+				TimeoutSeconds:      1,
+				PeriodSeconds:       2,
+				SuccessThreshold:    1,
+				FailureThreshold:    30,
+			},
+			LivenessProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path:   common.FalconAdmissionClientLivenessProbePath,
+						Port:   intstr.IntOrString{IntVal: *falconAdmission.Spec.AdmissionConfig.ContainerPort},
+						Scheme: corev1.URISchemeHTTPS,
+					},
+				},
+				InitialDelaySeconds: 5,
+				TimeoutSeconds:      1,
+				PeriodSeconds:       10,
+				SuccessThreshold:    1,
+				FailureThreshold:    3,
+			},
+			Resources: *resourcesClient,
+		},
+		{
+			Name:            "falcon-kac",
+			Image:           imageUri,
+			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
+
+			SecurityContext: &corev1.SecurityContext{
+				ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
+				AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+				RunAsNonRoot:             &runNonRoot,
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{
+						"ALL",
+					},
+				},
+			},
+			EnvFrom: []corev1.EnvFromSource{
+				{
+					ConfigMapRef: &corev1.ConfigMapEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: name + "-config",
+						},
+					},
+				},
+			},
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "crowdstrike-falcon-vol0",
+					MountPath: "/tmp",
+				},
+				{
+					Name:      "crowdstrike-falcon-vol1",
+					MountPath: "/var/private",
+				},
+				{
+					Name:      "crowdstrike-falcon-vol2",
+					MountPath: "/var/falcon-watcher",
+				},
+			},
+			StartupProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path:   common.FalconAdmissionStartupProbePath,
+						Port:   intstr.IntOrString{IntVal: *falconAdmission.Spec.AdmissionConfig.ContainerPort},
+						Scheme: corev1.URISchemeHTTPS,
+					},
+				},
+				InitialDelaySeconds: 5,
+				TimeoutSeconds:      1,
+				PeriodSeconds:       2,
+				SuccessThreshold:    1,
+				FailureThreshold:    30,
+			},
+			LivenessProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path:   common.FalconAdmissionLivenessProbePath,
+						Port:   intstr.IntOrString{IntVal: *falconAdmission.Spec.AdmissionConfig.ContainerPort},
+						Scheme: corev1.URISchemeHTTPS,
+					},
+				},
+				InitialDelaySeconds: 5,
+				TimeoutSeconds:      1,
+				PeriodSeconds:       10,
+				SuccessThreshold:    1,
+				FailureThreshold:    3,
+			},
+			Resources: *resourcesAC,
+		},
+	}
+
+	if *falconAdmission.Spec.AdmissionConfig.DeployWatcher {
+		*kacContainers = append(*kacContainers, corev1.Container{
+			Name:            "falcon-watcher",
+			Image:           imageUri,
+			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
+			Args: []string{
+				"client",
+				"-app=watcher",
+			},
+			SecurityContext: &corev1.SecurityContext{
+				ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
+				AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+				RunAsNonRoot:             &runNonRoot,
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{
+						"ALL",
+					},
+				},
+			},
+			Env: []corev1.EnvVar{
+				corev1.EnvVar{
+					Name: "__CS_POD_NAMESPACE",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							APIVersion: "v1",
+							FieldPath:  "metadata.namespace",
+						},
+					},
+				},
+				corev1.EnvVar{
+					Name: "__CS_POD_NAME",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							APIVersion: "v1",
+							FieldPath:  "metadata.name",
+						},
+					},
+				},
+				corev1.EnvVar{
+					Name: "__CS_POD_NODENAME",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							APIVersion: "v1",
+							FieldPath:  "spec.nodeName",
+						},
+					},
+				},
+				corev1.EnvVar{
+					Name:  "__CS_SNAPSHOTS_ENABLED",
+					Value: "true",
+				},
+				corev1.EnvVar{
+					Name:  "__CS_SNAPSHOT_INTERVAL",
+					Value: "22h0m0s",
+				},
+				corev1.EnvVar{
+					Name:  "__CS_WATCH_EVENTS_ENABLED",
+					Value: "true",
+				},
+			},
+			EnvFrom: []corev1.EnvFromSource{
+				{
+					ConfigMapRef: &corev1.ConfigMapEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: name + "-config",
+						},
+					},
+				},
+			},
+			Ports: []corev1.ContainerPort{
+				{
+					ContainerPort: portWatcherHealthCheck,
+					Name:          common.FalconServiceHTTPSName,
+					Protocol:      corev1.ProtocolTCP,
+				},
+			},
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "crowdstrike-falcon-vol0",
+					MountPath: "/tmp",
+				},
+				{
+					Name:      "crowdstrike-falcon-vol1",
+					MountPath: "/var/private",
+				},
+				{
+					Name:      "crowdstrike-falcon-vol2",
+					MountPath: "/var/falcon-watcher",
+				},
+			},
+			StartupProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: common.FalconAdmissionClientStartupProbePath,
+						Port: intstr.IntOrString{
+							Type:   intstr.Int,
+							IntVal: portWatcherHealthCheck,
+						},
+						Scheme: corev1.URISchemeHTTP,
+					},
+				},
+				InitialDelaySeconds: 5,
+				TimeoutSeconds:      1,
+				PeriodSeconds:       2,
+				SuccessThreshold:    1,
+				FailureThreshold:    30,
+			},
+			LivenessProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: common.FalconAdmissionClientLivenessProbePath,
+						Port: intstr.IntOrString{
+							Type:   intstr.Int,
+							IntVal: portWatcherHealthCheck,
+						},
+						Scheme: corev1.URISchemeHTTP,
+					},
+				},
+				InitialDelaySeconds: 5,
+				TimeoutSeconds:      1,
+				PeriodSeconds:       10,
+				SuccessThreshold:    1,
+				FailureThreshold:    3,
+			},
+			Resources: *resourcesWatcher,
+		})
 	}
 
 	return &appsv1.Deployment{
@@ -403,177 +728,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 					ServiceAccountName: common.AdmissionServiceAccountName,
 					NodeSelector:       common.NodeSelector,
 					PriorityClassName:  common.FalconPriorityClassName,
-					Containers: []corev1.Container{
-						{
-							Name:            "falcon-client",
-							Image:           imageUri,
-							ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
-							Args:            []string{"client"},
-							SecurityContext: &corev1.SecurityContext{
-								ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
-								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
-								RunAsNonRoot:             &runNonRoot,
-								Capabilities: &corev1.Capabilities{
-									Drop: []corev1.Capability{
-										"ALL",
-									},
-								},
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name: "__CS_POD_NAMESPACE",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											APIVersion: "v1",
-											FieldPath:  "metadata.namespace",
-										},
-									},
-								},
-								{
-									Name: "__CS_POD_NAME",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											APIVersion: "v1",
-											FieldPath:  "metadata.name",
-										},
-									},
-								},
-								{
-									Name: "__CS_POD_NODENAME",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											APIVersion: "v1",
-											FieldPath:  "spec.nodeName",
-										},
-									},
-								},
-							},
-							EnvFrom: []corev1.EnvFromSource{
-								{
-									ConfigMapRef: &corev1.ConfigMapEnvSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: name + "-config",
-										},
-									},
-								},
-							},
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: *falconAdmission.Spec.AdmissionConfig.Port,
-									Name:          common.FalconServiceHTTPSName,
-									Protocol:      corev1.ProtocolTCP,
-								},
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "crowdstrike-falcon-vol0",
-									MountPath: "/tmp",
-								},
-								{
-									Name:      "crowdstrike-falcon-vol1",
-									MountPath: "/var/private",
-								},
-								{
-									Name:      name + "-tls-certs",
-									MountPath: "/run/secrets/tls",
-									ReadOnly:  true,
-								},
-							},
-							StartupProbe: &corev1.Probe{
-								ProbeHandler: corev1.ProbeHandler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Path:   common.FalconAdmissionClientStartupProbePath,
-										Port:   intstr.IntOrString{IntVal: *falconAdmission.Spec.AdmissionConfig.ContainerPort},
-										Scheme: corev1.URISchemeHTTPS,
-									},
-								},
-								InitialDelaySeconds: 5,
-								TimeoutSeconds:      1,
-								PeriodSeconds:       2,
-								SuccessThreshold:    1,
-								FailureThreshold:    30,
-							},
-							LivenessProbe: &corev1.Probe{
-								ProbeHandler: corev1.ProbeHandler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Path:   common.FalconAdmissionClientLivenessProbePath,
-										Port:   intstr.IntOrString{IntVal: *falconAdmission.Spec.AdmissionConfig.ContainerPort},
-										Scheme: corev1.URISchemeHTTPS,
-									},
-								},
-								InitialDelaySeconds: 5,
-								TimeoutSeconds:      1,
-								PeriodSeconds:       10,
-								SuccessThreshold:    1,
-								FailureThreshold:    3,
-							},
-							Resources: *resourcesClient,
-						},
-						{
-							Name:            "falcon-kac",
-							Image:           imageUri,
-							ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
-
-							SecurityContext: &corev1.SecurityContext{
-								ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
-								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
-								RunAsNonRoot:             &runNonRoot,
-								Capabilities: &corev1.Capabilities{
-									Drop: []corev1.Capability{
-										"ALL",
-									},
-								},
-							},
-							EnvFrom: []corev1.EnvFromSource{
-								{
-									ConfigMapRef: &corev1.ConfigMapEnvSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: name + "-config",
-										},
-									},
-								},
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "crowdstrike-falcon-vol0",
-									MountPath: "/tmp",
-								},
-								{
-									Name:      "crowdstrike-falcon-vol1",
-									MountPath: "/var/private",
-								},
-							},
-							StartupProbe: &corev1.Probe{
-								ProbeHandler: corev1.ProbeHandler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Path:   common.FalconAdmissionStartupProbePath,
-										Port:   intstr.IntOrString{IntVal: *falconAdmission.Spec.AdmissionConfig.ContainerPort},
-										Scheme: corev1.URISchemeHTTPS,
-									},
-								},
-								InitialDelaySeconds: 5,
-								TimeoutSeconds:      1,
-								PeriodSeconds:       2,
-								SuccessThreshold:    1,
-								FailureThreshold:    30,
-							},
-							LivenessProbe: &corev1.Probe{
-								ProbeHandler: corev1.ProbeHandler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Path:   common.FalconAdmissionLivenessProbePath,
-										Port:   intstr.IntOrString{IntVal: *falconAdmission.Spec.AdmissionConfig.ContainerPort},
-										Scheme: corev1.URISchemeHTTPS,
-									},
-								},
-								InitialDelaySeconds: 5,
-								TimeoutSeconds:      1,
-								PeriodSeconds:       10,
-								SuccessThreshold:    1,
-								FailureThreshold:    3,
-							},
-							Resources: *resourcesAC,
-						},
-					},
+					Containers:         *kacContainers,
 					Volumes: []corev1.Volume{
 						{
 							Name: name + "-tls-certs",
@@ -596,6 +751,14 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 							VolumeSource: corev1.VolumeSource{
 								EmptyDir: &corev1.EmptyDirVolumeSource{
 									SizeLimit: &sizeLimitPrivate,
+								},
+							},
+						},
+						{
+							Name: "crowdstrike-falcon-vol2",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{
+									SizeLimit: &sizeLimitWatcher,
 								},
 							},
 						},

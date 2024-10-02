@@ -1,10 +1,19 @@
 package v1alpha1
 
 import (
+	"time"
+
 	arv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	DeployWatcherDefault     = true
+	SnapshotsEnabledDefault  = true
+	SnapshotsIntervalDefault = 22
+	WatcherEnabledDefault    = true
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -99,7 +108,29 @@ type FalconAdmissionConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=12
 	DisabledNamespaces FalconAdmissionNamespace `json:"disabledNamespaces,omitempty"`
 
-	// Currently ignored and internally set to 1.
+	// Determines if with falcon-watcher container is included in the Pod
+	// +kubebuilder:default:=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deploy Watcher Container",order=13
+	DeployWatcher *bool `json:"deployWatcher,omitempty"`
+
+	// Determines if snapshots of Kubernetes resources are periodically taken for cluster visibility.
+	// +kubebuilder:default:=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Resource Snapshots",order=15
+	SnapshotsEnabled *bool `json:"snapshotsEnabled,omitempty"`
+
+	// Time interval between two snapshots of Kubernetes resources in the cluster.
+	// +kubebuilder:default:="22h"
+	// +kubebuilder:validation:Type:=string
+	// +kubebuilder:validation:Format:=duration
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Time Interval Between Two Snapshots",order=16
+	SnapshotsInterval *metav1.Duration `json:"snapshotsInterval,omitempty"`
+
+	// Determines if Kubernetes resources are watched for cluster visibility.
+	// +kubebuilder:default:=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Resource Watcher",order=17
+	WatcherEnabled *bool `json:"watcherEnabled,omitempty"`
+
+	// Currently ignored and internally set to 1
 	// +kubebuilder:default:=2
 	// +kubebuilder:validation:XIntOrString
 	// +kubebuilder:validation:Minimum:=0
@@ -117,11 +148,15 @@ type FalconAdmissionConfigSpec struct {
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Client Resources",order=9,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	//+kubebuilder:default:={"limits":{"cpu":"750m","memory":"256Mi"},"requests":{"cpu":"500m","memory":"256Mi"}}
+	// +kubebuilder:default:={"limits":{"cpu":"750m","memory":"384Mi"},"requests":{"cpu":"500m","memory":"384Mi"}}
 	ResourcesClient *corev1.ResourceRequirements `json:"resourcesClient,omitempty"`
 
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Watcher Resources",order=14,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	// +kubebuilder:default:={"limits":{"cpu":"750m","memory":"384Mi"},"requests":{"cpu":"500m","memory":"384Mi"}}
+	ResourcesWatcher *corev1.ResourceRequirements `json:"resourcesWatcher,omitempty"`
+
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Resources",order=10,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	//+kubebuilder:default:={"limits":{"cpu":"300m","memory":"512Mi"},"requests":{"cpu":"300m","memory":"512Mi"}}
+	//+kubebuilder:default:={"limits":{"cpu":"300m","memory":"256Mi"},"requests":{"cpu":"300m","memory":"256Mi"}}
 	ResourcesAC *corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// Type of Deployment update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
@@ -200,4 +235,36 @@ type FalconAdmissionList struct {
 
 func init() {
 	SchemeBuilder.Register(&FalconAdmission{}, &FalconAdmissionList{})
+}
+
+func (watcher FalconAdmissionConfigSpec) DeployWatcherContainer() bool {
+	if watcher.DeployWatcher == nil {
+		return DeployWatcherDefault
+	}
+
+	return *watcher.DeployWatcher
+}
+
+func (watcher FalconAdmissionConfigSpec) GetSnapshotsEnabled() bool {
+	if watcher.SnapshotsEnabled == nil {
+		return SnapshotsEnabledDefault
+	}
+
+	return *watcher.SnapshotsEnabled
+}
+
+func (watcher FalconAdmissionConfigSpec) GetSnapshotsInterval() time.Duration {
+	if watcher.SnapshotsInterval == nil {
+		return SnapshotsIntervalDefault * time.Hour
+	}
+
+	return watcher.SnapshotsInterval.Duration
+}
+
+func (watcher FalconAdmissionConfigSpec) GetWatcherEnabled() bool {
+	if watcher.WatcherEnabled == nil {
+		return WatcherEnabledDefault
+	}
+
+	return *watcher.WatcherEnabled
 }
