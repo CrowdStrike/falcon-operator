@@ -139,7 +139,7 @@ spec:
                 description: Various configuration for DaemonSet Deployment
                 properties:
                   backend:
-                    default: kernel
+                    default: bpf
                     description: Sets the backend to be used by the DaemonSet Sensor.
                     enum:
                     - kernel

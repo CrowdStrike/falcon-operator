@@ -164,7 +164,7 @@ spec:
       - description: Additional configuration for Falcon Admission Controller deployment.
         displayName: Falcon Admission Controller Configuration
         path: admissionConfig
-      - description: Number of replicas for the Falcon Admission Controller deployment.
+      - description: Currently ignored and internally set to 1.
         displayName: Admission Controller Replica Count
         path: admissionConfig.replicas
         x-descriptors:
@@ -225,6 +225,21 @@ spec:
       - description: Ignore admission control for a specific set of namespaces.
         displayName: Ignore Namespace List
         path: admissionConfig.disabledNamespaces
+      - displayName: Falcon Admission Controller Watcher Resources
+        path: admissionConfig.resourcesWatcher
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Determines if snapshots of Kubernetes resources are periodically
+          taken for cluster visibility.
+        displayName: Enable Resource Snapshots
+        path: admissionConfig.snapshotsEnabled
+      - description: Time interval between two snapshots of Kubernetes resources in
+          the cluster.
+        displayName: Time Interval Between Two Snapshots
+        path: admissionConfig.snapshotsInterval
+      - description: Determines if Kubernetes resources are watched for cluster visibility.
+        displayName: Enable Resource Watcher
+        path: admissionConfig.watcherEnabled
       version: v1alpha1
     - description: FalconContainer is the Schema for the falconcontainers API
       displayName: Falcon Container
