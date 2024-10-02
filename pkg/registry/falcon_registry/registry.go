@@ -2,8 +2,12 @@ package falcon_registry
 
 import (
 	"context"
+	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 
 	"github.com/containers/image/v5/docker"
@@ -117,6 +121,66 @@ func guessLastTag(tags []string, filter func(string) bool) (string, error) {
 func listDockerTags(ctx context.Context, sys *types.SystemContext, imgRef types.ImageReference) ([]string, error) {
 	tags, err := docker.GetRepositoryTags(ctx, sys, imgRef)
 	if err != nil {
+		// Artifactory incorrectly adds the digest to the tag list, so we need to handle this case
+		// by fetching the tags from the registry directly
+		// This is a workaround, and should be removed once Artifactory is fixed
+		if strings.Contains(err.Error(), "registry returned invalid tag") {
+			var jsonRes map[string]interface{}
+			reg, _, found := strings.Cut(imgRef.StringWithinTransport(), ":")
+			if !found {
+				return nil, fmt.Errorf("Error parsing repository (%s) from image reference: %v", imgRef.StringWithinTransport(), err)
+			}
+
+			if strings.Contains(reg, "crowdstrike.com/") {
+				reg = strings.Replace(reg, "crowdstrike.com/", "crowdstrike.com/v2/", 1)
+			} else {
+				return nil, fmt.Errorf("Error parsing repository (%s) from image reference. Missing crowdstrike domain: %v", reg, err)
+			}
+
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{
+					MinVersion: tls.VersionTLS12,
+				},
+			}
+
+			client := &http.Client{Transport: tr}
+			req, err := http.NewRequest("GET", fmt.Sprintf("https:%s/tags/list", reg), nil)
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Add("Accept", "application/json")
+			req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", sys.DockerAuthConfig.Password))
+			resp, err := client.Do(req)
+			if err != nil {
+				return nil, fmt.Errorf("Unable to get http response to list container registry tags: %v", err)
+			}
+			defer resp.Body.Close()
+
+			bodyText, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, fmt.Errorf("Unable to read response body to list registry tags: %v", err)
+			}
+
+			if err := json.Unmarshal(bodyText, &jsonRes); err != nil {
+				return nil, fmt.Errorf("Unable to unmarshal JSON response list registry tags: %v", err)
+			}
+
+			jTags := jsonRes["tags"].([]interface{})
+			if jTags == nil {
+				return nil, fmt.Errorf("Unable to get tags from JSON response list registry tags: %v", err)
+			}
+
+			tagList := []string{}
+			for _, tag := range jTags {
+				if !strings.Contains(tag.(string), "sha256") {
+					tagList = append(tagList, tag.(string))
+				}
+			}
+
+			return tagList, nil
+		}
+
 		return nil, fmt.Errorf("Error listing repository (%s) tags: %v", imgRef.StringWithinTransport(), err)
 	}
 	return tags, nil
