@@ -6,9 +6,6 @@ import (
 	"reflect"
 	"strings"
 
-	arv1 "k8s.io/api/admissionregistration/v1"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -139,13 +136,9 @@ func (r *FalconOperatorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&falconv1alpha1.FalconOperator{}).
 		Owns(&falconv1alpha1.FalconAdmission{}).
-		Owns(&corev1.Namespace{}).
-		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.ResourceQuota{}).
-		Owns(&corev1.Secret{}).
-		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.Service{}).
-		Owns(&arv1.ValidatingWebhookConfiguration{}).
+		Owns(&falconv1alpha1.FalconContainer{}).
+		Owns(&falconv1alpha1.FalconImageAnalyzer{}).
+		Owns(&falconv1alpha1.FalconNodeSensor{}).
 		Complete(r)
 }
 
@@ -173,8 +166,10 @@ func (r *FalconOperatorReconciler) reconcileFalconAdmission(ctx context.Context,
 	updated := false
 	existingFalconAdmission := &falconv1alpha1.FalconAdmission{}
 	newFalconAdmission := &falconv1alpha1.FalconAdmission{}
+	newFalconAdmission.SetName("falcon-kac")
 	if FalconOperator.Spec.FalconAdmissionConfig != nil {
 		newFalconAdmission = &falconv1alpha1.FalconAdmission{Spec: *FalconOperator.Spec.FalconAdmissionConfig}
+		newFalconAdmission.SetNamespace(FalconOperator.Spec.FalconAdmissionConfig.InstallNamespace)
 	}
 
 	log.Info("checking if falcon admission already exists")
