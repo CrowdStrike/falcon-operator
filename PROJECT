@@ -53,7 +53,7 @@ resources:
   controller: true
   domain: crowdstrike.com
   group: falcon
-  kind: FalconSecurity
+  kind: FalconOperator
   path: github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1
   version: v1alpha1
 version: "3"

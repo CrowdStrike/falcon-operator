@@ -1,16 +1,16 @@
-# permissions for end users to view falconsecurities.
+# permissions for end users to view falconoperators.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: falcon-operator
     app.kubernetes.io/managed-by: kustomize
-  name: falcon-falconsecurity-viewer-role
+  name: falcon-FalconOperator-viewer-role
 rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconsecurities
+  - falconoperators
   verbs:
   - get
   - list
@@ -18,6 +18,6 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconsecurities/status
+  - falconoperators/status
   verbs:
   - get

@@ -32,5 +32,5 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the Project itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
-- falcon_falconsecurity_editor_role.yaml
-- falcon_falconsecurity_viewer_role.yaml
+- falcon_falconOperator_editor_role.yaml
+- falcon_falconOperator_viewer_role.yaml

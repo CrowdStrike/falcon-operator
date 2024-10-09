@@ -44,7 +44,7 @@ import (
 	containercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_container"
 	imageanalyzercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_image_analyzer"
 	nodecontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_node"
-	falconsecurity "github.com/crowdstrike/falcon-operator/internal/controller/falcon_security"
+	FalconOperator "github.com/crowdstrike/falcon-operator/internal/controller/falcon_operator"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/version"
 	// +kubebuilder:scaffold:imports
@@ -221,11 +221,11 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconImageAnalyzer")
 		os.Exit(1)
 	}
-	if err = (&falconsecurity.FalconSecurityReconciler{
+	if err = (&FalconOperator.FalconOperatorReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "FalconSecurity")
+		setupLog.Error(err, "unable to create controller", "controller", "FalconOperator")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

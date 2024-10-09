@@ -1,9 +1,9 @@
 apiVersion: falcon.crowdstrike.com/v1alpha1
-kind: FalconSecurity
+kind: FalconOperator
 metadata:
   labels:
     app.kubernetes.io/name: falcon-operator
     app.kubernetes.io/managed-by: kustomize
-  name: falconsecurity-sample
+  name: FalconOperator-sample
 spec:
   # TODO(user): Add fields here

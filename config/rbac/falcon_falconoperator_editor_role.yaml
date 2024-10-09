@@ -1,16 +1,16 @@
-# permissions for end users to edit falconsecurities.
+# permissions for end users to edit falconoperators.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: falcon-operator
     app.kubernetes.io/managed-by: kustomize
-  name: falcon-falconsecurity-editor-role
+  name: falcon-FalconOperator-editor-role
 rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconsecurities
+  - falconoperators
   verbs:
   - create
   - delete
@@ -22,6 +22,6 @@ rules:
 - apiGroups:
   - falcon.crowdstrike.com
   resources:
-  - falconsecurities/status
+  - falconoperators/status
   verbs:
   - get

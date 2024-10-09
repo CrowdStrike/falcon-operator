@@ -14,7 +14,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 )
 
-var _ = Describe("FalconSecurity Controller", func() {
+var _ = Describe("FalconOperator Controller", func() {
 	Context("When reconciling a resource", func() {
 		const resourceName = "test-resource"
 
@@ -24,13 +24,13 @@ var _ = Describe("FalconSecurity Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		falconsecurity := &falconv1alpha1.FalconSecurity{}
+		FalconOperator := &falconv1alpha1.FalconOperator{}
 
 		BeforeEach(func() {
-			By("creating the custom resource for the Kind FalconSecurity")
-			err := k8sClient.Get(ctx, typeNamespacedName, falconsecurity)
+			By("creating the custom resource for the Kind FalconOperator")
+			err := k8sClient.Get(ctx, typeNamespacedName, FalconOperator)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &falconv1alpha1.FalconSecurity{
+				resource := &falconv1alpha1.FalconOperator{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -43,16 +43,16 @@ var _ = Describe("FalconSecurity Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &falconv1alpha1.FalconSecurity{}
+			resource := &falconv1alpha1.FalconOperator{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance FalconSecurity")
+			By("Cleanup the specific resource instance FalconOperator")
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
-			controllerReconciler := &FalconSecurityReconciler{
+			controllerReconciler := &FalconOperatorReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
 			}

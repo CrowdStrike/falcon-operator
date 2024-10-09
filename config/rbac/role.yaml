@@ -308,6 +308,32 @@ rules:
   - patch
   - update
 - apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falconoperators
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falconoperators/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falconoperators/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - image.openshift.io
   resources:
   - imagestreams
