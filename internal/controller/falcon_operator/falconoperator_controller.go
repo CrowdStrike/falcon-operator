@@ -165,11 +165,16 @@ func (r *FalconOperatorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *FalconOperatorReconciler) reconcileFalconAdmission(ctx context.Context, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator) error {
 	updated := false
 	existingFalconAdmission := &falconv1alpha1.FalconAdmission{}
-	newFalconAdmission := &falconv1alpha1.FalconAdmission{}
-	newFalconAdmission.SetName("falcon-kac")
+
+	var defaultAdmissionSpec *falconv1alpha1.FalconAdmissionSpec
 	if FalconOperator.Spec.FalconAdmissionConfig != nil {
-		newFalconAdmission = &falconv1alpha1.FalconAdmission{Spec: *FalconOperator.Spec.FalconAdmissionConfig}
-		newFalconAdmission.SetNamespace(FalconOperator.Spec.FalconAdmissionConfig.InstallNamespace)
+		defaultAdmissionSpec = FalconOperator.Spec.FalconAdmissionConfig
+	}
+	newFalconAdmission := &falconv1alpha1.FalconAdmission{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "falcon-kac",
+		},
+		Spec: *defaultAdmissionSpec,
 	}
 
 	log.Info("checking if falcon admission already exists")
@@ -237,13 +242,13 @@ func (r *FalconOperatorReconciler) Create(ctx context.Context, log logr.Logger, 
 		name := t.GetName()
 		namespace := t.GetNamespace()
 		gvk := t.GetObjectKind().GroupVersionKind()
-		log.Info(fmt.Sprintf("Creating Falcon Admission object %s %s in namespace %s", gvk.Kind, name, namespace))
+		log.Info(fmt.Sprintf("Creating %s %s in namespace %s", gvk.Kind, name, namespace))
 		err := r.Client.Create(ctx, t)
 		if err != nil {
 			if errors.IsAlreadyExists(err) {
-				log.Info(fmt.Sprintf("Falcon Admission object %s %s already exists in namespace %s", gvk.Kind, name, namespace))
+				log.Info(fmt.Sprintf("Falcon %s %s already exists in namespace %s", gvk.Kind, name, namespace))
 			} else {
-				return fmt.Errorf("failed to create %s %s in namespace %s: %v", gvk.Kind, name, namespace, err)
+				return fmt.Errorf("failed to create %s %s in namespace %s %v", gvk.Kind, name, namespace, err)
 			}
 		}
 
@@ -260,7 +265,7 @@ func (r *FalconOperatorReconciler) Create(ctx context.Context, log logr.Logger, 
 
 		return err
 	default:
-		return fmt.Errorf("Unrecognized kube object type: %T", obj)
+		return fmt.Errorf("unrecognized kube object type: %T", obj)
 	}
 }
 
