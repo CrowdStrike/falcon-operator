@@ -1,0 +1,12 @@
+FROM golang:1.21
+
+RUN apt-get update
+RUN apt-get install libbtrfs-dev -y
+RUN apt-get install libgpgme-dev -y
+
+RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+
+RUN echo 'export PATH=/go/bin:/usr/local/go/bin:$PATH' >> /root/.bash_profile
+
+RUN mkdir /src
+WORKDIR /src

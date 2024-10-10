@@ -1,0 +1,15 @@
+version: "3"
+
+vars:
+  devTag: falcon-operator-dev:latest
+
+tasks:
+  build:
+    - make docker-build
+
+  dev:
+    - docker build --file Dockerfile.dev --tag {{.devTag}} .
+    - docker run --rm --tty --interactive --volume $(pwd):/src {{.devTag}}
+
+  test:
+    - make test
