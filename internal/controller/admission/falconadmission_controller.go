@@ -556,20 +556,29 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		updated = true
 	}
 
-	for i, containers := range dep.Spec.Template.Spec.Containers {
-		if !reflect.DeepEqual(containers.Resources, existingDeployment.Spec.Template.Spec.Containers[i].Resources) {
-			existingDeployment.Spec.Template.Spec.Containers[i].Resources = containers.Resources
-			updated = true
-		}
+	if len(dep.Spec.Template.Spec.Containers) != len(existingDeployment.Spec.Template.Spec.Containers) {
+		existingDeployment.Spec.Template.Spec.Containers = dep.Spec.Template.Spec.Containers
+		updated = true
+	} else {
+		for i, containers := range dep.Spec.Template.Spec.Containers {
+			if !reflect.DeepEqual(containers.Resources, existingDeployment.Spec.Template.Spec.Containers[i].Resources) {
+				existingDeployment.Spec.Template.Spec.Containers[i].Resources = containers.Resources
+				updated = true
+			}
 
-		if !reflect.DeepEqual(containers.LivenessProbe.ProbeHandler.HTTPGet.Port, existingDeployment.Spec.Template.Spec.Containers[i].LivenessProbe.ProbeHandler.HTTPGet.Port) {
-			existingDeployment.Spec.Template.Spec.Containers[i].LivenessProbe.ProbeHandler.HTTPGet.Port = containers.LivenessProbe.ProbeHandler.HTTPGet.Port
-			updated = true
-		}
+			if !reflect.DeepEqual(containers.LivenessProbe.ProbeHandler.HTTPGet.Port, existingDeployment.Spec.Template.Spec.Containers[i].LivenessProbe.ProbeHandler.HTTPGet.Port) {
+				existingDeployment.Spec.Template.Spec.Containers[i].LivenessProbe.ProbeHandler.HTTPGet.Port = containers.LivenessProbe.ProbeHandler.HTTPGet.Port
+				updated = true
+			}
 
-		if !reflect.DeepEqual(containers.StartupProbe.ProbeHandler.HTTPGet.Port, existingDeployment.Spec.Template.Spec.Containers[i].StartupProbe.ProbeHandler.HTTPGet.Port) {
-			existingDeployment.Spec.Template.Spec.Containers[i].StartupProbe.ProbeHandler.HTTPGet.Port = containers.StartupProbe.ProbeHandler.HTTPGet.Port
-			updated = true
+			if !reflect.DeepEqual(containers.StartupProbe.ProbeHandler.HTTPGet.Port, existingDeployment.Spec.Template.Spec.Containers[i].StartupProbe.ProbeHandler.HTTPGet.Port) {
+				existingDeployment.Spec.Template.Spec.Containers[i].StartupProbe.ProbeHandler.HTTPGet.Port = containers.StartupProbe.ProbeHandler.HTTPGet.Port
+				updated = true
+			}
+			if !reflect.DeepEqual(containers.Env, existingDeployment.Spec.Template.Spec.Containers[i].Env) {
+				existingDeployment.Spec.Template.Spec.Containers[i].Env = containers.Env
+				updated = true
+			}
 		}
 	}
 
