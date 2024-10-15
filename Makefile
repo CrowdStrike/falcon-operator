@@ -5,6 +5,11 @@
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
 VERSION ?= 1.3.0
 
+# SKIP_VERSIONS is a list of operator versions for OLM to skip
+# Any version specified in this list will be unavailable via OLM
+# Documentation: https://docs.redhat.com/en/documentation/openshift_container_platform/4.8/html/operators/understanding-operators?extIdCarryOver=true&intcmp=7013a000003SwrTAAS&sc_cid=701f2000001OH7EAAW#olm-upgrades-skipping_olm-workflow
+SKIP_VERSIONS := 1.3.0
+
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
 # To re-generate a bundle for other specific channels without changing the standard setup, you can:
@@ -260,10 +265,17 @@ endif
 endif
 
 .PHONY: bundle
+OPERATOR_BUNDLE_CSV := bundle/manifests/falcon-operator.clusterserviceversion.yaml
 bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
+	@if ! grep -q skip: ./$(OPERATOR_BUNDLE_CSV); then\
+		sed -i "/^spec:/a \  skip:" ./$(OPERATOR_BUNDLE_CSV);\
+	fi
+	@for i in $(SKIP_VERSIONS); do\
+		sed -i "/^  skip:/a \    - falcon-operator.v$${i}" ./$(OPERATOR_BUNDLE_CSV);\
+	done
 	$(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: bundle-build
