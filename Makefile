@@ -270,11 +270,11 @@ bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metada
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
-	@if ! grep -q skip: ./$(OPERATOR_BUNDLE_CSV); then\
-		sed -i "/^spec:/a \  skip:" ./$(OPERATOR_BUNDLE_CSV);\
+	@if ! grep -q skips: ./$(OPERATOR_BUNDLE_CSV); then\
+		sed -i "/^spec:/a \  skips:" ./$(OPERATOR_BUNDLE_CSV);\
 	fi
 	@for i in $(SKIP_VERSIONS); do\
-		sed -i "/^  skip:/a \    - falcon-operator.v$${i}" ./$(OPERATOR_BUNDLE_CSV);\
+		sed -i "/^  skips:/a \    - falcon-operator.v$${i}" ./$(OPERATOR_BUNDLE_CSV);\
 	done
 	$(OPERATOR_SDK) bundle validate ./bundle
 
