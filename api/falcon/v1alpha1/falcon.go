@@ -1,5 +1,10 @@
 package v1alpha1
 
+const (
+	APDDefault   = false
+	TraceDefault = "none"
+)
+
 // CrowdStrike Falcon Sensor configuration settings.
 // +k8s:openapi-gen=true
 type FalconSensor struct {

@@ -10,10 +10,18 @@ import (
 )
 
 const (
-	DeployWatcherDefault     = true
-	SnapshotsEnabledDefault  = true
-	SnapshotsIntervalDefault = 22
-	WatcherEnabledDefault    = true
+	DeployWatcherDefault       = true
+	SnapshotsEnabledDefault    = true
+	SnapshotsIntervalDefault   = 22
+	WatcherEnabledDefault      = true
+	KACNamespaceDefault        = "falcon-kac"
+	KACResQuotaPodLimitDefault = "2"
+	KACPortDefault             = 443
+	KACContainerPortDefault    = 4443
+	KACFailurePolicyDefault    = "Ignore"
+	KACReplicasDefault         = 2
+	KACImagePullPolicyDefault  = "Always"
+	ResourcesWatcherDefault    = corev1.ResourceRequirements{}
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -267,4 +275,17 @@ func (watcher FalconAdmissionConfigSpec) GetWatcherEnabled() bool {
 	}
 
 	return *watcher.WatcherEnabled
+}
+
+func NewFalconAdmissionSpec() *FalconAdmissionSpec {
+	return &FalconAdmissionSpec{
+		InstallNamespace: KACNamespaceDefault,
+		Falcon: FalconSensor{
+			APD: *APDDefault,
+		},
+		ResQuota: FalconAdmissionRQSpec{
+			PodLimit: KACResQuotaPodLimitDefault,
+		},
+		AdmissionConfig: FalconAdmissionConfigSpec{},
+	}
 }

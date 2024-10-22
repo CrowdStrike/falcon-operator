@@ -84,7 +84,7 @@ func (r *FalconOperatorReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// Let's just set the status as Unknown when no status is available
 	if len(FalconOperator.Status.Conditions) == 0 {
-		err := r.StatusUpdate(ctx, req, log, FalconOperator, falconv1alpha1.ConditionPending,
+		err := r.statusUpdate(ctx, req, log, FalconOperator, falconv1alpha1.ConditionPending,
 			metav1.ConditionFalse,
 			falconv1alpha1.ReasonReqNotMet,
 			"FalconOperator progressing")
@@ -121,7 +121,7 @@ func (r *FalconOperatorReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	log.Info("Before last status update")
-	err = r.StatusUpdate(ctx, req, log, FalconOperator, falconv1alpha1.ConditionSuccess,
+	err = r.statusUpdate(ctx, req, log, FalconOperator, falconv1alpha1.ConditionSuccess,
 		metav1.ConditionTrue,
 		falconv1alpha1.ReasonInstallSucceeded,
 		"FalconOperator installation completed")
@@ -189,12 +189,13 @@ func (r *FalconOperatorReconciler) reconcileFalconAdmission(ctx context.Context,
 	if *FalconOperator.Spec.DeployAdmissionController {
 		if err != nil && apierrors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(FalconOperator, newFalconAdmission, r.Scheme); err != nil {
+				log.Info("inside set controller reference")
 				return fmt.Errorf("unable to set controller reference for %s: %v", newFalconAdmission.ObjectMeta.Name, err)
 			}
-			return r.Create(ctx, log, FalconOperator, newFalconAdmission)
+			return r.create(ctx, log, FalconOperator, newFalconAdmission)
 		}
 	} else if err == nil {
-		return r.Delete(ctx, log, FalconOperator, existingFalconAdmission)
+		return r.delete(ctx, log, FalconOperator, existingFalconAdmission)
 	}
 
 	if !reflect.DeepEqual(newFalconAdmission.Spec.FalconAPI, existingFalconAdmission.Spec.FalconAPI) {
@@ -203,7 +204,7 @@ func (r *FalconOperatorReconciler) reconcileFalconAdmission(ctx context.Context,
 	}
 
 	if updated {
-		if err := r.Update(ctx, log, FalconOperator, existingFalconAdmission); err != nil {
+		if err := r.update(ctx, log, FalconOperator, existingFalconAdmission); err != nil {
 			return err
 		}
 	}
@@ -211,13 +212,14 @@ func (r *FalconOperatorReconciler) reconcileFalconAdmission(ctx context.Context,
 	return nil
 }
 
-func (r *FalconOperatorReconciler) StatusUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator, condType string, status metav1.ConditionStatus, reason string, message string) error {
+func (r *FalconOperatorReconciler) statusUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator, condType string, status metav1.ConditionStatus, reason string, message string) error {
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		err := r.Get(ctx, req.NamespacedName, FalconOperator)
 		if err != nil {
 			return err
 		}
 
+		log.Info("inside status update")
 		meta.SetStatusCondition(&FalconOperator.Status.Conditions, metav1.Condition{
 			Status:             status,
 			Reason:             reason,
@@ -236,7 +238,7 @@ func (r *FalconOperatorReconciler) StatusUpdate(ctx context.Context, req ctrl.Re
 	return nil
 }
 
-func (r *FalconOperatorReconciler) Create(ctx context.Context, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator, obj runtime.Object) error {
+func (r *FalconOperatorReconciler) create(ctx context.Context, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator, obj runtime.Object) error {
 	switch t := obj.(type) {
 	case client.Object:
 		name := t.GetName()
@@ -269,7 +271,7 @@ func (r *FalconOperatorReconciler) Create(ctx context.Context, log logr.Logger, 
 	}
 }
 
-func (r *FalconOperatorReconciler) Update(ctx context.Context, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator, obj runtime.Object) error {
+func (r *FalconOperatorReconciler) update(ctx context.Context, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator, obj runtime.Object) error {
 	switch t := obj.(type) {
 	case client.Object:
 		name := t.GetName()
@@ -301,7 +303,7 @@ func (r *FalconOperatorReconciler) Update(ctx context.Context, log logr.Logger, 
 	}
 }
 
-func (r *FalconOperatorReconciler) Delete(ctx context.Context, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator, obj runtime.Object) error {
+func (r *FalconOperatorReconciler) delete(ctx context.Context, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator, obj runtime.Object) error {
 	switch t := obj.(type) {
 	case client.Object:
 		name := t.GetName()
