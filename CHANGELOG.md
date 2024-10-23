@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - feat: pin go version for releases
-- Bumping to version 1.3.0
 - feat: add cluster visibility to FalconAdmission
 
 ## [1.3.0] - 2024-10-09
