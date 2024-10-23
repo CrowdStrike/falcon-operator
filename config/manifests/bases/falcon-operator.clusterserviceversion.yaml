@@ -164,7 +164,7 @@ spec:
       - description: Additional configuration for Falcon Admission Controller deployment.
         displayName: Falcon Admission Controller Configuration
         path: admissionConfig
-      - description: Currently ignored and internally set to 1.
+      - description: Currently ignored and internally set to 1
         displayName: Admission Controller Replica Count
         path: admissionConfig.replicas
         x-descriptors:
@@ -225,6 +225,10 @@ spec:
       - description: Ignore admission control for a specific set of namespaces.
         displayName: Ignore Namespace List
         path: admissionConfig.disabledNamespaces
+      - description: Determines if with falcon-watcher container is included in the
+          Pod
+        displayName: Deploy Watcher Container
+        path: admissionConfig.deployWatcher
       - displayName: Falcon Admission Controller Watcher Resources
         path: admissionConfig.resourcesWatcher
         x-descriptors:
