@@ -10,18 +10,29 @@ import (
 )
 
 const (
-	DeployWatcherDefault       = true
-	SnapshotsEnabledDefault    = true
-	SnapshotsIntervalDefault   = 22
-	WatcherEnabledDefault      = true
-	KACNamespaceDefault        = "falcon-kac"
-	KACResQuotaPodLimitDefault = "2"
-	KACPortDefault             = 443
-	KACContainerPortDefault    = 4443
-	KACFailurePolicyDefault    = "Ignore"
-	KACReplicasDefault         = 2
-	KACImagePullPolicyDefault  = "Always"
-	ResourcesWatcherDefault    = corev1.ResourceRequirements{}
+	DeployWatcherDefault            = true
+	SnapshotsEnabledDefault         = true
+	SnapshotsIntervalDefault        = 22
+	WatcherEnabledDefault           = true
+	KACNamespaceDefault             = "falcon-kac"
+	KACResQuotaPodLimitDefault      = "2"
+	KACPortDefault                  = 443
+	KACContainerPortDefault         = 4443
+	KACFailurePolicyDefault         = "Ignore"
+	KACReplicasDefault              = 2
+	KACImagePullPolicyDefault       = "Always"
+	ResourcesClientLimitCpuDefault  = ""
+	ResourcesClientLimitMemDefault  = ""
+	ResourcesClientReqCpuDefault    = ""
+	ResourcesClientReqMemDefault    = ""
+	ResourcesAcLimitCpuDefault      = ""
+	ResourcesAcLimitMemDefault      = ""
+	ResourcesAcReqCpuDefault        = ""
+	ResourcesAcReqMemDefault        = ""
+	ResourcesWatcherLimitCpuDefault = ""
+	ResourcesWatcherLimitMemDefault = ""
+	ResourcesWatcherReqCpuDefault   = ""
+	ResourcesWatcherReqMemDefault   = ""
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
