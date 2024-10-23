@@ -124,7 +124,7 @@ metadata:
       ]
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
-    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:4909965e030c1c1c5d2c9184038f298727c8e380acd05ab3437db26bf2cad3b0
+    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:efaf0999b6455fac1e66a4a907697ad293b8691aac011d5481609095d2219bca
     createdAt: "2024-06-05T21:55:55Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
@@ -143,7 +143,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: registry.connect.redhat.com/crowdstrike/falcon-operator
     support: CrowdStrike
-  name: falcon-operator.v1.3.0
+  name: falcon-operator.v1.3.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -286,7 +286,7 @@ spec:
       - description: Additional configuration for Falcon Admission Controller deployment.
         displayName: Falcon Admission Controller Configuration
         path: admissionConfig
-      - description: Currently ignored and internally set to 1.
+      - description: Currently ignored and internally set to 1
         displayName: Admission Controller Replica Count
         path: admissionConfig.replicas
         x-descriptors:
@@ -347,6 +347,10 @@ spec:
       - description: Ignore admission control for a specific set of namespaces.
         displayName: Ignore Namespace List
         path: admissionConfig.disabledNamespaces
+      - description: Determines if with falcon-watcher container is included in the
+          Pod
+        displayName: Deploy Watcher Container
+        path: admissionConfig.deployWatcher
       - displayName: Falcon Admission Controller Watcher Resources
         path: admissionConfig.resourcesWatcher
         x-descriptors:
@@ -1368,14 +1372,14 @@ spec:
                 - name: OPERATOR_NAME
                   value: falcon-operator
                 - name: RELATED_IMAGE_NODE_SENSOR
-                  value: registry.crowdstrike.com/falcon-sensor/us-1/release/falcon-sensor@sha256:3d501b582e295097ba4114189c31719b5df102121d8689c51c5a731fee1331b9
+                  value: registry.crowdstrike.com/falcon-sensor/us-1/release/falcon-sensor@sha256:43fba7fe6110ac20843d5881914175f92ea8a2e44fe900c756de149367b10352
                 - name: RELATED_IMAGE_SIDECAR_SENSOR
                   value: registry.crowdstrike.com/falcon-container/us-1/release/falcon-sensor@sha256:84fd3b9575fed1104db24a7a57bfece37de1d9637e55ee9f27bb0fd6eee42399
                 - name: RELATED_IMAGE_ADMISSION_CONTROLLER
                   value: registry.crowdstrike.com/falcon-kac/us-1/release/falcon-kac@sha256:015f32d381fbc2a8f6a2fffe85407bb378a01160fb1a3006893440db55694a26
                 - name: RELATED_IMAGE_IMAGE_ANALYZER
-                  value: registry.crowdstrike.com/falcon-imageanalyzer/us-1/release/falcon-imageanalyzer@sha256:12ee5fed0296cca6f15dc10b0acac0df98f6eede8683cef1541254d410b2bc70
-                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:4909965e030c1c1c5d2c9184038f298727c8e380acd05ab3437db26bf2cad3b0
+                  value: registry.crowdstrike.com/falcon-imageanalyzer/us-1/release/falcon-imageanalyzer@sha256:a618e165657baf07731977dc267d3dfc069cfa683c2806f7c4e44f342aa5a25a
+                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:efaf0999b6455fac1e66a4a907697ad293b8691aac011d5481609095d2219bca
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -1471,17 +1475,19 @@ spec:
     name: CrowdStrike
     url: https://crowdStrike.com
   relatedImages:
-  - image: "registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:4909965e030c1c1c5d2c9184038f298727c8e380acd05ab3437db26bf2cad3b0"
+  - image: "registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:efaf0999b6455fac1e66a4a907697ad293b8691aac011d5481609095d2219bca"
     name: operator
   - image: "registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:77df668a9591bbaae675d0553f8dca5423c0f257317bc08fe821d965f44ed019"
     name: rbac-proxy
-  - image: "registry.crowdstrike.com/falcon-sensor/us-1/release/falcon-sensor@sha256:3d501b582e295097ba4114189c31719b5df102121d8689c51c5a731fee1331b9"
+  - image: "registry.crowdstrike.com/falcon-sensor/us-1/release/falcon-sensor@sha256:43fba7fe6110ac20843d5881914175f92ea8a2e44fe900c756de149367b10352"
     name: node-sensor
   - image: "registry.crowdstrike.com/falcon-container/us-1/release/falcon-sensor@sha256:84fd3b9575fed1104db24a7a57bfece37de1d9637e55ee9f27bb0fd6eee42399"
     name: sidecar-sensor
   - image: "registry.crowdstrike.com/falcon-kac/us-1/release/falcon-kac@sha256:015f32d381fbc2a8f6a2fffe85407bb378a01160fb1a3006893440db55694a26"
     name: admission-controller
-  - image: "registry.crowdstrike.com/falcon-imageanalyzer/us-1/release/falcon-imageanalyzer@sha256:12ee5fed0296cca6f15dc10b0acac0df98f6eede8683cef1541254d410b2bc70"
+  - image: "registry.crowdstrike.com/falcon-imageanalyzer/us-1/release/falcon-imageanalyzer@sha256:a618e165657baf07731977dc267d3dfc069cfa683c2806f7c4e44f342aa5a25a"
     name: image-analyzer
   replaces: falcon-operator.v1.2.0
-  version: 1.3.0
+  version: 1.3.1
+  skips:
+  - falcon-operator.v1.3.0
