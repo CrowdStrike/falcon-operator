@@ -15,8 +15,10 @@ import (
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
@@ -165,20 +167,18 @@ func (r *FalconOperatorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *FalconOperatorReconciler) reconcileFalconAdmission(ctx context.Context, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator) error {
 	updated := false
 	existingFalconAdmission := &falconv1alpha1.FalconAdmission{}
+	newFalconAdmission := &falconv1alpha1.FalconAdmission{}
 
-	var defaultAdmissionSpec *falconv1alpha1.FalconAdmissionSpec
-	if FalconOperator.Spec.FalconAdmissionConfig != nil {
-		defaultAdmissionSpec = FalconOperator.Spec.FalconAdmissionConfig
+	newFalconAdmission.ObjectMeta = metav1.ObjectMeta{
+		Name:      "falcon-kac",
+		Namespace: newFalconAdmission.GetInstallNamespace(),
 	}
-	newFalconAdmission := &falconv1alpha1.FalconAdmission{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "falcon-kac",
-		},
-		Spec: *defaultAdmissionSpec,
-	}
+	newFalconAdmission.Spec = *v1alpha1.NewFalconAdmissionSpec()
+	newFalconAdmission.Spec.FalconAPI = FalconOperator.Spec.FalconAPI
+	newFalconAdmission.Spec.Registry = FalconOperator.Spec.Registry
 
 	log.Info("checking if falcon admission already exists")
-	err := r.Client.Get(ctx, types.NamespacedName{Name: newFalconAdmission.Name}, existingFalconAdmission)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: newFalconAdmission.Name, Namespace: newFalconAdmission.Namespace}, existingFalconAdmission)
 	// if err != nil && apierrors.IsNotFound(err) && *FalconOperator.Spec.DeployAdmissionController {
 	// 	if err = ctrl.SetControllerReference(FalconOperator, newFalconAdmission, r.Scheme); err != nil {
 	// 		return fmt.Errorf("unable to set controller reference for %s: %v", newFalconAdmission.ObjectMeta.Name, err)
@@ -186,11 +186,11 @@ func (r *FalconOperatorReconciler) reconcileFalconAdmission(ctx context.Context,
 	// 	return r.Create(ctx, log, FalconOperator, newFalconAdmission)
 	// }
 
-	if *FalconOperator.Spec.DeployAdmissionController {
+	if FalconOperator.GetDeployAdmissionController() {
 		if err != nil && apierrors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(FalconOperator, newFalconAdmission, r.Scheme); err != nil {
 				log.Info("inside set controller reference")
-				return fmt.Errorf("unable to set controller reference for %s: %v", newFalconAdmission.ObjectMeta.Name, err)
+				return fmt.Errorf("unable to set controller reference for %s: %v", newFalconAdmission.Name, err)
 			}
 			return r.create(ctx, log, FalconOperator, newFalconAdmission)
 		}
@@ -243,9 +243,13 @@ func (r *FalconOperatorReconciler) create(ctx context.Context, log logr.Logger, 
 	case client.Object:
 		name := t.GetName()
 		namespace := t.GetNamespace()
-		gvk := t.GetObjectKind().GroupVersionKind()
+		gvk, err := apiutil.GVKForObject(t, r.Scheme)
+		if err != nil {
+			panic(err)
+		}
+		// gvk := t.GetObjectKind().GroupVersionKind()
 		log.Info(fmt.Sprintf("Creating %s %s in namespace %s", gvk.Kind, name, namespace))
-		err := r.Client.Create(ctx, t)
+		err = r.Client.Create(ctx, t)
 		if err != nil {
 			if errors.IsAlreadyExists(err) {
 				log.Info(fmt.Sprintf("Falcon %s %s already exists in namespace %s", gvk.Kind, name, namespace))

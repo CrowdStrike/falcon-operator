@@ -115,6 +115,7 @@ func main() {
 				&falconv1alpha1.FalconAdmission{}:  {},
 				&falconv1alpha1.FalconNodeSensor{}: {},
 				&falconv1alpha1.FalconContainer{}:  {},
+				&falconv1alpha1.FalconOperator{}:   {},
 				&corev1.Namespace{}:                {},
 				&corev1.Secret{}:                   {},
 				&rbacv1.ClusterRoleBinding{}:       {},

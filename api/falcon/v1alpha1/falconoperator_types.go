@@ -25,14 +25,18 @@ type FalconOperatorSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
+	// Registry configures container image registry to which the Admission Controller image will be pushed.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Registry Configuration",order=3
+	Registry RegistrySpec `json:"registry,omitempty"`
+
 	// Determines if Falcon Admission Controller is deployed
 	// +kubebuilder:default:=true
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deploy Falcon Admission Controller",order=3
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deploy Falcon Admission Controller",order=4
 	DeployAdmissionController *bool `json:"deployAdmissionController,omitempty"`
 
 	// Falcon Admission Controller Configuration
 	// +kubebuilder:default={"registry":{"type": "crowdstrike"}}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Configuration",order=4
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Configuration",order=5
 	FalconAdmissionConfig *FalconAdmissionSpec `json:"falconAdmissionConfig,omitempty"`
 }
 
@@ -75,12 +79,12 @@ type FalconOperatorList struct {
 	Items           []FalconOperator `json:"items"`
 }
 
-func (security FalconOperatorSpec) GetDeployAdmissionController() bool {
-	if security.DeployAdmissionController == nil {
+func (security FalconOperator) GetDeployAdmissionController() bool {
+	if security.Spec.DeployAdmissionController == nil {
 		return DeployAdmissionControllerDefault
 	}
 
-	return *security.DeployAdmissionController
+	return *security.Spec.DeployAdmissionController
 }
 
 func init() {

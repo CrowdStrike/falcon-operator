@@ -1,7 +1,6 @@
 package v1alpha1
 
 const (
-	APDDefault   = false
 	TraceDefault = "none"
 )
 

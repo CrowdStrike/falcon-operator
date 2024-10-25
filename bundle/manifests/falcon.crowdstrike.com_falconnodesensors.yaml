@@ -138,6 +138,31 @@ spec:
               node:
                 description: Various configuration for DaemonSet Deployment
                 properties:
+                  advanced:
+                    description: Advanced configures various options that go against
+                      industry practices or are otherwise not recommended for use.
+                      Adjusting these settings may result in incorrect or undesirable
+                      behavior. Proceed at your own risk. For more information, please
+                      see https://github.com/CrowdStrike/falcon-operator/blob/main/docs/ADVANCED.md.
+                    properties:
+                      autoUpdate:
+                        description: AutoUpdate determines whether to install new
+                          versions of the sensor as they become available. Defaults
+                          to "off" and is ignored if FalconAPI is not set. Setting
+                          this to "force" causes the reconciler to run on every polling
+                          cycle, even if a new sensor version is not available. Setting
+                          it to "normal" only reconciles when a new version is detected.
+                        enum:
+                        - "off"
+                        - normal
+                        - force
+                        type: string
+                      updatePolicy:
+                        description: UpdatePolicy is the name of a sensor update policy
+                          configured and enabled in Falcon UI. It is ignored when
+                          Image and/or Version are set.
+                        type: string
+                    type: object
                   backend:
                     default: bpf
                     description: Sets the backend to be used by the DaemonSet Sensor.

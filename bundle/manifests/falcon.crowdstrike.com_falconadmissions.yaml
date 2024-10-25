@@ -56,6 +56,11 @@ spec:
                     minimum: 0
                     type: integer
                     x-kubernetes-int-or-string: true
+                  deployWatcher:
+                    default: true
+                    description: Determines if with falcon-watcher container is included
+                      in the Pod
+                    type: boolean
                   disabledNamespaces:
                     description: Ignore admission control for a specific set of namespaces.
                     properties:
@@ -99,8 +104,7 @@ spec:
                     type: array
                   replicas:
                     default: 2
-                    description: Number of replicas for the Falcon Admission Controller
-                      deployment.
+                    description: Currently ignored and internally set to 1
                     format: int32
                     maximum: 65535
                     minimum: 0
@@ -110,10 +114,10 @@ spec:
                     default:
                       limits:
                         cpu: 300m
-                        memory: 512Mi
+                        memory: 256Mi
                       requests:
                         cpu: 300m
-                        memory: 512Mi
+                        memory: 256Mi
                     description: ResourceRequirements describes the compute resource
                       requirements.
                     properties:
@@ -167,10 +171,10 @@ spec:
                     default:
                       limits:
                         cpu: 750m
-                        memory: 256Mi
+                        memory: 384Mi
                       requests:
                         cpu: 500m
-                        memory: 256Mi
+                        memory: 384Mi
                     description: ResourceRequirements describes the compute resource
                       requirements.
                     properties:
@@ -224,10 +228,10 @@ spec:
                     default:
                       limits:
                         cpu: 750m
-                        memory: 256Mi
+                        memory: 384Mi
                       requests:
                         cpu: 500m
-                        memory: 256Mi
+                        memory: 384Mi
                     description: ResourceRequirements describes the compute resource
                       requirements.
                     properties:

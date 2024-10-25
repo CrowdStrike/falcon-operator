@@ -4370,6 +4370,45 @@ spec:
                       Example: 6.31, 6.31.0, 6.31.0-1409, etc.'
                     type: string
                 type: object
+              registry:
+                description: Registry configures container image registry to which
+                  the Admission Controller image will be pushed.
+                properties:
+                  acr_name:
+                    description: Azure Container Registry Name represents the name
+                      of the ACR for the Falcon Container push. Only applicable to
+                      Azure cloud.
+                    type: string
+                  tls:
+                    description: TLS configures TLS connection for push of Falcon
+                      Container image to the registry
+                    properties:
+                      caCertificate:
+                        description: Allow for users to provide a CA Cert Bundle,
+                          as either a string or base64 encoded string
+                        type: string
+                      caCertificateConfigMap:
+                        description: Allow for users to provide a ConfigMap containing
+                          a CA Cert Bundle under a key ending in .crt
+                        type: string
+                      insecure_skip_verify:
+                        description: Allow pushing to docker registries over HTTPS
+                          with failed TLS verification. Note that this does not affect
+                          other TLS connections.
+                        type: boolean
+                    type: object
+                  type:
+                    description: Type of container registry to be used
+                    enum:
+                    - acr
+                    - ecr
+                    - gcr
+                    - crowdstrike
+                    - openshift
+                    type: string
+                required:
+                - type
+                type: object
             type: object
           status:
             description: FalconOperatorStatus defines the observed state of FalconOperator

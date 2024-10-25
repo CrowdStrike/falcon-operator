@@ -1282,6 +1282,7 @@ func (in *FalconOperatorSpec) DeepCopyInto(out *FalconOperatorSpec) {
 		*out = new(FalconAPI)
 		(*in).DeepCopyInto(*out)
 	}
+	in.Registry.DeepCopyInto(&out.Registry)
 	if in.DeployAdmissionController != nil {
 		in, out := &in.DeployAdmissionController, &out.DeployAdmissionController
 		*out = new(bool)
