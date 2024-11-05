@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	"dario.cat/mergo"
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
@@ -68,8 +68,8 @@ type FalconOperatorReconciler struct {
 func (r *FalconOperatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	FalconOperator := &falconv1alpha1.FalconOperator{}
-	err := r.Get(ctx, req.NamespacedName, FalconOperator)
+	falconOperator := &falconv1alpha1.FalconOperator{}
+	err := r.Get(ctx, req.NamespacedName, falconOperator)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// If the custom resource is not found then, it usually means that it was deleted or not created
@@ -82,11 +82,9 @@ func (r *FalconOperatorReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Before first set status")
-
 	// Let's just set the status as Unknown when no status is available
-	if len(FalconOperator.Status.Conditions) == 0 {
-		err := r.statusUpdate(ctx, req, log, FalconOperator, falconv1alpha1.ConditionPending,
+	if len(falconOperator.Status.Conditions) == 0 {
+		err := r.statusUpdate(ctx, req, log, falconOperator, falconv1alpha1.ConditionPending,
 			metav1.ConditionFalse,
 			falconv1alpha1.ReasonReqNotMet,
 			"FalconOperator progressing")
@@ -95,16 +93,14 @@ func (r *FalconOperatorReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
-	log.Info("After first set status")
-
-	if FalconOperator.Status.Version != version.Get() {
+	if falconOperator.Status.Version != version.Get() {
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			err := r.Get(ctx, req.NamespacedName, FalconOperator)
+			err := r.Get(ctx, req.NamespacedName, falconOperator)
 			if err != nil {
 				return err
 			}
-			FalconOperator.Status.Version = version.Get()
-			return r.Status().Update(ctx, FalconOperator)
+			falconOperator.Status.Version = version.Get()
+			return r.Status().Update(ctx, falconOperator)
 		})
 		if err != nil {
 			log.Error(err, "Failed to update FalconOperator status for FalconOperator.Status.Version")
@@ -112,23 +108,26 @@ func (r *FalconOperatorReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
-	// log.Info("Before reconcile namespace")
-	// if err := r.reconcileNamespace(ctx, log, FalconOperator); err != nil {
-	// 	return ctrl.Result{}, err
-	// }
-	// log.Info("After reconcile namespace")
-	log.Info("Before reconcile admission")
-	if err = r.reconcileFalconAdmission(ctx, log, FalconOperator); err != nil {
+	if err = r.reconcileAdmissionController(ctx, log, falconOperator); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Before last status update")
-	err = r.statusUpdate(ctx, req, log, FalconOperator, falconv1alpha1.ConditionSuccess,
+	if err = r.reconcileNodeSensor(ctx, log, falconOperator); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err = r.reconcileContainerSensor(ctx, log, falconOperator); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err = r.reconcileImageAnalyzer(ctx, log, falconOperator); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = r.statusUpdate(ctx, req, log, falconOperator, falconv1alpha1.ConditionSuccess,
 		metav1.ConditionTrue,
 		falconv1alpha1.ReasonInstallSucceeded,
 		"FalconOperator installation completed")
-
-	log.Info("After last status update")
 
 	return ctrl.Result{}, err
 }
@@ -144,91 +143,224 @@ func (r *FalconOperatorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// func (r *FalconOperatorReconciler) reconcileNamespace(ctx context.Context, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator) error {
-// 	namespace := assets.Namespace(FalconOperator.Spec.InstallNamespace)
-// 	existingNamespace := &corev1.Namespace{}
-
-// 	err := r.Client.Get(ctx, types.NamespacedName{Name: FalconOperator.Spec.InstallNamespace}, existingNamespace)
-// 	if err != nil && apierrors.IsNotFound(err) {
-// 		err = r.Client.Create(ctx, namespace)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		return nil
-// 	} else if err != nil {
-// 		log.Error(err, "Failed to get FalconOperator Namespace")
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
-func (r *FalconOperatorReconciler) reconcileFalconAdmission(ctx context.Context, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator) error {
+func (r *FalconOperatorReconciler) reconcileAdmissionController(ctx context.Context, log logr.Logger, falconOperator *falconv1alpha1.FalconOperator) error {
 	updated := false
+
 	existingFalconAdmission := &falconv1alpha1.FalconAdmission{}
+	existingFalconAdmission.ObjectMeta = metav1.ObjectMeta{
+		Name:      "falcon-kac",
+		Namespace: existingFalconAdmission.GetInstallNamespace(),
+	}
+
 	newFalconAdmission := &falconv1alpha1.FalconAdmission{}
+	newFalconAdmission.Spec = falconv1alpha1.NewFalconAdmissionSpec()
+	newFalconAdmission.Spec.FalconAPI = falconOperator.Spec.FalconAPI
+	newFalconAdmission.Spec.Registry = falconOperator.Spec.Registry
+
+	if err := mergo.Merge(&newFalconAdmission.Spec, falconOperator.Spec.FalconAdmission, mergo.WithOverride); err != nil {
+		return fmt.Errorf("unable to merge specs for FalconAdmission: %v", err)
+	}
 
 	newFalconAdmission.ObjectMeta = metav1.ObjectMeta{
 		Name:      "falcon-kac",
 		Namespace: newFalconAdmission.GetInstallNamespace(),
 	}
-	newFalconAdmission.Spec = *v1alpha1.NewFalconAdmissionSpec()
-	newFalconAdmission.Spec.FalconAPI = FalconOperator.Spec.FalconAPI
-	newFalconAdmission.Spec.Registry = FalconOperator.Spec.Registry
 
 	log.Info("checking if falcon admission already exists")
-	err := r.Client.Get(ctx, types.NamespacedName{Name: newFalconAdmission.Name, Namespace: newFalconAdmission.Namespace}, existingFalconAdmission)
-	// if err != nil && apierrors.IsNotFound(err) && *FalconOperator.Spec.DeployAdmissionController {
-	// 	if err = ctrl.SetControllerReference(FalconOperator, newFalconAdmission, r.Scheme); err != nil {
-	// 		return fmt.Errorf("unable to set controller reference for %s: %v", newFalconAdmission.ObjectMeta.Name, err)
-	// 	}
-	// 	return r.Create(ctx, log, FalconOperator, newFalconAdmission)
-	// }
+	err := r.Client.Get(ctx, types.NamespacedName{Name: existingFalconAdmission.Name, Namespace: existingFalconAdmission.Namespace}, existingFalconAdmission)
 
-	if FalconOperator.GetDeployAdmissionController() {
+	if falconOperator.DeployAdmissionController() {
+		log.Info("inside the deploy admission controller flag block")
 		if err != nil && apierrors.IsNotFound(err) {
-			if err = ctrl.SetControllerReference(FalconOperator, newFalconAdmission, r.Scheme); err != nil {
-				log.Info("inside set controller reference")
+			if err = ctrl.SetControllerReference(falconOperator, newFalconAdmission, r.Scheme); err != nil {
 				return fmt.Errorf("unable to set controller reference for %s: %v", newFalconAdmission.Name, err)
 			}
-			return r.create(ctx, log, FalconOperator, newFalconAdmission)
+			return r.create(ctx, log, falconOperator, newFalconAdmission)
 		}
+
+		if !reflect.DeepEqual(newFalconAdmission.Spec, existingFalconAdmission.Spec) {
+			existingFalconAdmission.Spec = newFalconAdmission.Spec
+			updated = true
+		}
+
+		if updated {
+			log.Info("checking existingFalconAdmission.Spec inside updated block", "existingFalconAdmission.Spec", existingFalconAdmission.Spec)
+			if err := r.update(ctx, log, falconOperator, existingFalconAdmission); err != nil {
+				return err
+			}
+		}
+
 	} else if err == nil {
-		return r.delete(ctx, log, FalconOperator, existingFalconAdmission)
-	}
-
-	if !reflect.DeepEqual(newFalconAdmission.Spec.FalconAPI, existingFalconAdmission.Spec.FalconAPI) {
-		existingFalconAdmission.Spec.FalconAPI = newFalconAdmission.Spec.FalconAPI
-		updated = true
-	}
-
-	if updated {
-		if err := r.update(ctx, log, FalconOperator, existingFalconAdmission); err != nil {
-			return err
-		}
+		return r.delete(ctx, log, falconOperator, existingFalconAdmission)
 	}
 
 	return nil
 }
 
-func (r *FalconOperatorReconciler) statusUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator, condType string, status metav1.ConditionStatus, reason string, message string) error {
+func (r *FalconOperatorReconciler) reconcileNodeSensor(ctx context.Context, log logr.Logger, falconOperator *falconv1alpha1.FalconOperator) error {
+	updated := false
+
+	existingNodeSensor := &falconv1alpha1.FalconNodeSensor{}
+	existingNodeSensor.ObjectMeta = metav1.ObjectMeta{
+		Name:      "falcon-node-sensor",
+		Namespace: existingNodeSensor.GetInstallNamespace(),
+	}
+
+	newNodeSensor := &falconv1alpha1.FalconNodeSensor{}
+	newNodeSensor.Spec = falconv1alpha1.NewFalconNodeSensorSpec()
+	newNodeSensor.Spec.FalconAPI = falconOperator.Spec.FalconAPI
+
+	if err := mergo.Merge(&newNodeSensor.Spec, falconOperator.Spec.FalconNodeSensor, mergo.WithOverride, mergo.WithoutDereference); err != nil {
+		return fmt.Errorf("unable to merge specs for FalconNodeSensor: %v", err)
+	}
+
+	newNodeSensor.ObjectMeta = metav1.ObjectMeta{
+		Name:      "falcon-node-sensor",
+		Namespace: newNodeSensor.GetInstallNamespace(),
+	}
+
+	log.Info("checking if falcon node sensor already exists")
+	err := r.Client.Get(ctx, types.NamespacedName{Name: newNodeSensor.Name, Namespace: newNodeSensor.Namespace}, existingNodeSensor)
+
+	if falconOperator.DeployNodeSensor() {
+		if err != nil && apierrors.IsNotFound(err) {
+			if err = ctrl.SetControllerReference(falconOperator, newNodeSensor, r.Scheme); err != nil {
+				return fmt.Errorf("unable to set controller reference for %s: %v", newNodeSensor.Name, err)
+			}
+			return r.create(ctx, log, falconOperator, newNodeSensor)
+		}
+
+		if !reflect.DeepEqual(newNodeSensor.Spec, existingNodeSensor.Spec) {
+			existingNodeSensor.Spec = newNodeSensor.Spec
+			updated = true
+		}
+
+		if updated {
+			if err := r.update(ctx, log, falconOperator, existingNodeSensor); err != nil {
+				return err
+			}
+		}
+	} else if err == nil {
+		return r.delete(ctx, log, falconOperator, existingNodeSensor)
+	}
+
+	return nil
+}
+
+func (r *FalconOperatorReconciler) reconcileImageAnalyzer(ctx context.Context, log logr.Logger, falconOperator *falconv1alpha1.FalconOperator) error {
+	updated := false
+
+	existingImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{}
+	existingImageAnalyzer.ObjectMeta = metav1.ObjectMeta{
+		Name:      "falcon-image-analyzer",
+		Namespace: existingImageAnalyzer.GetInstallNamespace(),
+	}
+
+	newImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{}
+	newImageAnalyzer.Spec = falconv1alpha1.NewImageAnalyzerSpec()
+	newImageAnalyzer.Spec.FalconAPI = falconOperator.Spec.FalconAPI
+	newImageAnalyzer.Spec.Registry = falconOperator.Spec.Registry
+
+	if err := mergo.Merge(&newImageAnalyzer.Spec, falconOperator.Spec.FalconImageAnalyzer, mergo.WithOverride, mergo.WithoutDereference); err != nil {
+		return fmt.Errorf("unable to merge specs for FalconImageAnalyzer: %v", err)
+	}
+
+	newImageAnalyzer.ObjectMeta = metav1.ObjectMeta{
+		Name:      "falcon-image-analyzer",
+		Namespace: newImageAnalyzer.GetInstallNamespace(),
+	}
+
+	log.Info("checking if falcon node sensor already exists")
+	err := r.Client.Get(ctx, types.NamespacedName{Name: newImageAnalyzer.Name, Namespace: newImageAnalyzer.Namespace}, existingImageAnalyzer)
+
+	if falconOperator.DeployImageAnalyzer() {
+		if err != nil && apierrors.IsNotFound(err) {
+			if err = ctrl.SetControllerReference(falconOperator, newImageAnalyzer, r.Scheme); err != nil {
+				return fmt.Errorf("unable to set controller reference for %s: %v", newImageAnalyzer.Name, err)
+			}
+			return r.create(ctx, log, falconOperator, newImageAnalyzer)
+		}
+
+		if !reflect.DeepEqual(newImageAnalyzer.Spec, existingImageAnalyzer.Spec) {
+			existingImageAnalyzer.Spec = newImageAnalyzer.Spec
+			updated = true
+		}
+
+		if updated {
+			if err := r.update(ctx, log, falconOperator, existingImageAnalyzer); err != nil {
+				return err
+			}
+		}
+	} else if err == nil {
+		return r.delete(ctx, log, falconOperator, existingImageAnalyzer)
+	}
+
+	return nil
+}
+
+func (r *FalconOperatorReconciler) reconcileContainerSensor(ctx context.Context, log logr.Logger, falconOperator *falconv1alpha1.FalconOperator) error {
+	updated := false
+
+	existingContainerSensor := &falconv1alpha1.FalconContainer{}
+	existingContainerSensor.ObjectMeta = metav1.ObjectMeta{
+		Name:      "falcon-container-sensor",
+		Namespace: existingContainerSensor.GetInstallNamespace(),
+	}
+
+	newContainerSensor := &falconv1alpha1.FalconContainer{}
+	newContainerSensor.Spec = falconv1alpha1.NewFalconContainerSpec()
+	newContainerSensor.Spec.FalconAPI = falconOperator.Spec.FalconAPI
+	newContainerSensor.Spec.Registry = falconOperator.Spec.Registry
+
+	newContainerSensor.ObjectMeta = metav1.ObjectMeta{
+		Name:      "falcon-container-sensor",
+		Namespace: newContainerSensor.GetInstallNamespace(),
+	}
+
+	log.Info("checking if falcon container sensor already exists")
+	err := r.Client.Get(ctx, types.NamespacedName{Name: newContainerSensor.Name, Namespace: newContainerSensor.Namespace}, existingContainerSensor)
+
+	if falconOperator.DeployContainerSensor() {
+		if err != nil && apierrors.IsNotFound(err) {
+			if err = ctrl.SetControllerReference(falconOperator, newContainerSensor, r.Scheme); err != nil {
+				return fmt.Errorf("unable to set controller reference for %s: %v", newContainerSensor.Name, err)
+			}
+			return r.create(ctx, log, falconOperator, newContainerSensor)
+		}
+
+		if !reflect.DeepEqual(newContainerSensor.Spec, existingContainerSensor.Spec) {
+			existingContainerSensor.Spec = newContainerSensor.Spec
+			updated = true
+		}
+
+		if updated {
+			if err := r.update(ctx, log, falconOperator, existingContainerSensor); err != nil {
+				return err
+			}
+		}
+	} else if err == nil {
+		return r.delete(ctx, log, falconOperator, existingContainerSensor)
+	}
+
+	return nil
+}
+
+func (r *FalconOperatorReconciler) statusUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconOperator *falconv1alpha1.FalconOperator, condType string, status metav1.ConditionStatus, reason string, message string) error {
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err := r.Get(ctx, req.NamespacedName, FalconOperator)
+		err := r.Get(ctx, req.NamespacedName, falconOperator)
 		if err != nil {
 			return err
 		}
 
-		log.Info("inside status update")
-		meta.SetStatusCondition(&FalconOperator.Status.Conditions, metav1.Condition{
+		meta.SetStatusCondition(&falconOperator.Status.Conditions, metav1.Condition{
 			Status:             status,
 			Reason:             reason,
 			Message:            message,
 			Type:               condType,
-			ObservedGeneration: FalconOperator.GetGeneration(),
+			ObservedGeneration: falconOperator.GetGeneration(),
 		})
 
-		return r.Status().Update(ctx, FalconOperator)
+		return r.Status().Update(ctx, falconOperator)
 	})
 	if err != nil {
 		log.Error(err, "Failed to update FalconOperator status")
@@ -238,7 +370,7 @@ func (r *FalconOperatorReconciler) statusUpdate(ctx context.Context, req ctrl.Re
 	return nil
 }
 
-func (r *FalconOperatorReconciler) create(ctx context.Context, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator, obj runtime.Object) error {
+func (r *FalconOperatorReconciler) create(ctx context.Context, log logr.Logger, falconOperator *falconv1alpha1.FalconOperator, obj runtime.Object) error {
 	switch t := obj.(type) {
 	case client.Object:
 		name := t.GetName()
@@ -259,14 +391,14 @@ func (r *FalconOperatorReconciler) create(ctx context.Context, log logr.Logger, 
 		}
 
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			meta.SetStatusCondition(&FalconOperator.Status.Conditions, metav1.Condition{
+			meta.SetStatusCondition(&falconOperator.Status.Conditions, metav1.Condition{
 				Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
 				Status:  metav1.ConditionTrue,
 				Reason:  "Created",
 				Message: fmt.Sprintf("Successfully created %s %s in %s", gvk.Kind, name, namespace),
 			})
 
-			return r.Client.Status().Update(ctx, FalconOperator)
+			return r.Client.Status().Update(ctx, falconOperator)
 		})
 
 		return err
@@ -275,7 +407,7 @@ func (r *FalconOperatorReconciler) create(ctx context.Context, log logr.Logger, 
 	}
 }
 
-func (r *FalconOperatorReconciler) update(ctx context.Context, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator, obj runtime.Object) error {
+func (r *FalconOperatorReconciler) update(ctx context.Context, log logr.Logger, falconOperator *falconv1alpha1.FalconOperator, obj runtime.Object) error {
 	switch t := obj.(type) {
 	case client.Object:
 		name := t.GetName()
@@ -291,14 +423,14 @@ func (r *FalconOperatorReconciler) update(ctx context.Context, log logr.Logger, 
 		}
 
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			meta.SetStatusCondition(&FalconOperator.Status.Conditions, metav1.Condition{
+			meta.SetStatusCondition(&falconOperator.Status.Conditions, metav1.Condition{
 				Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
 				Status:  metav1.ConditionTrue,
 				Reason:  "Updated",
 				Message: fmt.Sprintf("Successfully updated %s %s in %s", gvk.Kind, name, namespace),
 			})
 
-			return r.Client.Status().Update(ctx, FalconOperator)
+			return r.Client.Status().Update(ctx, falconOperator)
 		})
 
 		return err
@@ -307,7 +439,7 @@ func (r *FalconOperatorReconciler) update(ctx context.Context, log logr.Logger, 
 	}
 }
 
-func (r *FalconOperatorReconciler) delete(ctx context.Context, log logr.Logger, FalconOperator *falconv1alpha1.FalconOperator, obj runtime.Object) error {
+func (r *FalconOperatorReconciler) delete(ctx context.Context, log logr.Logger, falconOperator *falconv1alpha1.FalconOperator, obj runtime.Object) error {
 	switch t := obj.(type) {
 	case client.Object:
 		name := t.GetName()
@@ -323,14 +455,14 @@ func (r *FalconOperatorReconciler) delete(ctx context.Context, log logr.Logger, 
 		}
 
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			meta.SetStatusCondition(&FalconOperator.Status.Conditions, metav1.Condition{
+			meta.SetStatusCondition(&falconOperator.Status.Conditions, metav1.Condition{
 				Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
 				Status:  metav1.ConditionTrue,
 				Reason:  "Deleted",
 				Message: fmt.Sprintf("Successfully deleted %s %s in %s", gvk.Kind, name, namespace),
 			})
 
-			return r.Client.Status().Update(ctx, FalconOperator)
+			return r.Client.Status().Update(ctx, falconOperator)
 		})
 
 		return err

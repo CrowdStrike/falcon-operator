@@ -4,6 +4,17 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+)
+
+var (
+	IARNamespaceDefault               string = "falcon-iar"
+	IARImagePullPolicyDefault         string = "Always"
+	IARDepUpdateStrategyMaxUnvailable int32  = 0
+	IARDepUpdateStrategyMaxSurge      int32  = 1
+	IARVolumeSizeLimitDefault         string = "20Gi"
+	IARVolumeMountPathDefault         string = "/tmp"
+	IAREnableDebugDefault             bool   = false
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -188,4 +199,27 @@ type FalconImageAnalyzerList struct {
 
 func init() {
 	SchemeBuilder.Register(&FalconImageAnalyzer{}, &FalconImageAnalyzerList{})
+}
+
+func (imageAnalyzer FalconImageAnalyzer) GetInstallNamespace() string {
+	if imageAnalyzer.Spec.InstallNamespace == "" {
+		return IARNamespaceDefault
+	}
+
+	return imageAnalyzer.Spec.InstallNamespace
+}
+
+func NewImageAnalyzerSpec() FalconImageAnalyzerSpec {
+	return FalconImageAnalyzerSpec{
+		InstallNamespace: IARNamespaceDefault,
+		ImageAnalyzerConfig: FalconImageAnalyzerConfigSpec{
+			ImagePullPolicy: corev1.PullPolicy(IARImagePullPolicyDefault),
+			DepUpdateStrategy: FalconImageAnalyzerUpdateStrategy{
+				RollingUpdate: appsv1.RollingUpdateDeployment{
+					MaxUnavailable: &intstr.IntOrString{IntVal: IARDepUpdateStrategyMaxUnvailable},
+					MaxSurge:       &intstr.IntOrString{IntVal: IARDepUpdateStrategyMaxSurge},
+				},
+			},
+		},
+	}
 }

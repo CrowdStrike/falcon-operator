@@ -6,6 +6,28 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	NodeDefaultNamespace              string              = "falcon-system"
+	NodeDefaultTerminationGracePeriod int64               = 30
+	NodeDefaultTolerations            []corev1.Toleration = []corev1.Toleration{
+		{
+			Key:      "node-role.kubernetes.io/master",
+			Operator: "Exists",
+			Effect:   "NoSchedule",
+		},
+		{
+			Key:      "node-role.kubernetes.io/control-plane",
+			Operator: "Exists",
+			Effect:   "NoSchedule",
+		},
+		{
+			Key:      "node-role.kubernetes.io/infra",
+			Operator: "Exists",
+			Effect:   "NoSchedule",
+		},
+	}
+)
+
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -213,4 +235,22 @@ type FalconNodeSensorList struct {
 
 func init() {
 	SchemeBuilder.Register(&FalconNodeSensor{}, &FalconNodeSensorList{})
+}
+
+func (nodeSensor FalconNodeSensor) GetInstallNamespace() string {
+	if nodeSensor.Spec.InstallNamespace == "" {
+		return NodeDefaultNamespace
+	}
+
+	return nodeSensor.Spec.InstallNamespace
+}
+
+func NewFalconNodeSensorSpec() FalconNodeSensorSpec {
+	return FalconNodeSensorSpec{
+		InstallNamespace: NodeDefaultNamespace,
+		Node: FalconNodeSensorConfig{
+			Tolerations:            NodeDefaultTolerations,
+			TerminationGracePeriod: NodeDefaultTerminationGracePeriod,
+		},
+	}
 }

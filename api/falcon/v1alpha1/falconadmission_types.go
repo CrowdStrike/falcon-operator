@@ -12,32 +12,32 @@ import (
 )
 
 var (
-	DeployWatcherDefault              bool                   = true
-	SnapshotsEnabledDefault           bool                   = true
-	SnapshotsIntervalDefault          time.Duration          = 22 * time.Hour
-	WatcherEnabledDefault             bool                   = true
-	APDDefault                        bool                   = false
-	KACNamespaceDefault               string                 = "falcon-kac"
-	KACResQuotaPodLimitDefault        string                 = "2"
-	KACPortDefault                    int32                  = 443
-	KACContainerPortDefault           int32                  = 4443
-	KACFailurePolicyDefault           arv1.FailurePolicyType = "Ignore"
-	KACReplicasDefault                int32                  = 2
-	KACImagePullPolicyDefault         corev1.PullPolicy      = "Always"
-	ResourcesClientLimitCpuDefault    string                 = "750m"
-	ResourcesClientLimitMemDefault    string                 = "384Mi"
-	ResourcesClientReqCpuDefault      string                 = "500m"
-	ResourcesClientReqMemDefault      string                 = "384Mi"
-	ResourcesAcLimitCpuDefault        string                 = "750m"
-	ResourcesAcLimitMemDefault        string                 = "384Mi"
-	ResourcesAcReqCpuDefault          string                 = "500m"
-	ResourcesAcReqMemDefault          string                 = "384Mi"
-	ResourcesWatcherLimitCpuDefault   string                 = "300m"
-	ResourcesWatcherLimitMemDefault   string                 = "256Mi"
-	ResourcesWatcherReqCpuDefault     string                 = "300m"
-	ResourcesWatcherReqMemDefault     string                 = "256Mi"
-	KACDepUpdateStrategyMaxUnvailable int32                  = 0
-	KACDepUpdateStrategyMaxSurge      int32                  = 1
+	DeployWatcherDefault               bool                   = true
+	SnapshotsEnabledDefault            bool                   = true
+	SnapshotsIntervalDefault           time.Duration          = 22 * time.Hour
+	WatcherEnabledDefault              bool                   = true
+	APDDefault                         bool                   = false
+	KACNamespaceDefault                string                 = "falcon-kac"
+	KACResQuotaPodLimitDefault         string                 = "2"
+	KACPortDefault                     int32                  = 443
+	KACContainerPortDefault            int32                  = 4443
+	KACFailurePolicyDefault            arv1.FailurePolicyType = "Ignore"
+	KACReplicasDefault                 int32                  = 2
+	KACImagePullPolicyDefault          corev1.PullPolicy      = "Always"
+	KACResourcesClientLimitCpuDefault  string                 = "750m"
+	KACResourcesClientLimitMemDefault  string                 = "384Mi"
+	KACResourcesClientReqCpuDefault    string                 = "500m"
+	KACResourcesClientReqMemDefault    string                 = "384Mi"
+	KACResourcesAcLimitCpuDefault      string                 = "750m"
+	KACResourcesAcLimitMemDefault      string                 = "384Mi"
+	KACResourcesAcReqCpuDefault        string                 = "500m"
+	KACResourcesAcReqMemDefault        string                 = "384Mi"
+	KACResourcesWatcherLimitCpuDefault string                 = "300m"
+	KACResourcesWatcherLimitMemDefault string                 = "256Mi"
+	KACResourcesWatcherReqCpuDefault   string                 = "300m"
+	KACResourcesWatcherReqMemDefault   string                 = "256Mi"
+	KACDepUpdateStrategyMaxUnvailable  int32                  = 0
+	KACDepUpdateStrategyMaxSurge       int32                  = 1
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -301,8 +301,8 @@ func (admission FalconAdmission) GetInstallNamespace() string {
 	return admission.Spec.InstallNamespace
 }
 
-func NewFalconAdmissionSpec() *FalconAdmissionSpec {
-	return &FalconAdmissionSpec{
+func NewFalconAdmissionSpec() FalconAdmissionSpec {
+	return FalconAdmissionSpec{
 		InstallNamespace: KACNamespaceDefault,
 		Falcon: FalconSensor{
 			APD: &APDDefault,
@@ -322,32 +322,32 @@ func NewFalconAdmissionSpec() *FalconAdmissionSpec {
 			ImagePullPolicy:   KACImagePullPolicyDefault,
 			ResourcesClient: &corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
-					"cpu":    resource.MustParse(ResourcesClientLimitCpuDefault),
-					"memory": resource.MustParse(ResourcesClientLimitMemDefault),
+					"cpu":    resource.MustParse(KACResourcesClientLimitCpuDefault),
+					"memory": resource.MustParse(KACResourcesClientLimitMemDefault),
 				},
 				Requests: corev1.ResourceList{
-					"cpu":    resource.MustParse(ResourcesClientReqCpuDefault),
-					"memory": resource.MustParse(ResourcesClientLimitMemDefault),
+					"cpu":    resource.MustParse(KACResourcesClientReqCpuDefault),
+					"memory": resource.MustParse(KACResourcesClientLimitMemDefault),
 				},
 			},
 			ResourcesWatcher: &corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
-					"cpu":    resource.MustParse(ResourcesWatcherLimitCpuDefault),
-					"memory": resource.MustParse(ResourcesWatcherLimitMemDefault),
+					"cpu":    resource.MustParse(KACResourcesWatcherLimitCpuDefault),
+					"memory": resource.MustParse(KACResourcesWatcherLimitMemDefault),
 				},
 				Requests: corev1.ResourceList{
-					"cpu":    resource.MustParse(ResourcesWatcherReqCpuDefault),
-					"memory": resource.MustParse(ResourcesWatcherReqMemDefault),
+					"cpu":    resource.MustParse(KACResourcesWatcherReqCpuDefault),
+					"memory": resource.MustParse(KACResourcesWatcherReqMemDefault),
 				},
 			},
 			ResourcesAC: &corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
-					"cpu":    resource.MustParse(ResourcesAcLimitCpuDefault),
-					"memory": resource.MustParse(ResourcesAcLimitMemDefault),
+					"cpu":    resource.MustParse(KACResourcesAcLimitCpuDefault),
+					"memory": resource.MustParse(KACResourcesAcLimitMemDefault),
 				},
 				Requests: corev1.ResourceList{
-					"cpu":    resource.MustParse(ResourcesAcReqCpuDefault),
-					"memory": resource.MustParse(ResourcesAcReqMemDefault),
+					"cpu":    resource.MustParse(KACResourcesAcReqCpuDefault),
+					"memory": resource.MustParse(KACResourcesAcReqMemDefault),
 				},
 			},
 			DepUpdateStrategy: FalconAdmissionUpdateStrategy{

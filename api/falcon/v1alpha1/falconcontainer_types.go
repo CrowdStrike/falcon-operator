@@ -5,6 +5,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	ContainerNamespaceDefault               string = "falcon-kac"
+	ContainerInjectorImagePullPolicyDefault string = "Always"
+	ContainerInjectorListenPortDefault      int32  = 4433
+	ContainerInjectorReplicasDefault        int32  = 2
+)
+
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -161,4 +168,23 @@ type FalconContainerList struct {
 
 func init() {
 	SchemeBuilder.Register(&FalconContainer{}, &FalconContainerList{})
+}
+
+func (containerSensor FalconContainer) GetInstallNamespace() string {
+	if containerSensor.Spec.InstallNamespace == "" {
+		return ContainerNamespaceDefault
+	}
+
+	return containerSensor.Spec.InstallNamespace
+}
+
+func NewFalconContainerSpec() FalconContainerSpec {
+	return FalconContainerSpec{
+		InstallNamespace: ContainerNamespaceDefault,
+		Injector: FalconContainerInjectorSpec{
+			ListenPort:      &ContainerInjectorListenPortDefault,
+			ImagePullPolicy: corev1.PullPolicy(ContainerInjectorImagePullPolicyDefault),
+			Replicas:        &ContainerInjectorListenPortDefault,
+		},
+	}
 }
