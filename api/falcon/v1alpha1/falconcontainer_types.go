@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	ContainerNamespaceDefault               string = "falcon-kac"
+	ContainerNamespaceDefault               string = "falcon-container"
 	ContainerInjectorImagePullPolicyDefault string = "Always"
 	ContainerInjectorListenPortDefault      int32  = 4433
 	ContainerInjectorReplicasDefault        int32  = 2
@@ -184,7 +184,7 @@ func NewFalconContainerSpec() FalconContainerSpec {
 		Injector: FalconContainerInjectorSpec{
 			ListenPort:      &ContainerInjectorListenPortDefault,
 			ImagePullPolicy: corev1.PullPolicy(ContainerInjectorImagePullPolicyDefault),
-			Replicas:        &ContainerInjectorListenPortDefault,
+			Replicas:        &ContainerInjectorReplicasDefault,
 		},
 	}
 }

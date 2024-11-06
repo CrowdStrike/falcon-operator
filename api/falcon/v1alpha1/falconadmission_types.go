@@ -17,6 +17,7 @@ var (
 	SnapshotsIntervalDefault           time.Duration          = 22 * time.Hour
 	WatcherEnabledDefault              bool                   = true
 	APDDefault                         bool                   = false
+	APDDefaultTrace                    string                 = "none"
 	KACNamespaceDefault                string                 = "falcon-kac"
 	KACResQuotaPodLimitDefault         string                 = "2"
 	KACPortDefault                     int32                  = 443
@@ -305,7 +306,8 @@ func NewFalconAdmissionSpec() FalconAdmissionSpec {
 	return FalconAdmissionSpec{
 		InstallNamespace: KACNamespaceDefault,
 		Falcon: FalconSensor{
-			APD: &APDDefault,
+			APD:   &APDDefault,
+			Trace: APDDefaultTrace,
 		},
 		ResQuota: FalconAdmissionRQSpec{
 			PodLimit: KACResQuotaPodLimitDefault,
