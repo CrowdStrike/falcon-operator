@@ -210,7 +210,7 @@ func (r *FalconOperatorReconciler) reconcileNodeSensor(ctx context.Context, log 
 	newNodeSensor.Spec = falconv1alpha1.NewFalconNodeSensorSpec()
 	newNodeSensor.Spec.FalconAPI = falconOperator.Spec.FalconAPI
 
-	if err := mergo.Merge(&newNodeSensor.Spec, falconOperator.Spec.FalconNodeSensor, mergo.WithOverride, mergo.WithoutDereference); err != nil {
+	if err := mergo.Merge(&newNodeSensor.Spec, falconOperator.Spec.FalconNodeSensor, mergo.WithOverride); err != nil {
 		return fmt.Errorf("unable to merge specs for FalconNodeSensor: %v", err)
 	}
 
@@ -261,7 +261,7 @@ func (r *FalconOperatorReconciler) reconcileImageAnalyzer(ctx context.Context, l
 	newImageAnalyzer.Spec.FalconAPI = falconOperator.Spec.FalconAPI
 	newImageAnalyzer.Spec.Registry = falconOperator.Spec.Registry
 
-	if err := mergo.Merge(&newImageAnalyzer.Spec, falconOperator.Spec.FalconImageAnalyzer, mergo.WithOverride, mergo.WithoutDereference); err != nil {
+	if err := mergo.Merge(&newImageAnalyzer.Spec, falconOperator.Spec.FalconImageAnalyzer, mergo.WithOverride); err != nil {
 		return fmt.Errorf("unable to merge specs for FalconImageAnalyzer: %v", err)
 	}
 
@@ -311,6 +311,10 @@ func (r *FalconOperatorReconciler) reconcileContainerSensor(ctx context.Context,
 	newContainerSensor.Spec = falconv1alpha1.NewFalconContainerSpec()
 	newContainerSensor.Spec.FalconAPI = falconOperator.Spec.FalconAPI
 	newContainerSensor.Spec.Registry = falconOperator.Spec.Registry
+
+	if err := mergo.Merge(&newContainerSensor.Spec, falconOperator.Spec.FalconContainerSensor, mergo.WithOverride); err != nil {
+		return fmt.Errorf("unable to merge specs for FalconImageAnalyzer: %v", err)
+	}
 
 	newContainerSensor.ObjectMeta = metav1.ObjectMeta{
 		Name:      "falcon-container-sensor",
