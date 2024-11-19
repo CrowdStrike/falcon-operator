@@ -501,7 +501,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 		{
 			Name:            "falcon-client",
 			Image:           imageUri,
-			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
+			ImagePullPolicy: *falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
 			Args:            []string{"client"},
 			SecurityContext: &corev1.SecurityContext{
 				ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
@@ -592,7 +592,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 		{
 			Name:            "falcon-kac",
 			Image:           imageUri,
-			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
+			ImagePullPolicy: *falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
 
 			SecurityContext: &corev1.SecurityContext{
 				ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
@@ -650,7 +650,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 		*kacContainers = append(*kacContainers, corev1.Container{
 			Name:            "falcon-watcher",
 			Image:           imageUri,
-			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
+			ImagePullPolicy: *falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
 			Args: []string{
 				"client",
 				"-app=watcher",

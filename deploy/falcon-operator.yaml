@@ -117,7 +117,7 @@ spec:
                       x-kubernetes-map-type: atomic
                     type: array
                   replicas:
-                    default: 2
+                    default: 1
                     description: Currently ignored and internally set to 1
                     format: int32
                     maximum: 65535
@@ -4426,7 +4426,8 @@ spec:
         - name: WATCH_NAMESPACE
         - name: OPERATOR_NAME
           value: falcon-operator
-        image: quay.io/crowdstrike/falcon-operator:1.0.0
+        imagePullPolicy: Never
+        image: controller:latest
         livenessProbe:
           httpGet:
             path: /healthz
