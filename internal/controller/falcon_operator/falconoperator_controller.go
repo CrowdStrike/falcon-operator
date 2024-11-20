@@ -34,9 +34,6 @@ type FalconOperatorReconciler struct {
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconoperators,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconoperators/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconoperators/finalizers,verbs=update
-//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconadmissions,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconadmissions/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconadmissions/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="",resources=resourcequotas,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;delete
@@ -52,7 +49,6 @@ type FalconOperatorReconciler struct {
 //+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="coordination.k8s.io",resources=leases,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="image.openshift.io",resources=imagestreams,verbs=get;list;watch;create;update;delete
-//+kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=create;get;list;update;watch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=create;get;list;update;watch;delete
 
@@ -261,9 +257,13 @@ func (r *FalconOperatorReconciler) reconcileImageAnalyzer(ctx context.Context, l
 	newImageAnalyzer.Spec.FalconAPI = falconOperator.Spec.FalconAPI
 	newImageAnalyzer.Spec.Registry = falconOperator.Spec.Registry
 
+	log.Info("FalconAPI before merge", "newImageAnalyzer.Spec.FalconAPI", newImageAnalyzer.Spec.FalconAPI)
+
 	if err := mergo.Merge(&newImageAnalyzer.Spec, falconOperator.Spec.FalconImageAnalyzer, mergo.WithOverride); err != nil {
 		return fmt.Errorf("unable to merge specs for FalconImageAnalyzer: %v", err)
 	}
+
+	log.Info("FalconAPI after merge", "newImageAnalyzer.Spec.FalconAPI", newImageAnalyzer.Spec.FalconAPI)
 
 	newImageAnalyzer.ObjectMeta = metav1.ObjectMeta{
 		Name:      "falcon-image-analyzer",
