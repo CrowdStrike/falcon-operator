@@ -30,7 +30,7 @@ Falcon Operator and Sensor management and upgrades are best handled by using Git
 
 ### Operator Upgrades
 
-[See the individual deployment guides for commands on how to upgrade the operator](#kubernetes-distribution-installation-and-deployment). 
+[See the individual deployment guides for commands on how to upgrade the operator](#kubernetes-distribution-installation-and-deployment).
 
 ### Sensor Upgrades
 
@@ -102,3 +102,30 @@ spec:
         cpu: 250m
         memory: 64Mi
 ```
+
+#### Falcon Operator Controller Manager - Failed Lease Renewal
+During times when host resources are limited or there is increased network latency, the Falcon Operator may have trouble renewing renewing its lease when Leader Election is enabled. An example of this error can be seen in the `falcon-operator-controller-manager` pod logs:
+```
+2024-07-06T06:27:38Z    INFO    Updating FalconAdmission Deployment     {"controller": "falconadmission", "controllerGroup": "falcon.crowdstrike.com", "controllerKind": "FalconAdmission", "FalconAdmission": {"name":"falcon-admission"}, "namespace": "", "name": "falcon-admission", "reconcileID": "b3767fff-6acf-4c8d-a191-2d2194eb3e72", "Deployment.Name": "falcon-admission", "Deployment.Namespace": "falcon-kac"}
+E0706 06:39:08.445673       1 leaderelection.go:327] error retrieving resource lock falcon-operator/falcon-operator-lock: Get "https://172.20.0.1:443/apis/coordination.k8s.io/v1/namespaces/falcon-operator/leases/falcon-operator-lock": context deadline exceeded
+I0706 06:39:08.445717       1 leaderelection.go:280] failed to renew lease falcon-operator/falcon-operator-lock: timed out waiting for the condition
+2024-07-06T06:39:08Z    ERROR   setup   problem running manager {"error": "leader election lost"}
+```
+
+To remediate this problem, add the following flags under `Deployment.spec.template.spec.containers.[0].args` in the falcon-operator.yaml manifest located [here](../deploy/falcon-operator.yaml):<br>
+
+```
+---
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+      - args:
+        - --leader-elect
+        - --lease-duration=DURATION
+        - --renew-deadline=DURATION
+```
+`--lease-duration=DURATION` - This is the maximum duration that a leader can be stopped before it is replaced by another candidate. <br>
+`--renew-deadline=DURATION` - The interval between attempts by the acting master to renew a leadership slot before it stops leading. Must be smaller than `lease-duration`.<br>
