@@ -19,6 +19,7 @@ import (
 	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -115,9 +116,11 @@ func main() {
 				&falconv1alpha1.FalconNodeSensor{}: {},
 				&falconv1alpha1.FalconContainer{}:  {},
 				&corev1.Namespace{}:                {},
-				&corev1.Secret{}:                   {},
-				&rbacv1.ClusterRoleBinding{}:       {},
-				&corev1.ServiceAccount{}:           {},
+				&corev1.Secret{}: {
+					Field: fields.SelectorFromSet(fields.Set{"type": "kubernetes.io/dockerconfigjson"}),
+				},
+				&rbacv1.ClusterRoleBinding{}: {},
+				&corev1.ServiceAccount{}:     {},
 				&schedulingv1.PriorityClass{}: {
 					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
 				},
