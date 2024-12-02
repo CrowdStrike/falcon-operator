@@ -119,6 +119,9 @@ func main() {
 				&corev1.Secret{}: {
 					Field: fields.SelectorFromSet(fields.Set{"type": "kubernetes.io/dockerconfigjson"}),
 				},
+				&corev1.Secret{}: {
+					Field: fields.SelectorFromSet(fields.Set{"type": "kubernetes.io/tls"}),
+				},
 				&rbacv1.ClusterRoleBinding{}: {},
 				&corev1.ServiceAccount{}:     {},
 				&schedulingv1.PriorityClass{}: {
