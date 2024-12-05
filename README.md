@@ -12,7 +12,7 @@
 
 The CrowdStrike Falcon Operator installs CrowdStrike Falcon custom resources on a Kubernetes cluster.
 
-The CrowdStrike Falcon Operator is an open source project and not a CrowdStrike product. As such, it carries no formal support, expressed, or implied.
+The CrowdStrike Falcon Operator is a community-driven, open source project designed to streamline the deployment and use of the CrowdStrike products on Kubernetes clusters. While not a formal CrowdStrike product, the CrowdStrike Falcon Operator is maintained by CrowdStrike and supported in partnership with the open source developer community.
 
 ## About the CrowdStrike Falcon Operator
 The CrowdStrike Falcon Operator deploys CrowdStrike Falcon to the cluster. The operator exposes custom resources that allow you to protect your Kubernetes clusters when deployed.
