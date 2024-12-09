@@ -6,26 +6,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var (
-	NodeDefaultTolerations = []corev1.Toleration{
-		{
-			Key:      "node-role.kubernetes.io/master",
-			Operator: "Exists",
-			Effect:   "NoSchedule",
-		},
-		{
-			Key:      "node-role.kubernetes.io/control-plane",
-			Operator: "Exists",
-			Effect:   "NoSchedule",
-		},
-		{
-			Key:      "node-role.kubernetes.io/infra",
-			Operator: "Exists",
-			Effect:   "NoSchedule",
-		},
-	}
-)
-
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -64,7 +44,7 @@ type FalconNodeSensorConfig struct {
 	// Specifies tolerations for custom taints. Defaults to allowing scheduling on all nodes.
 	// +kubebuilder:default:={{key: "node-role.kubernetes.io/master", operator: "Exists", effect: "NoSchedule"}, {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"}, {key: "node-role.kubernetes.io/infra", operator: "Exists", effect: "NoSchedule"}}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
-	Tolerations *[]corev1.Toleration `json:"tolerations,omitempty"`
+	Tolerations *[]corev1.Toleration `json:"tolerations"`
 
 	// Specifies node affinity for scheduling the DaemonSet. Defaults to allowing scheduling on all nodes.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=5
@@ -233,12 +213,4 @@ type FalconNodeSensorList struct {
 
 func init() {
 	SchemeBuilder.Register(&FalconNodeSensor{}, &FalconNodeSensorList{})
-}
-
-func (sensor FalconNodeSensor) GetTolerations() *[]corev1.Toleration {
-	if sensor.Spec.Node.Tolerations == nil {
-		return &NodeDefaultTolerations
-	}
-
-	return sensor.Spec.Node.Tolerations
 }
