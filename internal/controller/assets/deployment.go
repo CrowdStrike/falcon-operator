@@ -1,6 +1,7 @@
 package assets
 
 import (
+	"reflect"
 	"strconv"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -21,8 +22,6 @@ const (
 	FalconClient
 	FalconWatcher
 )
-
-var enforcedSingleReplica = int32(1)
 
 // SideCarDeployment returns a Deployment object for the CrowdStrike Falcon sidecar
 func SideCarDeployment(name string, namespace string, component string, imageUri string, falconContainer *falconv1alpha1.FalconContainer) *appsv1.Deployment {
@@ -414,28 +413,13 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 	readOnlyRootFilesystem := true
 	allowPrivilegeEscalation := false
 	shareProcessNamespace := true
-	resourcesClient := &corev1.ResourceRequirements{}
-	resourcesWatcher := &corev1.ResourceRequirements{}
-	resourcesAC := &corev1.ResourceRequirements{}
 	sizeLimitTmp := resource.MustParse("256Mi")
 	sizeLimitPrivate := resource.MustParse("4Ki")
 	sizeLimitWatcher := resource.MustParse("64Mi")
 	labels := common.CRLabels("deployment", name, component)
-	registryCAConfigMapName := ""
-	registryCABundleConfigMapName := name + "-registry-certs"
+	registryCAConfigMapName := falconAdmission.GetRegistryCAConfigMapName(name)
+	containerPort := *falconAdmission.GetContainerPort()
 	portWatcherHealthCheck := int32(4080)
-
-	if falconAdmission.Spec.AdmissionConfig.ResourcesClient != nil {
-		resourcesClient = falconAdmission.Spec.AdmissionConfig.ResourcesClient
-	}
-
-	if falconAdmission.Spec.AdmissionConfig.ResourcesWatcher != nil {
-		resourcesWatcher = falconAdmission.Spec.AdmissionConfig.ResourcesWatcher
-	}
-
-	if falconAdmission.Spec.AdmissionConfig.ResourcesAC != nil {
-		resourcesAC = falconAdmission.Spec.AdmissionConfig.ResourcesAC
-	}
 
 	volumes := []corev1.Volume{
 		{
@@ -472,14 +456,6 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 		},
 	}
 
-	if falconAdmission.Spec.Registry.TLS.CACertificateConfigMap != "" {
-		registryCAConfigMapName = falconAdmission.Spec.Registry.TLS.CACertificateConfigMap
-	}
-
-	if falconAdmission.Spec.Registry.TLS.CACertificate != "" {
-		registryCAConfigMapName = registryCABundleConfigMapName
-	}
-
 	if registryCAConfigMapName != "" {
 		volumes = append(volumes, corev1.Volume{
 			Name: registryCAConfigMapName,
@@ -501,7 +477,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 		{
 			Name:            "falcon-client",
 			Image:           imageUri,
-			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
+			ImagePullPolicy: *falconAdmission.GetImagePullPolicy(),
 			Args:            []string{"client"},
 			SecurityContext: &corev1.SecurityContext{
 				ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
@@ -553,7 +529,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 			},
 			Ports: []corev1.ContainerPort{
 				{
-					ContainerPort: *falconAdmission.Spec.AdmissionConfig.ContainerPort,
+					ContainerPort: containerPort,
 					Name:          common.FalconServiceHTTPSName,
 					Protocol:      corev1.ProtocolTCP,
 				},
@@ -563,7 +539,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path:   common.FalconAdmissionClientStartupProbePath,
-						Port:   intstr.IntOrString{IntVal: *falconAdmission.Spec.AdmissionConfig.ContainerPort},
+						Port:   intstr.IntOrString{IntVal: containerPort},
 						Scheme: corev1.URISchemeHTTPS,
 					},
 				},
@@ -577,7 +553,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path:   common.FalconAdmissionClientLivenessProbePath,
-						Port:   intstr.IntOrString{IntVal: *falconAdmission.Spec.AdmissionConfig.ContainerPort},
+						Port:   intstr.IntOrString{IntVal: containerPort},
 						Scheme: corev1.URISchemeHTTPS,
 					},
 				},
@@ -587,12 +563,12 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 				SuccessThreshold:    1,
 				FailureThreshold:    3,
 			},
-			Resources: *resourcesClient,
+			Resources: *falconAdmission.GetResourcesClient(),
 		},
 		{
 			Name:            "falcon-kac",
 			Image:           imageUri,
-			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
+			ImagePullPolicy: *falconAdmission.GetImagePullPolicy(),
 
 			SecurityContext: &corev1.SecurityContext{
 				ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
@@ -618,7 +594,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path:   common.FalconAdmissionStartupProbePath,
-						Port:   intstr.IntOrString{IntVal: *falconAdmission.Spec.AdmissionConfig.ContainerPort},
+						Port:   intstr.IntOrString{IntVal: containerPort},
 						Scheme: corev1.URISchemeHTTPS,
 					},
 				},
@@ -632,7 +608,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path:   common.FalconAdmissionLivenessProbePath,
-						Port:   intstr.IntOrString{IntVal: *falconAdmission.Spec.AdmissionConfig.ContainerPort},
+						Port:   intstr.IntOrString{IntVal: containerPort},
 						Scheme: corev1.URISchemeHTTPS,
 					},
 				},
@@ -642,7 +618,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 				SuccessThreshold:    1,
 				FailureThreshold:    3,
 			},
-			Resources: *resourcesAC,
+			Resources: *falconAdmission.GetResourcesAC(),
 		},
 	}
 
@@ -650,7 +626,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 		*kacContainers = append(*kacContainers, corev1.Container{
 			Name:            "falcon-watcher",
 			Image:           imageUri,
-			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
+			ImagePullPolicy: *falconAdmission.GetImagePullPolicy(),
 			Args: []string{
 				"client",
 				"-app=watcher",
@@ -717,7 +693,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 				SuccessThreshold:    1,
 				FailureThreshold:    3,
 			},
-			Resources: *resourcesWatcher,
+			Resources: *falconAdmission.GetResourcesWatcher(),
 		})
 	}
 
@@ -732,7 +708,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 			Labels:    labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: &enforcedSingleReplica,
+			Replicas: &falconv1alpha1.KACReplicasDefault,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
@@ -837,13 +813,14 @@ func admissionDepVolumeMounts(name string, registryCAConfigMapName string, conta
 
 func admissionDepUpdateStrategy(admission *falconv1alpha1.FalconAdmission) appsv1.DeploymentStrategy {
 	rollingUpdateSettings := appsv1.RollingUpdateDeployment{}
+	newUpdateStrategy := admission.GetDepUpdateStrategy()
 
-	if admission.Spec.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxSurge != nil {
-		rollingUpdateSettings.MaxSurge = admission.Spec.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxSurge
+	if !reflect.DeepEqual(rollingUpdateSettings.MaxSurge, newUpdateStrategy.RollingUpdate.MaxSurge) {
+		rollingUpdateSettings.MaxSurge = newUpdateStrategy.RollingUpdate.MaxSurge
 	}
 
-	if admission.Spec.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable != nil {
-		rollingUpdateSettings.MaxUnavailable = admission.Spec.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable
+	if !reflect.DeepEqual(rollingUpdateSettings.MaxUnavailable, newUpdateStrategy.RollingUpdate.MaxUnavailable) {
+		rollingUpdateSettings.MaxUnavailable = newUpdateStrategy.RollingUpdate.MaxUnavailable
 	}
 
 	return appsv1.DeploymentStrategy{

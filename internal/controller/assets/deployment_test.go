@@ -36,8 +36,6 @@ func TestSideCarDeployment(t *testing.T) {
 // TestAdmissionDeployment tests the Admission Controller Deployment function
 func TestAdmissionDeployment(t *testing.T) {
 	falconAdmission := &falconv1alpha1.FalconAdmission{}
-	falconAdmission.Spec.AdmissionConfig.ResourcesClient = &corev1.ResourceRequirements{}
-	falconAdmission.Spec.AdmissionConfig.ResourcesAC = &corev1.ResourceRequirements{}
 
 	port := int32(1)
 	falconAdmission.Spec.AdmissionConfig.Port = &port
@@ -84,8 +82,12 @@ func TestAdmissionDepUpdateStrategy(t *testing.T) {
 		},
 	}
 
-	falconAdmission.Spec.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable = &intstr.IntOrString{Type: intstr.Int, IntVal: 1}
-	falconAdmission.Spec.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxSurge = &intstr.IntOrString{Type: intstr.Int, IntVal: 1}
+	falconAdmission.Spec.AdmissionConfig.DepUpdateStrategy = &falconv1alpha1.FalconAdmissionUpdateStrategy{
+		RollingUpdate: appsv1.RollingUpdateDeployment{
+			MaxUnavailable: &intstr.IntOrString{IntVal: 1},
+			MaxSurge:       &intstr.IntOrString{IntVal: 1},
+		},
+	}
 
 	got := admissionDepUpdateStrategy(&falconAdmission)
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -338,32 +340,47 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 	readOnlyRootFilesystem := true
 	allowPrivilegeEscalation := false
 	shareProcessNamespace := true
-	resourcesClient := &corev1.ResourceRequirements{}
-	resourcesWatcher := &corev1.ResourceRequirements{}
-	resourcesAC := &corev1.ResourceRequirements{}
+	resourcesClient := corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			"cpu":    resource.MustParse(falconv1alpha1.KACResourcesClientLimitCpuDefault),
+			"memory": resource.MustParse(falconv1alpha1.KACResourcesClientLimitMemDefault),
+		},
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse(falconv1alpha1.KACResourcesClientReqCpuDefault),
+			"memory": resource.MustParse(falconv1alpha1.KACResourcesClientLimitMemDefault),
+		},
+	}
+	resourcesWatcher := corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			"cpu":    resource.MustParse(falconv1alpha1.KACResourcesWatcherLimitCpuDefault),
+			"memory": resource.MustParse(falconv1alpha1.KACResourcesWatcherLimitMemDefault),
+		},
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse(falconv1alpha1.KACResourcesWatcherReqCpuDefault),
+			"memory": resource.MustParse(falconv1alpha1.KACResourcesWatcherReqMemDefault),
+		},
+	}
+	resourcesAC := corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			"cpu":    resource.MustParse(falconv1alpha1.KACResourcesAcLimitCpuDefault),
+			"memory": resource.MustParse(falconv1alpha1.KACResourcesAcLimitMemDefault),
+		},
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse(falconv1alpha1.KACResourcesAcReqCpuDefault),
+			"memory": resource.MustParse(falconv1alpha1.KACResourcesAcReqMemDefault),
+		},
+	}
 	sizeLimitTmp := resource.MustParse("256Mi")
 	sizeLimitPrivate := resource.MustParse("4Ki")
 	sizeLimitWatcher := resource.MustParse("64Mi")
 	portWatcherHealthCheck := int32(4080)
 	labels := common.CRLabels("deployment", name, component)
 
-	if falconAdmission.Spec.AdmissionConfig.ResourcesClient != nil {
-		resourcesClient = falconAdmission.Spec.AdmissionConfig.ResourcesClient
-	}
-
-	if falconAdmission.Spec.AdmissionConfig.ResourcesWatcher != nil {
-		resourcesWatcher = falconAdmission.Spec.AdmissionConfig.ResourcesWatcher
-	}
-
-	if falconAdmission.Spec.AdmissionConfig.ResourcesAC != nil {
-		resourcesAC = falconAdmission.Spec.AdmissionConfig.ResourcesAC
-	}
-
 	kacContainers := &[]corev1.Container{
 		{
 			Name:            "falcon-client",
 			Image:           imageUri,
-			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
+			ImagePullPolicy: falconv1alpha1.KACImagePullPolicyDefault,
 			Args:            []string{"client"},
 			SecurityContext: &corev1.SecurityContext{
 				ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
@@ -463,12 +480,12 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 				SuccessThreshold:    1,
 				FailureThreshold:    3,
 			},
-			Resources: *resourcesClient,
+			Resources: resourcesClient,
 		},
 		{
 			Name:            "falcon-kac",
 			Image:           imageUri,
-			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
+			ImagePullPolicy: falconv1alpha1.KACImagePullPolicyDefault,
 
 			SecurityContext: &corev1.SecurityContext{
 				ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
@@ -531,7 +548,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 				SuccessThreshold:    1,
 				FailureThreshold:    3,
 			},
-			Resources: *resourcesAC,
+			Resources: resourcesAC,
 		},
 	}
 
@@ -539,7 +556,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 		*kacContainers = append(*kacContainers, corev1.Container{
 			Name:            "falcon-watcher",
 			Image:           imageUri,
-			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
+			ImagePullPolicy: falconv1alpha1.KACImagePullPolicyDefault,
 			Args: []string{
 				"client",
 				"-app=watcher",
@@ -659,7 +676,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 				SuccessThreshold:    1,
 				FailureThreshold:    3,
 			},
-			Resources: *resourcesWatcher,
+			Resources: resourcesWatcher,
 		})
 	}
 
