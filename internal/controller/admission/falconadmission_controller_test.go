@@ -26,6 +26,7 @@ var _ = Describe("FalconAdmission controller", func() {
 		const AdmissionControllerNamespace = "falcon-kac"
 		admissionImage := "example.com/image:test"
 		falconCID := "1234567890ABCDEF1234567890ABCDEF-12"
+		installNamespace := "falcon-kac"
 
 		ctx := context.Background()
 
@@ -67,13 +68,13 @@ var _ = Describe("FalconAdmission controller", func() {
 						Falcon: falconv1alpha1.FalconSensor{
 							CID: &falconCID,
 						},
-						InstallNamespace: "falcon-kac",
+						InstallNamespace: &installNamespace,
 						Image:            admissionImage,
 						Registry: falconv1alpha1.RegistrySpec{
 							Type: "crowdstrike",
 						},
 						AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
-							DepUpdateStrategy: falconv1alpha1.FalconAdmissionUpdateStrategy{
+							DepUpdateStrategy: &falconv1alpha1.FalconAdmissionUpdateStrategy{
 								RollingUpdate: appsv1.RollingUpdateDeployment{
 									MaxUnavailable: &intstr.IntOrString{IntVal: 1},
 									MaxSurge:       &intstr.IntOrString{IntVal: 1},

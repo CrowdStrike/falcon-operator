@@ -219,7 +219,7 @@ func (r *FalconAdmissionReconciler) imageNamespace(falconAdmission *falconv1alph
 		// is shared and images pushed there can be referenced by deployments in other namespaces
 		return "openshift"
 	}
-	return falconAdmission.Spec.InstallNamespace
+	return *falconAdmission.Spec.InstallNamespace
 }
 
 func (r *FalconAdmissionReconciler) falconApiConfig(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission) *falcon.ApiConfig {

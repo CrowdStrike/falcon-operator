@@ -6,14 +6,39 @@ import (
 	arv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-const (
-	DeployWatcherDefault     = true
-	SnapshotsEnabledDefault  = true
-	SnapshotsIntervalDefault = 22
-	WatcherEnabledDefault    = true
+var (
+	DeployWatcherDefault               bool                   = true
+	SnapshotsEnabledDefault            bool                   = true
+	SnapshotsIntervalDefault           time.Duration          = 22 * time.Hour
+	WatcherEnabledDefault              bool                   = true
+	APDDefault                         bool                   = false
+	APDDefaultTrace                    string                 = "none"
+	KACNamespaceDefault                string                 = "falcon-kac"
+	KACResQuotaPodLimitDefault         string                 = "2"
+	KACPortDefault                     int32                  = 443
+	KACContainerPortDefault            int32                  = 4443
+	KACFailurePolicyDefault            arv1.FailurePolicyType = "Ignore"
+	KACReplicasDefault                 int32                  = 1
+	KACImagePullPolicyDefault          corev1.PullPolicy      = "Always"
+	KACResourcesClientLimitCpuDefault  string                 = "750m"
+	KACResourcesClientLimitMemDefault  string                 = "384Mi"
+	KACResourcesClientReqCpuDefault    string                 = "500m"
+	KACResourcesClientReqMemDefault    string                 = "384Mi"
+	KACResourcesAcLimitCpuDefault      string                 = "750m"
+	KACResourcesAcLimitMemDefault      string                 = "384Mi"
+	KACResourcesAcReqCpuDefault        string                 = "500m"
+	KACResourcesAcReqMemDefault        string                 = "384Mi"
+	KACResourcesWatcherLimitCpuDefault string                 = "300m"
+	KACResourcesWatcherLimitMemDefault string                 = "256Mi"
+	KACResourcesWatcherReqCpuDefault   string                 = "300m"
+	KACResourcesWatcherReqMemDefault   string                 = "256Mi"
+	KACDepUpdateStrategyMaxUnavailable int32                  = 0
+	KACDepUpdateStrategyMaxSurge       int32                  = 1
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -29,7 +54,7 @@ type FalconAdmissionSpec struct {
 	// It also should not be the same namespace where the Falcon Operator or the Falcon Sensor is installed.
 	// +kubebuilder:default:=falcon-kac
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1,xDescriptors={"urn:alm:descriptor:io.kubernetes:Namespace"}
-	InstallNamespace string `json:"installNamespace,omitempty"`
+	InstallNamespace *string `json:"installNamespace,omitempty"`
 
 	// CrowdStrike Falcon sensor configuration
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Sensor Configuration",order=3
@@ -70,7 +95,7 @@ type FalconAdmissionRQSpec struct {
 	// +kubebuilder:default:="2"
 	// +kubebuilder:validation:String
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Resource Quota Pod Limit",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
-	PodLimit string `json:"pods,omitempty"`
+	PodLimit *string `json:"pods,omitempty"`
 }
 
 type FalconAdmissionConfigSpec struct {
@@ -102,7 +127,7 @@ type FalconAdmissionConfigSpec struct {
 	// +kubebuilder:default:=Ignore
 	// +kubebuilder:validation:Enum=Ignore;Fail
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Failure Policy",order=6
-	FailurePolicy arv1.FailurePolicyType `json:"failurePolicy,omitempty"`
+	FailurePolicy *arv1.FailurePolicyType `json:"failurePolicy,omitempty"`
 
 	// Ignore admission control for a specific set of namespaces.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=12
@@ -131,7 +156,7 @@ type FalconAdmissionConfigSpec struct {
 	WatcherEnabled *bool `json:"watcherEnabled,omitempty"`
 
 	// Currently ignored and internally set to 1
-	// +kubebuilder:default:=2
+	// +kubebuilder:default:=1
 	// +kubebuilder:validation:XIntOrString
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:validation:Maximum:=65535
@@ -141,7 +166,7 @@ type FalconAdmissionConfigSpec struct {
 	// +kubebuilder:default:=Always
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Image Pull Policy",order=2,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy"}
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	ImagePullPolicy *corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 
 	// ImagePullSecrets is an optional list of references to secrets to use for pulling image from the image location.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1,displayName="Falcon Admission Controller Image Pull Secrets",xDescriptors={"urn:alm:descriptor:io.kubernetes:Secret"}
@@ -162,7 +187,7 @@ type FalconAdmissionConfigSpec struct {
 	// Type of Deployment update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
 	// +kubebuilder:default:={"rollingUpdate":{"maxUnavailable":0,"maxSurge":1}}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=11
-	DepUpdateStrategy FalconAdmissionUpdateStrategy `json:"updateStrategy,omitempty"`
+	DepUpdateStrategy *FalconAdmissionUpdateStrategy `json:"updateStrategy,omitempty"`
 }
 
 type FalconAdmissionServiceAccount struct {
@@ -255,7 +280,7 @@ func (watcher FalconAdmissionConfigSpec) GetSnapshotsEnabled() bool {
 
 func (watcher FalconAdmissionConfigSpec) GetSnapshotsInterval() time.Duration {
 	if watcher.SnapshotsInterval == nil {
-		return SnapshotsIntervalDefault * time.Hour
+		return time.Duration(SnapshotsIntervalDefault)
 	}
 
 	return watcher.SnapshotsInterval.Duration
@@ -267,4 +292,122 @@ func (watcher FalconAdmissionConfigSpec) GetWatcherEnabled() bool {
 	}
 
 	return *watcher.WatcherEnabled
+}
+
+func (admission FalconAdmission) GetResourcesClient() *corev1.ResourceRequirements {
+	if admission.Spec.AdmissionConfig.ResourcesClient == nil {
+		return &corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"cpu":    resource.MustParse(KACResourcesClientLimitCpuDefault),
+				"memory": resource.MustParse(KACResourcesClientLimitMemDefault),
+			},
+			Requests: corev1.ResourceList{
+				"cpu":    resource.MustParse(KACResourcesClientReqCpuDefault),
+				"memory": resource.MustParse(KACResourcesClientLimitMemDefault),
+			},
+		}
+	}
+
+	return admission.Spec.AdmissionConfig.ResourcesClient
+}
+
+func (admission FalconAdmission) GetResourcesWatcher() *corev1.ResourceRequirements {
+	if admission.Spec.AdmissionConfig.ResourcesWatcher == nil {
+		return &corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"cpu":    resource.MustParse(KACResourcesWatcherLimitCpuDefault),
+				"memory": resource.MustParse(KACResourcesWatcherLimitMemDefault),
+			},
+			Requests: corev1.ResourceList{
+				"cpu":    resource.MustParse(KACResourcesWatcherReqCpuDefault),
+				"memory": resource.MustParse(KACResourcesWatcherReqMemDefault),
+			},
+		}
+	}
+
+	return admission.Spec.AdmissionConfig.ResourcesWatcher
+}
+
+func (admission FalconAdmission) GetResourcesAC() *corev1.ResourceRequirements {
+	if admission.Spec.AdmissionConfig.ResourcesAC == nil {
+		return &corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"cpu":    resource.MustParse(KACResourcesAcLimitCpuDefault),
+				"memory": resource.MustParse(KACResourcesAcLimitMemDefault),
+			},
+			Requests: corev1.ResourceList{
+				"cpu":    resource.MustParse(KACResourcesAcReqCpuDefault),
+				"memory": resource.MustParse(KACResourcesAcReqMemDefault),
+			},
+		}
+	}
+
+	return admission.Spec.AdmissionConfig.ResourcesAC
+}
+
+func (admission FalconAdmission) GetDepUpdateStrategy() *FalconAdmissionUpdateStrategy {
+	if admission.Spec.AdmissionConfig.DepUpdateStrategy == nil {
+		return &FalconAdmissionUpdateStrategy{
+			RollingUpdate: appsv1.RollingUpdateDeployment{
+				MaxUnavailable: &intstr.IntOrString{IntVal: KACDepUpdateStrategyMaxUnavailable},
+				MaxSurge:       &intstr.IntOrString{IntVal: KACDepUpdateStrategyMaxSurge},
+			},
+		}
+	}
+
+	return admission.Spec.AdmissionConfig.DepUpdateStrategy
+}
+
+func (admission FalconAdmission) GetImagePullPolicy() *corev1.PullPolicy {
+	if admission.Spec.AdmissionConfig.ImagePullPolicy == nil {
+		return &KACImagePullPolicyDefault
+	}
+	return admission.Spec.AdmissionConfig.ImagePullPolicy
+}
+
+func (admission FalconAdmission) GetRegistryCAConfigMapName(name string) string {
+	registryCAConfigMapName := ""
+	registryCABundleConfigMapName := name + "-registry-certs"
+
+	if admission.Spec.Registry.TLS.CACertificateConfigMap != "" {
+		registryCAConfigMapName = admission.Spec.Registry.TLS.CACertificateConfigMap
+	}
+
+	if admission.Spec.Registry.TLS.CACertificate != "" {
+		registryCAConfigMapName = registryCABundleConfigMapName
+	}
+
+	return registryCAConfigMapName
+}
+
+func (admission FalconAdmission) GetKACPort() *int32 {
+	if admission.Spec.AdmissionConfig.Port == nil {
+		return &KACPortDefault
+	}
+
+	return admission.Spec.AdmissionConfig.Port
+}
+
+func (admission FalconAdmission) GetFailurePolicy() *arv1.FailurePolicyType {
+	if admission.Spec.AdmissionConfig.FailurePolicy == nil {
+		return &KACFailurePolicyDefault
+	}
+
+	return admission.Spec.AdmissionConfig.FailurePolicy
+}
+
+func (admission FalconAdmission) GetContainerPort() *int32 {
+	if admission.Spec.AdmissionConfig.ContainerPort == nil {
+		return &KACContainerPortDefault
+	}
+
+	return admission.Spec.AdmissionConfig.ContainerPort
+}
+
+func (admission FalconAdmission) GetResQuotaPodLimit() *string {
+	if admission.Spec.ResQuota.PodLimit == nil {
+		return &KACResQuotaPodLimitDefault
+	}
+
+	return admission.Spec.ResQuota.PodLimit
 }

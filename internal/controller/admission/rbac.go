@@ -33,12 +33,12 @@ func (r *FalconAdmissionReconciler) reconcileServiceAccount(ctx context.Context,
 	}
 
 	serviceAccount := assets.ServiceAccount(common.AdmissionServiceAccountName,
-		falconAdmission.Spec.InstallNamespace,
+		*falconAdmission.Spec.InstallNamespace,
 		common.FalconAdmissionController,
 		falconAdmission.Spec.AdmissionConfig.ServiceAccount.Annotations,
 		imagePullSecrets)
 
-	err := r.Get(ctx, types.NamespacedName{Name: common.AdmissionServiceAccountName, Namespace: falconAdmission.Spec.InstallNamespace}, existingServiceAccount)
+	err := r.Get(ctx, types.NamespacedName{Name: common.AdmissionServiceAccountName, Namespace: *falconAdmission.Spec.InstallNamespace}, existingServiceAccount)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, serviceAccount)
 		if err != nil {
@@ -73,7 +73,7 @@ func (r *FalconAdmissionReconciler) reconcileServiceAccount(ctx context.Context,
 
 func (r *FalconAdmissionReconciler) reconcileClusterRoleBinding(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
 	clusterRoleBinding := assets.ClusterRoleBinding(admissionClusterRoleBindingName,
-		falconAdmission.Spec.InstallNamespace,
+		*falconAdmission.Spec.InstallNamespace,
 		admissionClusterRoleName,
 		common.AdmissionServiceAccountName,
 		common.FalconAdmissionController,
@@ -116,10 +116,10 @@ func (r *FalconAdmissionReconciler) reconcileClusterRoleBinding(ctx context.Cont
 }
 
 func (r *FalconAdmissionReconciler) reconcileRole(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
-	role := assets.Role("falcon-admission-controller-role", falconAdmission.Spec.InstallNamespace)
+	role := assets.Role("falcon-admission-controller-role", *falconAdmission.Spec.InstallNamespace)
 	existingRole := &rbacv1.Role{}
 
-	err := r.Get(ctx, types.NamespacedName{Name: "falcon-admission-controller-role", Namespace: falconAdmission.Spec.InstallNamespace}, existingRole)
+	err := r.Get(ctx, types.NamespacedName{Name: "falcon-admission-controller-role", Namespace: *falconAdmission.Spec.InstallNamespace}, existingRole)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, role)
 		if err != nil {
@@ -145,12 +145,12 @@ func (r *FalconAdmissionReconciler) reconcileRole(ctx context.Context, req ctrl.
 
 func (r *FalconAdmissionReconciler) reconcileRoleBinding(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
 	roleBinding := assets.RoleBinding("falcon-admission-controller-role-binding",
-		falconAdmission.Spec.InstallNamespace,
+		*falconAdmission.Spec.InstallNamespace,
 		"falcon-admission-controller-role",
 		common.AdmissionServiceAccountName)
 	existingRoleBinding := &rbacv1.RoleBinding{}
 
-	err := r.Get(ctx, types.NamespacedName{Name: "falcon-admission-controller-role-binding", Namespace: falconAdmission.Spec.InstallNamespace}, existingRoleBinding)
+	err := r.Get(ctx, types.NamespacedName{Name: "falcon-admission-controller-role-binding", Namespace: *falconAdmission.Spec.InstallNamespace}, existingRoleBinding)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, roleBinding)
 		if err != nil {
