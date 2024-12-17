@@ -188,6 +188,23 @@ func TestDaemonset(t *testing.T) {
 	falconNode.Name = "test"
 	image := "testImage"
 	dsName := "test-DaemonSet"
+	falconNode.Spec.Node.Tolerations = &[]corev1.Toleration{
+		{
+			Key:      "node-role.kubernetes.io/master",
+			Operator: "Exists",
+			Effect:   "NoSchedule",
+		},
+		{
+			Key:      "node-role.kubernetes.io/control-plane",
+			Operator: "Exists",
+			Effect:   "NoSchedule",
+		},
+		{
+			Key:      "node-role.kubernetes.io/infra",
+			Operator: "Exists",
+			Effect:   "NoSchedule",
+		},
+	}
 
 	privileged := true
 	escalation := true
@@ -219,7 +236,7 @@ func TestDaemonset(t *testing.T) {
 					// NodeSelector is set to linux until windows containers are supported for the Falcon sensor
 					NodeSelector:                  common.NodeSelector,
 					Affinity:                      nodeAffinity(&falconNode),
-					Tolerations:                   falconNode.Spec.Node.Tolerations,
+					Tolerations:                   *falconNode.Spec.Node.Tolerations,
 					HostPID:                       hostpid,
 					HostIPC:                       hostipc,
 					HostNetwork:                   hostnetwork,
@@ -298,6 +315,23 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 	falconNode.Name = "test"
 	image := "testImage"
 	dsName := "test-DaemonSet"
+	falconNode.Spec.Node.Tolerations = &[]corev1.Toleration{
+		{
+			Key:      "node-role.kubernetes.io/master",
+			Operator: "Exists",
+			Effect:   "NoSchedule",
+		},
+		{
+			Key:      "node-role.kubernetes.io/control-plane",
+			Operator: "Exists",
+			Effect:   "NoSchedule",
+		},
+		{
+			Key:      "node-role.kubernetes.io/infra",
+			Operator: "Exists",
+			Effect:   "NoSchedule",
+		},
+	}
 
 	privileged := true
 	nonPrivileged := false
@@ -326,7 +360,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 					// NodeSelector is set to linux until windows containers are supported for the Falcon sensor
 					NodeSelector:                  common.NodeSelector,
 					Affinity:                      nodeAffinity(&falconNode),
-					Tolerations:                   falconNode.Spec.Node.Tolerations,
+					Tolerations:                   *falconNode.Spec.Node.Tolerations,
 					HostPID:                       hostpid,
 					TerminationGracePeriodSeconds: getTermGracePeriod(&falconNode),
 					ImagePullSecrets:              pullSecrets(&falconNode),

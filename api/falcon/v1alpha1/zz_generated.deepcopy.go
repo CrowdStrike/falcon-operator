@@ -1057,9 +1057,13 @@ func (in *FalconNodeSensorConfig) DeepCopyInto(out *FalconNodeSensorConfig) {
 	*out = *in
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]corev1.Toleration, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+		*out = new([]corev1.Toleration)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]corev1.Toleration, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
 		}
 	}
 	in.NodeAffinity.DeepCopyInto(&out.NodeAffinity)
