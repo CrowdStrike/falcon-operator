@@ -3133,6 +3133,9 @@ spec:
             description: FalconNodeSensorSpec defines the desired state of FalconNodeSensor
             properties:
               falcon:
+                default:
+                  apd: false
+                  trace: none
                 description: CrowdStrike Falcon Sensor configuration settings.
                 properties:
                   apd:
@@ -3225,6 +3228,8 @@ spec:
                   are deployed.
                 type: string
               node:
+                default:
+                  imagePullPolicy: Always
                 description: Various configuration for DaemonSet Deployment
                 properties:
                   advanced:
@@ -3631,6 +3636,8 @@ spec:
                       type: object
                     type: array
                   updateStrategy:
+                    default:
+                      type: RollingUpdate
                     description: Type of DaemonSet update. Can be "RollingUpdate"
                       or "OnDelete". Default is RollingUpdate.
                     properties:
