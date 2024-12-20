@@ -32,7 +32,7 @@ func (r *FalconAdmissionReconciler) reconcileGenericConfigMap(name string, genFu
 	}
 
 	existingCM := &corev1.ConfigMap{}
-	err = r.Get(ctx, types.NamespacedName{Name: name, Namespace: falconAdmission.Spec.InstallNamespace}, existingCM)
+	err = r.Get(ctx, types.NamespacedName{Name: name, Namespace: *falconAdmission.Spec.InstallNamespace}, existingCM)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, cm)
 		if err != nil {
@@ -62,7 +62,7 @@ func (r *FalconAdmissionReconciler) newCABundleConfigMap(ctx context.Context, na
 	if falconAdmission.Spec.Registry.TLS.CACertificate != "" {
 		data["tls.crt"] = string(common.DecodeBase64Interface(falconAdmission.Spec.Registry.TLS.CACertificate))
 
-		return assets.SensorConfigMap(name, falconAdmission.Spec.InstallNamespace, common.FalconSidecarSensor, data), nil
+		return assets.SensorConfigMap(name, *falconAdmission.Spec.InstallNamespace, common.FalconSidecarSensor, data), nil
 	}
 	return &corev1.ConfigMap{}, fmt.Errorf("unable to determine contents of Registry TLS CACertificate attribute")
 }
@@ -84,5 +84,5 @@ func (r *FalconAdmissionReconciler) newConfigMap(ctx context.Context, name strin
 	}
 	data["FALCONCTL_OPT_CID"] = cid
 
-	return assets.SensorConfigMap(name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, data), nil
+	return assets.SensorConfigMap(name, *falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, data), nil
 }
