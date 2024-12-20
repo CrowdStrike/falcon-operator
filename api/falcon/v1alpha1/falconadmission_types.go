@@ -32,6 +32,7 @@ type FalconAdmissionSpec struct {
 	InstallNamespace string `json:"installNamespace,omitempty"`
 
 	// CrowdStrike Falcon sensor configuration
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Sensor Configuration",order=3
 	Falcon FalconSensor `json:"falcon,omitempty"`
 
@@ -44,6 +45,7 @@ type FalconAdmissionSpec struct {
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
 	// ResourceQuota configures the ResourceQuota for the Falcon Admission Controller. This is useful for limiting the number of pods that can be created in the namespace.
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Resource Quota",order=4
 	ResQuota FalconAdmissionRQSpec `json:"resourcequota,omitempty"`
 
@@ -52,6 +54,7 @@ type FalconAdmissionSpec struct {
 	Registry RegistrySpec `json:"registry,omitempty"`
 
 	// Additional configuration for Falcon Admission Controller deployment.
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Configuration",order=5
 	AdmissionConfig FalconAdmissionConfigSpec `json:"admissionConfig,omitempty"`
 

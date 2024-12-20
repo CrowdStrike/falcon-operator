@@ -21,8 +21,10 @@ type FalconContainerSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1,xDescriptors={"urn:alm:descriptor:io.kubernetes:Namespace"}
 	InstallNamespace string `json:"installNamespace,omitempty"`
 
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Sensor Configuration",order=1
 	Falcon FalconSensor `json:"falcon,omitempty"`
+
 	// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
@@ -32,7 +34,7 @@ type FalconContainerSpec struct {
 	Registry RegistrySpec `json:"registry,omitempty"`
 
 	// Injector represents additional configuration for Falcon Container Injector
-	// +kubebuilder:default:={imagePullPolicy:Always}
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Injector Configuration",order=4
 	Injector FalconContainerInjectorSpec `json:"injector,omitempty"`
 
