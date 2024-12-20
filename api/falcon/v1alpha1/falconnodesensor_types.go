@@ -23,9 +23,11 @@ type FalconNodeSensorSpec struct {
 	InstallNamespace string `json:"installNamespace,omitempty"`
 
 	// Various configuration for DaemonSet Deployment
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Configuration",order=3
 	Node FalconNodeSensorConfig `json:"node,omitempty"`
 
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Sensor Configuration",order=2
 	Falcon FalconSensor `json:"falcon,omitempty"`
 
@@ -66,6 +68,7 @@ type FalconNodeSensorConfig struct {
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
 	// Type of DaemonSet update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
+	// +kubebuilder:default={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Update Strategy",order=6
 	DSUpdateStrategy FalconNodeUpdateStrategy `json:"updateStrategy,omitempty"`
 
