@@ -7,10 +7,13 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
+	"github.com/crowdstrike/falcon-operator/pkg/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"golang.org/x/exp/slices"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,10 +37,20 @@ var _ = Describe("FalconNodeSensor controller", func() {
 		}
 
 		typeNamespaceName := types.NamespacedName{Name: NodeSensorName, Namespace: NodeSensorName}
+		clusterRole := rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: NodeSensorName,
+				Name:      common.NodeClusterRoleName,
+				Labels:    common.CRLabels("serviceaccount", common.NodeServiceAccountName, common.FalconKernelSensor),
+			}, Rules: []rbacv1.PolicyRule{}}
 
 		BeforeEach(func() {
 			By("Creating the Namespace to perform the tests")
 			err := k8sClient.Create(ctx, namespace)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Creating the Namespace to perform the tests")
+			err = k8sClient.Create(ctx, &clusterRole)
 			Expect(err).To(Not(HaveOccurred()))
 		})
 
@@ -46,6 +59,8 @@ var _ = Describe("FalconNodeSensor controller", func() {
 			// be aware of the current delete namespace limitations. More info: https://book.kubebuilder.io/reference/envtest.html#testing-considerations
 			By("Deleting the Namespace to perform the tests")
 			_ = k8sClient.Delete(ctx, namespace)
+
+			_ = k8sClient.Delete(ctx, &clusterRole)
 		})
 
 		It("should successfully reconcile a custom resource for FalconNodeSensor", func() {
@@ -105,6 +120,31 @@ var _ = Describe("FalconNodeSensor controller", func() {
 				NamespacedName: typeNamespaceName,
 			})
 			Expect(err).To(Not(HaveOccurred()))
+
+			// ClusterRole reconcile
+			_, err = falconNodeReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespaceName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the cluster role permissions were set")
+			Eventually(func() error {
+				clusterRole := rbacv1.ClusterRole{}
+				err := falconNodeReconciler.Get(ctx, types.NamespacedName{Name: common.NodeClusterRoleName}, &clusterRole)
+				if err != nil {
+					return fmt.Errorf("clusterrole doesn't exist")
+				}
+
+				// check if CDP cluster role was correctly set
+				for _, rule := range clusterRole.Rules {
+					if slices.Equal(rule.Resources, cdpRoles.Resources) &&
+						slices.Equal(rule.Verbs, cdpRoles.Verbs) &&
+						slices.Equal(rule.APIGroups, cdpRoles.APIGroups) {
+						return nil
+					}
+				}
+				return fmt.Errorf("clusterrole doesn't have the correct permissions")
+			}, time.Minute, time.Second).Should(Succeed())
 
 			// TODO: clusterRoleBinding reconciliation might be removed in the future
 			_, err = falconNodeReconciler.Reconcile(ctx, reconcile.Request{

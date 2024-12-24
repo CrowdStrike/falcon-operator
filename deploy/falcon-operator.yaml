@@ -3259,6 +3259,10 @@ spec:
                     - kernel
                     - bpf
                     type: string
+                  cdpRolesEnabled:
+                    default: true
+                    description: Enable cluster roles for Cloud Data Protection module
+                    type: boolean
                   disableCleanup:
                     default: false
                     description: Disables the cleanup of the sensor through DaemonSet
@@ -3960,6 +3964,23 @@ rules:
   - get
   - list
   - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - cronjobs
+  - daemonsets
+  - deployments
+  - ingresses
+  - jobs
+  - nodes
+  - persistentvolumes
+  - pods
+  - replicasets
+  - services
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - ""

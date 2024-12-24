@@ -110,6 +110,11 @@ type FalconNodeSensorConfig struct {
 	// For more information, please see https://github.com/CrowdStrike/falcon-operator/blob/main/docs/ADVANCED.md.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Advanced Settings"
 	Advanced FalconAdvanced `json:"advanced,omitempty"`
+
+	// Enable cluster roles for Cloud Data Protection module
+	// +kubebuilder:default=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=13
+	CdpRolesEnabled *bool `json:"cdpRolesEnabled,omitempty"`
 }
 
 type PriorityClassConfig struct {

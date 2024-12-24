@@ -46,4 +46,5 @@ const (
 	AdmissionServiceAccountName = "falcon-operator-admission-controller"
 	NodeClusterRoleBindingName  = "falcon-operator-node-sensor-rolebinding"
 	ImageServiceAccountName     = "falcon-operator-image-analyzer"
+	NodeClusterRoleName         = "falcon-operator-node-sensor-role"
 )
