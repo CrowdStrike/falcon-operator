@@ -3964,6 +3964,23 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - cronjobs
+  - daemonsets
+  - deployments
+  - ingresses
+  - jobs
+  - nodes
+  - persistentvolumes
+  - pods
+  - replicasets
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - deployments
   verbs:
   - create
@@ -4330,7 +4347,25 @@ metadata:
     crowdstrike.com/part-of: Falcon
     crowdstrike.com/provider: crowdstrike
   name: falcon-operator-node-sensor-role
-rules: []
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - cronjobs
+  - daemonsets
+  - deployments
+  - ingresses
+  - jobs
+  - nodes
+  - persistentvolumes
+  - pods
+  - replicasets
+  - services
+  verbs:
+  - get
+  - list
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
