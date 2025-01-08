@@ -35,16 +35,6 @@ import (
 	clog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var (
-	cdpRoleEnabledNil = goerr.New("CdpRolesEnabled must be defined")
-
-	cdpRoles = rbacv1.PolicyRule{
-		APIGroups: []string{""},
-		Verbs:     []string{"get", "watch", "list"},
-		Resources: []string{"pods", "services", "nodes", "daemonsets", "replicasets", "deployments", "jobs", "ingresses", "cronjobs", "persistentvolumes"},
-	}
-)
-
 // FalconNodeSensorReconciler reconciles a FalconNodeSensor object
 type FalconNodeSensorReconciler struct {
 	client.Client
@@ -898,43 +888,6 @@ func (r *FalconNodeSensorReconciler) handleServiceAccount(ctx context.Context, n
 	return false, nil
 }
 
-// handleClusterRole updates the cluster role and grants necessary permissions to it
-func (r *FalconNodeSensorReconciler) handleClusterRole(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
-	if nodesensor.Spec.Node.CdpRolesEnabled == nil {
-		return false, cdpRoleEnabledNil
-	}
-
-	if !*nodesensor.Spec.Node.CdpRolesEnabled {
-		return false, nil
-	}
-	clusterRole := rbacv1.ClusterRole{}
-	err := r.Get(ctx, types.NamespacedName{Name: common.NodeClusterRoleName}, &clusterRole)
-	if err != nil {
-		logger.Error(err, "Failed to get FalconNodeSensor ClusterRole")
-		return false, err
-	}
-
-	// check if CDP cluster role was already set
-	for _, rule := range clusterRole.Rules {
-		if slices.Equal(rule.Resources, cdpRoles.Resources) &&
-			slices.Equal(rule.Verbs, cdpRoles.Verbs) &&
-			slices.Equal(rule.APIGroups, cdpRoles.APIGroups) {
-			return false, nil
-		}
-	}
-
-	clusterRole.Rules = append(clusterRole.Rules, cdpRoles)
-
-	err = r.Update(ctx, &clusterRole)
-	if err != nil {
-		logger.Error(err, "Failed to update ClusterRole", "Namespace.Name", nodesensor.Spec.InstallNamespace, "ClusterRole.Name", common.NodeClusterRoleName)
-		return false, err
-	}
-	logger.Info("Updated FalconNodeSensor ClusterRole")
-	return true, nil
-
-}
-
 // handleServiceAccount creates and updates the service account and grants necessary permissions to it
 func (r *FalconNodeSensorReconciler) handleSAAnnotations(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
 	sa := corev1.ServiceAccount{}
@@ -1099,50 +1052,6 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 
 	logger.Info("Successfully finalized daemonset")
 	return nil
-}
-
-// cleanupClusterRole cleanup the cluster role from permissions granted in runtime
-func (r *FalconNodeSensorReconciler) cleanupClusterRole(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
-	if nodesensor.Spec.Node.CdpRolesEnabled == nil {
-		return cdpRoleEnabledNil
-	}
-
-	if !*nodesensor.Spec.Node.CdpRolesEnabled {
-		return nil
-	}
-	clusterRole := rbacv1.ClusterRole{}
-	err := r.Get(ctx, types.NamespacedName{Name: common.NodeClusterRoleName}, &clusterRole)
-	if err != nil {
-		logger.Error(err, "Failed to get FalconNodeSensor ClusterRole")
-		return err
-	}
-
-	indexToRemove := 0
-	roleToRemoveFound := false
-	var rule rbacv1.PolicyRule
-	// check if CDP cluster role was set
-	for indexToRemove, rule = range clusterRole.Rules {
-		if slices.Equal(rule.Resources, cdpRoles.Resources) &&
-			slices.Equal(rule.Verbs, cdpRoles.Verbs) &&
-			slices.Equal(rule.APIGroups, cdpRoles.APIGroups) {
-			roleToRemoveFound = true
-			break
-		}
-	}
-	// continue as role to remove wasn't found
-	if !roleToRemoveFound {
-		return nil
-	}
-
-	clusterRole.Rules = append(clusterRole.Rules[:indexToRemove], clusterRole.Rules[indexToRemove+1:]...)
-	err = r.Update(ctx, &clusterRole)
-	if err != nil {
-		logger.Error(err, "Failed to update ClusterRole", "Namespace.Name", nodesensor.Spec.InstallNamespace, "ClusterRole.Name", common.NodeClusterRoleName)
-		return err
-	}
-	logger.Info("Removed FalconNodeSensor ClusterRole runtime granted permissions")
-	return nil
-
 }
 
 func (r *FalconNodeSensorReconciler) reconcileObjectWithName(ctx context.Context, name types.NamespacedName) error {
