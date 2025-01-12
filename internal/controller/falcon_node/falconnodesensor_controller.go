@@ -2,7 +2,6 @@ package falcon
 
 import (
 	"context"
-	goerr "errors"
 	"reflect"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -16,7 +15,6 @@ import (
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
 	"github.com/operator-framework/operator-lib/proxy"
-	"golang.org/x/exp/slices"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -793,11 +791,6 @@ func (r *FalconNodeSensorReconciler) handlePermissions(ctx context.Context, node
 		return created, err
 	}
 
-	created, err = r.handleClusterRole(ctx, nodesensor, logger)
-	if created || err != nil {
-		return created, err
-	}
-
 	return r.handleClusterRoleBinding(ctx, nodesensor, logger)
 }
 
@@ -818,7 +811,7 @@ func (r *FalconNodeSensorReconciler) handleClusterRoleBinding(ctx context.Contex
 			RoleRef: rbacv1.RoleRef{
 				APIGroup: "rbac.authorization.k8s.io",
 				Kind:     "ClusterRole",
-				Name:     common.NodeClusterRoleName,
+				Name:     "falcon-operator-node-sensor-role",
 			},
 			Subjects: []rbacv1.Subject{
 				{
@@ -837,7 +830,7 @@ func (r *FalconNodeSensorReconciler) handleClusterRoleBinding(ctx context.Contex
 		logger.Info("Creating FalconNodeSensor ClusterRoleBinding")
 		err = r.Create(ctx, &binding)
 		if err != nil && !errors.IsAlreadyExists(err) {
-			logger.Error(err, "Failed to create new ClusterRoleBinding", "ClusterRoleBinding.Name", common.NodeClusterRoleBindingName)
+			logger.Error(err, "Failed to create new ClusterRoleBinding", "ClusteRoleBinding.Name", common.NodeClusterRoleBindingName)
 			return false, err
 		}
 
@@ -1035,11 +1028,6 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 				},
 			}); err != nil && !errors.IsNotFound(err) {
 			logger.Error(err, "Failed to cleanup Falcon sensor DaemonSet pods")
-			return err
-		}
-
-		if err := r.cleanupClusterRole(ctx, nodesensor, logger); err != nil {
-			logger.Error(err, "Failed to cleanup Falcon sensor cluster role")
 			return err
 		}
 
