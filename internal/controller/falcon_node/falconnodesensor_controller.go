@@ -76,6 +76,7 @@ func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager, tracker 
 //+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=get;list;watch;create
 //+kubebuilder:rbac:groups="security.openshift.io",resources=securitycontextconstraints,resourceNames=privileged,verbs=use
 //+kubebuilder:rbac:groups="scheduling.k8s.io",resources=priorityclasses,verbs=get;list;watch;create;delete;update
+//+kubebuilder:rbac:groups="",resources=pods;services;nodes;daemonsets;replicasets;deployments;jobs;ingresses;cronjobs;persistentvolumes,verbs=get;watch;list
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
