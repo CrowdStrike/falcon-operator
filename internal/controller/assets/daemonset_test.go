@@ -215,6 +215,7 @@ func TestDaemonset(t *testing.T) {
 	hostipc := true
 	runAsRoot := int64(0)
 	pathTypeUnset := corev1.HostPathUnset
+	dnsPolicy := corev1.DNSClusterFirstWithHostNet
 
 	want := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -240,6 +241,7 @@ func TestDaemonset(t *testing.T) {
 					HostPID:                       hostpid,
 					HostIPC:                       hostipc,
 					HostNetwork:                   hostnetwork,
+					DNSPolicy:                     dnsPolicy,
 					TerminationGracePeriodSeconds: getTermGracePeriod(&falconNode),
 					ImagePullSecrets:              pullSecrets(&falconNode),
 					InitContainers: []corev1.Container{

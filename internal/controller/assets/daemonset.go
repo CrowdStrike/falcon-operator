@@ -190,6 +190,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 	hostnetwork := true
 	hostipc := true
 	runAsRoot := int64(0)
+	dnsPolicy := corev1.DNSClusterFirstWithHostNet
 
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -217,6 +218,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 					HostPID:                       hostpid,
 					HostIPC:                       hostipc,
 					HostNetwork:                   hostnetwork,
+					DNSPolicy:                     dnsPolicy,
 					TerminationGracePeriodSeconds: getTermGracePeriod(node),
 					ImagePullSecrets:              pullSecrets(node),
 					InitContainers: []corev1.Container{
