@@ -77,6 +77,8 @@ spec:
 | admissionConfig.resources                 | (optional) Configure the resources of the Falcon Admission Controller                                                                                                                                                   |
 | admissionConfig.updateStrategy            | (optional) Configure the deployment update strategy of the Falcon Admission Controller                                                                                                                                  |
 
+> [!NOTE]
+> `admissionConfig.resourcesClient`, `admissionConfig.resourcesWatcher`, and `admissionConfig.resource` should all be updated appropriately based on the Kubernetes API usage within your cluster.
 
 #### Falcon Sensor Settings
 | Spec                                      | Description                                                                                                                                                                                                             |
