@@ -136,10 +136,9 @@ spec:
                   resources:
                     default:
                       limits:
-                        cpu: 300m
                         memory: 256Mi
                       requests:
-                        cpu: 300m
+                        cpu: 100m
                         memory: 256Mi
                     description: ResourceRequirements describes the compute resource
                       requirements.
@@ -199,10 +198,9 @@ spec:
                   resourcesClient:
                     default:
                       limits:
-                        cpu: 750m
                         memory: 384Mi
                       requests:
-                        cpu: 500m
+                        cpu: 250m
                         memory: 384Mi
                     description: ResourceRequirements describes the compute resource
                       requirements.
@@ -262,10 +260,9 @@ spec:
                   resourcesWatcher:
                     default:
                       limits:
-                        cpu: 750m
                         memory: 384Mi
                       requests:
-                        cpu: 500m
+                        cpu: 250m
                         memory: 384Mi
                     description: ResourceRequirements describes the compute resource
                       requirements.

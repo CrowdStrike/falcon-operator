@@ -151,15 +151,15 @@ type FalconAdmissionConfigSpec struct {
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Client Resources",order=9,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	// +kubebuilder:default:={"limits":{"cpu":"750m","memory":"384Mi"},"requests":{"cpu":"500m","memory":"384Mi"}}
+	// +kubebuilder:default:={"limits":{"memory":"384Mi"},"requests":{"cpu":"250m","memory":"384Mi"}}
 	ResourcesClient *corev1.ResourceRequirements `json:"resourcesClient,omitempty"`
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Watcher Resources",order=14,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	// +kubebuilder:default:={"limits":{"cpu":"750m","memory":"384Mi"},"requests":{"cpu":"500m","memory":"384Mi"}}
+	// +kubebuilder:default:={"limits":{"memory":"384Mi"},"requests":{"cpu":"250m","memory":"384Mi"}}
 	ResourcesWatcher *corev1.ResourceRequirements `json:"resourcesWatcher,omitempty"`
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Resources",order=10,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	//+kubebuilder:default:={"limits":{"cpu":"300m","memory":"256Mi"},"requests":{"cpu":"300m","memory":"256Mi"}}
+	//+kubebuilder:default:={"limits":{"memory":"256Mi"},"requests":{"cpu":"100m","memory":"256Mi"}}
 	ResourcesAC *corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// Type of Deployment update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
