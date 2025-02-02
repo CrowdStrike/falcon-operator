@@ -11,6 +11,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	nobodyGroup = 65534
+)
+
 func getTermGracePeriod(node *falconv1alpha1.FalconNodeSensor) *int64 {
 	gracePeriod := node.Spec.Node.TerminationGracePeriod
 	if gracePeriod < 10 {
@@ -191,6 +195,10 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 	hostipc := true
 	runAsRoot := int64(0)
 	dnsPolicy := corev1.DNSClusterFirstWithHostNet
+	fsGroup := int64(nobodyGroup)
+	podSecuityContext := corev1.PodSecurityContext{
+		FSGroup: &fsGroup,
+	}
 
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -221,6 +229,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 					DNSPolicy:                     dnsPolicy,
 					TerminationGracePeriodSeconds: getTermGracePeriod(node),
 					ImagePullSecrets:              pullSecrets(node),
+					SecurityContext:               &podSecuityContext,
 					InitContainers: []corev1.Container{
 						{
 							Name:      "init-falconstore",
