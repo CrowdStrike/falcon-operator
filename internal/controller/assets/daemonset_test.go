@@ -216,6 +216,10 @@ func TestDaemonset(t *testing.T) {
 	runAsRoot := int64(0)
 	pathTypeUnset := corev1.HostPathUnset
 	dnsPolicy := corev1.DNSClusterFirstWithHostNet
+	fsGroup := int64(nobodyGroup)
+	podSecuityContext := corev1.PodSecurityContext{
+		FSGroup: &fsGroup,
+	}
 
 	want := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -242,6 +246,7 @@ func TestDaemonset(t *testing.T) {
 					HostIPC:                       hostipc,
 					HostNetwork:                   hostnetwork,
 					DNSPolicy:                     dnsPolicy,
+					SecurityContext:               &podSecuityContext,
 					TerminationGracePeriodSeconds: getTermGracePeriod(&falconNode),
 					ImagePullSecrets:              pullSecrets(&falconNode),
 					InitContainers: []corev1.Container{
