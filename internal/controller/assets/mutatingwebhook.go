@@ -53,6 +53,7 @@ func MutatingWebhook(name string, namespace string, webhookName string, caBundle
 					},
 				},
 				TimeoutSeconds: &timeoutSeconds,
+				ObjectSelector: &metav1.LabelSelector{},
 				NamespaceSelector: &metav1.LabelSelector{
 					MatchExpressions: []metav1.LabelSelectorRequirement{
 						{

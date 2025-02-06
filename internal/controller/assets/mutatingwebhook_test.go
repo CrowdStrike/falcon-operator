@@ -73,6 +73,7 @@ func testWebhook(disableNSInjection bool, falconContainer *falconv1alpha1.Falcon
 					},
 				},
 				TimeoutSeconds: &timeoutSeconds,
+				ObjectSelector: &metav1.LabelSelector{},
 				NamespaceSelector: &metav1.LabelSelector{
 					MatchExpressions: []metav1.LabelSelectorRequirement{
 						{
