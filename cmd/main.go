@@ -50,6 +50,8 @@ import (
 )
 
 const defaultSensorAutoUpdateInterval = time.Hour * 24
+const defaultLeaseDuration = time.Second * 30
+const defaultRenewDeadline = time.Second * 20
 
 var (
 	scheme      = runtime.NewScheme()
@@ -74,6 +76,8 @@ func main() {
 	var ver bool
 	var err error
 	var sensorAutoUpdateInterval time.Duration
+	var leaseDuration time.Duration
+	var renewDeadline time.Duration
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -84,6 +88,8 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&ver, "version", false, "Print version")
 	flag.DurationVar(&sensorAutoUpdateInterval, "sensor-auto-update-interval", defaultSensorAutoUpdateInterval, "The rate at which the Falcon API is queried for new sensor versions")
+	flag.DurationVar(&leaseDuration, "lease-duration", defaultLeaseDuration, "The duration that non-leader candidates will wait to force acquire leadership.")
+	flag.DurationVar(&renewDeadline, "renew-deadline", defaultRenewDeadline, "the duration that the acting controlplane will retry refreshing leadership before giving up.")
 
 	if env := os.Getenv("ARGS"); env != "" {
 		os.Args = append(os.Args, strings.Split(env, " ")...)
@@ -109,6 +115,8 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "falcon-operator-lock",
+		LeaseDuration:          &leaseDuration,
+		RenewDeadline:          &renewDeadline,
 		Cache: cache.Options{
 			ByObject: map[client.Object]cache.ByObject{
 				&falconv1alpha1.FalconAdmission{}:  {},
