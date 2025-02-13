@@ -102,3 +102,46 @@ spec:
         cpu: 250m
         memory: 64Mi
 ```
+#### Falcon Operator Controller Manager - Idle cluster restarts
+You may see an error similar to the following due to an unstable network or during an upgrade of the falcon-operator:
+```shell
+E0706 06:39:08.445673       1 leaderelection.go:327] error retrieving resource lock falcon-operator/falcon-operator-lock: Get "https://172.20.0.1:443/apis/coordination.k8s.io/v1/namespaces/falcon-operator/leases/falcon-operator-lock": context deadline exceeded
+I0706 06:39:08.445717       1 leaderelection.go:280] failed to renew lease falcon-operator/falcon-operator-lock: timed out waiting for the condition
+2024-07-06T06:39:08Z    ERROR   setup   problem running manager {"error": "leader election lost"}
+```
+
+Lease Duration and Renewal Deadline can be increased to prevent this from happening by utilizing the `lease-duration` and `renew-deadline` flags within the operator manifest.<br>
+Update the file `deploy/falcon-operator.yaml` for non-olm installations. For example:
+```yaml
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+spec:
+  template:
+    spec:
+     containers:
+      - name: manager
+        args:
+          - --leader-elect
+          - --lease-duration=60s
+          - --renew-deadline=45s
+```
+Update the file `falcon-operator.clusterserviceversion.yaml` for olm installations, including OpenShift. For example:
+```yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+spec:
+  install:
+    spec:
+     deployments:
+      - name: falcon-operator-controller-manager
+        spec:
+          template:
+            spec:
+              containers:
+              - name: manager
+                args:
+                  - --leader-elect
+                  - --lease-duration=60s
+                  - --renew-deadline=45s
+```
