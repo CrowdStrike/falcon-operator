@@ -18,7 +18,7 @@ import (
 func InitContainerArgs() []string {
 	return []string{
 		"-c",
-		fmt.Sprintf("echo \"Running %[1]s\"; %[1]s", FalconDaemonsetInitBinary),
+		fmt.Sprintf("echo \"Running %[1]s\"; %[1]s; test -f \"%[2]s\" && %[2]s || echo \"%[2]s not found. Skipping.\"", FalconDaemonsetInitBinary, FalconDaemonsetConfigureClusterIdBinary),
 	}
 }
 
