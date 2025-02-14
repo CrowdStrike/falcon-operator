@@ -47,4 +47,13 @@ resources:
   kind: FalconImageAnalyzer
   path: github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: crowdstrike.com
+  group: falcon
+  kind: FalconDeployment
+  path: github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1
+  version: v1alpha1
 version: "3"
