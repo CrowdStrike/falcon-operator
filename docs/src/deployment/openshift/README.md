@@ -1,7 +1,7 @@
 # Deployment Guide for OpenShift
 
 This document will guide you through the installation of the Falcon Operator and deployment of the following custom resources provided by the Falcon Operator:
-- [FalconAdmission](../../resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
+- [FalconAdmission](resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to OpenShift ImageStreams (on cluster registry).
 - [FalconImageAnalyzer](resources/imageanalyzer/README.md) with the Falcon Image Analyzer image being pulled from CrowdStrike container registry.
 - [FalconNodeSensor](resources/node/README.md) custom resource to the cluster.
 
@@ -24,15 +24,20 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 >  - Sensor Download: **Read**
 
 ### Managed OpenShift Considerations
-
 > [!IMPORTANT]
-> On managed OpenShift services (e.g. ROSA, ARO, RHOIC, OSD), Red Hat does not support running any workloads on control plane and infrastructure nodes (including OpenShift-certified operators like this one). For managed OpenShift services _only_, you must choose one of these deployment options:
+> Managed OpenShift services (e.g. ROSA, ARO, RHOIC, OSD) do not support running user workloads on control plane and infrastructure nodes. However, not deploying the sensor to some nodes in the cluster would create a gap in protection. For this reason, we recommend deploying the sensor to all nodes in the cluster by using the default tolerations. Please be aware that Red Hat site reliability engineering (SRE) may be unable to maintain your cluster's service level agreement (SLA) for availability, and you may have to remove the sensor from control plane and infrastructure nodes during troubleshooting. For more information, see the Red Hat support article [Running custom workloads in OSD/ROSA control plane or infra nodes](https://access.redhat.com/solutions/6972101).
 >
-> 1. **Deploy the Falcon sensor only to worker nodes.** This introduces risk by not having visibility and protection on control plane and infrastructure nodes, but maintains full support from Red Hat Site Reliability Engineering (SRE). To do so, set `spec.node.tolerations: []` on `FalconNodeSensor`.
+> If you would prefer to maintain your SLA and SRE support by limiting your protection to worker nodes, override the tolerations in FalconNodeSensor to be an empty list:
 >
-> 2. **Deploy the Falcon sensor to all nodes.** This provides full protection for the cluster, but may prevent Red Hat SRE from maintaining your service level agreement (SLA) for availability. We recommend working with your Red Hat account team to submit a support exception in this case. This is the default behavior of the operator, so no configuration is required. For more information, see the Red Hat support article [Running custom workloads in OSD/ROSA control plane or infra nodes](https://access.redhat.com/solutions/6972101).
->
-> These constraints are specific to managed OpenShift services. The Falcon sensor is always supported on all node types for self-managed OpenShift clusters.
+> ```yaml
+> apiVersion: falcon.crowdstrike.com/v1alpha1
+> kind: FalconNodeSensor
+> metadata:
+> spec:
+>   node:
+>     tolerations: []
+> # ...
+> ```
 
 ## Installing the operator through the Web Console (GUI)
 
