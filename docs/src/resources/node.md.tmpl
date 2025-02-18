@@ -69,6 +69,9 @@ spec:
 | node.disableCleanup                 | (optional) Cleans up `/opt/CrowdStrike` on the nodes by deleting the files and directory.                                                 |
 | node.version                        | (optional) Enforce particular Falcon Sensor version to be installed (example: "6.35", "6.35.0-13207")                                     |
 
+> [!IMPORTANT]
+> node.tolerations will be appended to the existing tolerations for the daemonset due to GKE Autopilot allowing users to manage Tolerations directly in the console. See documentation here: https://cloud.google.com/kubernetes-engine/docs/how-to/workload-separation. Removing Tolerations from an existing daemonset requires a redeploy of the FalconNodeSensor manifest.
+
 #### Falcon Sensor Settings
 | Spec                                | Description                                                                                                                                                                |
 | :---------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

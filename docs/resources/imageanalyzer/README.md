@@ -8,8 +8,9 @@ To start the FalconImageAnalyzer installation using CrowdStrike API Keys to allo
 
 > [!IMPORTANT]
 > You will need to provide CrowdStrike API Keys and CrowdStrike cloud region for the installation. It is recommended to establish new API credentials for the installation at https://falcon.crowdstrike.com/support/api-clients-and-keys, required permissions are:
+> * Falcon Container CLI: **Write**
+> * Falcon Container Image: **Read/Write**
 > * Falcon Images Download: **Read**
-> * Sensor Download: **Read**
 
 Example:
 
@@ -46,7 +47,7 @@ spec:
 | registry.type                             | Registry to mirror Falcon Image Analyzer (allowed values: acr, ecr, crowdstrike, gcr, openshift)                                                                                                                  |
 | registry.tls.insecure_skip_verify         | (optional) Skip TLS check when pushing Falcon Image Analyzer to target registry (only for demoing purposes on self-signed openshift clusters)                                                                           |
 | registry.tls.caCertificate                | (optional) A string containing an optionally base64-encoded Certificate Authority Chain for self-signed TLS Registry Certificates                                                                                       |
-| registry.tls.caCertificateConfigMap       | (optional) The name of a ConfigMap containing CA Certificate Authority Chains under keys ending in ".tls"  for self-signed TLS Registry Certificates (ignored when registry.tls.caCertificate is set)                   | 
+| registry.tls.caCertificateConfigMap       | (optional) The name of a ConfigMap containing CA Certificate Authority Chains under keys ending in ".tls"  for self-signed TLS Registry Certificates (ignored when registry.tls.caCertificate is set)                   |
 | registry.acr_name                         | (optional) Name of ACR for the Falcon Falcon Image Analyzer push. Only applicable to Azure cloud. (`registry.type="acr"`)                                                                                               |
 | imageAnalyzerConfig.serviceAccount.annotations | (optional) Configure annotations for the falcon-iar service account (e.g. for IAM role association)                                                                                                                |
 | imageAnalyzerConfig.azureConfigPath       | (optional) Azure  config file path                                                                                                                                        |
@@ -62,10 +63,6 @@ spec:
 | imageAnalyzerConfig.registryConfig.credentials | (optional) Use this to provide registry secrets in the form of a list of maps. e.g.<br>- namespace: ns1<br>&nbsp;&nbsp;&nbsp;secretName: mysecretname                                                           |
 | imageAnalyzerConfig.resources                 | (optional) Configure the resources of the Falcon Image Analyzer                                                                                                                                                  |
 | imageAnalyzerConfig.updateStrategy            | (optional) Configure the deployment update strategy of the Falcon Image Analyzer                                                                                                                                  |
-
-
-> [!IMPORTANT]
-> All arguments are optional, but successful deployment requires either **client_id and client_secret or the Falcon cid and image**. When deploying using the CrowdStrike Falcon API, the container image and CID will be fetched from CrowdStrike Falcon API. While in the latter case, the CID and image location is explicitly specified by the user.
 
 ### Auto Proxy Configuration
 
@@ -137,7 +134,7 @@ To uninstall Falcon Image Analyzer simply remove the FalconImageAnalyzer resourc
 
 ```sh
 kubectl delete falconimageanalyzer --all
-``` 
+```
 
 ### Sensor upgrades
 
@@ -153,7 +150,7 @@ To upgrade the sensor version, simply add and/or update the `version` field in t
   falcon-image-analyzer   0.8.0              1.0.9
   ```
 
-  This is helpful information to use as a starting point for troubleshooting.  
+  This is helpful information to use as a starting point for troubleshooting.
   You can get more insight by viewing the FalconImageAnalyzer CRD in full detail by running the following command:
 
   ```sh
@@ -183,6 +180,3 @@ End-to-end guide(s) to install Falcon-operator together with FalconImageAnalyzer
  - [Deployment Guide for EKS Fargate](../../deployment/eks-fargate/README.md)
  - [Deployment Guide for GKE/GCR](../../deployment/gke/README.md)
  - [Deployment Guide for OpenShift](../../deployment/openshift/README.md)
-
-
-

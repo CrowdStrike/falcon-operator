@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/go-logr/logr"
-	"golang.org/x/exp/slices"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -272,6 +272,8 @@ func GetRunningFalconNS(r client.Client, ctx context.Context) ([]string, error) 
 			falconNamespaces = append(falconNamespaces, pod.GetNamespace())
 		}
 	}
+
+	slices.Sort(falconNamespaces)
 
 	return falconNamespaces, nil
 }

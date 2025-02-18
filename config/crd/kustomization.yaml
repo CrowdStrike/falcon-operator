@@ -6,6 +6,7 @@ resources:
 - bases/falcon.crowdstrike.com_falconcontainers.yaml
 - bases/falcon.crowdstrike.com_falconnodesensors.yaml
 - bases/falcon.crowdstrike.com_falconimageanalyzers.yaml
+- bases/falcon.crowdstrike.com_falcondeployments.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:
@@ -25,6 +26,7 @@ patches:
 #- path: patches/cainjection_in_falconnodesensors.yaml
 #- path: patches/cainjection_in_falconimages.yaml
 #- path: patches/cainjection_in_falconimageanalyzers.yaml
+#- path: patches/cainjection_in_falcon_falcondeployments.yaml
 #+kubebuilder:scaffold:crdkustomizecainjectionpatch
 
 # [WEBHOOK] To enable webhook, uncomment the following section
