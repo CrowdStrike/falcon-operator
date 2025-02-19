@@ -21,7 +21,9 @@ import (
 
 // constant parts of the file
 const (
-	namespace = "falcon-operator-system"
+	namespace         = "falcon-operator-system"
+	defaultTimeout    = 2 * time.Minute
+	defaultPollPeriod = 5 * time.Second
 )
 
 var _ = Describe("falcon", Ordered, func() {
@@ -46,7 +48,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 	AfterAll(func() {
 		By("removing manager namespace")
-		cmd := exec.Command("kubectl", "create", "ns", namespace)
+		cmd := exec.Command("kubectl", "delete", "ns", namespace)
 		_, _ = utils.Run(cmd)
 	})
 
@@ -117,8 +119,7 @@ var _ = Describe("falcon", Ordered, func() {
 				}
 				return nil
 			}
-			EventuallyWithOffset(1, verifyControllerUp, time.Minute, time.Second).Should(Succeed())
-
+			EventuallyWithOffset(1, verifyControllerUp, defaultTimeout, defaultPollPeriod).Should(Succeed())
 		})
 	})
 
@@ -153,7 +154,7 @@ var _ = Describe("falcon", Ordered, func() {
 					"./config/samples/falcon_v1alpha1_falconnodesensor.yaml"), "-n", namespace)
 				_, err := utils.Run(cmd)
 				return err
-			}, time.Minute, time.Second).Should(Succeed())
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
 
 			By("validating that pod(s) status.phase=Running")
 			getFalconNodeSensorPodStatus := func() error {
@@ -169,7 +170,7 @@ var _ = Describe("falcon", Ordered, func() {
 				}
 				return nil
 			}
-			EventuallyWithOffset(1, getFalconNodeSensorPodStatus, time.Minute, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, getFalconNodeSensorPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
 
 			By("validating that the status of the custom resource created is updated or not")
 			getStatus := func() error {
@@ -185,7 +186,7 @@ var _ = Describe("falcon", Ordered, func() {
 				}
 				return nil
 			}
-			Eventually(getStatus, time.Minute, time.Second).Should(Succeed())
+			Eventually(getStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
 		})
 	})
 
@@ -199,7 +200,7 @@ var _ = Describe("falcon", Ordered, func() {
 					"./config/samples/falcon_v1alpha1_falconnodesensor.yaml"), "-n", namespace)
 				_, err := utils.Run(cmd)
 				return err
-			}, time.Minute, time.Second).Should(Succeed())
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
 
 			By("validating that pod(s) status.phase!=Running")
 			getFalconNodeSensorPodStatus := func() error {
@@ -215,104 +216,7 @@ var _ = Describe("falcon", Ordered, func() {
 				}
 				return nil
 			}
-			EventuallyWithOffset(1, getFalconNodeSensorPodStatus, time.Minute, time.Second).Should(Succeed())
-		})
-	})
-
-	Context("Falcon Sidecar Sensor", func() {
-		It("should deploy successfully", func() {
-			projectDir, _ := utils.GetProjectDir()
-
-			var falconClientID = ""
-			var falconClientSecret = ""
-			if clientID, ok := os.LookupEnv("FALCON_CLIENT_ID"); ok {
-				falconClientID = clientID
-			}
-
-			if clientSecret, ok := os.LookupEnv("FALCON_CLIENT_SECRET"); ok {
-				falconClientSecret = clientSecret
-			}
-
-			if falconClientID != "" && falconClientSecret != "" {
-				err := utils.ReplaceInFile(filepath.Join(projectDir,
-					"./config/samples/falcon_v1alpha1_falconcontainer.yaml"),
-					"client_id: PLEASE_FILL_IN", fmt.Sprintf("client_id: %s", falconClientID))
-				ExpectWithOffset(1, err).NotTo(HaveOccurred())
-				err = utils.ReplaceInFile(filepath.Join(projectDir,
-					"./config/samples/falcon_v1alpha1_falconcontainer.yaml"),
-					"client_secret: PLEASE_FILL_IN", fmt.Sprintf("client_secret: %s", falconClientSecret))
-				ExpectWithOffset(1, err).NotTo(HaveOccurred())
-			}
-
-			By("creating an instance of the FalconContainer Operand(CR)")
-			EventuallyWithOffset(1, func() error {
-				cmd := exec.Command("kubectl", "apply", "-f", filepath.Join(projectDir,
-					"./config/samples/falcon_v1alpha1_falconcontainer.yaml"), "-n", namespace)
-				_, err := utils.Run(cmd)
-				return err
-			}, time.Minute, time.Second).Should(Succeed())
-
-			By("validating that pod(s) status.phase=Running")
-			getFalconNodeSensorPodStatus := func() error {
-				cmd := exec.Command("kubectl", "get",
-					"pods", "-A", "-l", "crowdstrike.com/component=container_sensor",
-					"-o", "jsonpath={.items[*].status}", "-n", namespace,
-				)
-				status, err := utils.Run(cmd)
-				fmt.Println(string(status))
-				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				if !strings.Contains(string(status), "\"phase\":\"Running\"") {
-					return fmt.Errorf(" pod in %s status", status)
-				}
-				return nil
-			}
-			EventuallyWithOffset(1, getFalconNodeSensorPodStatus, time.Minute, time.Second).Should(Succeed())
-
-			By("validating that the status of the custom resource created is updated or not")
-			getStatus := func() error {
-				cmd := exec.Command("kubectl", "get", "falconcontainer",
-					"falcon-sidecar-sensor", "-A", "-o", "jsonpath={.status.conditions}",
-					"-n", namespace,
-				)
-				status, err := utils.Run(cmd)
-				fmt.Println(string(status))
-				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				if !strings.Contains(string(status), "Success") {
-					return fmt.Errorf("status condition with type Success should be set")
-				}
-				return nil
-			}
-			Eventually(getStatus, time.Minute, time.Second).Should(Succeed())
-		})
-	})
-
-	Context("Falcon Sidecar Sensor", func() {
-		It("should cleanup successfully", func() {
-			projectDir, _ := utils.GetProjectDir()
-
-			By("deleting an instance of the FalconContainer Operand(CR)")
-			EventuallyWithOffset(1, func() error {
-				cmd := exec.Command("kubectl", "delete", "-f", filepath.Join(projectDir,
-					"./config/samples/falcon_v1alpha1_falconcontainer.yaml"), "-n", namespace)
-				_, err := utils.Run(cmd)
-				return err
-			}, time.Minute, time.Second).Should(Succeed())
-
-			By("validating that pod(s) status.phase!=Running")
-			getFalconNodeSensorPodStatus := func() error {
-				cmd := exec.Command("kubectl", "get",
-					"pods", "-A", "-l", "crowdstrike.com/component=container_sensor", "--field-selector=status.phase=Running",
-					"-o", "jsonpath={.items[*].status}", "-n", namespace,
-				)
-				status, err := utils.Run(cmd)
-				fmt.Println(string(status))
-				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				if len(status) > 0 {
-					return fmt.Errorf("falcon-sidecar-sensor pod in %s status", status)
-				}
-				return nil
-			}
-			EventuallyWithOffset(1, getFalconNodeSensorPodStatus, time.Minute, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, getFalconNodeSensorPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
 		})
 	})
 
@@ -347,7 +251,7 @@ var _ = Describe("falcon", Ordered, func() {
 					"./config/samples/falcon_v1alpha1_falconadmission.yaml"), "-n", namespace)
 				_, err := utils.Run(cmd)
 				return err
-			}, time.Minute, time.Second).Should(Succeed())
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
 
 			By("validating that pod(s) status.phase=Running")
 			getFalconSidecarPodStatus := func() error {
@@ -363,7 +267,7 @@ var _ = Describe("falcon", Ordered, func() {
 				}
 				return nil
 			}
-			EventuallyWithOffset(1, getFalconSidecarPodStatus, time.Minute, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, getFalconSidecarPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
 
 			By("validating that the status of the custom resource created is updated or not")
 			getStatus := func() error {
@@ -379,7 +283,7 @@ var _ = Describe("falcon", Ordered, func() {
 				}
 				return nil
 			}
-			Eventually(getStatus, time.Minute, time.Second).Should(Succeed())
+			Eventually(getStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
 		})
 	})
 
@@ -393,7 +297,7 @@ var _ = Describe("falcon", Ordered, func() {
 					"./config/samples/falcon_v1alpha1_falconadmission.yaml"), "-n", namespace)
 				_, err := utils.Run(cmd)
 				return err
-			}, time.Minute, time.Second).Should(Succeed())
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
 
 			By("validating that pod(s) status.phase!=Running")
 			getFalconAdmissionPodStatus := func() error {
@@ -409,7 +313,474 @@ var _ = Describe("falcon", Ordered, func() {
 				}
 				return nil
 			}
-			EventuallyWithOffset(1, getFalconAdmissionPodStatus, time.Minute, time.Second).Should(Succeed())
+			EventuallyWithOffset(1, getFalconAdmissionPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+	})
+
+	Context("Falcon Sidecar Sensor", func() {
+		It("should deploy successfully", func() {
+			projectDir, _ := utils.GetProjectDir()
+
+			var falconClientID = ""
+			var falconClientSecret = ""
+			if clientID, ok := os.LookupEnv("FALCON_CLIENT_ID"); ok {
+				falconClientID = clientID
+			}
+
+			if clientSecret, ok := os.LookupEnv("FALCON_CLIENT_SECRET"); ok {
+				falconClientSecret = clientSecret
+			}
+
+			if falconClientID != "" && falconClientSecret != "" {
+				err := utils.ReplaceInFile(filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falconcontainer.yaml"),
+					"client_id: PLEASE_FILL_IN", fmt.Sprintf("client_id: %s", falconClientID))
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+				err = utils.ReplaceInFile(filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falconcontainer.yaml"),
+					"client_secret: PLEASE_FILL_IN", fmt.Sprintf("client_secret: %s", falconClientSecret))
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			}
+
+			By("creating an instance of the FalconContainer Operand(CR)")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "apply", "-f", filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falconcontainer.yaml"), "-n", namespace)
+				_, err := utils.Run(cmd)
+				return err
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that pod(s) status.phase=Running")
+			getFalconNodeSensorPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=container_sensor",
+					"-o", "jsonpath={.items[*].status}", "-n", namespace,
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "\"phase\":\"Running\"") {
+					return fmt.Errorf(" pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconNodeSensorPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that the status of the custom resource created is updated or not")
+			getStatus := func() error {
+				cmd := exec.Command("kubectl", "get", "falconcontainer",
+					"falcon-sidecar-sensor", "-A", "-o", "jsonpath={.status.conditions}",
+					"-n", namespace,
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "Success") {
+					return fmt.Errorf("status condition with type Success should be set")
+				}
+				return nil
+			}
+			Eventually(getStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+	})
+
+	Context("Falcon Sidecar Sensor", func() {
+		It("should cleanup successfully", func() {
+			projectDir, _ := utils.GetProjectDir()
+
+			By("deleting an instance of the FalconContainer Operand(CR)")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "delete", "-f", filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falconcontainer.yaml"), "-n", namespace)
+				_, err := utils.Run(cmd)
+				return err
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that pod(s) status.phase!=Running")
+			getFalconNodeSensorPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=container_sensor", "--field-selector=status.phase=Running",
+					"-o", "jsonpath={.items[*].status}", "-n", namespace,
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if len(status) > 0 {
+					return fmt.Errorf("falcon-sidecar-sensor pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconNodeSensorPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+	})
+
+	Context("Falcon Deployment Controller with Container Sensor", func() {
+		It("should deploy successfully", func() {
+			projectDir, _ := utils.GetProjectDir()
+
+			var falconClientID = ""
+			var falconClientSecret = ""
+			if clientID, ok := os.LookupEnv("FALCON_CLIENT_ID"); ok {
+				falconClientID = clientID
+			}
+
+			if clientSecret, ok := os.LookupEnv("FALCON_CLIENT_SECRET"); ok {
+				falconClientSecret = clientSecret
+			}
+
+			if falconClientID != "" && falconClientSecret != "" {
+				err := utils.ReplaceInFile(filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falcondeployment-container-sensor.yaml"),
+					"client_id: PLEASE_FILL_IN", fmt.Sprintf("client_id: %s", falconClientID))
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+				err = utils.ReplaceInFile(filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falcondeployment-container-sensor.yaml"),
+					"client_secret: PLEASE_FILL_IN", fmt.Sprintf("client_secret: %s", falconClientSecret))
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			}
+
+			By("creating an instance of the FalconDeployment Operand(CR) with Container Sensor")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "apply", "-f", filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falcondeployment-container-sensor.yaml"), "-n", namespace)
+				_, err := utils.Run(cmd)
+				return err
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that FalconAdmission pod(s) status.phase=Running")
+			getFalconAdmissionPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=admission_controller",
+					"-o", "jsonpath={.items[*].status}", "-n", "falcon-kac",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "\"phase\":\"Running\"") {
+					return fmt.Errorf(" pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconAdmissionPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that the status of the custom resource FalconAdmission created is updated or not")
+			getFinalStatusAdmission := func() error {
+				cmd := exec.Command("kubectl", "get", "falconadmission",
+					"falcon-kac", "-A", "-o", "jsonpath={.status.conditions}",
+					"-n", "falcon-kac",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "Success") {
+					return fmt.Errorf("status condition with type Success should be set")
+				}
+				return nil
+			}
+			Eventually(getFinalStatusAdmission, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that FalconContainer pod(s) status.phase=Running")
+			getFalconContainerSensorPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=container_sensor",
+					"-o", "jsonpath={.items[*].status}", "-n", "falcon-system",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "\"phase\":\"Running\"") {
+					return fmt.Errorf("falcon-container-sensor pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconContainerSensorPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that the status of the custom resource FalconContainer created is updated or not")
+			getFinalStatusContainer := func() error {
+				cmd := exec.Command("kubectl", "get", "falconcontainer",
+					"falcon-container-sensor", "-A", "-o", "jsonpath={.status.conditions}",
+					"-n", "falcon-system",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "Success") {
+					return fmt.Errorf("status condition with type Success should be set")
+				}
+				return nil
+			}
+			Eventually(getFinalStatusContainer, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that FalconImageAnalyzer pod(s) status.phase=Running")
+			getFalconImageAnalyzerPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=falcon-imageanalyzer",
+					"-o", "jsonpath={.items[*].status}", "-n", "falcon-iar",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "\"phase\":\"Running\"") {
+					return fmt.Errorf("falcon-imageanalyzer pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconImageAnalyzerPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that the status of the custom resource FalconImageAnalyzer created is updated or not")
+			getFinalStatusIAR := func() error {
+				cmd := exec.Command("kubectl", "get", "falconimageanalyzers",
+					"falcon-image-analyzer", "-A", "-o", "jsonpath={.status.conditions}",
+					"-n", "falcon-iar",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "Success") {
+					return fmt.Errorf("status condition with type Success should be set")
+				}
+				return nil
+			}
+			Eventually(getFinalStatusIAR, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+	})
+
+	Context("Falcon Deployment Controller with Container Sensor", func() {
+		It("should cleanup successfully", func() {
+			projectDir, _ := utils.GetProjectDir()
+
+			By("deleting an instance of the FalconDeployment Operand(CR)")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "delete", "-f", filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falcondeployment-container-sensor.yaml"), "-n", namespace)
+				_, err := utils.Run(cmd)
+				return err
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that FalconAdmission pod(s) status.phase!=Running")
+			getFalconAdmissionPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=admission_controller", "--field-selector=status.phase=Running",
+					"-o", "jsonpath={.items[*].status}", "-n", "falcon-kac",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if len(status) > 0 {
+					return fmt.Errorf("falcon-admission pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconAdmissionPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that pod(s) status.phase!=Running")
+			getFalconContainerPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=container_sensor", "--field-selector=status.phase=Running",
+					"-o", "jsonpath={.items[*].status}", "-n", "falcon-system",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if len(status) > 0 {
+					return fmt.Errorf("falcon-container-sensor pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconContainerPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+	})
+
+	Context("Falcon Deployment Controller with Node Sensor", func() {
+		It("should deploy successfully", func() {
+			projectDir, _ := utils.GetProjectDir()
+
+			var falconClientID = ""
+			var falconClientSecret = ""
+			if clientID, ok := os.LookupEnv("FALCON_CLIENT_ID"); ok {
+				falconClientID = clientID
+			}
+
+			if clientSecret, ok := os.LookupEnv("FALCON_CLIENT_SECRET"); ok {
+				falconClientSecret = clientSecret
+			}
+
+			if falconClientID != "" && falconClientSecret != "" {
+				err := utils.ReplaceInFile(filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falcondeployment-node-sensor.yaml"),
+					"client_id: PLEASE_FILL_IN", fmt.Sprintf("client_id: %s", falconClientID))
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+				err = utils.ReplaceInFile(filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falcondeployment-node-sensor.yaml"),
+					"client_secret: PLEASE_FILL_IN", fmt.Sprintf("client_secret: %s", falconClientSecret))
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			}
+
+			By("creating an instance of the FalconDeployment Operand(CR) with Node Sensor")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "apply", "-f", filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falcondeployment-node-sensor.yaml"), "-n", namespace)
+				_, err := utils.Run(cmd)
+				return err
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that FalconAdmission pod(s) status.phase=Running")
+			getFalconAdmissionPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=admission_controller",
+					"-o", "jsonpath={.items[*].status}", "-n", "falcon-kac",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "\"phase\":\"Running\"") {
+					return fmt.Errorf(" pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconAdmissionPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that the status of the custom resource FalconAdmission created is updated or not")
+			getFinalStatusAdmission := func() error {
+				cmd := exec.Command("kubectl", "get", "falconadmission",
+					"falcon-kac", "-A", "-o", "jsonpath={.status.conditions}",
+					"-n", "falcon-kac",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "Success") {
+					return fmt.Errorf("status condition with type Success should be set")
+				}
+				return nil
+			}
+			Eventually(getFinalStatusAdmission, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that FalconNodeSensor pod(s) status.phase=Running")
+			getFalconNodeSensorPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=kernel_sensor",
+					"-o", "jsonpath={.items[*].status}", "-n", "falcon-system",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "\"phase\":\"Running\"") {
+					return fmt.Errorf("falcon-node-sensor pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconNodeSensorPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that the status of the custom resource FalconNodeSensor created is updated or not")
+			getFinalStatusNode := func() error {
+				cmd := exec.Command("kubectl", "get", "falconnodesensor",
+					"falcon-node-sensor", "-A", "-o", "jsonpath={.status.conditions}",
+					"-n", "falcon-system",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "Success") {
+					return fmt.Errorf("status condition with type Success should be set")
+				}
+				return nil
+			}
+			Eventually(getFinalStatusNode, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that FalconImageAnalyzer pod(s) status.phase=Running")
+			getFalconImageAnalyzerPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=falcon-imageanalyzer",
+					"-o", "jsonpath={.items[*].status}", "-n", "falcon-iar",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "\"phase\":\"Running\"") {
+					return fmt.Errorf("falcon-imageanalyzer pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconImageAnalyzerPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that the status of the custom resource FalconImageAnalyzer created is updated or not")
+			getFinalStatusIAR := func() error {
+				cmd := exec.Command("kubectl", "get", "falconimageanalyzers",
+					"falcon-image-analyzer", "-A", "-o", "jsonpath={.status.conditions}",
+					"-n", "falcon-iar",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(status), "Success") {
+					return fmt.Errorf("status condition with type Success should be set")
+				}
+				return nil
+			}
+			Eventually(getFinalStatusIAR, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+	})
+
+	Context("Falcon Deployment Controller with Node Sensor", func() {
+		It("should cleanup successfully", func() {
+			projectDir, _ := utils.GetProjectDir()
+
+			By("deleting an instance of the FalconDeployment Operand(CR)")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "delete", "-f", filepath.Join(projectDir,
+					"./config/samples/falcon_v1alpha1_falcondeployment-node-sensor.yaml"), "-n", namespace)
+				_, err := utils.Run(cmd)
+				return err
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that FalconAdmission pod(s) status.phase!=Running")
+			getFalconAdmissionPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=admission_controller", "--field-selector=status.phase=Running",
+					"-o", "jsonpath={.items[*].status}", "-n", "falcon-kac",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if len(status) > 0 {
+					return fmt.Errorf("falcon-admission pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconAdmissionPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that pod(s) status.phase!=Running")
+			getFalconNodeSensorPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=kernel_sensor", "--field-selector=status.phase=Running",
+					"-o", "jsonpath={.items[*].status}", "-n", "falcon-system",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if len(status) > 0 {
+					return fmt.Errorf("falcon-node-sensor pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconNodeSensorPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating that pod(s) status.phase!=Running")
+			getFalconImageAnalyzerPodStatus := func() error {
+				cmd := exec.Command("kubectl", "get",
+					"pods", "-A", "-l", "crowdstrike.com/component=falcon-imageanalyzer", "--field-selector=status.phase=Running",
+					"-o", "jsonpath={.items[*].status}", "-n", "falcon-iar",
+				)
+				status, err := utils.Run(cmd)
+				fmt.Println(string(status))
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if len(status) > 0 {
+					return fmt.Errorf("falcon-imageanalyzer pod in %s status", status)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, getFalconImageAnalyzerPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
 		})
 	})
 })

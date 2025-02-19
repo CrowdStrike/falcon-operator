@@ -111,7 +111,7 @@ func main() {
 			}
 
 			// Process deployment templates for distro specific directories
-			if strings.Contains(path, "deployment") {
+			if strings.Contains(path, "deployment") && !strings.Contains(path, "falcondeployment") {
 				tempPath := fmt.Sprintf("%s/%s%s/%s", outDir, pathOnly, distro, name)
 				outFile := strings.TrimSuffix(tempPath, ".tmpl")
 				err = createFileUsingTemplate(tpl, outFile, conf)
@@ -121,7 +121,7 @@ func main() {
 			}
 
 			// Add resources to distro specific directories when specified
-			if slices.Contains(resourceDocs, distro) && strings.Contains(path, "resources") {
+			if slices.Contains(resourceDocs, distro) && strings.Contains(path, "resources") && !strings.Contains(path, "falcondeployment") {
 				conf.DistroResources = true
 				dstPath := fmt.Sprintf("%s/%s/%s/%s/%s/%s", outDir, "deployment", distro, "resources", resourcePath, mdName)
 				err = createFileUsingTemplate(tpl, dstPath, conf)

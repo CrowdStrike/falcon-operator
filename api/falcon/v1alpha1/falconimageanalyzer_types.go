@@ -33,6 +33,7 @@ type FalconImageAnalyzerSpec struct {
 	Registry RegistrySpec `json:"registry,omitempty"`
 
 	// Additional configuration for Falcon Image Analyzer deployment.
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Configuration",order=5
 	ImageAnalyzerConfig FalconImageAnalyzerConfigSpec `json:"imageAnalyzerConfig,omitempty"`
 

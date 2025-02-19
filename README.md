@@ -12,8 +12,6 @@
 
 The CrowdStrike Falcon Operator installs CrowdStrike Falcon custom resources on a Kubernetes cluster.
 
-The CrowdStrike Falcon Operator is an open source project and not a CrowdStrike product. As such, it carries no formal support, expressed, or implied.
-
 ## About the CrowdStrike Falcon Operator
 The CrowdStrike Falcon Operator deploys CrowdStrike Falcon to the cluster. The operator exposes custom resources that allow you to protect your Kubernetes clusters when deployed.
 
@@ -25,6 +23,7 @@ The CrowdStrike Falcon Operator deploys CrowdStrike Falcon to the cluster. The o
 | [FalconImageAnalyzer](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/imageanalyzer/README.md) | Manages installation of Falcon Image Assessment at Runtime on the cluster |
 | [FalconContainer](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/container/README.md) | Manages installation of Falcon Container Sensor on the cluster   |
 | [FalconNodeSensor](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/node/README.md)     | Manages installation of Falcon Linux Sensor on the cluster nodes |
+| [FalconDeployment](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/falcondeployment/README.md)       | Deploys FalconAdmission, FalconImageAnalyzer, FalconContainer, and FalconNodeSensor CRs from a single manifest |
 
 
 ## Installation and Deployment
@@ -43,6 +42,9 @@ You can contribute by:
 * Talking about the CrowdStrike Falcon Operator
 
 All bugs, tasks or enhancements are tracked as [GitHub issues](https://github.com/CrowdStrike/falcon-operator/issues).
+
+## Support
+The CrowdStrike Falcon Operator is a community-driven, open source project designed to streamline the deployment and use of the CrowdStrike products on Kubernetes clusters. While not a formal CrowdStrike product, the CrowdStrike Falcon Operator is maintained by CrowdStrike and supported in partnership with the open source developer community.
 
 ## Additional Resources
  - CrowdStrike Container Security: [Product Page](https://www.crowdstrike.com/products/cloud-security/falcon-cloud-workload-protection/container-security/)

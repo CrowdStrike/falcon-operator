@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/containers/image/v5/docker"
@@ -17,6 +18,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
 	"github.com/crowdstrike/gofalcon/falcon"
+	version "github.com/hashicorp/go-version"
 )
 
 type FalconRegistry struct {
@@ -101,6 +103,18 @@ func lastTag(ctx context.Context, systemContext *types.SystemContext, imageUri s
 	if err != nil {
 		return "", err
 	}
+
+	if strings.Contains(imageUri, "imageanalyzer") {
+		sort.Slice(tags, func(i, j int) bool {
+			v1, err1 := version.NewVersion(tags[i])
+			v2, err2 := version.NewVersion(tags[j])
+			if err1 != nil || err2 != nil {
+				return tags[i] < tags[j]
+			}
+			return v1.LessThan(v2)
+		})
+	}
+
 	return guessLastTag(tags, filter)
 }
 

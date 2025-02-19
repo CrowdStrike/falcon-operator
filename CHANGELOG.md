@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-02-18
+
+### Changed
+
+- New: Add FalconDeployment CR
+- fix: deployments to prevent endless reconciles
+- add fsGroup as nobody group
+- fix: ensure latest IAR image is used as default
+- fix: updating sidecar manifest for controller-gen v0.14.0
+- fix: prevent e2e test failures caused by node sensor cleanup
+- build(deps): bump golang.org/x/net from 0.26.0 to 0.33.0
+- build(deps): bump golang.org/x/crypto from 0.23.0 to 0.31.0
+- build(deps): bump helm/kind-action from 1.10.0 to 1.12.0
+- build(deps): bump github.com/cert-manager/cert-manager
+- Update resources limits for KAC containers
+- cdp: set ClusterFirstWithHostNet, so cluster DNS resolution is possible from host network
+- cdp: added resources and verbs for the cluster role
+- Update support statement
+- Upgrade controller-gen to v0.14.0 and fix defaults
+- Update tolerations to accommodate an empty list
+- Update README support statement
+- docs: fix scopes and required parameters for IAR
+- docs: Use absolute links in readme.
+- Hint at OpenShift pull secret needed for IAR.
+- docs: improve ROSA/ARO support language
+- docs: use absolute link for install guide in CSV
+
 ## [1.3.1] - 2024-10-22
 
 ### Changed

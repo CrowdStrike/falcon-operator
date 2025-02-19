@@ -20,3 +20,21 @@ rules:
   - securitycontextconstraints
   verbs:
   - use
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - cronjobs
+  - daemonsets
+  - deployments
+  - ingresses
+  - jobs
+  - nodes
+  - persistentvolumes
+  - pods
+  - replicasets
+  - services
+  verbs:
+  - get
+  - list
+  - watch

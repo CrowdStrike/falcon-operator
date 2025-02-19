@@ -76,6 +76,7 @@ func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager, tracker 
 //+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=get;list;watch;create
 //+kubebuilder:rbac:groups="security.openshift.io",resources=securitycontextconstraints,resourceNames=privileged,verbs=use
 //+kubebuilder:rbac:groups="scheduling.k8s.io",resources=priorityclasses,verbs=get;list;watch;create;delete;update
+//+kubebuilder:rbac:groups="",resources=pods;services;nodes;daemonsets;replicasets;deployments;jobs;ingresses;cronjobs;persistentvolumes,verbs=get;watch;list
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -639,12 +640,12 @@ func updateDaemonSetContainerProxy(ds *appsv1.DaemonSet, logger logr.Logger) boo
 func (r *FalconNodeSensorReconciler) updateDaemonSetTolerations(ctx context.Context, ds *appsv1.DaemonSet, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (bool, error) {
 	tolerations := &ds.Spec.Template.Spec.Tolerations
 	origTolerations := nodesensor.Spec.Node.Tolerations
-	tolerationsUpdate := !equality.Semantic.DeepEqual(*tolerations, origTolerations)
+	tolerationsUpdate := !equality.Semantic.DeepEqual(*tolerations, *origTolerations)
 	if tolerationsUpdate {
 		logger.Info("Updating FalconNodeSensor DaemonSet Tolerations")
-		mergedTolerations := k8s_utils.MergeTolerations(*tolerations, origTolerations)
+		mergedTolerations := k8s_utils.MergeTolerations(*tolerations, *origTolerations)
 		*tolerations = mergedTolerations
-		nodesensor.Spec.Node.Tolerations = mergedTolerations
+		nodesensor.Spec.Node.Tolerations = &mergedTolerations
 
 		if err := r.Update(ctx, nodesensor); err != nil {
 			logger.Error(err, "Failed to update FalconNodeSensor Tolerations")

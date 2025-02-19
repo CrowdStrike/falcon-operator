@@ -18,6 +18,23 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - cronjobs
+  - daemonsets
+  - deployments
+  - ingresses
+  - jobs
+  - nodes
+  - persistentvolumes
+  - pods
+  - replicasets
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - deployments
   verbs:
   - create
@@ -251,6 +268,32 @@ rules:
   - falcon.crowdstrike.com
   resources:
   - falconcontainers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falcondeployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falcondeployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - falcondeployments/status
   verbs:
   - get
   - patch
