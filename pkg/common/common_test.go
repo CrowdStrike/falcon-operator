@@ -18,7 +18,7 @@ type FakeDiscovery struct {
 }
 
 func TestInitContainerArgs(t *testing.T) {
-	want := []string{"-c", `echo "Running /opt/CrowdStrike/falcon-daemonset-init -i"; /opt/CrowdStrike/falcon-daemonset-init -i`}
+	want := []string{"-c", `echo "Running /opt/CrowdStrike/falcon-daemonset-init -i"; /opt/CrowdStrike/falcon-daemonset-init -i; test -f "/opt/CrowdStrike/configure-cluster-id" && /opt/CrowdStrike/configure-cluster-id || echo "/opt/CrowdStrike/configure-cluster-id not found. Skipping."`}
 	if got := InitContainerArgs(); !reflect.DeepEqual(got, want) {
 		t.Errorf("InitContainerArgs() = %v, want %v", got, want)
 	}
