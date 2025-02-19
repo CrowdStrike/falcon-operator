@@ -42,6 +42,7 @@ import (
 	admissioncontroller "github.com/crowdstrike/falcon-operator/internal/controller/admission"
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
 	containercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_container"
+	falcondeployment "github.com/crowdstrike/falcon-operator/internal/controller/falcon_deployment"
 	imageanalyzercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_image_analyzer"
 	nodecontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_node"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
@@ -114,6 +115,7 @@ func main() {
 				&falconv1alpha1.FalconAdmission{}:  {},
 				&falconv1alpha1.FalconNodeSensor{}: {},
 				&falconv1alpha1.FalconContainer{}:  {},
+				&falconv1alpha1.FalconDeployment{}: {},
 				&corev1.Namespace{}:                {},
 				&corev1.Secret{}:                   {},
 				&rbacv1.ClusterRoleBinding{}:       {},
@@ -218,6 +220,13 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconImageAnalyzer")
+		os.Exit(1)
+	}
+	if err = (&falcondeployment.FalconDeploymentReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "FalconDeployment")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

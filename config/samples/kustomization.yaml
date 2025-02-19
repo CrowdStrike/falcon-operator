@@ -4,4 +4,5 @@ resources:
 - falcon_v1alpha1_falconcontainer.yaml
 - falcon_v1alpha1_falconnodesensor.yaml
 - falcon_v1alpha1_falconimageanalyzer.yaml
+- falcon_v1alpha1_falcondeployment-node-sensor.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

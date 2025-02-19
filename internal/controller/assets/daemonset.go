@@ -11,6 +11,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	nobodyGroup = 65534
+)
+
 func getTermGracePeriod(node *falconv1alpha1.FalconNodeSensor) *int64 {
 	gracePeriod := node.Spec.Node.TerminationGracePeriod
 	if gracePeriod < 10 {
@@ -190,6 +194,11 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 	hostnetwork := true
 	hostipc := true
 	runAsRoot := int64(0)
+	dnsPolicy := corev1.DNSClusterFirstWithHostNet
+	fsGroup := int64(nobodyGroup)
+	podSecuityContext := corev1.PodSecurityContext{
+		FSGroup: &fsGroup,
+	}
 
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -213,12 +222,14 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 					// NodeSelector is set to linux until windows containers are supported for the Falcon sensor
 					NodeSelector:                  common.NodeSelector,
 					Affinity:                      nodeAffinity(node),
-					Tolerations:                   node.Spec.Node.Tolerations,
+					Tolerations:                   *node.GetTolerations(),
 					HostPID:                       hostpid,
 					HostIPC:                       hostipc,
 					HostNetwork:                   hostnetwork,
+					DNSPolicy:                     dnsPolicy,
 					TerminationGracePeriodSeconds: getTermGracePeriod(node),
 					ImagePullSecrets:              pullSecrets(node),
+					SecurityContext:               &podSecuityContext,
 					InitContainers: []corev1.Container{
 						{
 							Name:      "init-falconstore",
@@ -304,7 +315,7 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 					// NodeSelector is set to linux until windows containers are supported for the Falcon sensor
 					NodeSelector:                  common.NodeSelector,
 					Affinity:                      nodeAffinity(node),
-					Tolerations:                   node.Spec.Node.Tolerations,
+					Tolerations:                   *node.GetTolerations(),
 					HostPID:                       hostpid,
 					TerminationGracePeriodSeconds: getTermGracePeriod(node),
 					ImagePullSecrets:              pullSecrets(node),

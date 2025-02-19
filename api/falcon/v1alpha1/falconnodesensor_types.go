@@ -23,9 +23,11 @@ type FalconNodeSensorSpec struct {
 	InstallNamespace string `json:"installNamespace,omitempty"`
 
 	// Various configuration for DaemonSet Deployment
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Configuration",order=3
 	Node FalconNodeSensorConfig `json:"node,omitempty"`
 
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Sensor Configuration",order=2
 	Falcon FalconSensor `json:"falcon,omitempty"`
 
@@ -42,9 +44,10 @@ type FalconNodeSensorSpec struct {
 // +k8s:openapi-gen=true
 type FalconNodeSensorConfig struct {
 	// Specifies tolerations for custom taints. Defaults to allowing scheduling on all nodes.
+	// +optional
 	// +kubebuilder:default:={{key: "node-role.kubernetes.io/master", operator: "Exists", effect: "NoSchedule"}, {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"}, {key: "node-role.kubernetes.io/infra", operator: "Exists", effect: "NoSchedule"}}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=4
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	Tolerations *[]corev1.Toleration `json:"tolerations"`
 
 	// Specifies node affinity for scheduling the DaemonSet. Defaults to allowing scheduling on all nodes.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=5
@@ -65,6 +68,7 @@ type FalconNodeSensorConfig struct {
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 
 	// Type of DaemonSet update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
+	// +kubebuilder:default={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Update Strategy",order=6
 	DSUpdateStrategy FalconNodeUpdateStrategy `json:"updateStrategy,omitempty"`
 
@@ -213,4 +217,11 @@ type FalconNodeSensorList struct {
 
 func init() {
 	SchemeBuilder.Register(&FalconNodeSensor{}, &FalconNodeSensorList{})
+}
+
+func (node FalconNodeSensor) GetTolerations() *[]corev1.Toleration {
+	if node.Spec.Node.Tolerations == nil {
+		return &[]corev1.Toleration{}
+	}
+	return node.Spec.Node.Tolerations
 }
