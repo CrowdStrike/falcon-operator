@@ -148,7 +148,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2025-02-11T00:07:40Z"
+    createdAt: "2025-03-11T16:04:52Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -1705,6 +1705,7 @@ spec:
           - delete
           - get
           - list
+          - patch
           - update
           - watch
         - apiGroups:
@@ -1712,14 +1713,12 @@ spec:
           resources:
           - cronjobs
           - daemonsets
-          - deployments
           - ingresses
           - jobs
           - nodes
           - persistentvolumes
-          - pods
           - replicasets
-          - services
+          - replicationcontrollers
           verbs:
           - get
           - list
@@ -1728,31 +1727,17 @@ spec:
           - ""
           resources:
           - deployments
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
           - namespaces
+          - resourcequotas
+          - secrets
+          - serviceaccounts
+          - services
           verbs:
           - create
           - delete
           - get
           - list
           - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - nodes
-          verbs:
-          - get
-          - list
           - watch
         - apiGroups:
           - ""
@@ -1766,71 +1751,9 @@ spec:
           - update
           - watch
         - apiGroups:
-          - ""
-          resources:
-          - replicationcontrollers
-          verbs:
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - resourcequotas
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - secrets
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - serviceaccounts
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - services
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - update
-          - watch
-        - apiGroups:
           - admissionregistration.k8s.io
           resources:
           - mutatingwebhookconfigurations
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - update
-          - watch
-        - apiGroups:
-          - admissionregistration.k8s.io
-          resources:
           - validatingwebhookconfigurations
           verbs:
           - create
@@ -1866,13 +1789,6 @@ spec:
           - apps
           resources:
           - replicasets
-          verbs:
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - apps
-          resources:
           - statefulsets
           verbs:
           - get
@@ -1899,126 +1815,12 @@ spec:
           - update
           - watch
         - apiGroups:
-          - ""
-          resources:
-          - configmaps
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
           - falcon.crowdstrike.com
           resources:
           - falconadmissions
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - falcon.crowdstrike.com
-          resources:
-          - falconadmissions/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - falcon.crowdstrike.com
-          resources:
-          - falconadmissions/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - falcon.crowdstrike.com
-          resources:
           - falconcontainers
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - falcon.crowdstrike.com
-          resources:
-          - falconcontainers/finalizers
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - falcon.crowdstrike.com
-          resources:
-          - falconcontainers/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - falcon.crowdstrike.com
-          resources:
           - falcondeployments
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - falcon.crowdstrike.com
-          resources:
-          - falcondeployments/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - falcon.crowdstrike.com
-          resources:
-          - falcondeployments/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - falcon.crowdstrike.com
-          resources:
           - falconimageanalyzers
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - falcon.crowdstrike.com
-          resources:
-          - falconimageanalyzers/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - falcon.crowdstrike.com
-          resources:
-          - falconimageanalyzers/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - falcon.crowdstrike.com
-          resources:
           - falconnodesensors
           verbs:
           - create
@@ -2031,12 +1833,20 @@ spec:
         - apiGroups:
           - falcon.crowdstrike.com
           resources:
+          - falconadmissions/finalizers
+          - falcondeployments/finalizers
+          - falconimageanalyzers/finalizers
           - falconnodesensors/finalizers
           verbs:
           - update
         - apiGroups:
           - falcon.crowdstrike.com
           resources:
+          - falconadmissions/status
+          - falconcontainers/finalizers
+          - falconcontainers/status
+          - falcondeployments/status
+          - falconimageanalyzers/status
           - falconnodesensors/status
           verbs:
           - get
@@ -2057,27 +1867,7 @@ spec:
           - rbac.authorization.k8s.io
           resources:
           - clusterrolebindings
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - update
-          - watch
-        - apiGroups:
-          - rbac.authorization.k8s.io
-          resources:
           - clusterroles
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - update
-          - watch
-        - apiGroups:
-          - rbac.authorization.k8s.io
-          resources:
           - rolebindings
           - roles
           verbs:

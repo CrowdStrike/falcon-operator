@@ -31,12 +31,12 @@ import (
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	imagev1 "github.com/openshift/api/image/v1"
-	routev1 "github.com/openshift/api/route/v1"
 	arv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	admissioncontroller "github.com/crowdstrike/falcon-operator/internal/controller/admission"
@@ -55,9 +55,43 @@ const defaultLeaseDuration = time.Second * 30
 const defaultRenewDeadline = time.Second * 20
 
 var (
-	scheme      = runtime.NewScheme()
-	setupLog    = ctrl.Log.WithName("setup")
-	environment = "Kubernetes"
+	scheme            = runtime.NewScheme()
+	setupLog          = ctrl.Log.WithName("setup")
+	environment       = "Kubernetes"
+	requiredCacheObjs = map[client.Object]cache.ByObject{
+		&corev1.Namespace{}:                {},
+		&corev1.Secret{}:                   {},
+		&rbacv1.ClusterRoleBinding{}:       {},
+		&corev1.ServiceAccount{}:           {},
+		&falconv1alpha1.FalconAdmission{}:  {},
+		&falconv1alpha1.FalconNodeSensor{}: {},
+		&falconv1alpha1.FalconContainer{}:  {},
+		&falconv1alpha1.FalconDeployment{}: {},
+		&schedulingv1.PriorityClass{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
+		},
+		&corev1.Service{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
+		},
+		&corev1.ResourceQuota{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconAdmissionController}),
+		},
+		&appsv1.Deployment{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
+		},
+		&corev1.ConfigMap{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
+		},
+		&appsv1.DaemonSet{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
+		},
+		&arv1.MutatingWebhookConfiguration{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconSidecarSensor}),
+		},
+		&arv1.ValidatingWebhookConfiguration{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconAdmissionController}),
+		},
+	}
 )
 
 func init() {
@@ -109,53 +143,42 @@ func main() {
 		os.Exit(0)
 	}
 
+	dc, err := discovery.NewDiscoveryClientForConfig(ctrl.GetConfigOrDie())
+	if err != nil {
+		setupLog.Error(err, "failed to create discovery client")
+		os.Exit(1)
+	}
+
+	openShift := isOpenShift(dc)
+
+	if openShift {
+		environment = "OpenShift"
+
+		setupLog.Info(fmt.Sprintf("openshift api is available. cluster is running %s", environment))
+
+		if !strings.Contains(version.Get(), "certified") {
+			setupLog.V(1).Info("WARNING: this operator is not certified for OpenShift. Please install and use the certified operator for proper OpenShift support.")
+		}
+
+		requiredCacheObjs[&imagev1.ImageStream{}] = cache.ByObject{
+			Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
+		}
+	} else {
+		setupLog.Info(fmt.Sprintf("openshift api is not available. cluster is running %s", environment))
+	}
+
 	options := ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: metricsAddr,
+		},
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "falcon-operator-lock",
 		LeaseDuration:          &leaseDuration,
 		RenewDeadline:          &renewDeadline,
 		Cache: cache.Options{
-			ByObject: map[client.Object]cache.ByObject{
-				&falconv1alpha1.FalconAdmission{}:  {},
-				&falconv1alpha1.FalconNodeSensor{}: {},
-				&falconv1alpha1.FalconContainer{}:  {},
-				&falconv1alpha1.FalconDeployment{}: {},
-				&corev1.Namespace{}:                {},
-				&corev1.Secret{}:                   {},
-				&rbacv1.ClusterRoleBinding{}:       {},
-				&corev1.ServiceAccount{}:           {},
-				&schedulingv1.PriorityClass{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
-				},
-				&imagev1.ImageStream{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
-				},
-				&corev1.Service{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
-				},
-				&corev1.ResourceQuota{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconAdmissionController}),
-				},
-				&appsv1.Deployment{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
-				},
-				&corev1.ConfigMap{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
-				},
-				&appsv1.DaemonSet{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
-				},
-				&arv1.MutatingWebhookConfiguration{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconSidecarSensor}),
-				},
-				&arv1.ValidatingWebhookConfiguration{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconAdmissionController}),
-				},
-			},
+			ByObject: requiredCacheObjs,
 		},
 	}
 
@@ -163,27 +186,6 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
-	}
-
-	dc, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
-	if err != nil {
-		setupLog.Error(err, "failed to create discovery client")
-		os.Exit(1)
-	}
-
-	openShift, err := isOpenShift(dc)
-	if err != nil {
-		setupLog.Error(err, "could not determine if cluster is running OpenShift")
-		os.Exit(1)
-	}
-
-	if openShift {
-		environment = "OpenShift"
-	}
-	setupLog.Info(fmt.Sprintf("cluster is running %s", environment))
-
-	if openShift && !strings.Contains(version.Get(), "certified") {
-		setupLog.V(1).Info("WARNING: this operator is not certified for OpenShift. Please install and use the certified operator for proper OpenShift support.")
 	}
 
 	certManager, err := isCertManagerInstalled(dc)
@@ -274,8 +276,9 @@ func main() {
 	}
 }
 
-func isOpenShift(client discovery.DiscoveryInterface) (bool, error) {
-	return discovery.IsResourceEnabled(client, routev1.GroupVersion.WithResource("routes"))
+func isOpenShift(client discovery.DiscoveryInterface) bool {
+	_, err := client.ServerResourcesForGroupVersion("image.openshift.io/v1")
+	return err == nil
 }
 
 func isCertManagerInstalled(client discovery.DiscoveryInterface) (bool, error) {

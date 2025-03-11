@@ -1,0 +1,23 @@
+- op: remove
+  path: /spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/falconContainerSensor/properties/injector/properties/logVolume/properties/azureDisk/properties/fsType/default
+
+- op: remove
+  path: /spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/falconContainerSensor/properties/injector/properties/logVolume/properties/azureDisk/properties/readOnly/default
+
+- op: remove
+  path: /spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/falconContainerSensor/properties/injector/properties/logVolume/properties/iscsi/properties/iscsiInterface/default
+
+- op: remove
+  path: /spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/falconContainerSensor/properties/injector/properties/logVolume/properties/scaleIO/properties/fsType/default
+
+- op: remove
+  path: /spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/falconContainerSensor/properties/injector/properties/logVolume/properties/scaleIO/properties/storageMode/default
+
+- op: remove
+  path: /spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/falconContainerSensor/properties/injector/properties/logVolume/properties/rbd/properties/keyring/default
+
+- op: remove
+  path: /spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/falconContainerSensor/properties/injector/properties/logVolume/properties/rbd/properties/pool/default
+
+- op: remove
+  path: /spec/versions/0/schema/openAPIV3Schema/properties/spec/properties/falconContainerSensor/properties/injector/properties/logVolume/properties/rbd/properties/user/default

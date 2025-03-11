@@ -35,3 +35,10 @@ patches:
 - path: patches/namespace_patch.yaml
 - path: patches/falconnodesensor_role.yaml
 - path: patches/falcon_falconimageanalyzer_role.yaml
+- target:
+      group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: falcondeployments.falcon.crowdstrike.com
+  path: patches/log_volume_defaults_falcondeployments.yaml
+
