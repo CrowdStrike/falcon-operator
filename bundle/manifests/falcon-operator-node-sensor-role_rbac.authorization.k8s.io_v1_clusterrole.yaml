@@ -23,6 +23,7 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - namespaces
   - secrets
   - cronjobs
   - daemonsets
