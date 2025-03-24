@@ -15,12 +15,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -298,10 +300,21 @@ func GetOpenShiftNamespaceNamesSort(ctx context.Context, cli client.Client) ([]s
 
 func NewReconcileTrigger(c controller.Controller) (func(client.Object), error) {
 	channel := make(chan event.GenericEvent)
-	err := c.Watch(
-		&source.Channel{Source: channel},
-		&handler.EnqueueRequestForObject{},
-	)
+
+	eventHandler := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+		return []reconcile.Request{
+			{NamespacedName: types.NamespacedName{
+				Name:      obj.GetName(),
+				Namespace: obj.GetNamespace(),
+			}},
+		}
+	})
+
+	channelSource := source.Channel(channel, eventHandler)
+
+	// Watch using the channel source
+	err := c.Watch(channelSource)
+
 	if err != nil {
 		return nil, err
 	}
