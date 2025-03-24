@@ -6060,9 +6060,11 @@ spec:
                           Disabling might have unintended consequences for certain operations such as sensor downgrading.
                         type: boolean
                       gke:
+                        default: {}
                         description: Enables the use of GKE Autopilot.
                         properties:
                           autopilot:
+                            default: false
                             description: Enables the use of GKE Autopilot.
                             type: boolean
                         type: object
@@ -7212,9 +7214,11 @@ spec:
                       Disabling might have unintended consequences for certain operations such as sensor downgrading.
                     type: boolean
                   gke:
+                    default: {}
                     description: Enables the use of GKE Autopilot.
                     properties:
                       autopilot:
+                        default: false
                         description: Enables the use of GKE Autopilot.
                         type: boolean
                     type: object
