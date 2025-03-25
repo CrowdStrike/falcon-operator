@@ -823,6 +823,9 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  alternateMountPath:
+                    default: false
+                    type: boolean
                   azureConfigPath:
                     type: string
                   disableDefaultNamespaceInjection:
@@ -3623,6 +3626,9 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      alternateMountPath:
+                        default: false
+                        type: boolean
                       azureConfigPath:
                         type: string
                       disableDefaultNamespaceInjection:
