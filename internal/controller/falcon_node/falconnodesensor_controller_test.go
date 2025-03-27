@@ -86,6 +86,7 @@ var _ = Describe("FalconNodeSensor controller", func() {
 
 			falconNodeReconciler := &FalconNodeSensorReconciler{
 				Client:  k8sClient,
+				Reader:  k8sReader,
 				Scheme:  k8sClient.Scheme(),
 				tracker: tracker,
 			}
