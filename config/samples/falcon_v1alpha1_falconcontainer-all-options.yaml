@@ -44,6 +44,7 @@ spec:
         annotation2: annotation-value
     disableDefaultNamespaceInjection: true
     disableDefaultPodInjection: false
+    enableAlternateMountPath: false
     imagePullPolicy: Always
     imagePullSecret: your-pre-created-secret
     listenPort: 4433

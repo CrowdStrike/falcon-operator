@@ -756,6 +756,9 @@ spec:
                       disableDefaultPodInjection:
                         default: false
                         type: boolean
+                      enableAlternateMountPath:
+                        default: false
+                        type: boolean
                       imagePullPolicy:
                         default: Always
                         description: PullPolicy describes a policy for if/when to
