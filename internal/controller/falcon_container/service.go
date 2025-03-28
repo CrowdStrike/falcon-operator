@@ -21,7 +21,10 @@ func (r *FalconContainerReconciler) reconcileService(ctx context.Context, log lo
 	updated := false
 	existingService := &corev1.Service{}
 
-	err := r.Client.Get(ctx, types.NamespacedName{Name: injectorName, Namespace: falconContainer.Spec.InstallNamespace}, existingService)
+	err := r.Get(ctx, types.NamespacedName{Name: injectorName, Namespace: falconContainer.Spec.InstallNamespace}, existingService)
+	if err != nil {
+		err = r.Reader.Get(ctx, types.NamespacedName{Name: injectorName, Namespace: falconContainer.Spec.InstallNamespace}, existingService)
+	}
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, service, r.Scheme); err != nil {

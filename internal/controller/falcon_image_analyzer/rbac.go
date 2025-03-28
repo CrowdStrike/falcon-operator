@@ -39,6 +39,10 @@ func (r *FalconImageAnalyzerReconciler) reconcileServiceAccount(ctx context.Cont
 		imagePullSecrets)
 
 	err := r.Get(ctx, types.NamespacedName{Name: common.ImageServiceAccountName, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingServiceAccount)
+	if err != nil {
+		err = r.Reader.Get(ctx, types.NamespacedName{Name: common.ImageServiceAccountName, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingServiceAccount)
+	}
+
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, serviceAccount)
 		if err != nil {
@@ -80,7 +84,11 @@ func (r *FalconImageAnalyzerReconciler) reconcileClusterRoleBinding(ctx context.
 		[]rbacv1.Subject{})
 	existingClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 
-	err := r.Client.Get(ctx, types.NamespacedName{Name: imageClusterRoleBindingName}, existingClusterRoleBinding)
+	err := r.Get(ctx, types.NamespacedName{Name: imageClusterRoleBindingName}, existingClusterRoleBinding)
+	if err != nil {
+		err = r.Reader.Get(ctx, types.NamespacedName{Name: imageClusterRoleBindingName}, existingClusterRoleBinding)
+	}
+
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, clusterRoleBinding)
 		if err != nil {

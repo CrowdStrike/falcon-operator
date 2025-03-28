@@ -100,6 +100,9 @@ func (r *FalconImageAnalyzerReconciler) registryUri(ctx context.Context, falconI
 		imageStream := &imagev1.ImageStream{}
 		err := r.Get(ctx, types.NamespacedName{Name: "falcon-image-analyzer", Namespace: r.imageNamespace(falconImageAnalyzer)}, imageStream)
 		if err != nil {
+			err = r.Reader.Get(ctx, types.NamespacedName{Name: "falcon-image-analyzer", Namespace: r.imageNamespace(falconImageAnalyzer)}, imageStream)
+		}
+		if err != nil {
 			return "", err
 		}
 

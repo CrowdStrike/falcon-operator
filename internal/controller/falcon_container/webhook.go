@@ -28,7 +28,10 @@ func (r *FalconContainerReconciler) reconcileWebhook(ctx context.Context, log lo
 	webhook := assets.MutatingWebhook(injectorName, falconContainer.Spec.InstallNamespace, webhookName, caBundle, disableDefaultNSInjection, falconContainer)
 	existingWebhook := &arv1.MutatingWebhookConfiguration{}
 
-	err := r.Client.Get(ctx, types.NamespacedName{Name: webhookName}, existingWebhook)
+	err := r.Get(ctx, types.NamespacedName{Name: webhookName}, existingWebhook)
+	if err != nil {
+		err = r.Reader.Get(ctx, types.NamespacedName{Name: webhookName}, existingWebhook)
+	}
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, webhook, r.Scheme); err != nil {

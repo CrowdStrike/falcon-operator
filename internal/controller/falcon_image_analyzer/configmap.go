@@ -37,6 +37,9 @@ func (r *FalconImageAnalyzerReconciler) reconcileGenericConfigMap(name string, g
 
 	existingCM := &corev1.ConfigMap{}
 	err = r.Get(ctx, types.NamespacedName{Name: name, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingCM)
+	if err != nil {
+		err = r.Reader.Get(ctx, types.NamespacedName{Name: name, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingCM)
+	}
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, cm)
 		if err != nil {
