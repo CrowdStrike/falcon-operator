@@ -2,15 +2,18 @@ package common
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -184,4 +187,12 @@ func ImageVersion(image string) *string {
 	default:
 		return &image
 	}
+}
+
+func GetNamespacedObject(ctx context.Context, client client.Client, apiReader client.Reader, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	err := client.Get(ctx, key, obj, opts...)
+	if !errors.IsNotFound(err) {
+		return err
+	}
+	return apiReader.Get(ctx, key, obj, opts...)
 }

@@ -61,10 +61,6 @@ var (
 	setupLog          = ctrl.Log.WithName("setup")
 	environment       = "Kubernetes"
 	requiredCacheObjs = map[client.Object]cache.ByObject{
-		&corev1.Namespace{}:                {},
-		&corev1.Secret{}:                   {},
-		&rbacv1.ClusterRoleBinding{}:       {},
-		&corev1.ServiceAccount{}:           {},
 		&falconv1alpha1.FalconAdmission{}:  {},
 		&falconv1alpha1.FalconNodeSensor{}: {},
 		&falconv1alpha1.FalconContainer{}:  {},
@@ -92,6 +88,18 @@ var (
 		},
 		&arv1.ValidatingWebhookConfiguration{}: {
 			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconAdmissionController}),
+		},
+		&corev1.Namespace{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "namespace"}),
+		},
+		&corev1.Secret{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "secret"}),
+		},
+		&rbacv1.ClusterRoleBinding{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "clusterrolebinding"}),
+		},
+		&corev1.ServiceAccount{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "serviceaccount"}),
 		},
 	}
 )
@@ -252,6 +260,7 @@ func main() {
 
 	if err = (&containercontroller.FalconContainerReconciler{
 		Client:     mgr.GetClient(),
+		Reader:     mgr.GetAPIReader(),
 		Scheme:     mgr.GetScheme(),
 		RestConfig: mgr.GetConfig(),
 	}).SetupWithManager(mgr, tracker); err != nil {
@@ -260,6 +269,7 @@ func main() {
 	}
 	if err = (&nodecontroller.FalconNodeSensorReconciler{
 		Client: mgr.GetClient(),
+		Reader: mgr.GetAPIReader(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr, tracker); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconNodeSensor")
@@ -267,6 +277,7 @@ func main() {
 	}
 	if err = (&admissioncontroller.FalconAdmissionReconciler{
 		Client:    mgr.GetClient(),
+		Reader:    mgr.GetAPIReader(),
 		Scheme:    mgr.GetScheme(),
 		OpenShift: openShift,
 	}).SetupWithManager(mgr); err != nil {
@@ -275,6 +286,7 @@ func main() {
 	}
 	if err = (&imageanalyzercontroller.FalconImageAnalyzerReconciler{
 		Client: mgr.GetClient(),
+		Reader: mgr.GetAPIReader(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconImageAnalyzer")

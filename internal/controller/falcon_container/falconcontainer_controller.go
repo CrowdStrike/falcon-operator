@@ -33,6 +33,7 @@ import (
 // FalconContainerReconciler reconciles a FalconContainer object
 type FalconContainerReconciler struct {
 	client.Client
+	Reader          client.Reader
 	Log             logr.Logger
 	Scheme          *runtime.Scheme
 	RestConfig      *rest.Config
@@ -114,7 +115,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
-	validate, err := k8sutils.CheckRunningPodLabels(r.Client, ctx, falconContainer.Spec.InstallNamespace, common.CRLabels("deployment", injectorName, common.FalconSidecarSensor))
+	validate, err := k8sutils.CheckRunningPodLabels(r.Reader, ctx, falconContainer.Spec.InstallNamespace, common.CRLabels("deployment", injectorName, common.FalconSidecarSensor))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -293,7 +294,7 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile injector Service: %v", err)
 	}
 
-	pod, err := k8sutils.GetReadyPod(r.Client, ctx, falconContainer.Spec.InstallNamespace, map[string]string{common.FalconComponentKey: common.FalconSidecarSensor})
+	pod, err := k8sutils.GetReadyPod(r.Reader, ctx, falconContainer.Spec.InstallNamespace, map[string]string{common.FalconComponentKey: common.FalconSidecarSensor})
 	if err != nil && err != k8sutils.ErrNoWebhookServicePodReady {
 		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to find Ready injector pod: %v", err))
 		if err != nil {
