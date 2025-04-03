@@ -24,7 +24,7 @@ func (r *FalconContainerReconciler) reconcileImageStream(ctx context.Context, lo
 	imageStream := assets.ImageStream(imageStreamName, r.imageNamespace(falconContainer), common.FalconSidecarSensor)
 	existingImageStream := &imagev1.ImageStream{}
 
-	err := r.Client.Get(ctx, types.NamespacedName{Name: imageStreamName, Namespace: r.imageNamespace(falconContainer)}, existingImageStream)
+	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: imageStreamName, Namespace: r.imageNamespace(falconContainer)}, existingImageStream)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, imageStream, r.Scheme); err != nil {

@@ -32,7 +32,7 @@ func (r *FalconContainerReconciler) reconcileGenericConfigMap(name string, genFu
 		return configMap, fmt.Errorf("unable to render expected configmap: %v", err)
 	}
 	existingConfigMap := &corev1.ConfigMap{}
-	err = r.Client.Get(ctx, types.NamespacedName{Name: name, Namespace: falconContainer.Spec.InstallNamespace}, existingConfigMap)
+	err = common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: name, Namespace: falconContainer.Spec.InstallNamespace}, existingConfigMap)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, configMap, r.Scheme); err != nil {

@@ -228,6 +228,7 @@ import (
 
 var cfg *rest.Config
 var k8sClient client.Client
+var k8sReader client.Client
 var testEnv *envtest.Environment
 
 func TestControllers(t *testing.T) {
@@ -260,6 +261,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
+	k8sReader, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(k8sClient).NotTo(BeNil())
 })
 
 var _ = AfterSuite(func() {

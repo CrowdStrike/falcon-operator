@@ -27,7 +27,7 @@ func (r *FalconContainerReconciler) reconcileRegistrySecrets(ctx context.Context
 	}
 
 	nsList := &corev1.NamespaceList{}
-	if err := r.Client.List(ctx, nsList); err != nil {
+	if err := r.Reader.List(ctx, nsList); err != nil {
 		return &corev1.SecretList{}, fmt.Errorf("unable to list current namespaces: %v", err)
 	}
 
@@ -68,7 +68,8 @@ func (r *FalconContainerReconciler) reconcileRegistrySecret(namespace string, pu
 	secretData := map[string][]byte{corev1.DockerConfigJsonKey: common.CleanDecodedBase64(pulltoken)}
 	secret := assets.Secret(common.FalconPullSecretName, namespace, "falcon-operator", secretData, corev1.SecretTypeDockerConfigJson)
 	existingSecret := &corev1.Secret{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: namespace}, existingSecret)
+
+	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconPullSecretName, Namespace: namespace}, existingSecret)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err := ctrl.SetControllerReference(falconContainer, secret, r.Scheme); err != nil {

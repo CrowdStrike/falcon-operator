@@ -48,4 +48,3 @@ patches:
       kind: CustomResourceDefinition
       name: falconcontainers.falcon.crowdstrike.com
   path: patches/log_volume_defaults_falconcontainers.yaml
-
