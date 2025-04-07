@@ -42,6 +42,7 @@ spec:
         eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/iam-role-name
         iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
         annotation2: annotation-value
+    alternateMountPath: false
     disableDefaultNamespaceInjection: true
     disableDefaultPodInjection: false
     imagePullPolicy: Always
