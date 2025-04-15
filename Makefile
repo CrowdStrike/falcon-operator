@@ -5,6 +5,10 @@
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
 VERSION ?= 1.4.0
 
+# RELEASE defines the release version for the bundle.
+# A number used to identify the specific build for this image for a particular version of the operator
+RELEASE ?= 1
+
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
 # To re-generate a bundle for other specific channels without changing the standard setup, you can:
@@ -74,7 +78,7 @@ GOFLAGS ?= -a \
 CONTAINER_TOOL ?= docker
 
 # CONTAINER_BUILD_ARGS defines additional build arguments to pass to the $CONTAINER_TOOL during build.
-CONTAINER_BUILD_ARGS ?= --build-arg VERSION=$(VERSION)
+CONTAINER_BUILD_ARGS ?= --build-arg VERSION=$(VERSION) --build-arg RELEASE=$(RELEASE)
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
