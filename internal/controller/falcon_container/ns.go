@@ -32,7 +32,8 @@ func (r *FalconContainerReconciler) NamespaceLabels(falconContainer *falconv1alp
 func (r *FalconContainerReconciler) reconcileNamespace(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.Namespace, error) {
 	namespace := r.newNamespace(falconContainer)
 	existingNamespace := &corev1.Namespace{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: falconContainer.Spec.InstallNamespace}, existingNamespace)
+
+	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconContainer.Spec.InstallNamespace}, existingNamespace)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, namespace, r.Scheme); err != nil {

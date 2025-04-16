@@ -235,7 +235,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 							Name:      "init-falconstore",
 							Image:     image,
 							Command:   common.FalconShellCommand,
-							Args:      common.InitContainerArgs(),
+							Args:      common.InitContainerArgs(*node.Spec.Node.GKE.Enabled),
 							Resources: initContainerResources(node),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,

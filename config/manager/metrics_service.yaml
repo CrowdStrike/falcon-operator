@@ -3,7 +3,7 @@ kind: Service
 metadata:
   labels:
     control-plane: controller-manager
-    crowdstrike.com/component: kube-rbac-proxy
+    crowdstrike.com/component: metrics
     crowdstrike.com/created-by: falcon-operator
     crowdstrike.com/instance: controller-manager-metrics-service
     crowdstrike.com/managed-by: kustomize

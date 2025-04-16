@@ -7,6 +7,7 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
+	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/go-logr/logr"
 	arv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -28,7 +29,7 @@ func (r *FalconContainerReconciler) reconcileWebhook(ctx context.Context, log lo
 	webhook := assets.MutatingWebhook(injectorName, falconContainer.Spec.InstallNamespace, webhookName, caBundle, disableDefaultNSInjection, falconContainer)
 	existingWebhook := &arv1.MutatingWebhookConfiguration{}
 
-	err := r.Client.Get(ctx, types.NamespacedName{Name: webhookName}, existingWebhook)
+	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: webhookName}, existingWebhook)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if err = ctrl.SetControllerReference(falconContainer, webhook, r.Scheme); err != nil {

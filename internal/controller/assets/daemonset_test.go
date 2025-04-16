@@ -186,6 +186,7 @@ func TestDaemonset(t *testing.T) {
 	falconNode := falconv1alpha1.FalconNodeSensor{}
 	falconNode.Namespace = "falcon-system"
 	falconNode.Name = "test"
+	autopilot := false
 	image := "testImage"
 	dsName := "test-DaemonSet"
 	falconNode.Spec.Node.Tolerations = &[]corev1.Toleration{
@@ -205,6 +206,7 @@ func TestDaemonset(t *testing.T) {
 			Effect:   "NoSchedule",
 		},
 	}
+	falconNode.Spec.Node.GKE.Enabled = &autopilot
 
 	privileged := true
 	escalation := true
@@ -254,7 +256,7 @@ func TestDaemonset(t *testing.T) {
 							Name:      "init-falconstore",
 							Image:     image,
 							Command:   common.FalconShellCommand,
-							Args:      common.InitContainerArgs(),
+							Args:      common.InitContainerArgs(autopilot),
 							Resources: initContainerResources(&falconNode),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
