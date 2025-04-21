@@ -15,12 +15,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -196,7 +198,7 @@ func ConditionsUpdate(r client.Client, ctx context.Context, req ctrl.Request, lo
 	return nil
 }
 
-func CheckRunningPodLabels(r client.Client, ctx context.Context, namespace string, matchingLabels client.MatchingLabels) (bool, error) {
+func CheckRunningPodLabels(r client.Reader, ctx context.Context, namespace string, matchingLabels client.MatchingLabels) (bool, error) {
 	podList := &corev1.PodList{}
 
 	listOpts := []client.ListOption{
@@ -220,7 +222,7 @@ func CheckRunningPodLabels(r client.Client, ctx context.Context, namespace strin
 	return true, nil
 }
 
-func GetReadyPod(r client.Client, ctx context.Context, namespace string, matchingLabels client.MatchingLabels) (*corev1.Pod, error) {
+func GetReadyPod(r client.Reader, ctx context.Context, namespace string, matchingLabels client.MatchingLabels) (*corev1.Pod, error) {
 	podList := &corev1.PodList{}
 	listOpts := []client.ListOption{
 		client.InNamespace(namespace),
@@ -256,7 +258,7 @@ func GetDeployment(r client.Client, ctx context.Context, namespace string, match
 	return &depList.Items[0], nil
 }
 
-func GetRunningFalconNS(r client.Client, ctx context.Context) ([]string, error) {
+func GetRunningFalconNS(r client.Reader, ctx context.Context) ([]string, error) {
 	podList := &corev1.PodList{}
 	falconNamespaces := []string{}
 	listOpts := []client.ListOption{
@@ -278,7 +280,7 @@ func GetRunningFalconNS(r client.Client, ctx context.Context) ([]string, error) 
 	return falconNamespaces, nil
 }
 
-func GetOpenShiftNamespaceNamesSort(ctx context.Context, cli client.Client) ([]string, error) {
+func GetOpenShiftNamespaceNamesSort(ctx context.Context, cli client.Reader) ([]string, error) {
 	nsList := []string{}
 	ns := &corev1.NamespaceList{}
 	err := cli.List(ctx, ns)
@@ -298,10 +300,21 @@ func GetOpenShiftNamespaceNamesSort(ctx context.Context, cli client.Client) ([]s
 
 func NewReconcileTrigger(c controller.Controller) (func(client.Object), error) {
 	channel := make(chan event.GenericEvent)
-	err := c.Watch(
-		&source.Channel{Source: channel},
-		&handler.EnqueueRequestForObject{},
-	)
+
+	eventHandler := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
+		return []reconcile.Request{
+			{NamespacedName: types.NamespacedName{
+				Name:      obj.GetName(),
+				Namespace: obj.GetNamespace(),
+			}},
+		}
+	})
+
+	channelSource := source.Channel(channel, eventHandler)
+
+	// Watch using the channel source
+	err := c.Watch(channelSource)
+
 	if err != nil {
 		return nil, err
 	}

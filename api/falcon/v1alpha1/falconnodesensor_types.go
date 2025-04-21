@@ -98,6 +98,7 @@ type FalconNodeSensorConfig struct {
 	Backend string `json:"backend,omitempty"`
 
 	// Enables the use of GKE Autopilot.
+	// +kubebuilder:default={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="GKE Autopilot Settings",order=11
 	GKE AutoPilot `json:"gke,omitempty"`
 
@@ -156,6 +157,7 @@ type ResourceList struct {
 
 type AutoPilot struct {
 	// Enables the use of GKE Autopilot.
+	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Enabled *bool `json:"autopilot,omitempty"`
 }

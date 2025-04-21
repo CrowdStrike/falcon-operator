@@ -2,23 +2,32 @@ package common
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 )
 
-func InitContainerArgs() []string {
+func InitContainerArgs(gke bool) []string {
+	if gke {
+		return []string{
+			"-c",
+			fmt.Sprintf("echo \"Running %[1]s\"; %[1]s", FalconDaemonsetInitBinary),
+		}
+	}
 	return []string{
 		"-c",
-		fmt.Sprintf("echo \"Running %[1]s\"; %[1]s", FalconDaemonsetInitBinary),
+		fmt.Sprintf("echo \"Running %[1]s\"; %[1]s; test -f \"%[2]s\" && %[2]s || echo \"%[2]s not found. Skipping.\"", FalconDaemonsetInitBinary, FalconDaemonsetConfigureClusterIdBinary),
 	}
 }
 
@@ -178,4 +187,12 @@ func ImageVersion(image string) *string {
 	default:
 		return &image
 	}
+}
+
+func GetNamespacedObject(ctx context.Context, client client.Client, apiReader client.Reader, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	err := client.Get(ctx, key, obj, opts...)
+	if !errors.IsNotFound(err) {
+		return err
+	}
+	return apiReader.Get(ctx, key, obj, opts...)
 }

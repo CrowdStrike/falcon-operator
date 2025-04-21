@@ -63,6 +63,7 @@ spec:
         - /manager
         args:
         - --leader-elect
+        - --metrics-bind-address=:8443
         image: controller:latest
         name: manager
         env:
