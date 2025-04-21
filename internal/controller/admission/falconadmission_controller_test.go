@@ -96,6 +96,7 @@ var _ = Describe("FalconAdmission controller", func() {
 			By("Reconciling the custom resource created")
 			falconAdmissionReconciler := &FalconAdmissionReconciler{
 				Client: k8sClient,
+				Reader: k8sReader,
 				Scheme: k8sClient.Scheme(),
 			}
 

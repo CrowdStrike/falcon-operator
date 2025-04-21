@@ -3,7 +3,7 @@ kind: ClusterRole
 metadata:
   creationTimestamp: null
   labels:
-    crowdstrike.com/component: kube-rbac-proxy
+    crowdstrike.com/component: metrics
     crowdstrike.com/created-by: falcon-operator
     crowdstrike.com/instance: metrics-reader
     crowdstrike.com/managed-by: kustomize

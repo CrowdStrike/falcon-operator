@@ -32,7 +32,8 @@ func (r *FalconAdmissionReconciler) reconcileGenericConfigMap(name string, genFu
 	}
 
 	existingCM := &corev1.ConfigMap{}
-	err = r.Get(ctx, types.NamespacedName{Name: name, Namespace: falconAdmission.Spec.InstallNamespace}, existingCM)
+	err = common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: name, Namespace: falconAdmission.Spec.InstallNamespace}, existingCM)
+
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, cm)
 		if err != nil {

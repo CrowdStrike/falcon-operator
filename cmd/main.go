@@ -5,6 +5,7 @@ Copyright 2021 CrowdStrike
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"net/http"
@@ -31,12 +32,13 @@ import (
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	imagev1 "github.com/openshift/api/image/v1"
-	routev1 "github.com/openshift/api/route/v1"
 	arv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	admissioncontroller "github.com/crowdstrike/falcon-operator/internal/controller/admission"
@@ -51,11 +53,55 @@ import (
 )
 
 const defaultSensorAutoUpdateInterval = time.Hour * 24
+const defaultLeaseDuration = time.Second * 30
+const defaultRenewDeadline = time.Second * 20
 
 var (
-	scheme      = runtime.NewScheme()
-	setupLog    = ctrl.Log.WithName("setup")
-	environment = "Kubernetes"
+	scheme            = runtime.NewScheme()
+	setupLog          = ctrl.Log.WithName("setup")
+	environment       = "Kubernetes"
+	requiredCacheObjs = map[client.Object]cache.ByObject{
+		&falconv1alpha1.FalconAdmission{}:  {},
+		&falconv1alpha1.FalconNodeSensor{}: {},
+		&falconv1alpha1.FalconContainer{}:  {},
+		&falconv1alpha1.FalconDeployment{}: {},
+		&schedulingv1.PriorityClass{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
+		},
+		&corev1.Service{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
+		},
+		&corev1.ResourceQuota{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconAdmissionController}),
+		},
+		&appsv1.Deployment{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
+		},
+		&corev1.ConfigMap{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
+		},
+		&appsv1.DaemonSet{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
+		},
+		&arv1.MutatingWebhookConfiguration{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconSidecarSensor}),
+		},
+		&arv1.ValidatingWebhookConfiguration{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconAdmissionController}),
+		},
+		&corev1.Namespace{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "namespace"}),
+		},
+		&corev1.Secret{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "secret"}),
+		},
+		&rbacv1.ClusterRoleBinding{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "clusterrolebinding"}),
+		},
+		&corev1.ServiceAccount{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "serviceaccount"}),
+		},
+	}
 )
 
 func init() {
@@ -72,19 +118,31 @@ func main() {
 	var probeAddr string
 	var profileAddr string
 	var enableProfiling bool
+	var enableHTTP2 bool
+	var secureMetrics bool
+	var tlsOpts []func(*tls.Config)
 	var ver bool
 	var err error
 	var sensorAutoUpdateInterval time.Duration
+	var leaseDuration time.Duration
+	var renewDeadline time.Duration
 
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
+		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.StringVar(&profileAddr, "profile-bind-address", "localhost:8082", "The address the profiling endpoint binds to.")
 	flag.BoolVar(&enableProfiling, "profile", false, "Enable profiling.")
+	flag.BoolVar(&enableHTTP2, "enable-http2", false,
+		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+	flag.BoolVar(&secureMetrics, "metrics-secure", true,
+		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&ver, "version", false, "Print version")
 	flag.DurationVar(&sensorAutoUpdateInterval, "sensor-auto-update-interval", defaultSensorAutoUpdateInterval, "The rate at which the Falcon API is queried for new sensor versions")
+	flag.DurationVar(&leaseDuration, "lease-duration", defaultLeaseDuration, "The duration that non-leader candidates will wait to force acquire leadership.")
+	flag.DurationVar(&renewDeadline, "renew-deadline", defaultRenewDeadline, "the duration that the acting controlplane will retry refreshing leadership before giving up.")
 
 	if env := os.Getenv("ARGS"); env != "" {
 		os.Args = append(os.Args, strings.Split(env, " ")...)
@@ -93,6 +151,7 @@ func main() {
 	opts := zap.Options{
 		Development: true,
 	}
+
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
@@ -103,51 +162,79 @@ func main() {
 		os.Exit(0)
 	}
 
+	dc, err := discovery.NewDiscoveryClientForConfig(ctrl.GetConfigOrDie())
+	if err != nil {
+		setupLog.Error(err, "failed to create discovery client")
+		os.Exit(1)
+	}
+
+	openShift := isOpenShift(dc)
+
+	if openShift {
+		environment = "OpenShift"
+
+		setupLog.Info(fmt.Sprintf("openshift api is available. cluster is running %s", environment))
+
+		if !strings.Contains(version.Get(), "certified") {
+			setupLog.V(1).Info("WARNING: this operator is not certified for OpenShift. Please install and use the certified operator for proper OpenShift support.")
+		}
+
+		requiredCacheObjs[&imagev1.ImageStream{}] = cache.ByObject{
+			Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
+		}
+	} else {
+		setupLog.Info(fmt.Sprintf("openshift api is not available. cluster is running %s", environment))
+	}
+
+	// if the enable-http2 flag is false (the default), http/2 should be disabled
+	// due to its vulnerabilities. More specifically, disabling http/2 will
+	// prevent from being vulnerable to the HTTP/2 Stream Cancellation and
+	// Rapid Reset CVEs. For more information see:
+	// - https://github.com/advisories/GHSA-qppj-fm5r-hxr3
+	// - https://github.com/advisories/GHSA-4374-p667-p6c8
+	disableHTTP2 := func(c *tls.Config) {
+		setupLog.Info("disabling http/2")
+		c.NextProtos = []string{"http/1.1"}
+	}
+
+	if !enableHTTP2 {
+		tlsOpts = append(tlsOpts, disableHTTP2)
+	}
+
+	metricsServerOptions := metricsserver.Options{
+		BindAddress:   metricsAddr,
+		SecureServing: secureMetrics,
+		TLSOpts:       tlsOpts,
+	}
+
+	if secureMetrics {
+		// FilterProvider is used to protect the metrics endpoint with authn/authz.
+		// These configurations ensure that only authorized users and service accounts
+		// can access the metrics endpoint. The RBAC are configured in 'config/rbac/kustomization.yaml'. More info:
+		// https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/metrics/filters#WithAuthenticationAndAuthorization
+		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
+
+		// TODO(user): If CertDir, CertName, and KeyName are not specified, controller-runtime will automatically
+		// generate self-signed certificates for the metrics server. While convenient for development and testing,
+		// this setup is not recommended for production.
+
+		// TODO(user): If cert-manager is enabled in config/default/kustomization.yaml,
+		// you can uncomment the following lines to use the certificate managed by cert-manager.
+		// metricsServerOptions.CertDir = "/tmp/k8s-metrics-server/metrics-certs"
+		// metricsServerOptions.CertName = "tls.crt"
+		// metricsServerOptions.KeyName = "tls.key"
+	}
+
 	options := ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Metrics:                metricsServerOptions,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "falcon-operator-lock",
+		LeaseDuration:          &leaseDuration,
+		RenewDeadline:          &renewDeadline,
 		Cache: cache.Options{
-			ByObject: map[client.Object]cache.ByObject{
-				&falconv1alpha1.FalconAdmission{}:  {},
-				&falconv1alpha1.FalconNodeSensor{}: {},
-				&falconv1alpha1.FalconContainer{}:  {},
-				&falconv1alpha1.FalconDeployment{}: {},
-				&corev1.Namespace{}:                {},
-				&corev1.Secret{}:                   {},
-				&rbacv1.ClusterRoleBinding{}:       {},
-				&corev1.ServiceAccount{}:           {},
-				&schedulingv1.PriorityClass{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
-				},
-				&imagev1.ImageStream{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
-				},
-				&corev1.Service{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
-				},
-				&corev1.ResourceQuota{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconAdmissionController}),
-				},
-				&appsv1.Deployment{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
-				},
-				&corev1.ConfigMap{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
-				},
-				&appsv1.DaemonSet{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
-				},
-				&arv1.MutatingWebhookConfiguration{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconSidecarSensor}),
-				},
-				&arv1.ValidatingWebhookConfiguration{}: {
-					Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconAdmissionController}),
-				},
-			},
+			ByObject: requiredCacheObjs,
 		},
 	}
 
@@ -155,27 +242,6 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
-	}
-
-	dc, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
-	if err != nil {
-		setupLog.Error(err, "failed to create discovery client")
-		os.Exit(1)
-	}
-
-	openShift, err := isOpenShift(dc)
-	if err != nil {
-		setupLog.Error(err, "could not determine if cluster is running OpenShift")
-		os.Exit(1)
-	}
-
-	if openShift {
-		environment = "OpenShift"
-	}
-	setupLog.Info(fmt.Sprintf("cluster is running %s", environment))
-
-	if openShift && !strings.Contains(version.Get(), "certified") {
-		setupLog.V(1).Info("WARNING: this operator is not certified for OpenShift. Please install and use the certified operator for proper OpenShift support.")
 	}
 
 	certManager, err := isCertManagerInstalled(dc)
@@ -194,6 +260,7 @@ func main() {
 
 	if err = (&containercontroller.FalconContainerReconciler{
 		Client:     mgr.GetClient(),
+		Reader:     mgr.GetAPIReader(),
 		Scheme:     mgr.GetScheme(),
 		RestConfig: mgr.GetConfig(),
 	}).SetupWithManager(mgr, tracker); err != nil {
@@ -202,6 +269,7 @@ func main() {
 	}
 	if err = (&nodecontroller.FalconNodeSensorReconciler{
 		Client: mgr.GetClient(),
+		Reader: mgr.GetAPIReader(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr, tracker); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconNodeSensor")
@@ -209,6 +277,7 @@ func main() {
 	}
 	if err = (&admissioncontroller.FalconAdmissionReconciler{
 		Client:    mgr.GetClient(),
+		Reader:    mgr.GetAPIReader(),
 		Scheme:    mgr.GetScheme(),
 		OpenShift: openShift,
 	}).SetupWithManager(mgr); err != nil {
@@ -217,6 +286,7 @@ func main() {
 	}
 	if err = (&imageanalyzercontroller.FalconImageAnalyzerReconciler{
 		Client: mgr.GetClient(),
+		Reader: mgr.GetAPIReader(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconImageAnalyzer")
@@ -266,8 +336,9 @@ func main() {
 	}
 }
 
-func isOpenShift(client discovery.DiscoveryInterface) (bool, error) {
-	return discovery.IsResourceEnabled(client, routev1.GroupVersion.WithResource("routes"))
+func isOpenShift(client discovery.DiscoveryInterface) bool {
+	_, err := client.ServerResourcesForGroupVersion("image.openshift.io/v1")
+	return err == nil
 }
 
 func isCertManagerInstalled(client discovery.DiscoveryInterface) (bool, error) {

@@ -1,5 +1,11 @@
 resources:
 - manager.yaml
+- metrics_service.yaml
+
+# [METRICS] The following patch will enable the metrics endpoint using HTTPS and the port :8443.
+   # More info: https://book.kubebuilder.io/reference/metrics
+patches:
+- path: patches/manager_metrics_port_patch.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
@@ -9,4 +15,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: quay.io/crowdstrike/falcon-operator
-  newTag: 1.4.0
+  newTag: 1.5.0

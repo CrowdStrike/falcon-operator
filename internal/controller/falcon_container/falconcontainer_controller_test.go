@@ -90,6 +90,7 @@ var _ = Describe("FalconContainer controller", func() {
 
 			falconContainerReconciler := &FalconContainerReconciler{
 				Client:  k8sClient,
+				Reader:  k8sReader,
 				Scheme:  k8sClient.Scheme(),
 				tracker: tracker,
 			}
