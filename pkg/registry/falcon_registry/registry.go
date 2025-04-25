@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 
+	"github.com/crowdstrike/falcon-operator/internal/errors"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
 	"github.com/crowdstrike/gofalcon/falcon"
@@ -24,6 +25,10 @@ type FalconRegistry struct {
 }
 
 func NewFalconRegistry(ctx context.Context, apiCfg *falcon.ApiConfig) (*FalconRegistry, error) {
+	if apiCfg == nil {
+		return nil, internalErrors.ErrNilFalconAPIConfiguration
+	}
+
 	apiCfg.Context = ctx
 	client, err := falcon.NewClient(apiCfg)
 	if err != nil {

@@ -45,6 +45,16 @@ type FalconAdmissionSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
+	// FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+	// The following Falcon values are supported by k8s secret injection:
+	//   falcon-cid
+	//   falcon-provisioning-token
+	//   falcon-client-id
+	//   falcon-client-secret
+	// +kubebuilder:default={"enabled": false}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration",order=7
+	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
+
 	// ResourceQuota configures the ResourceQuota for the Falcon Admission Controller. This is useful for limiting the number of pods that can be created in the namespace.
 	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Resource Quota",order=4
@@ -61,11 +71,11 @@ type FalconAdmissionSpec struct {
 
 	// Location of the Falcon Sensor image. Use only in cases when you mirror the original image to your repository/name:tag, and CrowdStrike OAuth2 API is not used.
 	// +kubebuilder:validation:Pattern="^.*:.*$"
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Image URI",order=7
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Image URI",order=8
 	Image string `json:"image,omitempty"`
 
 	// Falcon Admission Controller Version. The latest version will be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Version",order=8
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Version",order=9
 	Version *string `json:"version,omitempty"`
 }
 
@@ -190,7 +200,7 @@ type FalconAdmissionServiceAccount struct {
 
 type FalconAdmissionUpdateStrategy struct {
 	// RollingUpdate is used to specify the strategy used to roll out a deployment
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admisison Controller deployment update configuration",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller deployment update configuration",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
 	RollingUpdate appsv1.RollingUpdateDeployment `json:"rollingUpdate,omitempty"`
 }
 
