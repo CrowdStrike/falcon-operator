@@ -18,11 +18,11 @@ type FalconAPI struct {
 
 	// Falcon OAuth2 API Client ID
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Client ID",order=1,xDescriptors="urn:alm:descriptor:com.tectonic.ui:password"
-	ClientId string `json:"client_id"`
+	ClientId string `json:"client_id,omitempty"`
 
 	// Falcon OAuth2 API Client Secret
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Client Secret",order=2,xDescriptors="urn:alm:descriptor:com.tectonic.ui:password"
-	ClientSecret string `json:"client_secret"`
+	ClientSecret string `json:"client_secret,omitempty"`
 
 	// Falcon Customer ID (CID) Override (optional, default is derived from the API Key pair)
 	// +kubebuilder:validation:Pattern="^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$"

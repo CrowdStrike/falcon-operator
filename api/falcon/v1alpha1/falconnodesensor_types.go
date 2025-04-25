@@ -38,6 +38,15 @@ type FalconNodeSensorSpec struct {
 	// If using the API is not desired, the sensor can be manually configured.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=1
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
+
+	// FalconSecret config if used to inject k8s secrets with sensitive data for the Falcon sensor and the Falcon API.
+	// The following Falcon values are supported by k8s secret injection:
+	//   FalconCID
+	//   FalconProvisioningToken
+	//   FalconClientId
+	//   FalconClientSecret
+	// +kubebuilder:default={}
+	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
 }
 
 // FalconNodeSensorConfig defines aspects about how the daemonset works.
