@@ -45,6 +45,15 @@ type FalconAdmissionSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
+	// FalconSecret config if used to inject k8s secrets with sensitive data for the Falcon sensor and the Falcon API.
+	// The following Falcon values are supported by k8s secret injection:
+	//   FalconCID
+	//   FalconProvisioningToken
+	//   FalconClientId
+	//   FalconClientSecret
+	// +kubebuilder:default={}
+	FalconSecret FalconSecret `json:"falconSecret"`
+
 	// ResourceQuota configures the ResourceQuota for the Falcon Admission Controller. This is useful for limiting the number of pods that can be created in the namespace.
 	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Resource Quota",order=4
