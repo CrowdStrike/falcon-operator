@@ -35,6 +35,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const (
+	validatingWebhookName = "validating.admission.falcon.crowdstrike.com"
+)
+
 // FalconAdmissionReconciler reconciles a FalconAdmission object
 type FalconAdmissionReconciler struct {
 	client.Client
@@ -226,12 +230,26 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	if falconAdmission.Spec.FalconSecret.Enabled {
+		if err := r.reconcileFalconSecretRole(ctx, req, log, falconAdmission); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if err := r.reconcileFalconSecretRoleBinding(ctx, req, log, falconAdmission); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	if err := r.reconcileResourceQuota(ctx, req, log, falconAdmission); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	admissionTLSSecret, err := r.reconcileTLSSecret(ctx, req, log, falconAdmission)
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err = r.reconcileFalconSecret(ctx, falconAdmission); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -404,7 +422,6 @@ func (r *FalconAdmissionReconciler) reconcileService(ctx context.Context, req ct
 func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission, cabundle []byte) (bool, error) {
 	existingWebhook := &arv1.ValidatingWebhookConfiguration{}
 	disabledNamespaces := append(common.DefaultDisabledNamespaces, falconAdmission.Spec.AdmissionConfig.DisabledNamespaces.Namespaces...)
-	const webhookName = "validating.admission.falcon.crowdstrike.com"
 	failPolicy := arv1.Ignore
 	port := int32(443)
 
@@ -431,10 +448,10 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx cont
 		port = *falconAdmission.Spec.AdmissionConfig.Port
 	}
 
-	webhook := assets.ValidatingWebhook(falconAdmission.Name, falconAdmission.Spec.InstallNamespace, webhookName, cabundle, port, failPolicy, disabledNamespaces)
+	webhook := assets.ValidatingWebhook(falconAdmission.Name, falconAdmission.Spec.InstallNamespace, validatingWebhookName, cabundle, port, failPolicy, disabledNamespaces)
 	updated := false
 
-	err = common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: webhookName}, existingWebhook)
+	err = common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: validatingWebhookName}, existingWebhook)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, webhook)
 		if err != nil {
@@ -704,6 +721,32 @@ func (r *FalconAdmissionReconciler) admissionDeploymentUpdate(ctx context.Contex
 	log.Info("Rolling FalconAdmission Deployment due to non-deployment configuration change")
 	if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingDeployment); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (r *FalconAdmissionReconciler) reconcileFalconSecret(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission) error {
+	if falconAdmission.Spec.FalconSecret.Enabled {
+		falconSecret := &corev1.Secret{}
+		falconSecretNamespacedName := types.NamespacedName{
+			Name:      falconAdmission.Spec.FalconSecret.SecretName,
+			Namespace: falconAdmission.Spec.FalconSecret.Namespace,
+		}
+
+		err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
+		if apierrors.IsNotFound(err) {
+			return err
+		}
+
+		clientId, clientSecret, cid := common.GetFalconCredsFromSecret(falconSecret)
+		falconAdmission.Spec.FalconAPI.ClientId = clientId
+		falconAdmission.Spec.FalconAPI.ClientSecret = clientSecret
+		falconAdmission.Spec.FalconAPI.CID = &cid
+		falconAdmission.Spec.Falcon.CID = &cid
+
+		provisioningToken := common.GetFalconProvisioningTokenFromSecret(falconSecret)
+		falconAdmission.Spec.Falcon.PToken = provisioningToken
 	}
 
 	return nil
