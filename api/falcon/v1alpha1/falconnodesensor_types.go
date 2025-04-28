@@ -45,7 +45,8 @@ type FalconNodeSensorSpec struct {
 	//   FalconProvisioningToken
 	//   FalconClientId
 	//   FalconClientSecret
-	// +kubebuilder:default={}
+	// +kubebuilder:default={"enabled": false}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration"
 	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
 }
 
