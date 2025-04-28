@@ -110,6 +110,35 @@ func TestRole(t *testing.T) {
 	}
 }
 
+// TestFalconSecretReaderRole tests the FalconSecretReaderRole function
+func TestFalconSecretReaderRole(t *testing.T) {
+	name := "test"
+	namespace := "test"
+	want := &rbacv1.Role{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: rbacv1.SchemeGroupVersion.String(),
+			Kind:       "Role",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    common.CRLabels("role", name, common.FalconAdmissionController),
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{""},
+				Resources: []string{"secret"},
+				Verbs:     []string{"get"},
+			},
+		},
+	}
+
+	got := FalconSecretReaderRole(name, namespace, common.FalconAdmissionController)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("FalconSecretReaderRole() mismatch (-want +got): %s", diff)
+	}
+}
+
 // TestRoleBinding tests the RoleBinding function
 func TestRoleBinding(t *testing.T) {
 	name := "test"

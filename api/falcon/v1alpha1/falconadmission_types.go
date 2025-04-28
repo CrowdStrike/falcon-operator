@@ -51,8 +51,9 @@ type FalconAdmissionSpec struct {
 	//   FalconProvisioningToken
 	//   FalconClientId
 	//   FalconClientSecret
-	// +kubebuilder:default={}
-	FalconSecret FalconSecret `json:"falconSecret"`
+	// +kubebuilder:default={"enabled": false}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration",order=9
+	FalconSecret *FalconSecret `json:"falconSecret,omitempty"`
 
 	// ResourceQuota configures the ResourceQuota for the Falcon Admission Controller. This is useful for limiting the number of pods that can be created in the namespace.
 	// +kubebuilder:default:={}

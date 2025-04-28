@@ -226,12 +226,26 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	if falconAdmission.Spec.FalconSecret.Enabled {
+		if err := r.reconcileFalconSecretRole(ctx, req, log, falconAdmission); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if err := r.reconcileFalconSecretRoleBinding(ctx, req, log, falconAdmission); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	if err := r.reconcileResourceQuota(ctx, req, log, falconAdmission); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	admissionTLSSecret, err := r.reconcileTLSSecret(ctx, req, log, falconAdmission)
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err = r.reconcileFalconSecret(ctx, falconAdmission); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -720,6 +734,32 @@ func (r *FalconAdmissionReconciler) admissionDeploymentUpdate(ctx context.Contex
 	log.Info("Rolling FalconAdmission Deployment due to non-deployment configuration change")
 	if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingDeployment); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (r *FalconAdmissionReconciler) reconcileFalconSecret(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission) error {
+	if falconAdmission.Spec.FalconSecret.Enabled {
+		falconSecret := &corev1.Secret{}
+		falconSecretNamespacedName := types.NamespacedName{
+			Name:      falconAdmission.Spec.FalconSecret.SecretName,
+			Namespace: falconAdmission.Spec.FalconSecret.Namespace,
+		}
+
+		err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
+		if apierrors.IsNotFound(err) {
+			return err
+		}
+
+		clientId, clientSecret, cid := common.GetFalconCredsFromSecret(falconSecret)
+		falconAdmission.Spec.FalconAPI.ClientId = clientId
+		falconAdmission.Spec.FalconAPI.ClientSecret = clientSecret
+		falconAdmission.Spec.FalconAPI.CID = &cid
+		falconAdmission.Spec.Falcon.CID = &cid
+
+		provisioningToken := common.GetFalconProvisioningTokenFromSecret(falconSecret)
+		falconAdmission.Spec.Falcon.PToken = provisioningToken
 	}
 
 	return nil
