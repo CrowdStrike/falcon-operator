@@ -81,7 +81,7 @@ var _ = Describe("FalconAdmission controller", func() {
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: validatingWebhookName}, validatingWebhookConfig)).To(Succeed())
 			Expect(k8sClient.Delete(ctx, validatingWebhookConfig)).To(Succeed())
 
-			// Delete custom resource for Falcon KAC
+			// Delete FalconAdmission custom resource
 			falconAdmissionCR := &falconv1alpha1.FalconAdmission{}
 			Expect(k8sClient.Get(ctx, admissionNamespacedName, falconAdmissionCR)).To(Succeed())
 			Expect(k8sClient.Delete(ctx, falconAdmissionCR)).To(Succeed())
@@ -209,7 +209,6 @@ var _ = Describe("FalconAdmission controller", func() {
 		})
 
 		It("should correctly handle and inject existing secrets into configmap", func() {
-			//Skip("skipping secrets tests")
 			By("Creating test secrets")
 			clientId := "test-client-id"
 			clientSecret := "test-client-secret"
@@ -253,7 +252,7 @@ var _ = Describe("FalconAdmission controller", func() {
 					FalconAPI: &falconv1alpha1.FalconAPI{
 						CloudRegion: "autodiscover",
 					},
-					FalconSecret: &falconv1alpha1.FalconSecret{
+					FalconSecret: falconv1alpha1.FalconSecret{
 						Enabled:    true,
 						Namespace:  testSecretNamespace,
 						SecretName: secretName,
