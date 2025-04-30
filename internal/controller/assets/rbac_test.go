@@ -122,7 +122,7 @@ func TestFalconSecretReaderRole(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-			Labels:    common.CRLabels("role", name, common.FalconAdmissionController),
+			Labels:    common.CRLabels(falconSecretReaderRoleInstanceName, name, common.FalconAdmissionController),
 		},
 		Rules: []rbacv1.PolicyRule{
 			{

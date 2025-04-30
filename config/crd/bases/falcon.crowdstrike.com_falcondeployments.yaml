@@ -1023,8 +1023,6 @@ spec:
                         - us-gov-1
                         type: string
                     required:
-                    - client_id
-                    - client_secret
                     - cloud_region
                     type: object
                   image:
@@ -3270,8 +3268,6 @@ spec:
                         - us-gov-1
                         type: string
                     required:
-                    - client_id
-                    - client_secret
                     - cloud_region
                     type: object
                   image:

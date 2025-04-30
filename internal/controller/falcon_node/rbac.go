@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// #nosec G101
 const (
 	nodeSensorSecretReaderRoleName        = "falcon-node-sensor-secret-reader-role"
 	nodeSensorSecretReaderRoleBindingName = "falcon-node-sensor-secret-reader-role-binding"
