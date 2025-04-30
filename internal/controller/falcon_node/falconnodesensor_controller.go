@@ -183,16 +183,31 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	}
 
-	config, err := node.NewConfigCache(ctx, logger, nodesensor)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	if shouldTrackSensorVersions(nodesensor) {
 		getSensorVersion := sensorversion.NewFalconCloudQuery(falcon.NodeSensor, nodesensor.Spec.FalconAPI.ApiConfig())
 		r.tracker.Track(req.NamespacedName, getSensorVersion, r.reconcileObjectWithName, nodesensor.Spec.Node.Advanced.IsAutoUpdatingForced())
 	} else {
 		r.tracker.StopTracking(req.NamespacedName)
+	}
+
+	// Inject Falcon secrets before handling config map updates
+	if nodesensor.Spec.FalconSecret.Enabled {
+		if err = r.reconcileFalconSecretRole(ctx, logger, nodesensor); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if err = r.reconcileFalconSecretRoleBinding(ctx, logger, nodesensor); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if err = r.injectFalconSecretData(ctx, nodesensor); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	config, err := node.NewConfigCache(ctx, logger, nodesensor)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	sensorConf, updated, err := r.handleConfigMaps(ctx, config, nodesensor, logger)
@@ -209,6 +224,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		logger.Error(err, "error handling configmap")
 		return ctrl.Result{}, nil
 	}
+
 	if sensorConf == nil {
 		err = r.conditionsUpdate(falconv1alpha1.ConditionConfigMapReady,
 			metav1.ConditionTrue,
@@ -223,6 +239,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		logger.Info("Configmap was just created. Re-queuing")
 		return ctrl.Result{Requeue: true}, nil
 	}
+
 	if updated {
 		err = r.conditionsUpdate(falconv1alpha1.ConditionConfigMapReady,
 			metav1.ConditionTrue,
@@ -1068,4 +1085,27 @@ func (r *FalconNodeSensorReconciler) reconcileObjectWithName(ctx context.Context
 
 func shouldTrackSensorVersions(obj *falconv1alpha1.FalconNodeSensor) bool {
 	return obj.Spec.FalconAPI != nil && obj.Spec.Node.Advanced.IsAutoUpdating()
+}
+
+func (r *FalconNodeSensorReconciler) injectFalconSecretData(ctx context.Context, nodeSensor *falconv1alpha1.FalconNodeSensor) error {
+	falconSecret := &corev1.Secret{}
+	falconSecretNamespacedName := types.NamespacedName{
+		Name:      nodeSensor.Spec.FalconSecret.SecretName,
+		Namespace: nodeSensor.Spec.FalconSecret.Namespace,
+	}
+
+	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
+	if errors.IsNotFound(err) {
+		return err
+	}
+
+	clientId, clientSecret, cid := common.GetFalconCredsFromSecret(falconSecret)
+	nodeSensor.Spec.FalconAPI.ClientId = clientId
+	nodeSensor.Spec.FalconAPI.ClientSecret = clientSecret
+	nodeSensor.Spec.FalconAPI.CID = &cid
+
+	provisioningToken := common.GetFalconProvisioningTokenFromSecret(falconSecret)
+	nodeSensor.Spec.Falcon.PToken = provisioningToken
+
+	return nil
 }

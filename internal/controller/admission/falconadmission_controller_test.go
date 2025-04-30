@@ -229,7 +229,6 @@ var _ = Describe("FalconAdmission controller", func() {
 		})
 
 		It("should correctly handle and inject existing secrets into configmap", func() {
-			//Skip("skipping secrets tests")
 			By("Creating test secrets")
 			clientId := "test-client-id"
 			clientSecret := "test-client-secret"
@@ -268,7 +267,7 @@ var _ = Describe("FalconAdmission controller", func() {
 				CloudRegion: "autodiscover",
 			}
 
-			falconAdmission.Spec.FalconSecret = &falconv1alpha1.FalconSecret{
+			falconAdmission.Spec.FalconSecret = falconv1alpha1.FalconSecret{
 				Enabled:    true,
 				Namespace:  testSecretNamespace,
 				SecretName: secretName,
