@@ -75,6 +75,7 @@ spec:
 | injector.additionalEnvironmentVariables   | (optional) Provide additional environment variables for Falcon Container                                                                                                                                                |
 | injector.disableDefaultNamespaceInjection | (optional) If set to true, disables default Falcon Container injection at the namespace scope; namespaces requiring injection will need to be labeled as specified below                                                |
 | injector.disableDefaultPodInjection       | (optional) If set to true, disables default Falcon Container injection at the pod scope; pods requiring injection will need to be annotated as specified below                                                          |
+| injector.alternateMountPath               | (optional) Enable volume mounts at /falcon instead of /tmp for NVCF environment                                                                                                                                         |
 
 #### Falcon Sensor Settings
 | Spec                                      | Description                                                                                                                                                                                                             |
