@@ -34,10 +34,14 @@ spec:
 ### FalconAdmission Reference Manual
 
 #### Falcon Operator Support for Falcon Admission Controller
-| Falcon Operator Version      | Falcon Admission Controller Version       |
-|:-----------------------------|:------------------------------------------|
-| `<= 1.2.x`                   | `< 7.20.x`                                |
-| `>= 1.3.x`                   | `>= 7.20.x`                               |
+| Falcon Operator Version | Falcon Admission Controller Version |
+|:------------------------|:------------------------------------|
+| `<= 1.2.x`              | `< 7.20.x`                          |
+| `>= 1.3.x`              | `>= 7.20.x`                         |
+
+> [!IMPORTANT]
+> Falcon KAC will have multi-arch images starting with version `7.26.x`. Operator versions >= 1.3.x are still compatible with KAC multi-arch images, but Falcon KAC will only be deployed to ARM64 clusters if it is configured with the new node affinity option added in Operator version `1.6.x`.
+> Multi architecture images will not automatically deploy to ARM64 clusters.
 
 #### Falcon API Settings
 | Spec                       | Description                                                                                              |
@@ -53,6 +57,7 @@ spec:
 | installNamespace                          | (optional) Override the default namespace of falcon-kac                                                                                                                                                                 |
 | image                                     | (optional) Leverage a Falcon Admission Controller Sensor image that is not managed by the operator; typically used with custom repositories; overrides all registry settings; might require admissionConfig.imagePullSecrets to be set |
 | version                                   | (optional) Enforce particular Falcon Admission Controller version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                                                                                            |
+| nodeAffinity                              | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity.                                                                                       |
 | registry.type                             | Registry to mirror Falcon Admission Controller (allowed values: acr, ecr, crowdstrike, gcr, openshift)                                                                                                                  |
 | registry.tls.insecure_skip_verify         | (optional) Skip TLS check when pushing Falcon Admission to target registry (only for demoing purposes on self-signed openshift clusters)                                                                                |
 | registry.tls.caCertificate                | (optional) A string containing an optionally base64-encoded Certificate Authority Chain for self-signed TLS Registry Certificates                                                                                       |
