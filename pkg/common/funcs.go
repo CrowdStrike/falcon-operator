@@ -41,7 +41,7 @@ func InitCleanupArgs() []string {
 func CleanupSleep() []string {
 	return []string{
 		"-c",
-		"sleep 10",
+		"sleep infinity",
 	}
 }
 

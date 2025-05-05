@@ -39,7 +39,7 @@ func TestInitCleanupArgs(t *testing.T) {
 }
 
 func TestCleanupSleep(t *testing.T) {
-	want := []string{"-c", "sleep 10"}
+	want := []string{"-c", "sleep infinity"}
 	if got := CleanupSleep(); !reflect.DeepEqual(got, want) {
 		t.Errorf("CleanupSleep() = %v, want %v", got, want)
 	}
