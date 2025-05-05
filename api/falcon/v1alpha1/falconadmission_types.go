@@ -66,10 +66,6 @@ type FalconAdmissionSpec struct {
 	// Falcon Admission Controller Version. The latest version will be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Version",order=8
 	Version *string `json:"version,omitempty"`
-
-	// Specifies node affinity for scheduling the Admission Controller.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=9
-	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
 }
 
 type FalconAdmissionRQSpec struct {
@@ -170,6 +166,10 @@ type FalconAdmissionConfigSpec struct {
 	// +kubebuilder:default:={"rollingUpdate":{"maxUnavailable":0,"maxSurge":1}}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=11
 	DepUpdateStrategy FalconAdmissionUpdateStrategy `json:"updateStrategy,omitempty"`
+
+	// Specifies node affinity for scheduling the Admission Controller.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=18
+	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
 }
 
 type FalconAdmissionServiceAccount struct {

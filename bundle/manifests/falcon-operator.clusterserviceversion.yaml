@@ -391,6 +391,9 @@ spec:
       - description: Determines if Kubernetes resources are watched for cluster visibility.
         displayName: Enable Resource Watcher
         path: admissionConfig.watcherEnabled
+      - description: Specifies node affinity for scheduling the Admission Controller.
+        displayName: Node Affinity
+        path: admissionConfig.nodeAffinity
       version: v1alpha1
     - description: FalconContainer is the Schema for the falconcontainers API
       displayName: Falcon Container
@@ -1277,6 +1280,9 @@ spec:
       - description: Determines if Kubernetes resources are watched for cluster visibility.
         displayName: Enable Resource Watcher
         path: falconAdmission.admissionConfig.watcherEnabled
+      - description: Specifies node affinity for scheduling the Admission Controller.
+        displayName: Node Affinity
+        path: falconAdmission.admissionConfig.nodeAffinity
       - description: |-
           Advanced configures various options that go against industry practices or are otherwise not recommended for use.
           Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
