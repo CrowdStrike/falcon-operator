@@ -77,6 +77,11 @@ func (r *FalconAdmissionReconciler) newConfigMap(ctx context.Context, name strin
 		cid = *falconAdmission.Spec.Falcon.CID
 	}
 
+	clusterName := ""
+	if falconAdmission.Spec.AdmissionConfig.ClusterName != nil {
+		clusterName = *falconAdmission.Spec.AdmissionConfig.ClusterName
+	}
+
 	if cid == "" && falconAdmission.Spec.FalconAPI != nil {
 		cid, err = falcon_api.FalconCID(ctx, falconAdmission.Spec.FalconAPI.CID, falconAdmission.Spec.FalconAPI.ApiConfig())
 		if err != nil {
@@ -84,6 +89,7 @@ func (r *FalconAdmissionReconciler) newConfigMap(ctx context.Context, name strin
 		}
 	}
 	data["FALCONCTL_OPT_CID"] = cid
+	data["ClusterName"] = clusterName
 
 	return assets.SensorConfigMap(name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, data), nil
 }
