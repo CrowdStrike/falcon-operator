@@ -107,6 +107,9 @@ spec:
                     description: Additional configuration for Falcon Admission Controller
                       deployment.
                     properties:
+                      clusterName:
+                        description: Name of the Kubernetes Cluster.
+                        type: string
                       containerPort:
                         default: 4443
                         description: Port on which the Falcon Admission Controller

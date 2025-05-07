@@ -166,6 +166,10 @@ type FalconAdmissionConfigSpec struct {
 	// +kubebuilder:default:={"rollingUpdate":{"maxUnavailable":0,"maxSurge":1}}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=11
 	DepUpdateStrategy FalconAdmissionUpdateStrategy `json:"updateStrategy,omitempty"`
+
+	// Name of the Kubernetes Cluster.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Cluster Name",order=18
+	ClusterName *string `json:"clusterName,omitempty"`
 }
 
 type FalconAdmissionServiceAccount struct {
