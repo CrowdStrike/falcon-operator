@@ -166,6 +166,10 @@ type FalconAdmissionConfigSpec struct {
 	// +kubebuilder:default:={"rollingUpdate":{"maxUnavailable":0,"maxSurge":1}}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=11
 	DepUpdateStrategy FalconAdmissionUpdateStrategy `json:"updateStrategy,omitempty"`
+
+	// Specifies node affinity for scheduling the Admission Controller.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=18
+	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
 }
 
 type FalconAdmissionServiceAccount struct {

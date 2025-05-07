@@ -15,7 +15,7 @@ func (reg *FalconRegistry) LastContainerTag(ctx context.Context, sensorType falc
 
 	return lastTag(ctx, systemContext, reg.imageUriContainer(sensorType), func(tag string) bool {
 		tagContains := ".container"
-		if sensorType == falcon.ImageSensor {
+		if sensorType == falcon.ImageSensor || sensorType == falcon.KacSensor {
 			tagContains = ""
 		}
 
