@@ -1,6 +1,7 @@
 package assets
 
 import (
+	"maps"
 	"reflect"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -63,6 +64,35 @@ func dsUpdateStrategy(node *falconv1alpha1.FalconNodeSensor) appsv1.DaemonSetUpd
 	}
 
 	return appsv1.DaemonSetUpdateStrategy{Type: appsv1.OnDeleteDaemonSetStrategyType}
+}
+
+func dsAutoPilotDeployAllowlistLabel(node *falconv1alpha1.FalconNodeSensor) map[string]string {
+	if *node.Spec.Node.GKE.Enabled && node.Spec.Node.GKE.DeployAllowList != nil {
+		return map[string]string{
+			common.GKEAutoPilotAllowListLabelKey: *node.Spec.Node.GKE.DeployAllowList,
+		}
+	}
+	return nil
+}
+
+func dsAutoPilotCleanupAllowlistLabel(node *falconv1alpha1.FalconNodeSensor) map[string]string {
+	if *node.Spec.Node.GKE.Enabled && node.Spec.Node.GKE.CleanupAllowList != nil {
+		return map[string]string{
+			common.GKEAutoPilotAllowListLabelKey: *node.Spec.Node.GKE.CleanupAllowList,
+		}
+	}
+	return nil
+}
+
+func dsManageAutoPilotLabels(dsType string, dsName string, f func(*falconv1alpha1.FalconNodeSensor) map[string]string, node *falconv1alpha1.FalconNodeSensor) map[string]string {
+	dsLabels := common.CRLabels(dsType, dsName, common.FalconKernelSensor)
+	autoPilotLabel := f(node)
+
+	if autoPilotLabel != nil {
+		maps.Copy(dsLabels, f(node))
+	}
+
+	return dsLabels
 }
 
 func sensorCapabilities(node *falconv1alpha1.FalconNodeSensor, initContainer bool) *corev1.Capabilities {
@@ -185,7 +215,16 @@ func volumes() []corev1.Volume {
 
 }
 
+func DaemonsetConfigMapName(node *falconv1alpha1.FalconNodeSensor) string {
+	if *node.Spec.Node.GKE.Enabled {
+		return common.GKEAutoPilotConfigMapName
+	}
+
+	return node.Name + "-config"
+}
+
 func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
+	dsType := "daemonset"
 	privileged := true
 	escalation := true
 	readOnlyFSDisabled := false
@@ -204,16 +243,16 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
 			Namespace: node.Spec.InstallNamespace,
-			Labels:    common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
+			Labels:    common.CRLabels(dsType, dsName, common.FalconKernelSensor),
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
+				MatchLabels: common.CRLabels(dsType, dsName, common.FalconKernelSensor),
 			},
 			UpdateStrategy: dsUpdateStrategy(node),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
+					Labels: dsManageAutoPilotLabels(dsType, dsName, dsAutoPilotDeployAllowlistLabel, node),
 					Annotations: map[string]string{
 						common.FalconContainerInjection: "disabled",
 					},
@@ -235,7 +274,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 							Name:      "init-falconstore",
 							Image:     image,
 							Command:   common.FalconShellCommand,
-							Args:      common.InitContainerArgs(*node.Spec.Node.GKE.Enabled),
+							Args:      common.InitContainerArgs(),
 							Resources: initContainerResources(node),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
@@ -263,7 +302,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: dsName + "-config",
+											Name: DaemonsetConfigMapName(node),
 										},
 									},
 								},
@@ -286,6 +325,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 }
 
 func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {
+	dsType := "cleanup"
 	privileged := true
 	nonPrivileged := false
 	escalation := true
@@ -298,15 +338,15 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
 			Namespace: node.Spec.InstallNamespace,
-			Labels:    common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
+			Labels:    common.CRLabels(dsType, dsName, common.FalconKernelSensor),
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
+				MatchLabels: common.CRLabels(dsType, dsName, common.FalconKernelSensor),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
+					Labels: dsManageAutoPilotLabels(dsType, dsName, dsAutoPilotCleanupAllowlistLabel, node),
 					Annotations: map[string]string{
 						common.FalconContainerInjection: "disabled",
 					},

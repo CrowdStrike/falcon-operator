@@ -6465,6 +6465,14 @@ spec:
                             default: false
                             description: Enables the use of GKE Autopilot.
                             type: boolean
+                          cleanupAllowList:
+                            description: Adds GKE AutoPilot label to the cleanup daemonset
+                              for troubleshooting purposes
+                            type: string
+                          deployAllowList:
+                            description: Adds GKE AutoPilot label to the sensor daemonset
+                              for troubleshooting purposes
+                            type: string
                         type: object
                       image:
                         description: Location of the Falcon Sensor image. Use only
@@ -7619,6 +7627,14 @@ spec:
                         default: false
                         description: Enables the use of GKE Autopilot.
                         type: boolean
+                      cleanupAllowList:
+                        description: Adds GKE AutoPilot label to the cleanup daemonset
+                          for troubleshooting purposes
+                        type: string
+                      deployAllowList:
+                        description: Adds GKE AutoPilot label to the sensor daemonset
+                          for troubleshooting purposes
+                        type: string
                     type: object
                   image:
                     description: Location of the Falcon Sensor image. Use only in
