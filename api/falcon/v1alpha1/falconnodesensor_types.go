@@ -160,6 +160,14 @@ type AutoPilot struct {
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Enabled *bool `json:"autopilot,omitempty"`
+
+	// Adds GKE AutoPilot label to the sensor daemonset for troubleshooting purposes
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	DeployAllowList *string `json:"deployAllowList,omitempty"`
+
+	// Adds GKE AutoPilot label to the cleanup daemonset for troubleshooting purposes
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	CleanupAllowList *string `json:"cleanupAllowList,omitempty"`
 }
 
 type FalconNodeUpdateStrategy struct {

@@ -272,6 +272,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 		err = r.Create(ctx, ds)
 		if err != nil {
+			logger.Error(err, "Failed to create new DaemonSet")
 			err = r.conditionsUpdate(falconv1alpha1.ConditionFailed,
 				metav1.ConditionFalse,
 				falconv1alpha1.ReasonInstallFailed,
@@ -532,7 +533,8 @@ func (r *FalconNodeSensorReconciler) handlePriorityClass(ctx context.Context, no
 // handleConfigMaps creates and updates the node sensor configmap
 func (r *FalconNodeSensorReconciler) handleConfigMaps(ctx context.Context, config *node.ConfigCache, nodesensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) (*corev1.ConfigMap, bool, error) {
 	var updated bool
-	cmName := nodesensor.Name + "-config"
+	cmName := assets.DaemonsetConfigMapName(nodesensor)
+
 	confCm := &corev1.ConfigMap{}
 	configmap := assets.SensorConfigMap(cmName, nodesensor.Spec.InstallNamespace, common.FalconKernelSensor, config.SensorEnvVars())
 
