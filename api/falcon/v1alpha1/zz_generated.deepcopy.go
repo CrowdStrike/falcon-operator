@@ -794,6 +794,11 @@ func (in *FalconContainerSpec) DeepCopyInto(out *FalconContainerSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.NodeAffinity != nil {
+		in, out := &in.NodeAffinity, &out.NodeAffinity
+		*out = new(corev1.NodeAffinity)
+		(*in).DeepCopyInto(*out)
+	}
 	in.Advanced.DeepCopyInto(&out.Advanced)
 }
 

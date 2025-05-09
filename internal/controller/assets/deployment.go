@@ -165,28 +165,7 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 					},
 				},
 				Spec: corev1.PodSpec{
-					Affinity: &corev1.Affinity{
-						NodeAffinity: &corev1.NodeAffinity{
-							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-								NodeSelectorTerms: []corev1.NodeSelectorTerm{
-									{
-										MatchExpressions: []corev1.NodeSelectorRequirement{
-											{
-												Key:      "kubernetes.io/os",
-												Operator: corev1.NodeSelectorOpIn,
-												Values:   []string{"linux"},
-											},
-											{
-												Key:      "kubernetes.io/arch",
-												Operator: corev1.NodeSelectorOpIn,
-												Values:   []string{"amd64"},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
+					Affinity: sidecarNodeAffinity(falconContainer),
 					TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
 						{
 							MaxSkew:           1,
@@ -876,6 +855,15 @@ func admissionDepWatcherEnvVars(admission *falconv1alpha1.FalconAdmission) []cor
 	}
 
 	return envVars
+}
+
+func sidecarNodeAffinity(falconContainer *falconv1alpha1.FalconContainer) (nodeAffinity *corev1.Affinity) {
+	nodeAffinity = getDefaultAffinity()
+	if falconContainer.Spec.NodeAffinity != nil && !reflect.DeepEqual(falconContainer.Spec.NodeAffinity, corev1.NodeAffinity{}) {
+		nodeAffinity = &corev1.Affinity{NodeAffinity: falconContainer.Spec.NodeAffinity}
+	}
+
+	return nodeAffinity
 }
 
 func admissionNodeAffinity(falconAdmission *falconv1alpha1.FalconAdmission) (nodeAffinity *corev1.Affinity) {
