@@ -383,6 +383,10 @@ spec:
         path: falcon.trace
       - displayName: Falcon Container Injector Resources
         path: injector.resources
+      - description: Specifies node affinity for scheduling the Container Sensor.
+          Defaults to allowing scheduling is on amd64 linux nodes.
+        displayName: Node Affinity
+        path: nodeAffinity
       - description: Utilize default or Pay-As-You-Go billing.
         displayName: Billing
         path: falcon.billing
@@ -1008,6 +1012,10 @@ spec:
         path: falconContainerSensor.falcon.trace
       - displayName: Falcon Container Injector Resources
         path: falconContainerSensor.injector.resources
+      - description: Specifies node affinity for scheduling the Container Sensor.
+          Defaults to allowing scheduling is on amd64 linux nodes.
+        displayName: Node Affinity
+        path: falconContainerSensor.nodeAffinity
       - description: Location of the Image Analyzer image. Use only in cases when
           you mirror the original image to your repository/name:tag
         displayName: Falcon Image Analyzer Image URI
