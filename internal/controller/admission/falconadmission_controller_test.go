@@ -253,10 +253,10 @@ var _ = Describe("FalconAdmission controller", func() {
 				},
 				Type: corev1.SecretTypeOpaque,
 				StringData: map[string]string{
-					"FalconClientId":          clientId,
-					"FalconClientSecret":      clientSecret,
-					"FalconCID":               falconCID,
-					"FalconProvisioningToken": provisioningToken,
+					"falcon-client-id":          clientId,
+					"falcon-client-secret":      clientSecret,
+					"falcon-cid":                falconCID,
+					"falcon-provisioning-token": provisioningToken,
 				},
 			}
 			err = k8sClient.Create(ctx, testSecret)

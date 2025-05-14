@@ -13,6 +13,7 @@ import (
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_secret"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/crowdstrike/falcon-operator/pkg/tls"
 	"github.com/crowdstrike/falcon-operator/version"
@@ -236,14 +237,6 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if falconAdmission.Spec.FalconSecret.Enabled {
-		if err = r.reconcileFalconSecretRole(ctx, req, log, falconAdmission); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		if err = r.reconcileFalconSecretRoleBinding(ctx, req, log, falconAdmission); err != nil {
-			return ctrl.Result{}, err
-		}
-
 		if err = r.injectFalconSecretData(ctx, falconAdmission); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -624,7 +617,12 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 }
 
 func (r *FalconAdmissionReconciler) reconcileRegistrySecret(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
-	pulltoken, err := pulltoken.CrowdStrike(ctx, r.falconApiConfig(ctx, falconAdmission))
+	apiConfig, err := r.falconApiConfig(ctx, falconAdmission)
+	if err != nil {
+		return err
+	}
+
+	pulltoken, err := pulltoken.CrowdStrike(ctx, apiConfig)
 	if err != nil {
 		return fmt.Errorf("unable to get registry pull token: %v", err)
 	}
@@ -746,18 +744,14 @@ func (r *FalconAdmissionReconciler) injectFalconSecretData(ctx context.Context, 
 		Namespace: falconAdmission.Spec.FalconSecret.Namespace,
 	}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
-	if apierrors.IsNotFound(err) {
+	if err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret); err != nil {
 		return err
 	}
-
-	clientId, clientSecret, cid := common.GetFalconCredsFromSecret(falconSecret)
-	falconAdmission.Spec.FalconAPI.ClientId = clientId
-	falconAdmission.Spec.FalconAPI.ClientSecret = clientSecret
+	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
 	falconAdmission.Spec.FalconAPI.CID = &cid
 	falconAdmission.Spec.Falcon.CID = &cid
 
-	provisioningToken := common.GetFalconProvisioningTokenFromSecret(falconSecret)
+	provisioningToken := falcon_secret.GetFalconProvisioningTokenFromSecret(falconSecret)
 	falconAdmission.Spec.Falcon.PToken = provisioningToken
 
 	return nil
