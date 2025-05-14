@@ -9,6 +9,7 @@ import (
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_secret"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/node"
 	"github.com/crowdstrike/falcon-operator/version"
@@ -184,7 +185,12 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	if shouldTrackSensorVersions(nodesensor) {
-		getSensorVersion := sensorversion.NewFalconCloudQuery(falcon.NodeSensor, nodesensor.Spec.FalconAPI.ApiConfig())
+		apiConfig, apiConfigErr := nodesensor.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Client, nodesensor.Spec.FalconSecret)
+		if apiConfigErr != nil {
+			return ctrl.Result{}, apiConfigErr
+		}
+
+		getSensorVersion := sensorversion.NewFalconCloudQuery(falcon.NodeSensor, apiConfig)
 		r.tracker.Track(req.NamespacedName, getSensorVersion, r.reconcileObjectWithName, nodesensor.Spec.Node.Advanced.IsAutoUpdatingForced())
 	} else {
 		r.tracker.StopTracking(req.NamespacedName)
@@ -192,20 +198,12 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// Inject Falcon secrets before handling config map updates
 	if nodesensor.Spec.FalconSecret.Enabled {
-		if err = r.reconcileFalconSecretRole(ctx, logger, nodesensor); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		if err = r.reconcileFalconSecretRoleBinding(ctx, logger, nodesensor); err != nil {
-			return ctrl.Result{}, err
-		}
-
 		if err = r.injectFalconSecretData(ctx, nodesensor); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	config, err := node.NewConfigCache(ctx, logger, nodesensor)
+	config, err := node.NewConfigCache(ctx, r.Client, nodesensor)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -1095,16 +1093,15 @@ func (r *FalconNodeSensorReconciler) injectFalconSecretData(ctx context.Context,
 	}
 
 	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
-	if errors.IsNotFound(err) {
+	if err != nil {
 		return err
 	}
 
-	clientId, clientSecret, cid := common.GetFalconCredsFromSecret(falconSecret)
-	nodeSensor.Spec.FalconAPI.ClientId = clientId
-	nodeSensor.Spec.FalconAPI.ClientSecret = clientSecret
+	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
 	nodeSensor.Spec.FalconAPI.CID = &cid
+	nodeSensor.Spec.Falcon.CID = &cid
 
-	provisioningToken := common.GetFalconProvisioningTokenFromSecret(falconSecret)
+	provisioningToken := falcon_secret.GetFalconProvisioningTokenFromSecret(falconSecret)
 	nodeSensor.Spec.Falcon.PToken = provisioningToken
 
 	return nil
