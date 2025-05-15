@@ -67,6 +67,11 @@ spec:
                 description: Additional configuration for Falcon Admission Controller
                   deployment.
                 properties:
+                  admissionControlEnabled:
+                    default: true
+                    description: Determines if the admission controller webhook is
+                      enabled
+                    type: boolean
                   containerPort:
                     default: 4443
                     description: Port on which the Falcon Admission Controller container
@@ -3380,6 +3385,11 @@ spec:
                     description: Additional configuration for Falcon Admission Controller
                       deployment.
                     properties:
+                      admissionControlEnabled:
+                        default: true
+                        description: Determines if the admission controller webhook
+                          is enabled
+                        type: boolean
                       containerPort:
                         default: 4443
                         description: Port on which the Falcon Admission Controller
@@ -9054,7 +9064,7 @@ spec:
         - name: WATCH_NAMESPACE
         - name: OPERATOR_NAME
           value: falcon-operator
-        image: quay.io/crowdstrike/falcon-operator:1.4.0
+        image: controller:latest
         livenessProbe:
           httpGet:
             path: /healthz

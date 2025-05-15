@@ -377,14 +377,23 @@ func (r *FalconAdmissionReconciler) reconcileService(ctx context.Context, req ct
 	service := assets.Service(falconAdmission.Name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, selector, common.FalconAdmissionServiceHTTPSName, port)
 
 	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingService)
-	if err != nil && apierrors.IsNotFound(err) {
+
+	switch {
+	case err == nil && !falconAdmission.GetAdmissionControlEnabled():
+		err = k8sutils.Delete(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, service)
+		if err != nil {
+			return false, err
+		}
+		return false, nil
+	case apierrors.IsNotFound(err) && falconAdmission.GetAdmissionControlEnabled():
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, service)
 		if err != nil {
 			return false, err
 		}
-
 		return false, nil
-	} else if err != nil {
+	case apierrors.IsNotFound(err) && !falconAdmission.GetAdmissionControlEnabled():
+		return false, nil
+	case err != nil:
 		log.Error(err, "Failed to get FalconAdmission Service")
 		return false, err
 	}
@@ -435,14 +444,22 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx cont
 	updated := false
 
 	err = common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: webhookName}, existingWebhook)
-	if err != nil && apierrors.IsNotFound(err) {
+	switch {
+	case err == nil && !falconAdmission.GetAdmissionControlEnabled():
+		err = k8sutils.Delete(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, webhook)
+		if err != nil {
+			return false, err
+		}
+		return false, nil
+	case apierrors.IsNotFound(err) && falconAdmission.GetAdmissionControlEnabled():
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, webhook)
 		if err != nil {
 			return false, err
 		}
-
 		return false, nil
-	} else if err != nil {
+	case apierrors.IsNotFound(err) && !falconAdmission.GetAdmissionControlEnabled():
+		return false, nil
+	case err != nil:
 		log.Error(err, "Failed to get FalconAdmission Validating Webhook")
 		return false, err
 	}
@@ -480,6 +497,18 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 	if falconAdmission.Spec.AdmissionConfig.ContainerPort == nil {
 		port := int32(4443)
 		falconAdmission.Spec.AdmissionConfig.ContainerPort = &port
+	}
+
+	if !falconAdmission.GetAdmissionControlEnabled() {
+		falconAdmission.Spec.AdmissionConfig.ResourcesClient = &corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("128Mi"),
+			},
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("100m"),
+				corev1.ResourceMemory: resource.MustParse("128Mi"),
+			},
+		}
 	}
 
 	existingDeployment := &appsv1.Deployment{}
