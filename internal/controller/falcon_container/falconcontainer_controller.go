@@ -11,6 +11,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_secret"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
@@ -154,7 +155,12 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if shouldTrackSensorVersions(falconContainer) {
-		getSensorVersion := sensorversion.NewFalconCloudQuery(falcon.SidecarSensor, r.falconApiConfig(ctx, falconContainer))
+		falconApiConfig, apiConfigErr := r.falconApiConfig(ctx, falconContainer)
+		if apiConfigErr != nil {
+			return ctrl.Result{}, apiConfigErr
+		}
+
+		getSensorVersion := sensorversion.NewFalconCloudQuery(falcon.SidecarSensor, falconApiConfig)
 		r.tracker.Track(req.NamespacedName, getSensorVersion, r.reconcileObjectWithName, falconContainer.Spec.Advanced.IsAutoUpdatingForced())
 	} else {
 		r.tracker.StopTracking(req.NamespacedName)
@@ -253,10 +259,6 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile Cluster Role Binding: %v", err)
 	}
 
-	if err = r.reconcileFalconSecret(ctx, falconContainer); err != nil {
-		return ctrl.Result{}, err
-	}
-
 	injectorTLS, err := r.reconcileInjectorTLSSecret(ctx, log, falconContainer)
 	if err != nil {
 		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile injector TLS Secret: %v", err))
@@ -272,6 +274,12 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, fmt.Errorf("CA bundle not present in injector TLS Secret")
+	}
+
+	if falconContainer.Spec.FalconSecret.Enabled {
+		if err = r.injectFalconSecretData(ctx, falconContainer); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	if _, err = r.reconcileConfigMap(ctx, log, falconContainer); err != nil {
@@ -363,7 +371,7 @@ func (r *FalconContainerReconciler) reconcileObjectWithName(ctx context.Context,
 	return nil
 }
 
-func (r *FalconContainerReconciler) reconcileFalconSecret(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer) error {
+func (r *FalconContainerReconciler) injectFalconSecretData(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer) error {
 	if falconContainer.Spec.FalconSecret.Enabled {
 		falconSecret := &corev1.Secret{}
 		falconSecretNamespacedName := types.NamespacedName{
@@ -376,12 +384,11 @@ func (r *FalconContainerReconciler) reconcileFalconSecret(ctx context.Context, f
 			return err
 		}
 
-		clientId, clientSecret, cid := common.GetFalconCredsFromSecret(falconSecret)
-		falconContainer.Spec.FalconAPI.ClientId = clientId
-		falconContainer.Spec.FalconAPI.ClientSecret = clientSecret
+		cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
 		falconContainer.Spec.FalconAPI.CID = &cid
+		falconContainer.Spec.Falcon.CID = &cid
 
-		provisioningToken := common.GetFalconProvisioningTokenFromSecret(falconSecret)
+		provisioningToken := falcon_secret.GetFalconProvisioningTokenFromSecret(falconSecret)
 		falconContainer.Spec.Falcon.PToken = provisioningToken
 	}
 

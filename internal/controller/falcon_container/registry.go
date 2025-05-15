@@ -31,7 +31,12 @@ func (r *FalconContainerReconciler) reconcileRegistrySecrets(ctx context.Context
 		return &corev1.SecretList{}, fmt.Errorf("unable to list current namespaces: %v", err)
 	}
 
-	pulltoken, err := pulltoken.CrowdStrike(ctx, r.falconApiConfig(ctx, falconContainer))
+	falconApiConfig, apiConfigErr := r.falconApiConfig(ctx, falconContainer)
+	if apiConfigErr != nil {
+		return &corev1.SecretList{}, apiConfigErr
+	}
+
+	pulltoken, err := pulltoken.CrowdStrike(ctx, falconApiConfig)
 	if err != nil {
 		return &corev1.SecretList{}, fmt.Errorf("unable to get registry pull token: %v", err)
 	}

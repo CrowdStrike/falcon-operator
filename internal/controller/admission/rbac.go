@@ -17,12 +17,10 @@ import (
 )
 
 const (
-	admissionClusterRoleName                       = "falcon-operator-admission-controller-role"
-	admissionClusterRoleBindingName                = "falcon-operator-admission-controller-rolebinding"
-	admissionControllerRoleName                    = "falcon-admission-controller-role"
-	admissionControllerRoleBindingName             = "falcon-admission-controller-role-binding"
-	admissionControllerSecretReaderRoleName        = "falcon-admission-controller-secret-reader-role"
-	admissionControllerSecretReaderRoleBindingName = "falcon-admission-controller-secret-reader-role-binding"
+	admissionClusterRoleName           = "falcon-operator-admission-controller-role"
+	admissionClusterRoleBindingName    = "falcon-operator-admission-controller-rolebinding"
+	admissionControllerRoleName        = "falcon-admission-controller-role"
+	admissionControllerRoleBindingName = "falcon-admission-controller-role-binding"
 )
 
 func (r *FalconAdmissionReconciler) reconcileServiceAccount(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
