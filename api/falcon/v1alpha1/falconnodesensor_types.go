@@ -39,14 +39,14 @@ type FalconNodeSensorSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=1
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
-	// FalconSecret config if used to inject k8s secrets with sensitive data for the Falcon sensor and the Falcon API.
+	// FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
 	// The following Falcon values are supported by k8s secret injection:
-	//   FalconCID
-	//   FalconProvisioningToken
-	//   FalconClientId
-	//   FalconClientSecret
+	//   falcon-cid
+	//   falcon-provisioning-token
+	//   falcon-client-id
+	//   falcon-client-secret
 	// +kubebuilder:default={"enabled": false}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration",order=5
 	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
 }
 

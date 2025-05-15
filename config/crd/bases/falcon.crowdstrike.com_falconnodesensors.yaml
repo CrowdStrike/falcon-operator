@@ -136,12 +136,12 @@ spec:
                 default:
                   enabled: false
                 description: |-
-                  FalconSecret config if used to inject k8s secrets with sensitive data for the Falcon sensor and the Falcon API.
+                  FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
                   The following Falcon values are supported by k8s secret injection:
-                    FalconCID
-                    FalconProvisioningToken
-                    FalconClientId
-                    FalconClientSecret
+                    falcon-cid
+                    falcon-provisioning-token
+                    falcon-client-id
+                    falcon-client-secret
                 properties:
                   enabled:
                     default: false

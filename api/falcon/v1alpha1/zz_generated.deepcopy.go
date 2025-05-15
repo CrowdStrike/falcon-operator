@@ -783,6 +783,7 @@ func (in *FalconContainerSpec) DeepCopyInto(out *FalconContainerSpec) {
 		*out = new(FalconAPI)
 		(*in).DeepCopyInto(*out)
 	}
+	out.FalconSecret = in.FalconSecret
 	in.Registry.DeepCopyInto(&out.Registry)
 	in.Injector.DeepCopyInto(&out.Injector)
 	if in.Image != nil {
@@ -1102,6 +1103,7 @@ func (in *FalconImageAnalyzerSpec) DeepCopyInto(out *FalconImageAnalyzerSpec) {
 	}
 	in.Registry.DeepCopyInto(&out.Registry)
 	in.ImageAnalyzerConfig.DeepCopyInto(&out.ImageAnalyzerConfig)
+	out.FalconSecret = in.FalconSecret
 	if in.Version != nil {
 		in, out := &in.Version, &out.Version
 		*out = new(string)
