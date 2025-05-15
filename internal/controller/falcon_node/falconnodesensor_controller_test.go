@@ -33,7 +33,6 @@ var _ = Describe("FalconNodeSensor controller", func() {
 		var sensorNamespacedName types.NamespacedName
 
 		falconCID := "1234567890ABCDEF1234567890ABCDEF-12"
-
 		ctx := context.Background()
 
 		BeforeEach(func() {
