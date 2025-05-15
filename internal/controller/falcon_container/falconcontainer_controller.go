@@ -253,6 +253,10 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("failed to reconcile Cluster Role Binding: %v", err)
 	}
 
+	if err = r.reconcileFalconSecret(ctx, falconContainer); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	injectorTLS, err := r.reconcileInjectorTLSSecret(ctx, log, falconContainer)
 	if err != nil {
 		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile injector TLS Secret: %v", err))
@@ -356,6 +360,31 @@ func (r *FalconContainerReconciler) reconcileObjectWithName(ctx context.Context,
 
 	log.FromContext(ctx).Info("reconciling FalconContainer object", "namespace", obj.Namespace, "name", obj.Name)
 	r.reconcileObject(obj)
+	return nil
+}
+
+func (r *FalconContainerReconciler) reconcileFalconSecret(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer) error {
+	if falconContainer.Spec.FalconSecret.Enabled {
+		falconSecret := &corev1.Secret{}
+		falconSecretNamespacedName := types.NamespacedName{
+			Name:      falconContainer.Spec.FalconSecret.SecretName,
+			Namespace: falconContainer.Spec.FalconSecret.Namespace,
+		}
+
+		err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
+		if errors.IsNotFound(err) {
+			return err
+		}
+
+		clientId, clientSecret, cid := common.GetFalconCredsFromSecret(falconSecret)
+		falconContainer.Spec.FalconAPI.ClientId = clientId
+		falconContainer.Spec.FalconAPI.ClientSecret = clientSecret
+		falconContainer.Spec.FalconAPI.CID = &cid
+
+		provisioningToken := common.GetFalconProvisioningTokenFromSecret(falconSecret)
+		falconContainer.Spec.Falcon.PToken = provisioningToken
+	}
+
 	return nil
 }
 

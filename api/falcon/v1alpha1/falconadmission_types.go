@@ -45,14 +45,14 @@ type FalconAdmissionSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
-	// FalconSecret config if used to inject k8s secrets with sensitive data for the Falcon sensor and the Falcon API.
+	// FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
 	// The following Falcon values are supported by k8s secret injection:
-	//   FalconCID
-	//   FalconProvisioningToken
-	//   FalconClientId
-	//   FalconClientSecret
+	//   falcon-cid
+	//   falcon-provisioning-token
+	//   falcon-client-id
+	//   falcon-client-secret
 	// +kubebuilder:default={"enabled": false}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration",order=9
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration",order=7
 	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
 
 	// ResourceQuota configures the ResourceQuota for the Falcon Admission Controller. This is useful for limiting the number of pods that can be created in the namespace.
@@ -71,11 +71,11 @@ type FalconAdmissionSpec struct {
 
 	// Location of the Falcon Sensor image. Use only in cases when you mirror the original image to your repository/name:tag, and CrowdStrike OAuth2 API is not used.
 	// +kubebuilder:validation:Pattern="^.*:.*$"
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Image URI",order=7
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Image URI",order=8
 	Image string `json:"image,omitempty"`
 
 	// Falcon Admission Controller Version. The latest version will be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Version",order=8
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Version",order=9
 	Version *string `json:"version,omitempty"`
 }
 
