@@ -185,7 +185,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	if shouldTrackSensorVersions(nodesensor) {
-		apiConfig, apiConfigErr := nodesensor.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Client, nodesensor.Spec.FalconSecret)
+		apiConfig, apiConfigErr := nodesensor.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Reader, nodesensor.Spec.FalconSecret)
 		if apiConfigErr != nil {
 			return ctrl.Result{}, apiConfigErr
 		}
@@ -203,7 +203,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	}
 
-	config, err := node.NewConfigCache(ctx, r.Client, nodesensor)
+	config, err := node.NewConfigCache(ctx, r.Reader, nodesensor)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

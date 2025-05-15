@@ -99,7 +99,7 @@ func (fa *FalconAPI) ApiConfig() *falcon.ApiConfig {
 // ApiConfigWithSecret generates standard gofalcon library api config, with sensitive data injected via a k8s secret
 func (fa *FalconAPI) ApiConfigWithSecret(
 	ctx context.Context,
-	k8sClient client.Client,
+	k8sReader client.Reader,
 	falconSecret FalconSecret,
 ) (*falcon.ApiConfig, error) {
 	if !falconSecret.Enabled {
@@ -112,7 +112,7 @@ func (fa *FalconAPI) ApiConfigWithSecret(
 		Namespace: falconSecret.Namespace,
 	}
 
-	err := k8sClient.Get(ctx, falconSecretNamespacedName, falconApiSecret)
+	err := k8sReader.Get(ctx, falconSecretNamespacedName, falconApiSecret)
 	if err != nil {
 		return &falcon.ApiConfig{}, err
 	}
@@ -134,10 +134,10 @@ func (fa *FalconAPI) FalconCloud(ctx context.Context) (falcon.CloudType, error) 
 
 func (fa *FalconAPI) FalconCloudWithSecret(
 	ctx context.Context,
-	k8sClient client.Client,
+	k8sReader client.Reader,
 	falconSecret FalconSecret,
 ) (falcon.CloudType, error) {
-	falconApiConfig, err := fa.ApiConfigWithSecret(ctx, k8sClient, falconSecret)
+	falconApiConfig, err := fa.ApiConfigWithSecret(ctx, k8sReader, falconSecret)
 	if err != nil {
 		return falconApiConfig.Cloud, err
 	}
