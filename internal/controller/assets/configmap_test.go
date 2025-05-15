@@ -34,7 +34,7 @@ func TestSensorConfigMap(t *testing.T) {
 		},
 	}
 
-	config := node.ConfigCacheTest(falconCID, falconImage, &falconNode)
+	config := node.ConfigCacheTest(falconCID, falconImage, &falconNode, nil)
 
 	got := SensorConfigMap("test", "test", common.FalconKernelSensor, config.SensorEnvVars())
 	if diff := cmp.Diff(&want, &got); diff != "" {

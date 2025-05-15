@@ -126,12 +126,12 @@ func TestSensorEnvVars(t *testing.T) {
 
 func TestNewConfigCache(t *testing.T) {
 	want := ConfigCache{cid: falconCID, nodesensor: &falconNode}
-	var k8sClient client.Client
+	var k8sReader client.Reader
 
 	falconNode.Spec.FalconAPI = nil
 	falconNode.Spec.Falcon.CID = &falconCID
 
-	newCache, err := NewConfigCache(context.Background(), k8sClient, &falconNode)
+	newCache, err := NewConfigCache(context.Background(), k8sReader, &falconNode)
 	if err != nil {
 		t.Errorf("NewConfigCache() error: %v", err)
 	}
@@ -141,7 +141,7 @@ func TestNewConfigCache(t *testing.T) {
 	}
 
 	config.nodesensor.Spec.FalconAPI = newTestFalconAPI(&falconCID)
-	newCache, err = NewConfigCache(context.Background(), k8sClient, &falconNode)
+	newCache, err = NewConfigCache(context.Background(), k8sReader, &falconNode)
 	if err != nil {
 		t.Errorf("NewConfigCache() error: %v", err)
 	}
@@ -270,15 +270,6 @@ func TestVersionLock_WithUpdatePolicy(t *testing.T) {
 	sensor.Status.Sensor = stringPointer("some sensor")
 	sensor.Spec.Node.Advanced.UpdatePolicy = stringPointer("some policy")
 	assert.False(t, versionLock(sensor))
-}
-
-func ConfigCacheTest(cid string, imageUri string, nodeTest *falconv1alpha1.FalconNodeSensor, apiConfig *falcon.ApiConfig) *ConfigCache {
-	return &ConfigCache{
-		cid:        cid,
-		imageUri:   imageUri,
-		nodesensor: nodeTest,
-		apiConfig:  apiConfig,
-	}
 }
 
 func newTestFalconAPI(cid *string) *falconv1alpha1.FalconAPI {

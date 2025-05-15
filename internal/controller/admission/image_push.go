@@ -240,7 +240,7 @@ func (r *FalconAdmissionReconciler) falconApiConfig(
 		return nil, nil
 	}
 
-	cfg, err := falconAdmission.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Client, falconAdmission.Spec.FalconSecret)
+	cfg, err := falconAdmission.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Reader, falconAdmission.Spec.FalconSecret)
 	cfg.Context = ctx
 	return cfg, err
 }

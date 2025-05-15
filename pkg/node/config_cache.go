@@ -26,19 +26,19 @@ type ConfigCache struct {
 	imageUri   string
 	nodesensor *falconv1alpha1.FalconNodeSensor
 	apiConfig  *falcon.ApiConfig
-	k8sClient  client.Client
+	k8sReader  client.Reader
 }
 
-func NewConfigCache(ctx context.Context, k8sClient client.Client, nodesensor *falconv1alpha1.FalconNodeSensor) (*ConfigCache, error) {
+func NewConfigCache(ctx context.Context, k8sReader client.Reader, nodesensor *falconv1alpha1.FalconNodeSensor) (*ConfigCache, error) {
 	var apiConfig *falcon.ApiConfig
 	var err error
 	cache := ConfigCache{
 		nodesensor: nodesensor,
-		k8sClient:  k8sClient,
+		k8sReader:  k8sReader,
 	}
 
 	if nodesensor.Spec.FalconAPI != nil {
-		apiConfig, err = nodesensor.Spec.FalconAPI.ApiConfigWithSecret(ctx, k8sClient, nodesensor.Spec.FalconSecret)
+		apiConfig, err = nodesensor.Spec.FalconAPI.ApiConfigWithSecret(ctx, k8sReader, nodesensor.Spec.FalconSecret)
 		cache.apiConfig = apiConfig
 		if err != nil {
 			return nil, err
@@ -144,4 +144,13 @@ func versionLock(nodesensor *falconv1alpha1.FalconNodeSensor) bool {
 	}
 
 	return nodesensor.Spec.Node.Version == nil || strings.Contains(*nodesensor.Status.Sensor, *nodesensor.Spec.Node.Version)
+}
+
+func ConfigCacheTest(cid string, imageUri string, nodeTest *falconv1alpha1.FalconNodeSensor, apiConfig *falcon.ApiConfig) *ConfigCache {
+	return &ConfigCache{
+		cid:        cid,
+		imageUri:   imageUri,
+		nodesensor: nodeTest,
+		apiConfig:  apiConfig,
+	}
 }
