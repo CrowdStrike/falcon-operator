@@ -372,25 +372,27 @@ func (r *FalconContainerReconciler) reconcileObjectWithName(ctx context.Context,
 }
 
 func (r *FalconContainerReconciler) injectFalconSecretData(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer) error {
-	if falconContainer.Spec.FalconSecret.Enabled {
-		falconSecret := &corev1.Secret{}
-		falconSecretNamespacedName := types.NamespacedName{
-			Name:      falconContainer.Spec.FalconSecret.SecretName,
-			Namespace: falconContainer.Spec.FalconSecret.Namespace,
-		}
-
-		err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
-		if errors.IsNotFound(err) {
-			return err
-		}
-
-		cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
-		falconContainer.Spec.FalconAPI.CID = &cid
-		falconContainer.Spec.Falcon.CID = &cid
-
-		provisioningToken := falcon_secret.GetFalconProvisioningTokenFromSecret(falconSecret)
-		falconContainer.Spec.Falcon.PToken = provisioningToken
+	falconSecret := &corev1.Secret{}
+	falconSecretNamespacedName := types.NamespacedName{
+		Name:      falconContainer.Spec.FalconSecret.SecretName,
+		Namespace: falconContainer.Spec.FalconSecret.Namespace,
 	}
+
+	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
+	if errors.IsNotFound(err) {
+		return err
+	}
+
+	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
+	falconContainer.Spec.FalconAPI.ClientId = clientId
+	falconContainer.Spec.FalconAPI.ClientSecret = clientSecret
+
+	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
+	falconContainer.Spec.FalconAPI.CID = &cid
+	falconContainer.Spec.Falcon.CID = &cid
+
+	provisioningToken := falcon_secret.GetFalconProvisioningTokenFromSecret(falconSecret)
+	falconContainer.Spec.Falcon.PToken = provisioningToken
 
 	return nil
 }

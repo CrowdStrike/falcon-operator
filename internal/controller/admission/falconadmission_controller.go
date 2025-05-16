@@ -747,6 +747,11 @@ func (r *FalconAdmissionReconciler) injectFalconSecretData(ctx context.Context, 
 	if err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret); err != nil {
 		return err
 	}
+
+	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
+	falconAdmission.Spec.FalconAPI.ClientId = clientId
+	falconAdmission.Spec.FalconAPI.ClientSecret = clientSecret
+
 	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
 	falconAdmission.Spec.FalconAPI.CID = &cid
 	falconAdmission.Spec.Falcon.CID = &cid
