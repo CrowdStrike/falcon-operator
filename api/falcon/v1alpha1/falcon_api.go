@@ -5,8 +5,13 @@ import (
 	"fmt"
 
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_secret"
 	"github.com/crowdstrike/falcon-operator/version"
+
 	"github.com/crowdstrike/gofalcon/falcon"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
@@ -18,11 +23,11 @@ type FalconAPI struct {
 
 	// Falcon OAuth2 API Client ID
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Client ID",order=1,xDescriptors="urn:alm:descriptor:com.tectonic.ui:password"
-	ClientId string `json:"client_id"`
+	ClientId string `json:"client_id,omitempty"`
 
 	// Falcon OAuth2 API Client Secret
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Client Secret",order=2,xDescriptors="urn:alm:descriptor:com.tectonic.ui:password"
-	ClientSecret string `json:"client_secret"`
+	ClientSecret string `json:"client_secret,omitempty"`
 
 	// Falcon Customer ID (CID) Override (optional, default is derived from the API Key pair)
 	// +kubebuilder:validation:Pattern="^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$"
@@ -91,6 +96,51 @@ func (fa *FalconAPI) ApiConfig() *falcon.ApiConfig {
 	}
 }
 
+// ApiConfigWithSecret generates standard gofalcon library api config, with sensitive data injected via a k8s secret
+func (fa *FalconAPI) ApiConfigWithSecret(
+	ctx context.Context,
+	k8sReader client.Reader,
+	falconSecret FalconSecret,
+) (*falcon.ApiConfig, error) {
+	if !falconSecret.Enabled {
+		return fa.ApiConfig(), nil
+	}
+
+	falconApiSecret := &corev1.Secret{}
+	falconSecretNamespacedName := types.NamespacedName{
+		Name:      falconSecret.SecretName,
+		Namespace: falconSecret.Namespace,
+	}
+
+	err := k8sReader.Get(ctx, falconSecretNamespacedName, falconApiSecret)
+	if err != nil {
+		return &falcon.ApiConfig{}, err
+	}
+
+	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconApiSecret)
+
+	return &falcon.ApiConfig{
+		Cloud:             falcon.Cloud(fa.CloudRegion),
+		ClientId:          clientId,
+		ClientSecret:      clientSecret,
+		HostOverride:      fa.HostOverride,
+		UserAgentOverride: fmt.Sprintf("falcon-operator/%s", version.Version),
+	}, nil
+}
+
 func (fa *FalconAPI) FalconCloud(ctx context.Context) (falcon.CloudType, error) {
 	return falcon_api.FalconCloud(ctx, fa.ApiConfig())
+}
+
+func (fa *FalconAPI) FalconCloudWithSecret(
+	ctx context.Context,
+	k8sReader client.Reader,
+	falconSecret FalconSecret,
+) (falcon.CloudType, error) {
+	falconApiConfig, err := fa.ApiConfigWithSecret(ctx, k8sReader, falconSecret)
+	if err != nil {
+		return falconApiConfig.Cloud, err
+	}
+
+	return falcon_api.FalconCloud(ctx, falconApiConfig)
 }

@@ -29,21 +29,30 @@ type FalconImageAnalyzerSpec struct {
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
 	// Registry configures container image registry to which the Image Analyzer image will be pushed.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Registry Configuration",order=6
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Registry Configuration",order=4
 	Registry RegistrySpec `json:"registry,omitempty"`
 
 	// Additional configuration for Falcon Image Analyzer deployment.
 	// +kubebuilder:default:={}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Configuration",order=5
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Configuration",order=3
 	ImageAnalyzerConfig FalconImageAnalyzerConfigSpec `json:"imageAnalyzerConfig,omitempty"`
+
+	// FalconSecret config is used to inject k8s secrets with sensitive data for the FalconAPI.
+	// The following Falcon values are supported by k8s secret injection:
+	//   falcon-cid
+	//   falcon-client-id
+	//   falcon-client-secret
+	// +kubebuilder:default={"enabled": false}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration",order=5
+	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
 
 	// Location of the Image Analyzer image. Use only in cases when you mirror the original image to your repository/name:tag
 	// +kubebuilder:validation:Pattern="^.*:.*$"
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Image URI",order=7
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Image URI",order=6
 	Image string `json:"image,omitempty"`
 
 	// Falcon Image Analyzer Version. The latest version will be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Version",order=8
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Version",order=7
 	Version *string `json:"version,omitempty"`
 }
 

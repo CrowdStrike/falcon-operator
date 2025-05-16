@@ -17,8 +17,10 @@ import (
 )
 
 const (
-	admissionClusterRoleName        = "falcon-operator-admission-controller-role"
-	admissionClusterRoleBindingName = "falcon-operator-admission-controller-rolebinding"
+	admissionClusterRoleName           = "falcon-operator-admission-controller-role"
+	admissionClusterRoleBindingName    = "falcon-operator-admission-controller-rolebinding"
+	admissionControllerRoleName        = "falcon-admission-controller-role"
+	admissionControllerRoleBindingName = "falcon-admission-controller-role-binding"
 )
 
 func (r *FalconAdmissionReconciler) reconcileServiceAccount(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
@@ -116,10 +118,10 @@ func (r *FalconAdmissionReconciler) reconcileClusterRoleBinding(ctx context.Cont
 }
 
 func (r *FalconAdmissionReconciler) reconcileRole(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
-	role := assets.Role("falcon-admission-controller-role", falconAdmission.Spec.InstallNamespace)
+	role := assets.Role(admissionControllerRoleName, falconAdmission.Spec.InstallNamespace)
 	existingRole := &rbacv1.Role{}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: "falcon-admission-controller-role", Namespace: falconAdmission.Spec.InstallNamespace}, existingRole)
+	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: admissionControllerRoleName, Namespace: falconAdmission.Spec.InstallNamespace}, existingRole)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, role)
 		if err != nil {
@@ -144,13 +146,13 @@ func (r *FalconAdmissionReconciler) reconcileRole(ctx context.Context, req ctrl.
 }
 
 func (r *FalconAdmissionReconciler) reconcileRoleBinding(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
-	roleBinding := assets.RoleBinding("falcon-admission-controller-role-binding",
+	roleBinding := assets.RoleBinding(admissionControllerRoleBindingName,
 		falconAdmission.Spec.InstallNamespace,
-		"falcon-admission-controller-role",
+		admissionControllerRoleName,
 		common.AdmissionServiceAccountName)
 	existingRoleBinding := &rbacv1.RoleBinding{}
 
-	err := r.Get(ctx, types.NamespacedName{Name: "falcon-admission-controller-role-binding", Namespace: falconAdmission.Spec.InstallNamespace}, existingRoleBinding)
+	err := r.Get(ctx, types.NamespacedName{Name: admissionControllerRoleBindingName, Namespace: falconAdmission.Spec.InstallNamespace}, existingRoleBinding)
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, roleBinding)
 		if err != nil {

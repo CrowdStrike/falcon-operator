@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,13 @@ import (
 var falconNode = falconv1alpha1.FalconNodeSensor{}
 var falconCID = "1234567890ABCDEF1234567890ABCDEF-12"
 var falconImage = "testMyImage"
-var config = ConfigCache{cid: falconCID, imageUri: falconImage, nodesensor: &falconNode}
+var falconApiConfig = falcon.ApiConfig{}
+var config = ConfigCache{
+	cid:             falconCID,
+	imageUri:        falconImage,
+	nodesensor:      &falconNode,
+	falconApiConfig: &falconApiConfig,
+}
 
 func TestCID(t *testing.T) {
 	got := config.cid
@@ -74,7 +81,8 @@ func TestGetImageURI(t *testing.T) {
 }
 
 func TestGetPullToken(t *testing.T) {
-	got, err := config.GetPullToken(context.Background())
+	testConfig := config
+	got, err := testConfig.GetPullToken(context.Background())
 	if err != nil {
 		if err != ErrFalconAPINotConfigured {
 			t.Errorf("GetPullToken() error: %v", err)
@@ -85,8 +93,9 @@ func TestGetPullToken(t *testing.T) {
 	}
 
 	var noCID *string
-	config.nodesensor.Spec.FalconAPI = newTestFalconAPI(noCID)
-	got, err = config.GetPullToken(context.Background())
+	testConfig.nodesensor.Spec.FalconAPI = newTestFalconAPI(noCID)
+	testConfig.falconApiConfig = newTestApiConfig()
+	got, err = testConfig.GetPullToken(context.Background())
 	if err != nil {
 		if strings.Contains(err.Error(), "401 Unauthorized") {
 			got = []byte("testToken")
@@ -116,12 +125,11 @@ func TestSensorEnvVars(t *testing.T) {
 
 func TestNewConfigCache(t *testing.T) {
 	want := ConfigCache{cid: falconCID, nodesensor: &falconNode}
-	var logger logr.Logger
 
 	falconNode.Spec.FalconAPI = nil
 	falconNode.Spec.Falcon.CID = &falconCID
 
-	newCache, err := NewConfigCache(context.Background(), logger, &falconNode)
+	newCache, err := NewConfigCache(context.Background(), &falconNode)
 	if err != nil {
 		t.Errorf("NewConfigCache() error: %v", err)
 	}
@@ -131,7 +139,7 @@ func TestNewConfigCache(t *testing.T) {
 	}
 
 	config.nodesensor.Spec.FalconAPI = newTestFalconAPI(&falconCID)
-	newCache, err = NewConfigCache(context.Background(), logger, &falconNode)
+	newCache, err = NewConfigCache(context.Background(), &falconNode)
 	if err != nil {
 		t.Errorf("NewConfigCache() error: %v", err)
 	}
@@ -144,18 +152,20 @@ func TestNewConfigCache(t *testing.T) {
 func TestConfigCacheTest(t *testing.T) {
 	want := config
 
-	newCache := ConfigCacheTest(falconCID, falconImage, &falconNode)
+	newCache := ConfigCacheTest(falconCID, falconImage, &falconNode, &falconApiConfig)
 	if want != *newCache {
 		t.Errorf("ConfigCacheTest() = %v, want %v", newCache, want)
 	}
 }
 
 func TestGetFalconImage(t *testing.T) {
+	testConfig := config
 	falconNode.Spec.FalconAPI = newTestFalconAPI(&falconCID)
+	testConfig.falconApiConfig = newTestApiConfig()
 
 	testVersion := "testVersion"
 	falconNode.Spec.Node.Version = &testVersion
-	got, err := getFalconImage(context.Background(), &falconNode)
+	got, err := testConfig.getFalconImage(context.Background(), &falconNode)
 	if err != nil {
 		if strings.Contains(err.Error(), "401 Unauthorized") {
 			got = fmt.Sprintf("%s:%s", "TestImageEnv", *falconNode.Spec.Node.Version)
@@ -167,7 +177,7 @@ func TestGetFalconImage(t *testing.T) {
 	}
 
 	falconNode.Spec.FalconAPI = nil
-	_, err = getFalconImage(context.Background(), &falconNode)
+	_, err = testConfig.getFalconImage(context.Background(), &falconNode)
 	if err != nil {
 		if err != ErrFalconAPINotConfigured {
 			t.Errorf("getFalconImage() error: %v", err)
@@ -180,7 +190,7 @@ func TestGetFalconImage(t *testing.T) {
 	}
 
 	want := "TestImageEnv"
-	got, err = getFalconImage(context.Background(), &falconNode)
+	got, err = testConfig.getFalconImage(context.Background(), &falconNode)
 	if err != nil {
 		t.Errorf("getFalconImage() error: %v", err)
 	}
@@ -191,7 +201,7 @@ func TestGetFalconImage(t *testing.T) {
 	want = "TestImageOverride"
 	falconNode.Spec.Node.Image = want
 
-	got, err = getFalconImage(context.Background(), &falconNode)
+	got, err = testConfig.getFalconImage(context.Background(), &falconNode)
 	if err != nil {
 		t.Errorf("getFalconImage() error: %v", err)
 	}
@@ -267,6 +277,14 @@ func newTestFalconAPI(cid *string) *falconv1alpha1.FalconAPI {
 		CloudRegion:  "testRegion",
 		CID:          cid,
 		HostOverride: strings.TrimSpace(os.Getenv("FALCON_API_HOST")),
+	}
+}
+
+func newTestApiConfig() *falcon.ApiConfig {
+	return &falcon.ApiConfig{
+		Cloud:        falcon.CloudUs1,
+		ClientId:     "testID",
+		ClientSecret: "testSecret",
 	}
 }
 

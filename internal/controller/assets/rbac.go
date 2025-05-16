@@ -7,6 +7,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	falconSecretReaderRoleInstanceName        = "falconSecretReaderRole"
+	falconSecretReaderRoleBindingInstanceName = "falconSecretReaderRoleBinding"
+)
+
 func ServiceAccount(name string, namespace string, component string, annotations map[string]string, imagePullSecrets []corev1.LocalObjectReference) *corev1.ServiceAccount {
 	labels := common.CRLabels("serviceaccount", name, component)
 
@@ -102,6 +107,57 @@ func RoleBinding(name string, namespace string, role string, sa string) *rbacv1.
 			{
 				Kind:      "ServiceAccount",
 				Name:      sa,
+				Namespace: namespace,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "Role",
+			Name:     role,
+		},
+	}
+}
+
+func FalconSecretReaderRole(name, namespace, falconComponent string) *rbacv1.Role {
+	labels := common.CRLabels(falconSecretReaderRoleInstanceName, name, falconComponent)
+
+	return &rbacv1.Role{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: rbacv1.SchemeGroupVersion.String(),
+			Kind:       "Role",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{""},
+				Resources: []string{"secret"},
+				Verbs:     []string{"get"},
+			},
+		},
+	}
+}
+
+func FalconSecretReaderRoleBinding(name, namespace, role, serviceAccount, falconComponent string) *rbacv1.RoleBinding {
+	labels := common.CRLabels(falconSecretReaderRoleBindingInstanceName, name, falconComponent)
+
+	return &rbacv1.RoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: rbacv1.SchemeGroupVersion.String(),
+			Kind:       "RoleBinding",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      serviceAccount,
 				Namespace: namespace,
 			},
 		},

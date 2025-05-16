@@ -210,6 +210,10 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 
+	if err = r.reconcileFalconSecret(ctx, falconImageAnalyzer); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	configUpdated, err := r.reconcileConfigMap(ctx, req, log, falconImageAnalyzer)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -433,6 +437,31 @@ func (r *FalconImageAnalyzerReconciler) imageAnalyzerDeploymentUpdate(ctx contex
 	log.Info("Rolling FalconImageAnalyzer Deployment due to non-deployment configuration change")
 	if err := k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, existingDeployment); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (r *FalconImageAnalyzerReconciler) reconcileFalconSecret(
+	ctx context.Context,
+	falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer,
+) error {
+	if falconImageAnalyzer.Spec.FalconSecret.Enabled {
+		falconSecret := &corev1.Secret{}
+		falconSecretNamespacedName := types.NamespacedName{
+			Name:      falconImageAnalyzer.Spec.FalconSecret.SecretName,
+			Namespace: falconImageAnalyzer.Spec.FalconSecret.Namespace,
+		}
+
+		err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
+		if errors.IsNotFound(err) {
+			return err
+		}
+
+		clientId, clientSecret, cid := common.GetFalconCredsFromSecret(falconSecret)
+		falconImageAnalyzer.Spec.FalconAPI.ClientId = clientId
+		falconImageAnalyzer.Spec.FalconAPI.ClientSecret = clientSecret
+		falconImageAnalyzer.Spec.FalconAPI.CID = &cid
 	}
 
 	return nil

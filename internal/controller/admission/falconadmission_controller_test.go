@@ -10,12 +10,15 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	arv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -24,50 +27,85 @@ var _ = Describe("FalconAdmission controller", func() {
 
 		const AdmissionControllerName = "test-falconadmissioncontroller"
 		const AdmissionControllerNamespace = "falcon-kac"
+		// The namespaceCounter is a way to create a unique namespace for each test. Namespaces in tests are not reusable.
+		// ref: https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
+		namespaceCounter := 0
+		var testNamespace corev1.Namespace
+		var admissionNamespacedName types.NamespacedName
+
 		admissionImage := "example.com/image:test"
 		falconCID := "1234567890ABCDEF1234567890ABCDEF-12"
 
 		ctx := context.Background()
 
-		namespace := &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      AdmissionControllerNamespace,
-				Namespace: AdmissionControllerNamespace,
-			},
-		}
-
-		typeNamespaceName := types.NamespacedName{Name: AdmissionControllerName, Namespace: AdmissionControllerNamespace}
-
 		BeforeEach(func() {
+			namespaceCounter += 1
+			currentNamespaceString := fmt.Sprintf("%s-%d", AdmissionControllerNamespace, namespaceCounter)
+			testNamespace = corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      currentNamespaceString,
+					Namespace: currentNamespaceString,
+				},
+			}
+
+			admissionNamespacedName = types.NamespacedName{Name: AdmissionControllerName, Namespace: currentNamespaceString}
+
 			By("Creating the Namespace to perform the tests")
-			err := k8sClient.Create(ctx, namespace)
+			err := k8sClient.Create(ctx, &testNamespace)
 			Expect(err).To(Not(HaveOccurred()))
 		})
 
 		AfterEach(func() {
-			// TODO(user): Attention if you improve this code by adding other context test you MUST
 			// be aware of the current delete namespace limitations. More info: https://book.kubebuilder.io/reference/envtest.html#testing-considerations
-			By("Deleting the Namespace to perform the tests")
-			_ = k8sClient.Delete(ctx, namespace)
+			By("Cleaning up previously used Namespace and shared resources")
+
+			// Delete all deployments
+			deployList := &appsv1.DeploymentList{}
+			Expect(k8sClient.List(ctx, deployList, client.InNamespace(testNamespace.Namespace))).To(Succeed())
+			for _, item := range deployList.Items {
+				Expect(k8sClient.Delete(ctx, &item)).To(Succeed())
+			}
+
+			Eventually(func() int {
+				deployList := &appsv1.DeploymentList{}
+				_ = k8sClient.List(ctx, deployList, client.InNamespace(testNamespace.Namespace))
+				return len(deployList.Items)
+			}, 6*time.Second, 2*time.Second).Should(Equal(0))
+
+			// Delete cluster level resources
+			clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: admissionClusterRoleBindingName}, clusterRoleBinding)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, clusterRoleBinding)).To(Succeed())
+
+			validatingWebhookConfig := &arv1.ValidatingWebhookConfiguration{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: validatingWebhookName}, validatingWebhookConfig)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, validatingWebhookConfig)).To(Succeed())
+
+			// Delete FalconAdmission custom resource
+			falconAdmissionCR := &falconv1alpha1.FalconAdmission{}
+			Expect(k8sClient.Get(ctx, admissionNamespacedName, falconAdmissionCR)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, falconAdmissionCR)).To(Succeed())
+
+			_ = k8sClient.Delete(ctx, &testNamespace)
 		})
 
 		It("should successfully reconcile a custom resource for FalconAdmission", func() {
 			By("Creating the custom resource for the Kind FalconAdmission")
 			falconAdmission := &falconv1alpha1.FalconAdmission{}
-			err := k8sClient.Get(ctx, typeNamespaceName, falconAdmission)
+			err := k8sClient.Get(ctx, admissionNamespacedName, falconAdmission)
 			if err != nil && errors.IsNotFound(err) {
 				// Let's mock our custom resource at the same way that we would
 				// apply on the cluster the manifest under config/samples
 				falconAdmission := &falconv1alpha1.FalconAdmission{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      AdmissionControllerName,
-						Namespace: AdmissionControllerNamespace,
+						Namespace: admissionNamespacedName.Namespace,
 					},
 					Spec: falconv1alpha1.FalconAdmissionSpec{
 						Falcon: falconv1alpha1.FalconSensor{
 							CID: &falconCID,
 						},
-						InstallNamespace: "falcon-kac",
+						InstallNamespace: admissionNamespacedName.Namespace,
 						Image:            admissionImage,
 						Registry: falconv1alpha1.RegistrySpec{
 							Type: "crowdstrike",
@@ -90,8 +128,8 @@ var _ = Describe("FalconAdmission controller", func() {
 			By("Checking if the custom resource was successfully created")
 			Eventually(func() error {
 				found := &falconv1alpha1.FalconAdmission{}
-				return k8sClient.Get(ctx, typeNamespaceName, found)
-			}, time.Minute, time.Second).Should(Succeed())
+				return k8sClient.Get(ctx, admissionNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
 
 			By("Reconciling the custom resource created")
 			falconAdmissionReconciler := &FalconAdmissionReconciler{
@@ -101,59 +139,59 @@ var _ = Describe("FalconAdmission controller", func() {
 			}
 
 			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespaceName,
+				NamespacedName: admissionNamespacedName,
 			})
 			Expect(err).To(Not(HaveOccurred()))
 
 			By("Checking if Service Account was successfully created in the reconciliation")
 			Eventually(func() error {
 				found := &corev1.ServiceAccount{}
-				return k8sClient.Get(ctx, types.NamespacedName{Name: "falcon-operator-admission-controller", Namespace: AdmissionControllerNamespace}, found)
-			}, time.Minute, time.Second).Should(Succeed())
+				return k8sClient.Get(ctx, types.NamespacedName{Name: "falcon-operator-admission-controller", Namespace: admissionNamespacedName.Namespace}, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
 
 			By("Checking if ResourceQuota was successfully created in the reconciliation")
 			Eventually(func() error {
 				found := &corev1.ResourceQuota{}
-				return k8sClient.Get(ctx, types.NamespacedName{Name: "test-falconadmissioncontroller", Namespace: AdmissionControllerNamespace}, found)
-			}, time.Minute, time.Second).Should(Succeed())
+				return k8sClient.Get(ctx, types.NamespacedName{Name: "test-falconadmissioncontroller", Namespace: admissionNamespacedName.Namespace}, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
 
 			By("Checking if TLS Secret was successfully created in the reconciliation")
 			Eventually(func() error {
 				found := &corev1.Secret{}
-				return k8sClient.Get(ctx, types.NamespacedName{Name: "test-falconadmissioncontroller-tls", Namespace: AdmissionControllerNamespace}, found)
-			}, time.Minute, time.Second).Should(Succeed())
+				return k8sClient.Get(ctx, types.NamespacedName{Name: "test-falconadmissioncontroller-tls", Namespace: admissionNamespacedName.Namespace}, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
 
 			By("Checking if ConfigMap was successfully created in the reconciliation")
 			Eventually(func() error {
 				found := &corev1.ConfigMap{}
-				return k8sClient.Get(ctx, types.NamespacedName{Name: "test-falconadmissioncontroller-config", Namespace: AdmissionControllerNamespace}, found)
-			}, time.Minute, time.Second).Should(Succeed())
+				return k8sClient.Get(ctx, types.NamespacedName{Name: "test-falconadmissioncontroller-config", Namespace: admissionNamespacedName.Namespace}, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
 
 			By("Checking if Service was successfully created in the reconciliation")
 			Eventually(func() error {
 				found := &corev1.Service{}
-				return k8sClient.Get(ctx, types.NamespacedName{Name: "test-falconadmissioncontroller", Namespace: AdmissionControllerNamespace}, found)
-			}, time.Minute, time.Second).Should(Succeed())
+				return k8sClient.Get(ctx, types.NamespacedName{Name: "test-falconadmissioncontroller", Namespace: admissionNamespacedName.Namespace}, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
 
 			By("Checking if Deployment was successfully created in the reconciliation")
 			Eventually(func() error {
 				found := &appsv1.Deployment{}
-				return k8sClient.Get(ctx, types.NamespacedName{Name: "test-falconadmissioncontroller", Namespace: AdmissionControllerNamespace}, found)
-			}, time.Minute, time.Second).Should(Succeed())
+				return k8sClient.Get(ctx, types.NamespacedName{Name: "test-falconadmissioncontroller", Namespace: admissionNamespacedName.Namespace}, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
 
 			By("Checking if pods were successfully created in the reconciliation")
 			Eventually(func() error {
-				pod, err := k8sutils.GetReadyPod(k8sClient, ctx, AdmissionControllerNamespace, map[string]string{common.FalconComponentKey: common.FalconAdmissionController})
+				pod, err := k8sutils.GetReadyPod(k8sClient, ctx, admissionNamespacedName.Namespace, map[string]string{common.FalconComponentKey: common.FalconAdmissionController})
 				if err != nil && err != k8sutils.ErrNoWebhookServicePodReady {
 					return err
 				}
 				if pod.Name == "" {
 					_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
-						NamespacedName: typeNamespaceName,
+						NamespacedName: admissionNamespacedName,
 					})
 				}
 				return err
-			}, time.Minute, time.Second).Should(Succeed())
+			}, 20*time.Second, time.Second).Should(Succeed())
 
 			By("Checking the latest Status Condition added to the FalconAdmission instance")
 			Eventually(func() error {
@@ -167,7 +205,135 @@ var _ = Describe("FalconAdmission controller", func() {
 					}
 				}
 				return nil
-			}, time.Minute, time.Second).Should(Succeed())
+			}, 20*time.Second, time.Second).Should(Succeed())
+		})
+
+		It("should correctly handle and inject existing secrets into configmap", func() {
+			By("Creating test secrets")
+			clientId := "test-client-id"
+			clientSecret := "test-client-secret"
+			provisioningToken := "1a2b3c4d"
+			secretName := "falcon-secret"
+			testSecretNamespace := "falcon-secret"
+
+			falconSecretNamespace := corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testSecretNamespace,
+					Namespace: testSecretNamespace,
+				},
+			}
+
+			err := k8sClient.Create(ctx, &falconSecretNamespace)
+			Expect(err).To(Not(HaveOccurred()))
+
+			testSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: testSecretNamespace,
+				},
+				Type: corev1.SecretTypeOpaque,
+				StringData: map[string]string{
+					"falcon-client-id":          clientId,
+					"falcon-client-secret":      clientSecret,
+					"falcon-cid":                falconCID,
+					"falcon-provisioning-token": provisioningToken,
+				},
+			}
+			err = k8sClient.Create(ctx, testSecret)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Creating the FalconAdmission CR with FalconSecret configured")
+			falconAdmission := &falconv1alpha1.FalconAdmission{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      AdmissionControllerName,
+					Namespace: admissionNamespacedName.Namespace,
+				},
+				Spec: falconv1alpha1.FalconAdmissionSpec{
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						CloudRegion: "autodiscover",
+					},
+					FalconSecret: falconv1alpha1.FalconSecret{
+						Enabled:    true,
+						Namespace:  testSecretNamespace,
+						SecretName: secretName,
+					},
+					InstallNamespace: admissionNamespacedName.Namespace,
+					Image:            admissionImage,
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+						DepUpdateStrategy: falconv1alpha1.FalconAdmissionUpdateStrategy{
+							RollingUpdate: appsv1.RollingUpdateDeployment{
+								MaxUnavailable: &intstr.IntOrString{IntVal: 1},
+								MaxSurge:       &intstr.IntOrString{IntVal: 1},
+							},
+						},
+					},
+				},
+			}
+
+			err = k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				falconAdmission := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, falconAdmission)
+			}, 6*time.Second, time.Second).Should(Succeed())
+
+			By("Reconciling the custom resource created")
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if Deployment was created with updated config map")
+			Eventually(func() error {
+				admissionConfigMap := &corev1.ConfigMap{}
+				err = common.GetNamespacedObject(
+					ctx,
+					falconAdmissionReconciler.Client,
+					falconAdmissionReconciler.Reader,
+					types.NamespacedName{Name: AdmissionControllerName + "-config", Namespace: admissionNamespacedName.Namespace},
+					admissionConfigMap,
+				)
+				if err != nil {
+					return fmt.Errorf("failed to get admission configmap: %w", err)
+				}
+
+				admissionDeployment := &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      AdmissionControllerName,
+					Namespace: admissionNamespacedName.Namespace,
+				}, admissionDeployment)
+				if err != nil {
+					return fmt.Errorf("failed to get admission deployment: %w", err)
+				}
+
+				// Check for environment variables with secret references
+				containers := admissionDeployment.Spec.Template.Spec.Containers
+				if len(containers) == 0 {
+					return fmt.Errorf("no containers found in admission deployment")
+				}
+
+				Expect(admissionDeployment).To(haveContainerNamed("falcon-kac"))
+				Expect(admissionDeployment).To(haveContainerWithConfigMapEnvFrom("falcon-kac", AdmissionControllerName+"-config"))
+				Expect(admissionConfigMap.Data["FALCONCTL_OPT_CID"]).To(Equal(falconCID))
+				Expect(admissionConfigMap.Data["FALCONCTL_OPT_PROVISIONING_TOKEN"]).To(Equal(provisioningToken))
+
+				return nil
+			}, 10*time.Second, time.Second).Should(Succeed())
+
+			By("Cleaning up the test specific resources")
+			err = k8sClient.Delete(ctx, testSecret)
+			Expect(err).To(Not(HaveOccurred()))
 		})
 	})
 })
