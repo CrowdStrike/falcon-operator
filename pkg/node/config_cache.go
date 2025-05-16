@@ -15,34 +15,26 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var ErrFalconAPINotConfigured = errors.New("missing falcon_api configuration")
 
 // ConfigCache holds config values for node sensor. Those values are either provided by user or fetched dynamically. That happens transparently to the caller.
 type ConfigCache struct {
-	cid        string
-	imageUri   string
-	nodesensor *falconv1alpha1.FalconNodeSensor
-	apiConfig  *falcon.ApiConfig
-	k8sReader  client.Reader
+	cid             string
+	imageUri        string
+	nodesensor      *falconv1alpha1.FalconNodeSensor
+	falconApiConfig *falcon.ApiConfig
 }
 
-func NewConfigCache(ctx context.Context, k8sReader client.Reader, nodesensor *falconv1alpha1.FalconNodeSensor) (*ConfigCache, error) {
-	var apiConfig *falcon.ApiConfig
+func NewConfigCache(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) (*ConfigCache, error) {
 	var err error
 	cache := ConfigCache{
 		nodesensor: nodesensor,
-		k8sReader:  k8sReader,
 	}
 
 	if nodesensor.Spec.FalconAPI != nil {
-		apiConfig, err = nodesensor.Spec.FalconAPI.ApiConfigWithSecret(ctx, k8sReader, nodesensor.Spec.FalconSecret)
-		cache.apiConfig = apiConfig
-		if err != nil {
-			return nil, err
-		}
+		cache.falconApiConfig = nodesensor.Spec.FalconAPI.ApiConfig()
 
 		if nodesensor.Spec.FalconAPI.CID != nil {
 			cache.cid = *nodesensor.Spec.FalconAPI.CID
@@ -50,7 +42,7 @@ func NewConfigCache(ctx context.Context, k8sReader client.Reader, nodesensor *fa
 	}
 
 	if cache.cid == "" {
-		cache.cid, err = falcon_api.FalconCID(ctx, nodesensor.Spec.Falcon.CID, apiConfig)
+		cache.cid, err = falcon_api.FalconCID(ctx, nodesensor.Spec.Falcon.CID, cache.falconApiConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +77,7 @@ func (cc *ConfigCache) GetPullToken(ctx context.Context) ([]byte, error) {
 	if cc.nodesensor.Spec.FalconAPI == nil {
 		return nil, ErrFalconAPINotConfigured
 	}
-	return pulltoken.CrowdStrike(ctx, cc.apiConfig)
+	return pulltoken.CrowdStrike(ctx, cc.falconApiConfig)
 }
 
 func (cc *ConfigCache) SensorEnvVars() map[string]string {
@@ -123,7 +115,7 @@ func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1a
 		return fmt.Sprintf("%s:%s", imageUri, *nodesensor.Status.Sensor), nil
 	}
 
-	apiConfig := *cc.apiConfig
+	apiConfig := *cc.falconApiConfig
 	apiConfig.Context = ctx
 	imageRepo, err := sensor.NewImageRepository(ctx, &apiConfig)
 	if err != nil {
@@ -148,9 +140,9 @@ func versionLock(nodesensor *falconv1alpha1.FalconNodeSensor) bool {
 
 func ConfigCacheTest(cid string, imageUri string, nodeTest *falconv1alpha1.FalconNodeSensor, apiConfig *falcon.ApiConfig) *ConfigCache {
 	return &ConfigCache{
-		cid:        cid,
-		imageUri:   imageUri,
-		nodesensor: nodeTest,
-		apiConfig:  apiConfig,
+		cid:             cid,
+		imageUri:        imageUri,
+		nodesensor:      nodeTest,
+		falconApiConfig: apiConfig,
 	}
 }

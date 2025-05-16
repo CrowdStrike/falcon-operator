@@ -78,12 +78,7 @@ func (r *FalconAdmissionReconciler) newConfigMap(ctx context.Context, name strin
 	}
 
 	if cid == "" && falconAdmission.Spec.FalconAPI != nil {
-		falconApiConfig, apiConfigErr := falconAdmission.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Reader, falconAdmission.Spec.FalconSecret)
-		if apiConfigErr != nil {
-			return &corev1.ConfigMap{}, apiConfigErr
-		}
-
-		cid, err = falcon_api.FalconCID(ctx, falconAdmission.Spec.FalconAPI.CID, falconApiConfig)
+		cid, err = falcon_api.FalconCID(ctx, falconAdmission.Spec.FalconAPI.CID, falconAdmission.Spec.FalconAPI.ApiConfig())
 		if err != nil {
 			return &corev1.ConfigMap{}, err
 		}

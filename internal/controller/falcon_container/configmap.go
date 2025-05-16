@@ -86,12 +86,7 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.L
 	}
 
 	if cid == "" && falconContainer.Spec.FalconAPI != nil {
-		falconApiConfig, apiConfigErr := falconContainer.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Reader, falconContainer.Spec.FalconSecret)
-		if apiConfigErr != nil {
-			return &corev1.ConfigMap{}, apiConfigErr
-		}
-
-		cid, err = falcon_api.FalconCID(ctx, falconContainer.Spec.FalconAPI.CID, falconApiConfig)
+		cid, err = falcon_api.FalconCID(ctx, falconContainer.Spec.FalconAPI.CID, falconContainer.Spec.FalconAPI.ApiConfig())
 		if err != nil {
 			return &corev1.ConfigMap{}, fmt.Errorf("unable to determine Falcon customer ID (CID): %v", err)
 		}

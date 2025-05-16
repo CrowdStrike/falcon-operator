@@ -12,7 +12,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var falconNode = falconv1alpha1.FalconNodeSensor{}
@@ -20,10 +19,10 @@ var falconCID = "1234567890ABCDEF1234567890ABCDEF-12"
 var falconImage = "testMyImage"
 var falconApiConfig = falcon.ApiConfig{}
 var config = ConfigCache{
-	cid:        falconCID,
-	imageUri:   falconImage,
-	nodesensor: &falconNode,
-	apiConfig:  &falconApiConfig,
+	cid:             falconCID,
+	imageUri:        falconImage,
+	nodesensor:      &falconNode,
+	falconApiConfig: &falconApiConfig,
 }
 
 func TestCID(t *testing.T) {
@@ -95,7 +94,7 @@ func TestGetPullToken(t *testing.T) {
 
 	var noCID *string
 	testConfig.nodesensor.Spec.FalconAPI = newTestFalconAPI(noCID)
-	testConfig.apiConfig = newTestApiConfig()
+	testConfig.falconApiConfig = newTestApiConfig()
 	got, err = testConfig.GetPullToken(context.Background())
 	if err != nil {
 		if strings.Contains(err.Error(), "401 Unauthorized") {
@@ -126,12 +125,11 @@ func TestSensorEnvVars(t *testing.T) {
 
 func TestNewConfigCache(t *testing.T) {
 	want := ConfigCache{cid: falconCID, nodesensor: &falconNode}
-	var k8sReader client.Reader
 
 	falconNode.Spec.FalconAPI = nil
 	falconNode.Spec.Falcon.CID = &falconCID
 
-	newCache, err := NewConfigCache(context.Background(), k8sReader, &falconNode)
+	newCache, err := NewConfigCache(context.Background(), &falconNode)
 	if err != nil {
 		t.Errorf("NewConfigCache() error: %v", err)
 	}
@@ -141,7 +139,7 @@ func TestNewConfigCache(t *testing.T) {
 	}
 
 	config.nodesensor.Spec.FalconAPI = newTestFalconAPI(&falconCID)
-	newCache, err = NewConfigCache(context.Background(), k8sReader, &falconNode)
+	newCache, err = NewConfigCache(context.Background(), &falconNode)
 	if err != nil {
 		t.Errorf("NewConfigCache() error: %v", err)
 	}
@@ -163,7 +161,7 @@ func TestConfigCacheTest(t *testing.T) {
 func TestGetFalconImage(t *testing.T) {
 	testConfig := config
 	falconNode.Spec.FalconAPI = newTestFalconAPI(&falconCID)
-	testConfig.apiConfig = newTestApiConfig()
+	testConfig.falconApiConfig = newTestApiConfig()
 
 	testVersion := "testVersion"
 	falconNode.Spec.Node.Version = &testVersion

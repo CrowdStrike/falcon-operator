@@ -203,7 +203,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	}
 
-	config, err := node.NewConfigCache(ctx, r.Reader, nodesensor)
+	config, err := node.NewConfigCache(ctx, nodesensor)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -1096,6 +1096,10 @@ func (r *FalconNodeSensorReconciler) injectFalconSecretData(ctx context.Context,
 	if err != nil {
 		return err
 	}
+
+	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
+	nodeSensor.Spec.FalconAPI.ClientId = clientId
+	nodeSensor.Spec.FalconAPI.ClientSecret = clientSecret
 
 	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
 	nodeSensor.Spec.FalconAPI.CID = &cid
