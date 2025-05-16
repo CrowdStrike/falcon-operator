@@ -184,12 +184,6 @@ var _ = Describe("FalconContainer controller", func() {
 				return k8sClient.Get(ctx, types.NamespacedName{Name: "falcon-sidecar-injector", Namespace: SidecarSensorNamespace}, found)
 			}, time.Minute, time.Second).Should(Succeed())
 
-			By("Checking if Deployment was successfully created in the reconciliation")
-			Eventually(func() error {
-				found := &appsv1.Deployment{}
-				return k8sClient.Get(ctx, types.NamespacedName{Name: "falcon-sidecar-injector", Namespace: SidecarSensorNamespace}, found)
-			}, time.Minute, time.Second).Should(Succeed())
-
 			By("Checking if Service was successfully created in the reconciliation")
 			Eventually(func() error {
 				found := &corev1.Service{}

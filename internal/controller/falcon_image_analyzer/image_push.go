@@ -41,7 +41,12 @@ func (r *FalconImageAnalyzerReconciler) PushImage(ctx context.Context, log logr.
 	}
 
 	log.Info("Found secret for image push", "Secret.Name", pushAuth.Name())
-	image := image.NewImageRefresher(ctx, log, r.falconApiConfig(ctx, falconImageAnalyzer), pushAuth, falconImageAnalyzer.Spec.Registry.TLS.InsecureSkipVerify)
+	falconApiConfig, err := r.falconApiConfig(ctx, falconImageAnalyzer)
+	if err != nil {
+		return err
+	}
+
+	image := image.NewImageRefresher(ctx, log, falconApiConfig, pushAuth, falconImageAnalyzer.Spec.Registry.TLS.InsecureSkipVerify)
 	version := falconImageAnalyzer.Spec.Version
 
 	tag, err := image.Refresh(registryUri, falcon.ImageSensor, version)
@@ -129,7 +134,7 @@ func (r *FalconImageAnalyzerReconciler) registryUri(ctx context.Context, falconI
 
 		return fmt.Sprintf("%s.azurecr.io/falcon-imageanalyzer", *falconImageAnalyzer.Spec.Registry.AcrName), nil
 	case falconv1alpha1.RegistryTypeCrowdStrike:
-		cloud, err := falconImageAnalyzer.Spec.FalconAPI.FalconCloud(ctx)
+		cloud, err := falconImageAnalyzer.Spec.FalconAPI.FalconCloudWithSecret(ctx, r.Reader, falconImageAnalyzer.Spec.FalconSecret)
 		if err != nil {
 			return "", err
 		}
@@ -194,7 +199,12 @@ func (r *FalconImageAnalyzerReconciler) setImageTag(ctx context.Context, falconI
 	}
 
 	// Otherwise, get the newest version matching the requested version string
-	registry, err := falcon_registry.NewFalconRegistry(ctx, r.falconApiConfig(ctx, falconImageAnalyzer))
+	falconApiConfig, err := r.falconApiConfig(ctx, falconImageAnalyzer)
+	if err != nil {
+		return "", err
+	}
+
+	registry, err := falcon_registry.NewFalconRegistry(ctx, falconApiConfig)
 	if err != nil {
 		return "", err
 	}
@@ -222,11 +232,18 @@ func (r *FalconImageAnalyzerReconciler) imageNamespace(falconImageAnalyzer *falc
 	return falconImageAnalyzer.Spec.InstallNamespace
 }
 
-func (r *FalconImageAnalyzerReconciler) falconApiConfig(ctx context.Context, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) *falcon.ApiConfig {
-	cfg := falconImageAnalyzer.Spec.FalconAPI.ApiConfig()
+func (r *FalconImageAnalyzerReconciler) falconApiConfig(
+	ctx context.Context,
+	falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer,
+) (*falcon.ApiConfig, error) {
+	cfg, apiConfigErr := falconImageAnalyzer.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Reader, falconImageAnalyzer.Spec.FalconSecret)
+	if apiConfigErr != nil {
+		return cfg, apiConfigErr
+	}
+
 	cfg.Context = ctx
 
-	return cfg
+	return cfg, nil
 }
 
 func (r *FalconImageAnalyzerReconciler) imageMirroringEnabled(falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) bool {

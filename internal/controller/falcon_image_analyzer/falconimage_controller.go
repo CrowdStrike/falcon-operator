@@ -13,6 +13,7 @@ import (
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_secret"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
@@ -210,8 +211,10 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 
-	if err = r.reconcileFalconSecret(ctx, falconImageAnalyzer); err != nil {
-		return ctrl.Result{}, err
+	if falconImageAnalyzer.Spec.FalconSecret.Enabled {
+		if err = r.injectFalconSecretData(ctx, falconImageAnalyzer); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	configUpdated, err := r.reconcileConfigMap(ctx, req, log, falconImageAnalyzer)
@@ -328,7 +331,12 @@ func (r *FalconImageAnalyzerReconciler) reconcileImageAnalyzerDeployment(ctx con
 }
 
 func (r *FalconImageAnalyzerReconciler) reconcileRegistrySecret(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) error {
-	pulltoken, err := pulltoken.CrowdStrike(ctx, r.falconApiConfig(ctx, falconImageAnalyzer))
+	falconApiConfig, err := r.falconApiConfig(ctx, falconImageAnalyzer)
+	if err != nil {
+		return err
+	}
+
+	pulltoken, err := pulltoken.CrowdStrike(ctx, falconApiConfig)
 	if err != nil {
 		return fmt.Errorf("unable to get registry pull token: %v", err)
 	}
@@ -442,27 +450,27 @@ func (r *FalconImageAnalyzerReconciler) imageAnalyzerDeploymentUpdate(ctx contex
 	return nil
 }
 
-func (r *FalconImageAnalyzerReconciler) reconcileFalconSecret(
+func (r *FalconImageAnalyzerReconciler) injectFalconSecretData(
 	ctx context.Context,
 	falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer,
 ) error {
-	if falconImageAnalyzer.Spec.FalconSecret.Enabled {
-		falconSecret := &corev1.Secret{}
-		falconSecretNamespacedName := types.NamespacedName{
-			Name:      falconImageAnalyzer.Spec.FalconSecret.SecretName,
-			Namespace: falconImageAnalyzer.Spec.FalconSecret.Namespace,
-		}
-
-		err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
-		if errors.IsNotFound(err) {
-			return err
-		}
-
-		clientId, clientSecret, cid := common.GetFalconCredsFromSecret(falconSecret)
-		falconImageAnalyzer.Spec.FalconAPI.ClientId = clientId
-		falconImageAnalyzer.Spec.FalconAPI.ClientSecret = clientSecret
-		falconImageAnalyzer.Spec.FalconAPI.CID = &cid
+	falconSecret := &corev1.Secret{}
+	falconSecretNamespacedName := types.NamespacedName{
+		Name:      falconImageAnalyzer.Spec.FalconSecret.SecretName,
+		Namespace: falconImageAnalyzer.Spec.FalconSecret.Namespace,
 	}
+
+	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
+	if apierrors.IsNotFound(err) {
+		return err
+	}
+
+	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
+	falconImageAnalyzer.Spec.FalconAPI.ClientId = clientId
+	falconImageAnalyzer.Spec.FalconAPI.ClientSecret = clientSecret
+
+	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
+	falconImageAnalyzer.Spec.FalconAPI.CID = &cid
 
 	return nil
 }
