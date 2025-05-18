@@ -26,5 +26,5 @@ func (reg *FalconRegistry) LastContainerTag(ctx context.Context, sensorType falc
 }
 
 func (fr *FalconRegistry) imageUriContainer(sensorType falcon.SensorType) string {
-	return falcon.FalconContainerSensorImageURI(fr.falconCloud, sensorType)
+	return falcon.FalconImageURIWithCSRegistryEnv(fr.falconCloud, sensorType, falcon.Stage)
 }

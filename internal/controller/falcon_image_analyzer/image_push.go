@@ -134,7 +134,7 @@ func (r *FalconImageAnalyzerReconciler) registryUri(ctx context.Context, falconI
 			return "", err
 		}
 
-		return falcon.FalconContainerSensorImageURI(cloud, falcon.ImageSensor), nil
+		return falcon.FalconImageURIWithCSRegistryEnv(cloud, falcon.ImageSensor, falcon.Stage), nil
 	default:
 		return "", fmt.Errorf("Unrecognized registry type: %s", falconImageAnalyzer.Spec.Registry.Type)
 	}

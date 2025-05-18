@@ -25,6 +25,8 @@ require (
 	sigs.k8s.io/controller-runtime v0.19.1
 )
 
+replace github.com/crowdstrike/gofalcon => github.com/mr-jungchoi/gofalcon v0.6.0-test
+
 require (
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect

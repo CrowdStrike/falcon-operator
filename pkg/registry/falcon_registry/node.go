@@ -21,7 +21,7 @@ func (reg *FalconRegistry) LastNodeTag(ctx context.Context, versionRequested *st
 }
 
 func ImageURINode(falconCloud falcon.CloudType) string {
-	return falcon.FalconContainerSensorImageURI(falconCloud, falcon.NodeSensor)
+	return falcon.FalconImageURIWithCSRegistryEnv(falconCloud, falcon.NodeSensor, falcon.Stage)
 }
 
 func (fr *FalconRegistry) imageUriNode() string {
