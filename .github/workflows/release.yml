@@ -3,17 +3,18 @@ name: Release
 on:
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+(-.*)?$"
 
 permissions:
   contents: write # publishing releases
+  packages: write # push images to GitHub container registry
 
 env:
   PROJECT_DIR: falcon-operator
   IMAGE_NAME: falcon-operator
   IMAGE_TAG: latest
-  IMAGE_REGISTRY: quay.io
-  IMAGE_NAMESPACE: crowdstrike
+  IMAGE_REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ${{ github.repository_owner }}
   RELEASE_TAG: ${{ github.ref_name }}
 
 jobs:
@@ -213,8 +214,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ${{ env.IMAGE_REGISTRY }}
-          username: ${{ secrets.REGISTRY_LOGIN }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Cross Compile Dockerfile
         run: sed -e '1 s/\(^FROM\)/FROM --platform=$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
