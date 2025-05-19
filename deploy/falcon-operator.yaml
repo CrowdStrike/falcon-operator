@@ -9376,8 +9376,7 @@ spec:
         - name: WATCH_NAMESPACE
         - name: OPERATOR_NAME
           value: falcon-operator
-        image: controller:latest
-        imagePullPolicy: Never
+        image: quay.io/crowdstrike/falcon-operator:1.4.0
         livenessProbe:
           httpGet:
             path: /healthz
