@@ -64,6 +64,31 @@ spec:
 | imageAnalyzerConfig.resources                 | (optional) Configure the resources of the Falcon Image Analyzer                                                                                                                                                  |
 | imageAnalyzerConfig.updateStrategy            | (optional) Configure the deployment update strategy of the Falcon Image Analyzer                                                                                                                                  |
 
+#### Falcon Secret Settings
+| Spec                    | Description                                                                                    |
+|:------------------------|:-----------------------------------------------------------------------------------------------|
+| falconSecret.enabled    | Enable reading sensitive Falcon API and Falcon sensor values from k8s secret; Default: `false` |
+| falconSecret.namespace  | Required if `enabled: true`; k8s namespace with relevant k8s secret                            |
+| falconSecret.secretName | Required if `enabled: true`; name of k8s secret with sensitive Falcon API and sensor values    |
+
+Falcon secret settings are used to read the following sensitive Falcon API and sensor values from an existing k8s secret on your cluster:
+
+| Secret Key                | Description                                                     |
+|:--------------------------|:----------------------------------------------------------------|
+| falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings)         |
+| falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings)     |
+| falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings)               |
+| falcon-provisioning-token | Replaces [`falcon.provisioning_token`](#falcon-sensor-settings) |
+
+Example of creating k8s secret with sensitive Falcon values:
+```bash
+kubectl create secret generic falcon-secrets -n $FALCON_SECRET_NAMESPACE \
+--from-literal=falcon-client-id=$FALCON_CLIENT_ID \
+--from-literal=falcon-client-secret=$FALCON_CLIENT_SECRET \
+--from-literal=falcon-cid=$FALCON_CID \
+--from-literal=falcon-provisioning-token=$FALCON_PROVISIONING_TOKEN
+```
+
 ### Auto Proxy Configuration
 
 {{ template "proxy.tmpl" . }}

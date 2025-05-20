@@ -200,7 +200,7 @@ type FalconAdmissionServiceAccount struct {
 
 type FalconAdmissionUpdateStrategy struct {
 	// RollingUpdate is used to specify the strategy used to roll out a deployment
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admisison Controller deployment update configuration",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller deployment update configuration",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
 	RollingUpdate appsv1.RollingUpdateDeployment `json:"rollingUpdate,omitempty"`
 }
 

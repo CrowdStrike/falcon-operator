@@ -134,7 +134,7 @@ func (r *FalconAdmissionReconciler) registryUri(ctx context.Context, falconAdmis
 
 		return fmt.Sprintf("%s.azurecr.io/falcon-kac", *falconAdmission.Spec.Registry.AcrName), nil
 	case falconv1alpha1.RegistryTypeCrowdStrike:
-		cloud, err := falconAdmission.Spec.FalconAPI.FalconCloudWithSecret(ctx, r.Client, falconAdmission.Spec.FalconSecret)
+		cloud, err := falconAdmission.Spec.FalconAPI.FalconCloudWithSecret(ctx, r.Reader, falconAdmission.Spec.FalconSecret)
 		if err != nil {
 			return "", err
 		}
