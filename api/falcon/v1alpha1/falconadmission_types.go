@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	DeployWatcherDefault     = true
-	SnapshotsEnabledDefault  = true
-	SnapshotsIntervalDefault = 22
-	WatcherEnabledDefault    = true
+	DeployWatcherDefault           = true
+	SnapshotsEnabledDefault        = true
+	SnapshotsIntervalDefault       = 22
+	WatcherEnabledDefault          = true
+	AdmissionControlEnabledDefault = true
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -133,6 +134,11 @@ type FalconAdmissionConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Resource Watcher",order=17
 	WatcherEnabled *bool `json:"watcherEnabled,omitempty"`
 
+	// Determines if the admission controller webhook is enabled
+	// +kubebuilder:default:=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Admission Controller",order=18
+	AdmissionControlEnabled *bool `json:"admissionControlEnabled,omitempty"`
+
 	// Currently ignored and internally set to 1
 	// +kubebuilder:default:=2
 	// +kubebuilder:validation:XIntOrString
@@ -153,6 +159,10 @@ type FalconAdmissionConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Client Resources",order=9,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	// +kubebuilder:default:={"limits":{"memory":"384Mi"},"requests":{"cpu":"250m","memory":"384Mi"}}
 	ResourcesClient *corev1.ResourceRequirements `json:"resourcesClient,omitempty"`
+
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Client Resources",order=9,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	// +kubebuilder:default:={"limits":{"memory":"128Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}
+	ResourcesClientNoWebhook *corev1.ResourceRequirements `json:"resourcesClientNoWebhook,omitempty"`
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Watcher Resources",order=14,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	// +kubebuilder:default:={"limits":{"memory":"384Mi"},"requests":{"cpu":"250m","memory":"384Mi"}}
@@ -274,4 +284,12 @@ func (watcher FalconAdmissionConfigSpec) GetWatcherEnabled() bool {
 	}
 
 	return *watcher.WatcherEnabled
+}
+
+func (ac *FalconAdmission) GetAdmissionControlEnabled() bool {
+	if ac.Spec.AdmissionConfig.AdmissionControlEnabled == nil {
+		return AdmissionControlEnabledDefault
+	}
+
+	return *ac.Spec.AdmissionConfig.AdmissionControlEnabled
 }

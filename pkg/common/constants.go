@@ -20,6 +20,7 @@ const (
 	FalconAdmissionServiceHTTPSName         = "webhook-port"
 	FalconServiceHTTPSName                  = "https"
 	FalconServiceHTTPSPort                  = 443
+	FalconAdmissionValidatingWebhookName    = "validating.admission.falcon.crowdstrike.com"
 
 	FalconInstanceNameKey    = "crowdstrike.com/name"
 	FalconInstanceKey        = "crowdstrike.com/instance"

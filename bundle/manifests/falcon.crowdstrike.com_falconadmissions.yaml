@@ -53,6 +53,11 @@ spec:
                 description: Additional configuration for Falcon Admission Controller
                   deployment.
                 properties:
+                  admissionControlEnabled:
+                    default: true
+                    description: Determines if the admission controller webhook is
+                      enabled
+                    type: boolean
                   containerPort:
                     default: 4443
                     description: Port on which the Falcon Admission Controller container

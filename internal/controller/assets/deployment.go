@@ -409,6 +409,10 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 		resourcesClient = falconAdmission.Spec.AdmissionConfig.ResourcesClient
 	}
 
+	if !falconAdmission.GetAdmissionControlEnabled() {
+		resourcesClient = falconAdmission.Spec.AdmissionConfig.ResourcesClientNoWebhook
+	}
+
 	if falconAdmission.Spec.AdmissionConfig.ResourcesWatcher != nil {
 		resourcesWatcher = falconAdmission.Spec.AdmissionConfig.ResourcesWatcher
 	}
