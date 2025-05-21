@@ -188,6 +188,16 @@ spec:
                         default: false
                         description: Enables the use of GKE Autopilot.
                         type: boolean
+                      cleanupAllowListVersion:
+                        description: Version of the GKE AutoPilot Cleanup Daemonset
+                          for allow list troubleshooting purposes
+                        pattern: ^v[0-9]+\.[0-9]+\.[0-9]+$
+                        type: string
+                      deployAllowListVersion:
+                        description: Version of the GKE AutoPilot Daemonset for allow
+                          list troubleshooting purposes.
+                        pattern: ^v[0-9]+\.[0-9]+\.[0-9]+$
+                        type: string
                     type: object
                   image:
                     description: Location of the Falcon Sensor image. Use only in

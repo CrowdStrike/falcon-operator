@@ -160,6 +160,16 @@ type AutoPilot struct {
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Enabled *bool `json:"autopilot,omitempty"`
+
+	// Version of the GKE AutoPilot Daemonset for allow list troubleshooting purposes.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +kubebuilder:validation:Pattern="^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+	DeployAllowListVersion *string `json:"deployAllowListVersion,omitempty"`
+
+	// Version of the GKE AutoPilot Cleanup Daemonset for allow list troubleshooting purposes
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +kubebuilder:validation:Pattern="^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+	CleanupAllowListVersion *string `json:"cleanupAllowListVersion,omitempty"`
 }
 
 type FalconNodeUpdateStrategy struct {

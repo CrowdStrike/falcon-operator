@@ -48,4 +48,10 @@ const (
 	AdmissionServiceAccountName = "falcon-operator-admission-controller"
 	NodeClusterRoleBindingName  = "falcon-operator-node-sensor-rolebinding"
 	ImageServiceAccountName     = "falcon-operator-image-analyzer"
+
+	// GKE Autopilot requires names to have an exact match for WorkloadAllowlists
+	GKEAutoPilotConfigMapName           = "falcon-node-sensor-config"
+	GKEAutoPilotAllowListLabelKey       = "cloud.google.com/matching-allowlist"
+	GKEAutoPilotDeployDSAllowlistPrefix = "crowdstrike-falconsensor-deploy-allowlist"
+	GKEAutoPilotCleanupAllowlistPrefix  = "crowdstrike-falconsensor-cleanup-allowlist"
 )

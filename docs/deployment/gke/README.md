@@ -375,7 +375,7 @@ Conceptually, the following tasks need to be done in order to enable GCR to pull
 
 <details>
   <summary>Click to expand</summary>
-  
+
 Using both `gcloud` and `kubectl` command-line tools, perform the following steps:
 
 - Set up your shell environment variables
@@ -449,7 +449,7 @@ Conceptually, the following tasks need to be done in order to enable GCR to pull
 
 <details>
   <summary>Click to expand</summary>
-  
+
 Using both `gcloud` and `kubectl` command-line tools, perform the following steps:
 
 - Set up your shell environment variables
@@ -503,4 +503,41 @@ Using both `gcloud` and `kubectl` command-line tools, perform the following step
   ```
 
 </details>
+</details>
+
+## Troubleshooting
+### GKE AutoPilot Installation Failures
+
+<details>
+  <summary>Click to expand</summary>
+
+If your cluster utilizes AllowListSynchronizers and WorkloadAllowlists, you may run into issues with the GKE AutoPilot validating webhooks. An example of such an error in the controller-manager logs is:
+```
+2025-05-07T16:36:52Z    ERROR    Failed to create new DaemonSet    {"controller": "falconnodesensor", "controllerGroup": "falcon.crowdstrike.com", "controllerKind": "FalconNodeSensor", "FalconNodeSensor": {"name":"falcon-node-sensor"}, "namespace": "", "name": "falcon-node-sensor", "reconcileID": "b9d23c0e-fff5-41ca-9457-a8692d59794e", "DaemonSet": {"name":"falcon-node-sensor"}, "error": "admission webhook \"warden-validating.common-webhooks.networking.gke.io\" denied the request: \n\n=======================================================================\nWorkload Mismatches Found for Allowlist (crowdstrike-falconsensor-deploy-allowlist-v1.0.2):\n=======================================================================\nContainer[0] (falcon-node-sensor):\n- EnvFrom Mismatch: Verify that both configMapRef & secretRef match allowlist value."}
+```
+WorkloadAllowlists can be retrieved with the following:
+```
+kubectl get workloadallowlists
+```
+
+Specific WorkloadAllowlists can be used for troubleshooting. For example, if you are having issues with the `falcon-node-sensor` DaemonSet, you can run the FalconNodeSensor deployment against the `crowdstrike-falconsensor-deploy-allowlist-v1.0.2` WorkloadAllowlist.
+```
+spec:
+  node:
+    gke:
+      autopilot: true
+      deployAllowListVersion: v1.0.2
+```
+
+Failures encountered with WorkloadAllowlist for the cleanup daemonset may require manual intervention to fully uninstall. If the daemonset gets stuck in a continuous loop, complete the following:
+```
+# Get the cleanup daemonset name
+kubectl get ds -n <namespace>
+
+# Remove the Finalizer
+kubectl patch daemonset <daemonset-name> -n <namespace> -p '{"metadata":{"finalizers":[]}}' --type=merge
+
+# Delete the FalconNodeSensor
+kubectl delete falconnodesensors --all
+```
 </details>
