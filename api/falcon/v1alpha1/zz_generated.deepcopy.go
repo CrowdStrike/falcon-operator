@@ -343,6 +343,11 @@ func (in *FalconAdmissionConfigSpec) DeepCopyInto(out *FalconAdmissionConfigSpec
 		*out = new(bool)
 		**out = **in
 	}
+	if in.AdmissionControlEnabled != nil {
+		in, out := &in.AdmissionControlEnabled, &out.AdmissionControlEnabled
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
 		*out = new(int32)
@@ -355,6 +360,11 @@ func (in *FalconAdmissionConfigSpec) DeepCopyInto(out *FalconAdmissionConfigSpec
 	}
 	if in.ResourcesClient != nil {
 		in, out := &in.ResourcesClient, &out.ResourcesClient
+		*out = new(corev1.ResourceRequirements)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.ResourcesClientNoWebhook != nil {
+		in, out := &in.ResourcesClientNoWebhook, &out.ResourcesClientNoWebhook
 		*out = new(corev1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}

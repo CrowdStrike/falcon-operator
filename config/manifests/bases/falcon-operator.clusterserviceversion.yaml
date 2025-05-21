@@ -247,6 +247,9 @@ spec:
       - description: Determines if Kubernetes resources are watched for cluster visibility.
         displayName: Enable Resource Watcher
         path: admissionConfig.watcherEnabled
+      - description: Determines if the admission controller webhook is enabled
+        displayName: Enable Admission Controller
+        path: admissionConfig.admissionControlEnabled
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: admissionConfig.nodeAffinity
@@ -384,7 +387,7 @@ spec:
       - displayName: Falcon Container Injector Resources
         path: injector.resources
       - description: Specifies node affinity for scheduling the Container Sensor.
-          Defaults to allowing scheduling is on amd64 linux nodes.
+          Only amd64 linux nodes are supported.
         displayName: Node Affinity
         path: nodeAffinity
       - description: Utilize default or Pay-As-You-Go billing.
@@ -1013,7 +1016,7 @@ spec:
       - displayName: Falcon Container Injector Resources
         path: falconContainerSensor.injector.resources
       - description: Specifies node affinity for scheduling the Container Sensor.
-          Defaults to allowing scheduling is on amd64 linux nodes.
+          Only amd64 linux nodes are supported.
         displayName: Node Affinity
         path: falconContainerSensor.nodeAffinity
       - description: Location of the Image Analyzer image. Use only in cases when
@@ -1144,6 +1147,9 @@ spec:
       - description: Determines if Kubernetes resources are watched for cluster visibility.
         displayName: Enable Resource Watcher
         path: falconAdmission.admissionConfig.watcherEnabled
+      - description: Determines if the admission controller webhook is enabled
+        displayName: Enable Admission Controller
+        path: falconAdmission.admissionConfig.admissionControlEnabled
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: falconAdmission.admissionConfig.nodeAffinity

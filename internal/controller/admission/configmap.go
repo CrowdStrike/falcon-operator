@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strconv"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
@@ -71,6 +72,7 @@ func (r *FalconAdmissionReconciler) newCABundleConfigMap(ctx context.Context, na
 func (r *FalconAdmissionReconciler) newConfigMap(ctx context.Context, name string, falconAdmission *falconv1alpha1.FalconAdmission) (*corev1.ConfigMap, error) {
 	var err error
 	data := common.MakeSensorEnvMap(falconAdmission.Spec.Falcon)
+	admissionControlEnabled := falconAdmission.GetAdmissionControlEnabled()
 
 	cid := ""
 	if falconAdmission.Spec.Falcon.CID != nil {
@@ -84,6 +86,7 @@ func (r *FalconAdmissionReconciler) newConfigMap(ctx context.Context, name strin
 		}
 	}
 	data["FALCONCTL_OPT_CID"] = cid
+	data["__CS_ADMISSION_CONTROL_ENABLED"] = strconv.FormatBool(admissionControlEnabled)
 
 	return assets.SensorConfigMap(name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, data), nil
 }
