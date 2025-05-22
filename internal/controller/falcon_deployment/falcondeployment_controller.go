@@ -103,13 +103,14 @@ func (r *FalconDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 	}
 
-	cloud, err := falconDeployment.Spec.FalconAPI.FalconCloud(ctx)
-	if err != nil {
-		log.Error(err, "Failed to get Cloud Region")
-		return ctrl.Result{}, err
-	}
-
-	falconDeployment.Spec.FalconAPI.CloudRegion = cloud.String()
+	// TODO: Disabling fetching falcon cloud region until FalconDeployment CR has FalconSecret spec
+	//cloud, err := falconDeployment.Spec.FalconAPI.FalconCloud(ctx)
+	//if err != nil {
+	//	log.Error(err, "Failed to get Cloud Region")
+	//	return ctrl.Result{}, err
+	//}
+	//
+	//falconDeployment.Spec.FalconAPI.CloudRegion = cloud.String()
 
 	if err = r.reconcileAdmissionController(ctx, log, falconDeployment); err != nil {
 		return ctrl.Result{}, err
