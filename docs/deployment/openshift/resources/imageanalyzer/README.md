@@ -31,12 +31,12 @@ spec:
 ### FalconImageAnalyzer Reference Manual
 
 #### Falcon API Settings
-| Spec                       | Description                                                                                              |
-| :------------------------- | :------------------------------------------------------------------------------------------------------- |
-| falcon_api.client_id       | CrowdStrike API Client ID                                                                                |
-| falcon_api.client_secret   | CrowdStrike API Client Secret                                                                            |
-| falcon_api.cloud_region    | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                      |
-| falcon_api.cid             | CrowdStrike Falcon CID                                                                                   |
+| Spec                     | Description                                                                                                                                                                                                                          |
+|:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| falcon_api.client_id     | (optional) CrowdStrike API Client ID                                                                                                                                                                                                 |
+| falcon_api.client_secret | (optional) CrowdStrike API Client Secret                                                                                                                                                                                             |
+| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover` |
+| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override                                                                                                                                                                                       |
 
 #### Falcon Image Analyzer Configuration Settings
 | Spec                                      | Description                                                                                                                                                                                                             |

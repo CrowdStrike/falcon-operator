@@ -45,12 +45,12 @@ spec:
 ### FalconContainer Reference Manual
 
 #### Falcon API Settings
-| Spec                       | Description                                                                                              |
-| :------------------------- | :------------------------------------------------------------------------------------------------------- |
-| falcon_api.client_id       | CrowdStrike API Client ID                                                                                |
-| falcon_api.client_secret   | CrowdStrike API Client Secret                                                                            |
-| falcon_api.cloud_region    | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                      |
-| falcon_api.cid             | (optional) CrowdStrike Falcon CID API override                                                           |
+| Spec                     | Description                                                                                                                                                                                                                    |
+|:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| falcon_api.client_id     | (optional) CrowdStrike API Client ID                                                                                                                                                                                           |
+| falcon_api.client_secret | (optional) CrowdStrike API Client Secret                                                                                                                                                                                       |
+| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover` |
+| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override                                                                                                                                                                                 |
 
 #### Sidecar Injection Configuration Settings
 | Spec                                      | Description                                                                                                                                                                                                             |
@@ -78,16 +78,16 @@ spec:
 | injector.disableDefaultPodInjection       | (optional) If set to true, disables default Falcon Container injection at the pod scope; pods requiring injection will need to be annotated as specified below                                                          |
 
 #### Falcon Sensor Settings
-| Spec                      | Description                                                                                 |
-|:--------------------------|:--------------------------------------------------------------------------------------------|
-| falcon.cid                | (optional) CrowdStrike Falcon CID override                                                  |
-| falcon.apd                | (optional) Configure Falcon Sensor to leverage a proxy host                                 |
-| falcon.aph                | (optional) Configure the host Falcon Sensor should leverage for proxying                    |
-| falcon.app                | (optional) Configure the port Falcon Sensor should leverage for proxying                    |
-| falcon.billing            | (optional) Configure Pay-as-You-Go (metered) billing rather than default billing            |
-| falcon.provisioning_token | (optional) Configure a Provisioning Token for CIDs with restricted AID provisioning enabled |
-| falcon.tags               | (optional) Configure Falcon Sensor Grouping Tags; comma-delimited                           |
-| falcon.trace              | (optional) Configure Falcon Sensor Trace Logging Level (none, err, warn, info, debug)       |
+| Spec                      | Description                                                                                                                                                                                        |
+|:--------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| falcon.cid                | (optional) CrowdStrike Falcon CID override;<br> [Falcon API credentials](#falcon-api-settings) or [Falcon Secret with credentials](#falcon-secret-settings) are required if this field is not set. |
+| falcon.apd                | (optional) Configure Falcon Sensor to leverage a proxy host                                                                                                                                        |
+| falcon.aph                | (optional) Configure the host Falcon Sensor should leverage for proxying                                                                                                                           |
+| falcon.app                | (optional) Configure the port Falcon Sensor should leverage for proxying                                                                                                                           |
+| falcon.billing            | (optional) Configure Pay-as-You-Go (metered) billing rather than default billing                                                                                                                   |
+| falcon.provisioning_token | (optional) Configure a Provisioning Token for CIDs with restricted AID provisioning enabled                                                                                                        |
+| falcon.tags               | (optional) Configure Falcon Sensor Grouping Tags; comma-delimited                                                                                                                                  |
+| falcon.trace              | (optional) Configure Falcon Sensor Trace Logging Level (none, err, warn, info, debug)                                                                                                              |
 
 #### Falcon Secret Settings
 | Spec                    | Description                                                                                    |

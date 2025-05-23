@@ -44,12 +44,12 @@ spec:
 > Multi architecture images will not automatically deploy to ARM64 clusters.
 
 #### Falcon API Settings
-| Spec                       | Description                                                                                              |
-| :------------------------- | :------------------------------------------------------------------------------------------------------- |
-| falcon_api.client_id       | CrowdStrike API Client ID                                                                                |
-| falcon_api.client_secret   | CrowdStrike API Client Secret                                                                            |
-| falcon_api.cloud_region    | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                      |
-| falcon_api.cid             | (optional) CrowdStrike Falcon CID API override                                                           |
+| Spec                     | Description                                                                                                                                                                                                                          |
+|:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| falcon_api.client_id     | (optional) CrowdStrike API Client ID                                                                                                                                                                                                 |
+| falcon_api.client_secret | (optional) CrowdStrike API Client Secret                                                                                                                                                                                             |
+| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover` |
+| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override                                                                                                                                                                                       |
 
 #### Admission Controller Configuration Settings
 | Spec                                      | Description                                                                                                                                                                                                             |
@@ -90,16 +90,16 @@ spec:
 > `admissionConfig.resourcesClient`, `admissionConfig.resourcesWatcher`, and `admissionConfig.resource` should all be updated appropriately based on the Kubernetes API usage within your cluster.
 
 #### Falcon Sensor Settings
-| Spec                      | Description                                                                                 |
-|:--------------------------|:--------------------------------------------------------------------------------------------|
-| falcon.cid                | (optional) CrowdStrike Falcon CID override                                                  |
-| falcon.apd                | (optional) Configure Falcon Sensor to leverage a proxy host                                 |
-| falcon.aph                | (optional) Configure the host Falcon Sensor should leverage for proxying                    |
-| falcon.app                | (optional) Configure the port Falcon Sensor should leverage for proxying                    |
-| falcon.billing            | (optional) Configure Pay-as-You-Go (metered) billing rather than default billing            |
-| falcon.provisioning_token | (optional) Configure a Provisioning Token for CIDs with restricted AID provisioning enabled |
-| falcon.tags               | (optional) Configure Falcon Sensor Grouping Tags; comma-delimited                           |
-| falcon.trace              | (optional) Configure Falcon Sensor Trace Logging Level (none, err, warn, info, debug)       |
+| Spec                      | Description                                                                                                                                                                                        |
+|:--------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| falcon.cid                | (optional) CrowdStrike Falcon CID override;<br> [Falcon API credentials](#falcon-api-settings) or [Falcon Secret with credentials](#falcon-secret-settings) are required if this field is not set. |
+| falcon.apd                | (optional) Configure Falcon Sensor to leverage a proxy host                                                                                                                                        |
+| falcon.aph                | (optional) Configure the host Falcon Sensor should leverage for proxying                                                                                                                           |
+| falcon.app                | (optional) Configure the port Falcon Sensor should leverage for proxying                                                                                                                           |
+| falcon.billing            | (optional) Configure Pay-as-You-Go (metered) billing rather than default billing                                                                                                                   |
+| falcon.provisioning_token | (optional) Configure a Provisioning Token for CIDs with restricted AID provisioning enabled                                                                                                        |
+| falcon.tags               | (optional) Configure Falcon Sensor Grouping Tags; comma-delimited                                                                                                                                  |
+| falcon.trace              | (optional) Configure Falcon Sensor Trace Logging Level (none, err, warn, info, debug)                                                                                                              |
 
 > [!IMPORTANT]
 > All arguments are optional, but successful deployment requires either **client_id and client_secret or the Falcon cid and image**. When deploying using the CrowdStrike Falcon API, the container image and CID will be fetched from CrowdStrike Falcon API. While in the latter case, the CID and image location is explicitly specified by the user.
