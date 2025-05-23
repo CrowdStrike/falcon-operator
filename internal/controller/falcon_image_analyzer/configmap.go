@@ -66,7 +66,7 @@ func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name s
 	data := map[string]string{}
 	cid := ""
 
-	if cid == "" && falconImageAnalyzer.Spec.FalconAPI != nil {
+	if falconImageAnalyzer.Spec.FalconAPI != nil {
 		cid, err = falcon_api.FalconCID(ctx, falconImageAnalyzer.Spec.FalconAPI.CID, falconImageAnalyzer.Spec.FalconAPI.ApiConfig())
 		if err != nil {
 			return &corev1.ConfigMap{}, err
@@ -77,7 +77,7 @@ func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name s
 		data["AGENT_CLIENT_ID"] = falconImageAnalyzer.Spec.FalconAPI.ClientId
 	}
 
-	if falconImageAnalyzer.Spec.FalconAPI.ClientId != "" {
+	if falconImageAnalyzer.Spec.FalconAPI.ClientSecret != "" {
 		data["AGENT_CLIENT_SECRET"] = falconImageAnalyzer.Spec.FalconAPI.ClientSecret
 	}
 

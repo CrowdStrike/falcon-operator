@@ -19,7 +19,7 @@ type FalconDeploymentSpec struct {
 	//
 	// If using the API is not desired, the sensor can be manually configured.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
-	FalconAPI *FalconAPI `json:"falcon_api"`
+	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
 	// Registry configures container image registry to which registry image will be pushed.
 	// +kubebuilder:default:={"type": "crowdstrike"}

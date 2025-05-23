@@ -11,6 +11,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/crowdstrike/falcon-operator/pkg/falcon_secret"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
@@ -154,7 +155,12 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if shouldTrackSensorVersions(falconContainer) {
-		getSensorVersion := sensorversion.NewFalconCloudQuery(falcon.SidecarSensor, r.falconApiConfig(ctx, falconContainer))
+		falconApiConfig, apiConfigErr := r.falconApiConfig(ctx, falconContainer)
+		if apiConfigErr != nil {
+			return ctrl.Result{}, apiConfigErr
+		}
+
+		getSensorVersion := sensorversion.NewFalconCloudQuery(falcon.SidecarSensor, falconApiConfig)
 		r.tracker.Track(req.NamespacedName, getSensorVersion, r.reconcileObjectWithName, falconContainer.Spec.Advanced.IsAutoUpdatingForced())
 	} else {
 		r.tracker.StopTracking(req.NamespacedName)
@@ -270,6 +276,12 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, fmt.Errorf("CA bundle not present in injector TLS Secret")
 	}
 
+	if falconContainer.Spec.FalconSecret.Enabled {
+		if err = r.injectFalconSecretData(ctx, falconContainer, log); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	if _, err = r.reconcileConfigMap(ctx, log, falconContainer); err != nil {
 		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile injector ConfigMap: %v", err))
 		if err != nil {
@@ -356,6 +368,38 @@ func (r *FalconContainerReconciler) reconcileObjectWithName(ctx context.Context,
 
 	log.FromContext(ctx).Info("reconciling FalconContainer object", "namespace", obj.Namespace, "name", obj.Name)
 	r.reconcileObject(obj)
+	return nil
+}
+
+func (r *FalconContainerReconciler) injectFalconSecretData(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer, logger logr.Logger) error {
+	logger.Info("injecting Falcon secret data into Spec.Falcon and Spec.FalconAPI - sensitive manifest values will be overwritten with values in k8s secret")
+	falconSecret := &corev1.Secret{}
+	falconSecretNamespacedName := types.NamespacedName{
+		Name:      falconContainer.Spec.FalconSecret.SecretName,
+		Namespace: falconContainer.Spec.FalconSecret.Namespace,
+	}
+
+	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
+	if errors.IsNotFound(err) {
+		return err
+	}
+
+	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
+	falconContainer.Spec.Falcon.CID = &cid
+
+	provisioningToken := falcon_secret.GetFalconProvisioningTokenFromSecret(falconSecret)
+	falconContainer.Spec.Falcon.PToken = provisioningToken
+
+	if falconContainer.Spec.FalconAPI == nil {
+		logger.Info("skipped injecting FalconAPI secrets - Spec.FalconAPI is nil")
+		return nil
+	}
+
+	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
+	falconContainer.Spec.FalconAPI.ClientId = clientId
+	falconContainer.Spec.FalconAPI.ClientSecret = clientSecret
+	falconContainer.Spec.FalconAPI.CID = &cid
+
 	return nil
 }
 
