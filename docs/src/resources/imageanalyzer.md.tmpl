@@ -71,14 +71,18 @@ spec:
 | falconSecret.namespace  | Required if `enabled: true`; k8s namespace with relevant k8s secret                            |
 | falconSecret.secretName | Required if `enabled: true`; name of k8s secret with sensitive Falcon API and sensor values    |
 
-Falcon secret settings are used to read the following sensitive Falcon API and sensor values from an existing k8s secret on your cluster:
+Falcon secret settings are used to read the following sensitive Falcon API and sensor values from an existing k8s secret on your cluster.
 
+> [!IMPORTANT]
+> When Falcon Secret is enabled, ALL spec parameters in the list of [secret keys](#secret-keys) will be overwritten.
+> If a key/value does not exist in your k8s secret, the value will be overwritten as an empty string.
+
+##### Secret Keys
 | Secret Key                | Description                                                     |
 |:--------------------------|:----------------------------------------------------------------|
 | falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings)         |
 | falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings)     |
 | falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings)               |
-| falcon-provisioning-token | Replaces [`falcon.provisioning_token`](#falcon-sensor-settings) |
 
 Example of creating k8s secret with sensitive Falcon values:
 ```bash
