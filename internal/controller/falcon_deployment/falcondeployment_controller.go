@@ -172,7 +172,6 @@ func (r *FalconDeploymentReconciler) reconcileAdmissionController(ctx context.Co
 			newFalconAdmission.Spec.FalconAPI = falconDeployment.Spec.FalconAdmission.FalconAPI
 		}
 
-		// newFalconAdmission.Spec.FalconAPI = falconDeployment.Spec.FalconAPI
 		newFalconAdmission.Spec.Registry = falconDeployment.Spec.Registry
 		newFalconAdmission.ObjectMeta = metav1.ObjectMeta{
 			Name:      "falcon-kac",
