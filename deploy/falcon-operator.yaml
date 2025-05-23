@@ -7606,8 +7606,6 @@ spec:
                 required:
                 - type
                 type: object
-            required:
-            - falcon_api
             type: object
           status:
             description: FalconDeploymentStatus defines the observed state of FalconDeployment

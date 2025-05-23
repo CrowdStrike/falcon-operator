@@ -261,9 +261,6 @@ var _ = Describe("FalconContainer controller", func() {
 				},
 				Spec: falconv1alpha1.FalconContainerSpec{
 					InstallNamespace: containerNamespacedName.Namespace,
-					FalconAPI: &falconv1alpha1.FalconAPI{
-						CloudRegion: "autodiscover",
-					},
 					FalconSecret: falconv1alpha1.FalconSecret{
 						Enabled:    true,
 						Namespace:  testSecretNamespace,

@@ -237,7 +237,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if falconAdmission.Spec.FalconSecret.Enabled {
-		if err = r.injectFalconSecretData(ctx, falconAdmission); err != nil {
+		if err = r.injectFalconSecretData(ctx, falconAdmission, log); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -737,7 +737,8 @@ func (r *FalconAdmissionReconciler) admissionDeploymentUpdate(ctx context.Contex
 	return nil
 }
 
-func (r *FalconAdmissionReconciler) injectFalconSecretData(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission) error {
+func (r *FalconAdmissionReconciler) injectFalconSecretData(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission, logger logr.Logger) error {
+	logger.Info("injecting Falcon secret data into Spec.Falcon and Spec.FalconAPI - sensitive manifest values will be overwritten with values in k8s secret")
 	falconSecret := &corev1.Secret{}
 	falconSecretNamespacedName := types.NamespacedName{
 		Name:      falconAdmission.Spec.FalconSecret.SecretName,
@@ -748,16 +749,21 @@ func (r *FalconAdmissionReconciler) injectFalconSecretData(ctx context.Context, 
 		return err
 	}
 
-	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
-	falconAdmission.Spec.FalconAPI.ClientId = clientId
-	falconAdmission.Spec.FalconAPI.ClientSecret = clientSecret
-
 	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
-	falconAdmission.Spec.FalconAPI.CID = &cid
 	falconAdmission.Spec.Falcon.CID = &cid
 
 	provisioningToken := falcon_secret.GetFalconProvisioningTokenFromSecret(falconSecret)
 	falconAdmission.Spec.Falcon.PToken = provisioningToken
+
+	if falconAdmission.Spec.FalconAPI == nil {
+		logger.Info("skipped injecting FalconAPI secrets - Spec.FalconAPI is nil")
+		return nil
+	}
+
+	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
+	falconAdmission.Spec.FalconAPI.ClientId = clientId
+	falconAdmission.Spec.FalconAPI.ClientSecret = clientSecret
+	falconAdmission.Spec.FalconAPI.CID = &cid
 
 	return nil
 }

@@ -263,10 +263,6 @@ var _ = Describe("FalconAdmission controller", func() {
 			Expect(err).To(Not(HaveOccurred()))
 
 			By("Creating the FalconAdmission CR with FalconSecret configured")
-			falconAdmission.Spec.FalconAPI = &falconv1alpha1.FalconAPI{
-				CloudRegion: "autodiscover",
-			}
-
 			falconAdmission.Spec.FalconSecret = falconv1alpha1.FalconSecret{
 				Enabled:    true,
 				Namespace:  testSecretNamespace,

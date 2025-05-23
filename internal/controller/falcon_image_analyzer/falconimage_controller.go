@@ -212,7 +212,7 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	if falconImageAnalyzer.Spec.FalconSecret.Enabled {
-		if err = r.injectFalconSecretData(ctx, falconImageAnalyzer); err != nil {
+		if err = r.injectFalconSecretData(ctx, falconImageAnalyzer, log); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -453,7 +453,14 @@ func (r *FalconImageAnalyzerReconciler) imageAnalyzerDeploymentUpdate(ctx contex
 func (r *FalconImageAnalyzerReconciler) injectFalconSecretData(
 	ctx context.Context,
 	falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer,
+	logger logr.Logger,
 ) error {
+	logger.Info("injecting Falcon secret data into Spec.Falcon and Spec.FalconAPI - sensitive manifest values will be overwritten with values in k8s secret")
+	if falconImageAnalyzer.Spec.FalconAPI == nil {
+		logger.Info("skipped injecting FalconAPI secrets - Spec.FalconAPI is nil")
+		return nil
+	}
+
 	falconSecret := &corev1.Secret{}
 	falconSecretNamespacedName := types.NamespacedName{
 		Name:      falconImageAnalyzer.Spec.FalconSecret.SecretName,
@@ -465,11 +472,11 @@ func (r *FalconImageAnalyzerReconciler) injectFalconSecretData(
 		return err
 	}
 
+	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
 	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
+
 	falconImageAnalyzer.Spec.FalconAPI.ClientId = clientId
 	falconImageAnalyzer.Spec.FalconAPI.ClientSecret = clientSecret
-
-	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
 	falconImageAnalyzer.Spec.FalconAPI.CID = &cid
 
 	return nil

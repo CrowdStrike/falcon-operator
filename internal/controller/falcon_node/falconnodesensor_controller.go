@@ -198,7 +198,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// Inject Falcon secrets before handling config map updates
 	if nodesensor.Spec.FalconSecret.Enabled {
-		if err = r.injectFalconSecretData(ctx, nodesensor); err != nil {
+		if err = r.injectFalconSecretData(ctx, nodesensor, logger); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -1085,7 +1085,8 @@ func shouldTrackSensorVersions(obj *falconv1alpha1.FalconNodeSensor) bool {
 	return obj.Spec.FalconAPI != nil && obj.Spec.Node.Advanced.IsAutoUpdating()
 }
 
-func (r *FalconNodeSensorReconciler) injectFalconSecretData(ctx context.Context, nodeSensor *falconv1alpha1.FalconNodeSensor) error {
+func (r *FalconNodeSensorReconciler) injectFalconSecretData(ctx context.Context, nodeSensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
+	logger.Info("injecting Falcon secret data into Spec.Falcon and Spec.FalconAPI - sensitive manifest values will be overwritten with values in k8s secret")
 	falconSecret := &corev1.Secret{}
 	falconSecretNamespacedName := types.NamespacedName{
 		Name:      nodeSensor.Spec.FalconSecret.SecretName,
@@ -1097,16 +1098,21 @@ func (r *FalconNodeSensorReconciler) injectFalconSecretData(ctx context.Context,
 		return err
 	}
 
-	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
-	nodeSensor.Spec.FalconAPI.ClientId = clientId
-	nodeSensor.Spec.FalconAPI.ClientSecret = clientSecret
-
 	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
-	nodeSensor.Spec.FalconAPI.CID = &cid
 	nodeSensor.Spec.Falcon.CID = &cid
 
 	provisioningToken := falcon_secret.GetFalconProvisioningTokenFromSecret(falconSecret)
 	nodeSensor.Spec.Falcon.PToken = provisioningToken
+
+	if nodeSensor.Spec.FalconAPI == nil {
+		logger.Info("skipped injecting FalconAPI secrets - Spec.FalconAPI is nil")
+		return nil
+	}
+
+	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
+	nodeSensor.Spec.FalconAPI.ClientId = clientId
+	nodeSensor.Spec.FalconAPI.ClientSecret = clientSecret
+	nodeSensor.Spec.FalconAPI.CID = &cid
 
 	return nil
 }

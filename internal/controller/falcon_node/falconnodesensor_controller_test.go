@@ -241,9 +241,6 @@ var _ = Describe("FalconNodeSensor controller", func() {
 					Node: falconv1alpha1.FalconNodeSensorConfig{
 						Image: "example.com/image:test",
 					},
-					FalconAPI: &falconv1alpha1.FalconAPI{
-						CloudRegion: "autodiscover",
-					},
 					FalconSecret: falconv1alpha1.FalconSecret{
 						Enabled:    true,
 						Namespace:  testSecretNamespace,

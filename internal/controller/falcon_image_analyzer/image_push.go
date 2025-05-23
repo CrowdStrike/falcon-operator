@@ -236,14 +236,9 @@ func (r *FalconImageAnalyzerReconciler) falconApiConfig(
 	ctx context.Context,
 	falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer,
 ) (*falcon.ApiConfig, error) {
-	cfg, apiConfigErr := falconImageAnalyzer.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Reader, falconImageAnalyzer.Spec.FalconSecret)
-	if apiConfigErr != nil {
-		return cfg, apiConfigErr
-	}
-
+	cfg, err := falconImageAnalyzer.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Reader, falconImageAnalyzer.Spec.FalconSecret)
 	cfg.Context = ctx
-
-	return cfg, nil
+	return cfg, err
 }
 
 func (r *FalconImageAnalyzerReconciler) imageMirroringEnabled(falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) bool {
