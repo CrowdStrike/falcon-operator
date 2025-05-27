@@ -31,12 +31,12 @@ spec:
 ### FalconImageAnalyzer Reference Manual
 
 #### Falcon API Settings
-| Spec                       | Description                                                                                              |
-| :------------------------- | :------------------------------------------------------------------------------------------------------- |
-| falcon_api.client_id       | CrowdStrike API Client ID                                                                                |
-| falcon_api.client_secret   | CrowdStrike API Client Secret                                                                            |
-| falcon_api.cloud_region    | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                      |
-| falcon_api.cid             | CrowdStrike Falcon CID                                                                                   |
+| Spec                     | Description                                                                                                                                                                                                                          |
+|:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| falcon_api.client_id     | (optional) CrowdStrike API Client ID                                                                                                                                                                                                 |
+| falcon_api.client_secret | (optional) CrowdStrike API Client Secret                                                                                                                                                                                             |
+| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover` |
+| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override                                                                                                                                                                                       |
 
 #### Falcon Image Analyzer Configuration Settings
 | Spec                                      | Description                                                                                                                                                                                                             |
@@ -63,6 +63,35 @@ spec:
 | imageAnalyzerConfig.registryConfig.credentials | (optional) Use this to provide registry secrets in the form of a list of maps. e.g.<pre>- namespace: ns1<br>&nbsp;&nbsp;secretName: mysecretname</pre>To scan OpenShift control plane components, specify the cluster's pull secret: <pre>- namespace: openshift-config<br>&nbsp;&nbsp;secretName: pull-secret</pre>  |
 | imageAnalyzerConfig.resources                 | (optional) Configure the resources of the Falcon Image Analyzer                                                                                                                                                  |
 | imageAnalyzerConfig.updateStrategy            | (optional) Configure the deployment update strategy of the Falcon Image Analyzer                                                                                                                                  |
+
+#### Falcon Secret Settings
+| Spec                    | Description                                                                                    |
+|:------------------------|:-----------------------------------------------------------------------------------------------|
+| falconSecret.enabled    | Enable reading sensitive Falcon API and Falcon sensor values from k8s secret; Default: `false` |
+| falconSecret.namespace  | Required if `enabled: true`; k8s namespace with relevant k8s secret                            |
+| falconSecret.secretName | Required if `enabled: true`; name of k8s secret with sensitive Falcon API and sensor values    |
+
+Falcon secret settings are used to read the following sensitive Falcon API and sensor values from an existing k8s secret on your cluster.
+
+> [!IMPORTANT]
+> When Falcon Secret is enabled, ALL spec parameters in the list of [secret keys](#secret-keys) will be overwritten.
+> If a key/value does not exist in your k8s secret, the value will be overwritten as an empty string.
+
+##### Secret Keys
+| Secret Key                | Description                                                                                                     |
+|:--------------------------|:----------------------------------------------------------------------------------------------------------------|
+| falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined     |
+| falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined |
+| falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined           |
+
+Example of creating k8s secret with sensitive Falcon values:
+```bash
+kubectl create secret generic falcon-secrets -n $FALCON_SECRET_NAMESPACE \
+--from-literal=falcon-client-id=$FALCON_CLIENT_ID \
+--from-literal=falcon-client-secret=$FALCON_CLIENT_SECRET \
+--from-literal=falcon-cid=$FALCON_CID \
+--from-literal=falcon-provisioning-token=$FALCON_PROVISIONING_TOKEN
+```
 
 ### Auto Proxy Configuration
 
