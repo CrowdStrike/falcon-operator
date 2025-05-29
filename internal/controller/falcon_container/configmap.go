@@ -80,6 +80,10 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.L
 		data["INJECTION_DEFAULT_DISABLED"] = "T"
 	}
 
+	if falconContainer.Spec.Injector.AlternateMountPath {
+		data["FALCON_MOUNT_ENABLED"] = "T"
+	}
+
 	cid := ""
 	if falconContainer.Spec.Falcon.CID != nil {
 		cid = *falconContainer.Spec.Falcon.CID
