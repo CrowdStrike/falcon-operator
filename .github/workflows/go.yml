@@ -96,7 +96,7 @@ jobs:
           fi
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
           args: "--out-${NO_FUTURE}format colored-line-number --timeout=5m12s"
           skip-pkg-cache: true
