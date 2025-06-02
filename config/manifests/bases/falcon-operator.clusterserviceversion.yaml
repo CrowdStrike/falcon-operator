@@ -52,13 +52,16 @@ spec:
         - urn:alm:descriptor:com.tectonic.ui:number
       - description: RollingUpdate is used to specify the strategy used to roll out
           a deployment
-        displayName: Falcon Admisison Controller deployment update configuration
+        displayName: Falcon Admission Controller deployment update configuration
         path: admissionConfig.updateStrategy.rollingUpdate
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:updateStrategy
       - description: Falcon Customer ID (CID)
         displayName: Falcon Customer ID (CID)
         path: falcon.cid
+      - description: Enable injecting sensitive Falcon values from existing k8s secret
+        displayName: Falcon Secret Enabled
+        path: falconSecret.enabled
       - description: Falcon OAuth2 API Client ID
         displayName: Client ID
         path: falcon_api.client_id
@@ -95,6 +98,9 @@ spec:
           accidentally or maliciously added to your customer ID (CID).
         displayName: Provisioning Token
         path: falcon.provisioning_token
+      - description: Namespace where the Falcon k8s secret is located.
+        displayName: Falcon Secret Namespace
+        path: falconSecret.namespace
       - description: |-
           FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 
@@ -132,6 +138,9 @@ spec:
         path: falcon.apd
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: SecretName of the existing Falcon k8s secret
+        displayName: Falcon Secret SecretName
+        path: falconSecret.secretName
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
@@ -197,26 +206,39 @@ spec:
       - description: Set sensor trace level.
         displayName: Trace Level
         path: falcon.trace
-      - description: Location of the Falcon Sensor image. Use only in cases when you
-          mirror the original image to your repository/name:tag, and CrowdStrike OAuth2
-          API is not used.
-        displayName: Falcon Admission Controller Image URI
-        path: image
+      - description: |-
+          FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+          The following Falcon values are supported by k8s secret injection:
+            falcon-cid
+            falcon-provisioning-token
+            falcon-client-id
+            falcon-client-secret
+        displayName: Falcon Platform Secrets Configuration
+        path: falconSecret
       - description: Configure TLS setings for the Falcon Admission Controller
         displayName: Falcon Admission Controller TLS Configuration
         path: admissionConfig.tls
       - description: Utilize default or Pay-As-You-Go billing.
         displayName: Billing
         path: falcon.billing
+      - description: Location of the Falcon Sensor image. Use only in cases when you
+          mirror the original image to your repository/name:tag, and CrowdStrike OAuth2
+          API is not used.
+        displayName: Falcon Admission Controller Image URI
+        path: image
+      - displayName: Falcon Admission Controller Client Resources
+        path: admissionConfig.resourcesClient
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - displayName: Falcon Admission Controller Client Resources
+        path: admissionConfig.resourcesClientNoWebhook
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
       - description: 'Falcon Admission Controller Version. The latest version will
           be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409,
           etc.'
         displayName: Falcon Admission Controller Version
         path: version
-      - displayName: Falcon Admission Controller Client Resources
-        path: admissionConfig.resourcesClient
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
       - displayName: Falcon Admission Controller Resources
         path: admissionConfig.resources
         x-descriptors:
@@ -268,6 +290,9 @@ spec:
       - description: Falcon Customer ID (CID)
         displayName: Falcon Customer ID (CID)
         path: falcon.cid
+      - description: Enable injecting sensitive Falcon values from existing k8s secret
+        displayName: Falcon Secret Enabled
+        path: falconSecret.enabled
       - description: Falcon OAuth2 API Client ID
         displayName: Client ID
         path: falcon_api.client_id
@@ -306,6 +331,9 @@ spec:
           accidentally or maliciously added to your customer ID (CID).
         displayName: Provisioning Token
         path: falcon.provisioning_token
+      - description: Namespace where the Falcon k8s secret is located.
+        displayName: Falcon Secret Namespace
+        path: falconSecret.namespace
       - description: FalconAPI configures connection from your local Falcon operator
           to CrowdStrike Falcon platform.
         displayName: Falcon Platform API Configuration
@@ -330,6 +358,9 @@ spec:
         path: falcon.apd
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: SecretName of the existing Falcon k8s secret
+        displayName: Falcon Secret SecretName
+        path: falconSecret.secretName
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
@@ -368,6 +399,15 @@ spec:
         path: falcon.app
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+      - description: |-
+          FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+          The following Falcon values are supported by k8s secret injection:
+            falcon-cid
+            falcon-provisioning-token
+            falcon-client-id
+            falcon-client-secret
+        displayName: Falcon Platform Secrets Configuration
+        path: falconSecret
       - displayName: Falcon Container Image Pull Secret Name
         path: injector.imagePullSecret
       - description: 'Sensor grouping tags are optional, user-defined identifiers
@@ -377,10 +417,6 @@ spec:
         path: falcon.tags
       - displayName: Falcon Container Shared Log Volume
         path: injector.logVolume
-      - description: Falcon Container Version. The latest version will be selected
-          when version specifier is missing; ignored when Image is set.
-        displayName: Falcon Container Image Version
-        path: version
       - description: Set sensor trace level.
         displayName: Trace Level
         path: falcon.trace
@@ -390,6 +426,10 @@ spec:
           Only amd64 linux nodes are supported.
         displayName: Node Affinity
         path: nodeAffinity
+      - description: Falcon Container Version. The latest version will be selected
+          when version specifier is missing; ignored when Image is set.
+        displayName: Falcon Container Image Version
+        path: version
       - description: Utilize default or Pay-As-You-Go billing.
         displayName: Billing
         path: falcon.billing
@@ -441,13 +481,16 @@ spec:
         - urn:alm:descriptor:com.tectonic.ui:number
       - description: RollingUpdate is used to specify the strategy used to roll out
           a deployment
-        displayName: Falcon Admisison Controller deployment update configuration
+        displayName: Falcon Admission Controller deployment update configuration
         path: falconAdmission.admissionConfig.updateStrategy.rollingUpdate
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:updateStrategy
       - description: Falcon Customer ID (CID)
         displayName: Falcon Customer ID (CID)
         path: falconAdmission.falcon.cid
+      - description: Enable injecting sensitive Falcon values from existing k8s secret
+        displayName: Falcon Secret Enabled
+        path: falconAdmission.falconSecret.enabled
       - description: Falcon OAuth2 API Client ID
         displayName: Client ID
         path: falconAdmission.falcon_api.client_id
@@ -485,6 +528,9 @@ spec:
       - description: Falcon Customer ID (CID)
         displayName: Falcon Customer ID (CID)
         path: falconContainerSensor.falcon.cid
+      - description: Enable injecting sensitive Falcon values from existing k8s secret
+        displayName: Falcon Secret Enabled
+        path: falconContainerSensor.falconSecret.enabled
       - description: Falcon OAuth2 API Client ID
         displayName: Client ID
         path: falconContainerSensor.falcon_api.client_id
@@ -513,6 +559,9 @@ spec:
       - description: Type of container registry to be used
         displayName: Registry Type
         path: falconContainerSensor.registry.type
+      - description: Enable injecting sensitive Falcon values from existing k8s secret
+        displayName: Falcon Secret Enabled
+        path: falconImageAnalyzer.falconSecret.enabled
       - description: Falcon OAuth2 API Client ID
         displayName: Client ID
         path: falconImageAnalyzer.falcon_api.client_id
@@ -564,6 +613,9 @@ spec:
       - description: Falcon Customer ID (CID)
         displayName: Falcon Customer ID (CID)
         path: falconNodeSensor.falcon.cid
+      - description: Enable injecting sensitive Falcon values from existing k8s secret
+        displayName: Falcon Secret Enabled
+        path: falconNodeSensor.falconSecret.enabled
       - description: |-
           FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 
@@ -618,6 +670,9 @@ spec:
           accidentally or maliciously added to your customer ID (CID).
         displayName: Provisioning Token
         path: falconAdmission.falcon.provisioning_token
+      - description: Namespace where the Falcon k8s secret is located.
+        displayName: Falcon Secret Namespace
+        path: falconAdmission.falconSecret.namespace
       - description: |-
           FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 
@@ -651,6 +706,9 @@ spec:
           accidentally or maliciously added to your customer ID (CID).
         displayName: Provisioning Token
         path: falconContainerSensor.falcon.provisioning_token
+      - description: Namespace where the Falcon k8s secret is located.
+        displayName: Falcon Secret Namespace
+        path: falconContainerSensor.falconSecret.namespace
       - description: FalconAPI configures connection from your local Falcon operator
           to CrowdStrike Falcon platform.
         displayName: Falcon Platform API Configuration
@@ -670,6 +728,9 @@ spec:
           or base64 encoded string
         displayName: Registry CA Certificate Bundle; optionally (double) base64 encoded
         path: falconContainerSensor.registry.tls.caCertificate
+      - description: Namespace where the Falcon k8s secret is located.
+        displayName: Falcon Secret Namespace
+        path: falconImageAnalyzer.falconSecret.namespace
       - description: |-
           FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 
@@ -703,6 +764,9 @@ spec:
           accidentally or maliciously added to your customer ID (CID).
         displayName: Provisioning Token
         path: falconNodeSensor.falcon.provisioning_token
+      - description: Namespace where the Falcon k8s secret is located.
+        displayName: Falcon Secret Namespace
+        path: falconNodeSensor.falconSecret.namespace
       - description: Falcon OAuth2 API Client Secret
         displayName: Client Secret
         path: falconNodeSensor.falcon_api.client_secret
@@ -762,6 +826,9 @@ spec:
         path: falconAdmission.falcon.apd
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: SecretName of the existing Falcon k8s secret
+        displayName: Falcon Secret SecretName
+        path: falconAdmission.falconSecret.secretName
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
@@ -781,6 +848,9 @@ spec:
         path: falconContainerSensor.falcon.apd
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: SecretName of the existing Falcon k8s secret
+        displayName: Falcon Secret SecretName
+        path: falconContainerSensor.falconSecret.secretName
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
@@ -801,10 +871,16 @@ spec:
         path: falconContainerSensor.registry.tls.caCertificateConfigMap
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap
+      - description: SecretName of the existing Falcon k8s secret
+        displayName: Falcon Secret SecretName
+        path: falconImageAnalyzer.falconSecret.secretName
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falconImageAnalyzer.falcon_api.cloud_region
+      - description: Additional configuration for Falcon Image Analyzer deployment.
+        displayName: Falcon Image Analyzer Configuration
+        path: falconImageAnalyzer.imageAnalyzerConfig
       - description: ImagePullSecrets is an optional list of references to secrets
           to use for pulling image from the image location.
         displayName: Falcon Image Analyzer Image Pull Secrets
@@ -826,6 +902,9 @@ spec:
         path: falconNodeSensor.falcon.apd
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: SecretName of the existing Falcon k8s secret
+        displayName: Falcon Secret SecretName
+        path: falconNodeSensor.falconSecret.secretName
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
@@ -900,6 +979,10 @@ spec:
         path: falconImageAnalyzer.imageAnalyzerConfig.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Registry configures container image registry to which the Image
+          Analyzer image will be pushed.
+        displayName: Falcon Image Analyzer Registry Configuration
+        path: falconImageAnalyzer.registry
       - description: The application proxy host to use for Falcon sensor proxy configuration.
         displayName: Falcon Proxy Host
         path: falconNodeSensor.falcon.aph
@@ -936,11 +1019,25 @@ spec:
         path: falconContainerSensor.falcon.app
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+      - description: |-
+          FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+          The following Falcon values are supported by k8s secret injection:
+            falcon-cid
+            falcon-provisioning-token
+            falcon-client-id
+            falcon-client-secret
+        displayName: Falcon Platform Secrets Configuration
+        path: falconContainerSensor.falconSecret
       - displayName: Falcon Container Image Pull Secret Name
         path: falconContainerSensor.injector.imagePullSecret
-      - description: Additional configuration for Falcon Image Analyzer deployment.
-        displayName: Falcon Image Analyzer Configuration
-        path: falconImageAnalyzer.imageAnalyzerConfig
+      - description: |-
+          FalconSecret config is used to inject k8s secrets with sensitive data for the FalconAPI.
+          The following Falcon values are supported by k8s secret injection:
+            falcon-cid
+            falcon-client-id
+            falcon-client-secret
+        displayName: Falcon Platform Secrets Configuration
+        path: falconImageAnalyzer.falconSecret
       - displayName: Azure Config file path
         path: falconImageAnalyzer.imageAnalyzerConfig.azureConfigPath
       - description: The application proxy port to use for Falcon sensor proxy configuration.
@@ -948,6 +1045,15 @@ spec:
         path: falconNodeSensor.falcon.app
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+      - description: |-
+          FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+          The following Falcon values are supported by k8s secret injection:
+            falcon-cid
+            falcon-provisioning-token
+            falcon-client-id
+            falcon-client-secret
+        displayName: Falcon Platform Secrets Configuration
+        path: falconNodeSensor.falconSecret
       - description: Specifies node affinity for scheduling the DaemonSet. Defaults
           to allowing scheduling on all nodes.
         displayName: Node Affinity
@@ -974,17 +1080,13 @@ spec:
         path: falconContainerSensor.falcon.tags
       - displayName: Falcon Container Shared Log Volume
         path: falconContainerSensor.injector.logVolume
-      - description: Falcon Container Version. The latest version will be selected
-          when version specifier is missing; ignored when Image is set.
-        displayName: Falcon Container Image Version
-        path: falconContainerSensor.version
+      - description: Location of the Image Analyzer image. Use only in cases when
+          you mirror the original image to your repository/name:tag
+        displayName: Falcon Image Analyzer Image URI
+        path: falconImageAnalyzer.image
       - description: Enable priority class for the Falcon Image Analyzer deployment.
         displayName: Priority Class
         path: falconImageAnalyzer.imageAnalyzerConfig.priorityClass
-      - description: Registry configures container image registry to which the Image
-          Analyzer image will be pushed.
-        displayName: Falcon Image Analyzer Registry Configuration
-        path: falconImageAnalyzer.registry
       - description: 'Sensor grouping tags are optional, user-defined identifiers
           that can used to group and filter hosts. Allowed characters: all alphanumerics,
           ''/'', ''-'', and ''_''.'
@@ -1005,11 +1107,15 @@ spec:
       - description: Set sensor trace level.
         displayName: Trace Level
         path: falconAdmission.falcon.trace
-      - description: Location of the Falcon Sensor image. Use only in cases when you
-          mirror the original image to your repository/name:tag, and CrowdStrike OAuth2
-          API is not used.
-        displayName: Falcon Admission Controller Image URI
-        path: falconAdmission.image
+      - description: |-
+          FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+          The following Falcon values are supported by k8s secret injection:
+            falcon-cid
+            falcon-provisioning-token
+            falcon-client-id
+            falcon-client-secret
+        displayName: Falcon Platform Secrets Configuration
+        path: falconAdmission.falconSecret
       - description: Set sensor trace level.
         displayName: Trace Level
         path: falconContainerSensor.falcon.trace
@@ -1019,14 +1125,18 @@ spec:
           Only amd64 linux nodes are supported.
         displayName: Node Affinity
         path: falconContainerSensor.nodeAffinity
-      - description: Location of the Image Analyzer image. Use only in cases when
-          you mirror the original image to your repository/name:tag
-        displayName: Falcon Image Analyzer Image URI
-        path: falconImageAnalyzer.image
+      - description: Falcon Container Version. The latest version will be selected
+          when version specifier is missing; ignored when Image is set.
+        displayName: Falcon Container Image Version
+        path: falconContainerSensor.version
       - description: Type of Deployment update. Can be "RollingUpdate" or "OnDelete".
           Default is RollingUpdate.
         displayName: Deployment Update Strategy
         path: falconImageAnalyzer.imageAnalyzerConfig.updateStrategy
+      - description: 'Falcon Image Analyzer Version. The latest version will be selected
+          when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.'
+        displayName: Falcon Image Analyzer Version
+        path: falconImageAnalyzer.version
       - description: Set sensor trace level.
         displayName: Trace Level
         path: falconNodeSensor.falcon.trace
@@ -1043,11 +1153,11 @@ spec:
       - description: Utilize default or Pay-As-You-Go billing.
         displayName: Billing
         path: falconAdmission.falcon.billing
-      - description: 'Falcon Admission Controller Version. The latest version will
-          be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409,
-          etc.'
-        displayName: Falcon Admission Controller Version
-        path: falconAdmission.version
+      - description: Location of the Falcon Sensor image. Use only in cases when you
+          mirror the original image to your repository/name:tag, and CrowdStrike OAuth2
+          API is not used.
+        displayName: Falcon Admission Controller Image URI
+        path: falconAdmission.image
       - description: Utilize default or Pay-As-You-Go billing.
         displayName: Billing
         path: falconContainerSensor.falcon.billing
@@ -1056,10 +1166,6 @@ spec:
       - description: Set the falcon image analyzer volume size limit.
         displayName: Falcon Image Analyzer Volume Size Limit
         path: falconImageAnalyzer.imageAnalyzerConfig.sizeLimit
-      - description: 'Falcon Image Analyzer Version. The latest version will be selected
-          when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.'
-        displayName: Falcon Image Analyzer Version
-        path: falconImageAnalyzer.version
       - description: Utilize default or Pay-As-You-Go billing.
         displayName: Billing
         path: falconNodeSensor.falcon.billing
@@ -1072,6 +1178,15 @@ spec:
         path: falconAdmission.admissionConfig.resourcesClient
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - displayName: Falcon Admission Controller Client Resources
+        path: falconAdmission.admissionConfig.resourcesClientNoWebhook
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: 'Falcon Admission Controller Version. The latest version will
+          be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409,
+          etc.'
+        displayName: Falcon Admission Controller Version
+        path: falconAdmission.version
       - displayName: Falcon Container Additional Environment Variables
         path: falconContainerSensor.injector.additionalEnvironmentVariables
       - description: Set the falcon image analyzer volume mount path.
@@ -1172,6 +1287,14 @@ spec:
       - description: Enables the use of GKE Autopilot.
         displayName: Enabled
         path: falconNodeSensor.node.gke.autopilot
+      - description: Version of the GKE AutoPilot Cleanup Daemonset for allow list
+          troubleshooting purposes
+        displayName: Cleanup Allow List Version
+        path: falconNodeSensor.node.gke.cleanupAllowListVersion
+      - description: Version of the GKE AutoPilot Daemonset for allow list troubleshooting
+          purposes.
+        displayName: Deploy Allow List Version
+        path: falconNodeSensor.node.gke.deployAllowListVersion
       - description: Sets the resource limits for the DaemonSet Sensor. Only applies
           when using the eBPF backend.
         displayName: Limits
@@ -1212,6 +1335,9 @@ spec:
       kind: FalconImageAnalyzer
       name: falconimageanalyzers.falcon.crowdstrike.com
       specDescriptors:
+      - description: Enable injecting sensitive Falcon values from existing k8s secret
+        displayName: Falcon Secret Enabled
+        path: falconSecret.enabled
       - description: Falcon OAuth2 API Client ID
         displayName: Client ID
         path: falcon_api.client_id
@@ -1260,6 +1386,9 @@ spec:
       - description: Type of container registry to be used
         displayName: Registry Type
         path: registry.type
+      - description: Namespace where the Falcon k8s secret is located.
+        displayName: Falcon Secret Namespace
+        path: falconSecret.namespace
       - description: |-
           FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 
@@ -1287,10 +1416,16 @@ spec:
           or base64 encoded string
         displayName: Registry CA Certificate Bundle; optionally (double) base64 encoded
         path: registry.tls.caCertificate
+      - description: SecretName of the existing Falcon k8s secret
+        displayName: Falcon Secret SecretName
+        path: falconSecret.secretName
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falcon_api.cloud_region
+      - description: Additional configuration for Falcon Image Analyzer deployment.
+        displayName: Falcon Image Analyzer Configuration
+        path: imageAnalyzerConfig
       - description: ImagePullSecrets is an optional list of references to secrets
           to use for pulling image from the image location.
         displayName: Falcon Image Analyzer Image Pull Secrets
@@ -1315,33 +1450,38 @@ spec:
         path: imageAnalyzerConfig.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: Additional configuration for Falcon Image Analyzer deployment.
-        displayName: Falcon Image Analyzer Configuration
-        path: imageAnalyzerConfig
-      - displayName: Azure Config file path
-        path: imageAnalyzerConfig.azureConfigPath
-      - description: Enable priority class for the Falcon Image Analyzer deployment.
-        displayName: Priority Class
-        path: imageAnalyzerConfig.priorityClass
       - description: Registry configures container image registry to which the Image
           Analyzer image will be pushed.
         displayName: Falcon Image Analyzer Registry Configuration
         path: registry
+      - description: |-
+          FalconSecret config is used to inject k8s secrets with sensitive data for the FalconAPI.
+          The following Falcon values are supported by k8s secret injection:
+            falcon-cid
+            falcon-client-id
+            falcon-client-secret
+        displayName: Falcon Platform Secrets Configuration
+        path: falconSecret
+      - displayName: Azure Config file path
+        path: imageAnalyzerConfig.azureConfigPath
       - description: Location of the Image Analyzer image. Use only in cases when
           you mirror the original image to your repository/name:tag
         displayName: Falcon Image Analyzer Image URI
         path: image
+      - description: Enable priority class for the Falcon Image Analyzer deployment.
+        displayName: Priority Class
+        path: imageAnalyzerConfig.priorityClass
       - description: Type of Deployment update. Can be "RollingUpdate" or "OnDelete".
           Default is RollingUpdate.
         displayName: Deployment Update Strategy
         path: imageAnalyzerConfig.updateStrategy
-      - description: Set the falcon image analyzer volume size limit.
-        displayName: Falcon Image Analyzer Volume Size Limit
-        path: imageAnalyzerConfig.sizeLimit
       - description: 'Falcon Image Analyzer Version. The latest version will be selected
           when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.'
         displayName: Falcon Image Analyzer Version
         path: version
+      - description: Set the falcon image analyzer volume size limit.
+        displayName: Falcon Image Analyzer Volume Size Limit
+        path: imageAnalyzerConfig.sizeLimit
       - description: Set the falcon image analyzer volume mount path.
         displayName: Falcon Image Analyzer Volume Mount Path
         path: imageAnalyzerConfig.mountPath
@@ -1366,6 +1506,9 @@ spec:
       - description: Falcon Customer ID (CID)
         displayName: Falcon Customer ID (CID)
         path: falcon.cid
+      - description: Enable injecting sensitive Falcon values from existing k8s secret
+        displayName: Falcon Secret Enabled
+        path: falconSecret.enabled
       - description: |-
           FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 
@@ -1404,6 +1547,9 @@ spec:
           accidentally or maliciously added to your customer ID (CID).
         displayName: Provisioning Token
         path: falcon.provisioning_token
+      - description: Namespace where the Falcon k8s secret is located.
+        displayName: Falcon Secret Namespace
+        path: falconSecret.namespace
       - description: Falcon OAuth2 API Client Secret
         displayName: Client Secret
         path: falcon_api.client_secret
@@ -1431,6 +1577,9 @@ spec:
         path: falcon.apd
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: SecretName of the existing Falcon k8s secret
+        displayName: Falcon Secret SecretName
+        path: falconSecret.secretName
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
@@ -1460,6 +1609,15 @@ spec:
         path: falcon.app
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+      - description: |-
+          FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+          The following Falcon values are supported by k8s secret injection:
+            falcon-cid
+            falcon-provisioning-token
+            falcon-client-id
+            falcon-client-secret
+        displayName: Falcon Platform Secrets Configuration
+        path: falconSecret
       - description: Specifies node affinity for scheduling the DaemonSet. Defaults
           to allowing scheduling on all nodes.
         displayName: Node Affinity
@@ -1508,6 +1666,14 @@ spec:
       - description: Enables the use of GKE Autopilot.
         displayName: Enabled
         path: node.gke.autopilot
+      - description: Version of the GKE AutoPilot Cleanup Daemonset for allow list
+          troubleshooting purposes
+        displayName: Cleanup Allow List Version
+        path: node.gke.cleanupAllowListVersion
+      - description: Version of the GKE AutoPilot Daemonset for allow list troubleshooting
+          purposes.
+        displayName: Deploy Allow List Version
+        path: node.gke.deployAllowListVersion
       - description: Sets the resource limits for the DaemonSet Sensor. Only applies
           when using the eBPF backend.
         displayName: Limits
