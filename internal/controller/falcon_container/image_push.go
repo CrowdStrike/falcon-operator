@@ -12,6 +12,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensor"
 	"github.com/crowdstrike/falcon-operator/internal/controller/image"
+	"github.com/crowdstrike/falcon-operator/internal/errors"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
@@ -42,7 +43,12 @@ func (r *FalconContainerReconciler) PushImage(ctx context.Context, log logr.Logg
 	}
 
 	log.Info("Found secret for image push", "Secret.Name", pushAuth.Name())
-	image := image.NewImageRefresher(ctx, log, r.falconApiConfig(ctx, falconContainer), pushAuth, falconContainer.Spec.Registry.TLS.InsecureSkipVerify)
+	falconApiConfig, apiConfigErr := r.falconApiConfig(ctx, falconContainer)
+	if apiConfigErr != nil {
+		return apiConfigErr
+	}
+
+	image := image.NewImageRefresher(ctx, log, falconApiConfig, pushAuth, falconContainer.Spec.Registry.TLS.InsecureSkipVerify)
 	version := falconContainer.Spec.Version
 
 	tag, err := image.Refresh(registryUri, falcon.SidecarSensor, version)
@@ -138,7 +144,7 @@ func (r *FalconContainerReconciler) registryUri(ctx context.Context, falconConta
 
 		return fmt.Sprintf("%s.azurecr.io/falcon-container", *falconContainer.Spec.Registry.AcrName), nil
 	case falconv1alpha1.RegistryTypeCrowdStrike:
-		cloud, err := falconContainer.Spec.FalconAPI.FalconCloud(ctx)
+		cloud, err := falconContainer.Spec.FalconAPI.FalconCloudWithSecret(ctx, r.Reader, falconContainer.Spec.FalconSecret)
 		if err != nil {
 			return "", err
 		}
@@ -202,8 +208,12 @@ func (r *FalconContainerReconciler) setImageTag(ctx context.Context, falconConta
 		return *falconContainer.Status.Sensor, r.Client.Status().Update(ctx, falconContainer)
 	}
 
-	apiConfig := r.falconApiConfig(ctx, falconContainer)
-	imageRepo, err := sensor.NewImageRepository(ctx, apiConfig)
+	falconApiConfig, apiConfigErr := r.falconApiConfig(ctx, falconContainer)
+	if apiConfigErr != nil {
+		return "", apiConfigErr
+	}
+
+	imageRepo, err := sensor.NewImageRepository(ctx, falconApiConfig)
 	if err != nil {
 		return "", err
 	}
@@ -231,14 +241,17 @@ func (r *FalconContainerReconciler) imageNamespace(falconContainer *falconv1alph
 	return falconContainer.Spec.InstallNamespace
 }
 
-func (r *FalconContainerReconciler) falconApiConfig(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer) *falcon.ApiConfig {
+func (r *FalconContainerReconciler) falconApiConfig(
+	ctx context.Context,
+	falconContainer *falconv1alpha1.FalconContainer,
+) (*falcon.ApiConfig, error) {
 	if falconContainer.Spec.FalconAPI == nil {
-		return nil
+		return nil, internalErrors.ErrNilFalconAPIConfiguration
 	}
 
-	cfg := falconContainer.Spec.FalconAPI.ApiConfig()
+	cfg, err := falconContainer.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Reader, falconContainer.Spec.FalconSecret)
 	cfg.Context = ctx
-	return cfg
+	return cfg, err
 }
 
 func (r *FalconContainerReconciler) imageMirroringEnabled(falconContainer *falconv1alpha1.FalconContainer) bool {

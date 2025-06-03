@@ -18,16 +18,9 @@ type FakeDiscovery struct {
 }
 
 func TestInitContainerClusterIDArgs(t *testing.T) {
-	want := []string{"-c", `echo "Running /opt/CrowdStrike/falcon-daemonset-init -i"; /opt/CrowdStrike/falcon-daemonset-init -i; test -f "/opt/CrowdStrike/configure-cluster-id" && /opt/CrowdStrike/configure-cluster-id || echo "/opt/CrowdStrike/configure-cluster-id not found. Skipping."`}
-	if got := InitContainerArgs(false); !reflect.DeepEqual(got, want) {
-		t.Errorf("InitContainerArgs(false) = %v, want %v", got, want)
-	}
-}
-
-func TestInitContainerGKEArgs(t *testing.T) {
-	want := []string{"-c", `echo "Running /opt/CrowdStrike/falcon-daemonset-init -i"; /opt/CrowdStrike/falcon-daemonset-init -i`}
-	if got := InitContainerArgs(true); !reflect.DeepEqual(got, want) {
-		t.Errorf("InitContainerArgs(true) = %v, want %v", got, want)
+	want := []string{"-c", `echo "Running /opt/CrowdStrike/falcon-daemonset-init -i"; /opt/CrowdStrike/falcon-daemonset-init -i; echo "Running /opt/CrowdStrike/configure-cluster-id"; test -f "/opt/CrowdStrike/configure-cluster-id" && /opt/CrowdStrike/configure-cluster-id || echo "/opt/CrowdStrike/configure-cluster-id not found. Skipping."`}
+	if got := InitContainerArgs(); !reflect.DeepEqual(got, want) {
+		t.Errorf("InitContainerArgs() = %v, want %v", got, want)
 	}
 }
 
@@ -39,7 +32,7 @@ func TestInitCleanupArgs(t *testing.T) {
 }
 
 func TestCleanupSleep(t *testing.T) {
-	want := []string{"-c", "sleep 10"}
+	want := []string{"-c", "sleep infinity"}
 	if got := CleanupSleep(); !reflect.DeepEqual(got, want) {
 		t.Errorf("CleanupSleep() = %v, want %v", got, want)
 	}

@@ -11,6 +11,7 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/image"
+	"github.com/crowdstrike/falcon-operator/internal/errors"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
@@ -41,10 +42,15 @@ func (r *FalconAdmissionReconciler) PushImage(ctx context.Context, log logr.Logg
 	}
 
 	log.Info("Found secret for image push", "Secret.Name", pushAuth.Name())
-	image := image.NewImageRefresher(ctx, log, r.falconApiConfig(ctx, falconAdmission), pushAuth, falconAdmission.Spec.Registry.TLS.InsecureSkipVerify)
+	apiConfig, err := r.falconApiConfig(ctx, falconAdmission)
+	if err != nil {
+		return err
+	}
+
+	imageRefresher := image.NewImageRefresher(ctx, log, apiConfig, pushAuth, falconAdmission.Spec.Registry.TLS.InsecureSkipVerify)
 	version := falconAdmission.Spec.Version
 
-	tag, err := image.Refresh(registryUri, falcon.KacSensor, version)
+	tag, err := imageRefresher.Refresh(registryUri, falcon.KacSensor, version)
 	if err != nil {
 		return fmt.Errorf("Cannot push Falcon Admission Image: %v", err)
 	}
@@ -129,7 +135,7 @@ func (r *FalconAdmissionReconciler) registryUri(ctx context.Context, falconAdmis
 
 		return fmt.Sprintf("%s.azurecr.io/falcon-kac", *falconAdmission.Spec.Registry.AcrName), nil
 	case falconv1alpha1.RegistryTypeCrowdStrike:
-		cloud, err := falconAdmission.Spec.FalconAPI.FalconCloud(ctx)
+		cloud, err := falconAdmission.Spec.FalconAPI.FalconCloudWithSecret(ctx, r.Reader, falconAdmission.Spec.FalconSecret)
 		if err != nil {
 			return "", err
 		}
@@ -194,7 +200,12 @@ func (r *FalconAdmissionReconciler) setImageTag(ctx context.Context, falconAdmis
 	}
 
 	// Otherwise, get the newest version matching the requested version string
-	registry, err := falcon_registry.NewFalconRegistry(ctx, r.falconApiConfig(ctx, falconAdmission))
+	apiConfig, err := r.falconApiConfig(ctx, falconAdmission)
+	if err != nil {
+		return "", err
+	}
+
+	registry, err := falcon_registry.NewFalconRegistry(ctx, apiConfig)
 	if err != nil {
 		return "", err
 	}
@@ -222,14 +233,17 @@ func (r *FalconAdmissionReconciler) imageNamespace(falconAdmission *falconv1alph
 	return falconAdmission.Spec.InstallNamespace
 }
 
-func (r *FalconAdmissionReconciler) falconApiConfig(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission) *falcon.ApiConfig {
+func (r *FalconAdmissionReconciler) falconApiConfig(
+	ctx context.Context,
+	falconAdmission *falconv1alpha1.FalconAdmission,
+) (*falcon.ApiConfig, error) {
 	if falconAdmission.Spec.FalconAPI == nil {
-		return nil
+		return nil, internalErrors.ErrNilFalconAPIConfiguration
 	}
 
-	cfg := falconAdmission.Spec.FalconAPI.ApiConfig()
+	cfg, err := falconAdmission.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Reader, falconAdmission.Spec.FalconSecret)
 	cfg.Context = ctx
-	return cfg
+	return cfg, err
 }
 
 func (r *FalconAdmissionReconciler) imageMirroringEnabled(falconAdmission *falconv1alpha1.FalconAdmission) bool {

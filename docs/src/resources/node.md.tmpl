@@ -47,12 +47,12 @@ spec:
 ### FalconNodeSensor Reference Manual
 
 #### Falcon API Settings
-| Spec                                | Description                                                                                                                               |
-| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
-| falcon_api.client_id                | (optional) CrowdStrike API Client ID                                                                                                      |
-| falcon_api.client_secret            | (optional) CrowdStrike API Client Secret                                                                                                  |
-| falcon_api.cloud_region             | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1)                                            |
-| falcon_api.cid                      | (optional) CrowdStrike Falcon CID API override                                                                                            |
+| Spec                     | Description                                                                                                                                                                                                                          |
+|:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| falcon_api.client_id     | (optional) CrowdStrike API Client ID                                                                                                                                                                                                 |
+| falcon_api.client_secret | (optional) CrowdStrike API Client Secret                                                                                                                                                                                             |
+| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover` |
+| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override                                                                                                                                                                                       |
 
 #### Node Configuration Settings
 | Spec                                | Description                                                                                                                               |
@@ -68,21 +68,55 @@ spec:
 | node.backend                        | (optional) Configure the backend mode for Falcon Sensor (allowed values: kernel, bpf)                                                     |
 | node.disableCleanup                 | (optional) Cleans up `/opt/CrowdStrike` on the nodes by deleting the files and directory.                                                 |
 | node.version                        | (optional) Enforce particular Falcon Sensor version to be installed (example: "6.35", "6.35.0-13207")                                     |
+| node.gke.autopilot                  | (optional) Enable GKE Autopilot support for FalconNodeSensor.                                                                             |
+| node.gke.deployAllowListVersion     | (optional) WorkloadAllowlist version for the sensor daemonset when using GKE AutoPilot.                                                   |
+| node.gke.cleanupAllowListVersion    | (optional) WorkloadAllowlist version for the cleanup daemonset when using GKE AutoPilot.                                                  |
+
 
 > [!IMPORTANT]
 > node.tolerations will be appended to the existing tolerations for the daemonset due to GKE Autopilot allowing users to manage Tolerations directly in the console. See documentation here: https://cloud.google.com/kubernetes-engine/docs/how-to/workload-separation. Removing Tolerations from an existing daemonset requires a redeploy of the FalconNodeSensor manifest.
 
 #### Falcon Sensor Settings
-| Spec                                | Description                                                                                                                                                                |
-| :---------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| falcon.cid                          | (optional) CrowdStrike Falcon CID override                                                                                                                                 |
-|	falcon.apd                          | (optional) Disable the Falcon Sensor's use of a proxy.                                                                                                                     |
-|	falcon.aph                          | (optional)  The application proxy host to use for Falcon sensor proxy configuration.                                                                                       |
-|	falcon.app                          | (optional)  The application proxy port to use for Falcon sensor proxy configuration.                                                                                       |
-|	falcon.billing                      | (optional)  Utilize default or Pay-As-You-Go billing.                                                                                                                      |
-|	falcon.provisioning_token           | (optional)  Installation token that prevents unauthorized hosts from being accidentally or maliciously added to your customer ID (CID).                                    |
-|	falcon.tags                         | (optional)  Sensor grouping tags are optional, user-defined identifiers that can used to group and filter hosts. Allowed characters: all alphanumerics, '/', '-', and '_'. |
-|	falcon.trace                        | (optional)  Set sensor trace level.                                                                                                                                        |
+| Spec                      | Description                                                                                                                                                                                       |
+|:--------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| falcon.cid                | (optional) CrowdStrike Falcon CID override;<br> [Falcon API credentials](#falcon-api-settings) or [Falcon Secret with credentials](#falcon-secret-settings) are required if this field is not set. |
+| falcon.apd                | (optional) Disable the Falcon Sensor's use of a proxy.                                                                                                                                            |
+| falcon.aph                | (optional)  The application proxy host to use for Falcon sensor proxy configuration.                                                                                                              |
+| falcon.app                | (optional)  The application proxy port to use for Falcon sensor proxy configuration.                                                                                                              |
+| falcon.billing            | (optional)  Utilize default or Pay-As-You-Go billing.                                                                                                                                             |
+| falcon.provisioning_token | (optional)  Installation token that prevents unauthorized hosts from being accidentally or maliciously added to your customer ID (CID).                                                           |
+| falcon.tags               | (optional)  Sensor grouping tags are optional, user-defined identifiers that can used to group and filter hosts. Allowed characters: all alphanumerics, '/', '-', and '_'.                        |
+| falcon.trace              | (optional)  Set sensor trace level.                                                                                                                                                               |
+
+#### Falcon Secret Settings
+| Spec                    | Description                                                                                    |
+|:------------------------|:-----------------------------------------------------------------------------------------------|
+| falconSecret.enabled    | Enable reading sensitive Falcon API and Falcon sensor values from k8s secret; Default: `false` |
+| falconSecret.namespace  | Required if `enabled: true`; k8s namespace with relevant k8s secret                            |
+| falconSecret.secretName | Required if `enabled: true`; name of k8s secret with sensitive Falcon API and sensor values    |
+
+Falcon secret settings are used to read the following sensitive Falcon API and sensor values from an existing k8s secret on your cluster.
+
+> [!IMPORTANT]
+> When Falcon Secret is enabled, ALL spec parameters in the list of [secret keys](#secret-keys) will be overwritten.
+> If a key/value does not exist in your k8s secret, the value will be overwritten as an empty string.
+
+##### Secret Keys
+| Secret Key                | Description                                                                                                     |
+|:--------------------------|:----------------------------------------------------------------------------------------------------------------|
+| falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined     |
+| falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined |
+| falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings) and [`falcon.cid`](#falcon-sensor-settings)                   |
+| falcon-provisioning-token | Replaces [`falcon.provisioning_token`](#falcon-sensor-settings)                                                 |
+
+Example of creating k8s secret with sensitive Falcon values:
+```bash
+kubectl create secret generic falcon-secrets -n $FALCON_SECRET_NAMESPACE \
+--from-literal=falcon-client-id=$FALCON_CLIENT_ID \
+--from-literal=falcon-client-secret=$FALCON_CLIENT_SECRET \
+--from-literal=falcon-cid=$FALCON_CID \
+--from-literal=falcon-provisioning-token=$FALCON_PROVISIONING_TOKEN
+```
 
 #### Advanced Settings
 The following settings provide an alternative means to select which version of Falcon sensor is deployed. Their use is not recommended. Instead, an explicit SHA256 hash should be configured using the `node.image` property above.
