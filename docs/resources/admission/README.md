@@ -40,8 +40,8 @@ spec:
 | `>= 1.3.x`                   | `>= 7.20.x`                               |
 
 > [!IMPORTANT]
-> Falcon KAC will have multi-arch images starting with version `7.26.x`. Operator versions >= 1.3.x are still compatible with KAC multi-arch images, but Falcon KAC will only be deployed to ARM64 clusters if it is configured with the new node affinity option added in Operator version `1.6.x`.
-> Multi architecture images will not automatically deploy to ARM64 clusters.
+> Falcon KAC will have multi-arch images starting with version `7.26.x`. Operator versions <= 1.3.x are still compatible with Falcon KAC v7.26+, but Falcon KAC will only be deployed to ARM64 clusters if it is configured with the new node affinity option added in Operator version `1.6.x`.
+> Multi architecture images will not automatically deploy to ARM64 clusters, without updating `admissionConfig.nodeAffinity`.
 
 #### Falcon API Settings
 | Spec                     | Description                                                                                                                                                                                                                          |
