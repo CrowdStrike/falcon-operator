@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM registry.access.redhat.com/ubi8/go-toolset:1.22.9-2.1740072407 as builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.22.9-3.1744031965 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 ARG VERSION
@@ -17,6 +17,7 @@ COPY cmd/main.go cmd/main.go
 COPY version/ version/
 COPY api/ api/
 COPY internal/controller/ internal/controller/
+COPY internal/errors/ internal/errors/
 COPY pkg/ pkg/
 
 # Build
@@ -34,10 +35,19 @@ RUN GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -tags \
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM registry.access.redhat.com/ubi8-minimal:8.10-1179.1739286367
+ARG VERSION
 WORKDIR /
 COPY LICENSE licenses/
 COPY --from=builder /etc/pki /etc/pki
 COPY --from=builder /workspace/manager .
 USER 65532:65532
+
+LABEL name="falcon-operator" \      
+      vendor="CrowdStrike, Inc" \      
+      version="${VERSION}" \      
+      release="1" \      
+      summary="Crowdstrike Falcon Operator Controller" \
+      description="The CrowdStrike Falcon Operator installs CrowdStrike Falcon custom resources on a Kubernetes cluster." \              
+      maintainer="support@crowdstrike.com" 
 
 ENTRYPOINT ["/manager"]

@@ -20,6 +20,7 @@ const (
 	FalconAdmissionServiceHTTPSName         = "webhook-port"
 	FalconServiceHTTPSName                  = "https"
 	FalconServiceHTTPSPort                  = 443
+	FalconAdmissionValidatingWebhookName    = "validating.admission.falcon.crowdstrike.com"
 
 	FalconInstanceNameKey    = "crowdstrike.com/name"
 	FalconInstanceKey        = "crowdstrike.com/instance"
@@ -47,4 +48,10 @@ const (
 	AdmissionServiceAccountName = "falcon-operator-admission-controller"
 	NodeClusterRoleBindingName  = "falcon-operator-node-sensor-rolebinding"
 	ImageServiceAccountName     = "falcon-operator-image-analyzer"
+
+	// GKE Autopilot requires names to have an exact match for WorkloadAllowlists
+	GKEAutoPilotConfigMapName           = "falcon-node-sensor-config"
+	GKEAutoPilotAllowListLabelKey       = "cloud.google.com/matching-allowlist"
+	GKEAutoPilotDeployDSAllowlistPrefix = "crowdstrike-falconsensor-deploy-allowlist"
+	GKEAutoPilotCleanupAllowlistPrefix  = "crowdstrike-falconsensor-cleanup-allowlist"
 )

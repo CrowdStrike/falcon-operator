@@ -29,6 +29,16 @@ type FalconContainerSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
+	// FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+	// The following Falcon values are supported by k8s secret injection:
+	//   falcon-cid
+	//   falcon-provisioning-token
+	//   falcon-client-id
+	//   falcon-client-secret
+	// +kubebuilder:default={"enabled": false}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration",order=5
+	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
+
 	// Registry configures container image registry to which the Falcon Container image will be pushed
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Registry Configuration",order=3
 	Registry RegistrySpec `json:"registry,omitempty"`
@@ -39,12 +49,16 @@ type FalconContainerSpec struct {
 	Injector FalconContainerInjectorSpec `json:"injector,omitempty"`
 
 	// +kubebuilder:validation:Pattern="^.*:.*$"
-	// +operator-sdk:cv:customresourcedefinitions:type=spec,displayName="Falcon Container Image URI",order=5
+	// +operator-sdk:cv:customresourcedefinitions:type=spec,displayName="Falcon Container Image URI",order=6
 	Image *string `json:"image,omitempty"`
 
 	// Falcon Container Version. The latest version will be selected when version specifier is missing; ignored when Image is set.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=6
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Image Version",order=7
 	Version *string `json:"version,omitempty"`
+
+	// Specifies node affinity for scheduling the Container Sensor. Only amd64 linux nodes are supported.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=7
+	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
 
 	// Advanced configures various options that go against industry practices or are otherwise not recommended for use.
 	// Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
