@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	DeployWatcherDefault     = true
-	SnapshotsEnabledDefault  = true
-	SnapshotsIntervalDefault = 22
-	WatcherEnabledDefault    = true
+	DeployWatcherDefault           = true
+	SnapshotsEnabledDefault        = true
+	SnapshotsIntervalDefault       = 22
+	WatcherEnabledDefault          = true
+	AdmissionControlEnabledDefault = true
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -44,6 +45,16 @@ type FalconAdmissionSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
+	// FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+	// The following Falcon values are supported by k8s secret injection:
+	//   falcon-cid
+	//   falcon-provisioning-token
+	//   falcon-client-id
+	//   falcon-client-secret
+	// +kubebuilder:default={"enabled": false}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration",order=7
+	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
+
 	// ResourceQuota configures the ResourceQuota for the Falcon Admission Controller. This is useful for limiting the number of pods that can be created in the namespace.
 	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Resource Quota",order=4
@@ -60,11 +71,11 @@ type FalconAdmissionSpec struct {
 
 	// Location of the Falcon Sensor image. Use only in cases when you mirror the original image to your repository/name:tag, and CrowdStrike OAuth2 API is not used.
 	// +kubebuilder:validation:Pattern="^.*:.*$"
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Image URI",order=7
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Image URI",order=8
 	Image string `json:"image,omitempty"`
 
 	// Falcon Admission Controller Version. The latest version will be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Version",order=8
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Version",order=9
 	Version *string `json:"version,omitempty"`
 }
 
@@ -133,6 +144,11 @@ type FalconAdmissionConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Resource Watcher",order=17
 	WatcherEnabled *bool `json:"watcherEnabled,omitempty"`
 
+	// Determines if the admission controller webhook is enabled
+	// +kubebuilder:default:=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Admission Controller",order=18
+	AdmissionControlEnabled *bool `json:"admissionControlEnabled,omitempty"`
+
 	// Currently ignored and internally set to 1
 	// +kubebuilder:default:=2
 	// +kubebuilder:validation:XIntOrString
@@ -154,6 +170,10 @@ type FalconAdmissionConfigSpec struct {
 	// +kubebuilder:default:={"limits":{"memory":"384Mi"},"requests":{"cpu":"250m","memory":"384Mi"}}
 	ResourcesClient *corev1.ResourceRequirements `json:"resourcesClient,omitempty"`
 
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Client Resources",order=9,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	// +kubebuilder:default:={"limits":{"memory":"128Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}
+	ResourcesClientNoWebhook *corev1.ResourceRequirements `json:"resourcesClientNoWebhook,omitempty"`
+
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Watcher Resources",order=14,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	// +kubebuilder:default:={"limits":{"memory":"384Mi"},"requests":{"cpu":"250m","memory":"384Mi"}}
 	ResourcesWatcher *corev1.ResourceRequirements `json:"resourcesWatcher,omitempty"`
@@ -166,6 +186,10 @@ type FalconAdmissionConfigSpec struct {
 	// +kubebuilder:default:={"rollingUpdate":{"maxUnavailable":0,"maxSurge":1}}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=11
 	DepUpdateStrategy FalconAdmissionUpdateStrategy `json:"updateStrategy,omitempty"`
+
+	// Specifies node affinity for scheduling the Admission Controller.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=18
+	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
 }
 
 type FalconAdmissionServiceAccount struct {
@@ -176,7 +200,7 @@ type FalconAdmissionServiceAccount struct {
 
 type FalconAdmissionUpdateStrategy struct {
 	// RollingUpdate is used to specify the strategy used to roll out a deployment
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admisison Controller deployment update configuration",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller deployment update configuration",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
 	RollingUpdate appsv1.RollingUpdateDeployment `json:"rollingUpdate,omitempty"`
 }
 
@@ -270,4 +294,12 @@ func (watcher FalconAdmissionConfigSpec) GetWatcherEnabled() bool {
 	}
 
 	return *watcher.WatcherEnabled
+}
+
+func (ac *FalconAdmission) GetAdmissionControlEnabled() bool {
+	if ac.Spec.AdmissionConfig.AdmissionControlEnabled == nil {
+		return AdmissionControlEnabledDefault
+	}
+
+	return *ac.Spec.AdmissionConfig.AdmissionControlEnabled
 }

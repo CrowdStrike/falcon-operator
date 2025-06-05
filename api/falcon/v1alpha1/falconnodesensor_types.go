@@ -38,6 +38,16 @@ type FalconNodeSensorSpec struct {
 	// If using the API is not desired, the sensor can be manually configured.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=1
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
+
+	// FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+	// The following Falcon values are supported by k8s secret injection:
+	//   falcon-cid
+	//   falcon-provisioning-token
+	//   falcon-client-id
+	//   falcon-client-secret
+	// +kubebuilder:default={"enabled": false}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration",order=5
+	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
 }
 
 // FalconNodeSensorConfig defines aspects about how the daemonset works.
@@ -160,6 +170,16 @@ type AutoPilot struct {
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Enabled *bool `json:"autopilot,omitempty"`
+
+	// Version of the GKE AutoPilot Daemonset for allow list troubleshooting purposes.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +kubebuilder:validation:Pattern="^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+	DeployAllowListVersion *string `json:"deployAllowListVersion,omitempty"`
+
+	// Version of the GKE AutoPilot Cleanup Daemonset for allow list troubleshooting purposes
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +kubebuilder:validation:Pattern="^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+	CleanupAllowListVersion *string `json:"cleanupAllowListVersion,omitempty"`
 }
 
 type FalconNodeUpdateStrategy struct {

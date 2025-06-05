@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2025-06-03
+
+### Changed
+
+- chore: remove old registry code
+- bump operator version and run make bundle
+- update Falcon KAC docs for ARM64 support
+- feat(all-sensors): add k8s secret support for sensitive Falcon API and Falcon sensor values
+- Add GKE AutoPilot labels to spec for troubleshooting WorkloadAllowlists
+- Add flag to disable the validating webhoook in falcon-kac
+- Fix IAR cloud region requirements
+- Add configurable nodeAffinity to falcon-container
+- feat(falcon-kac): add optional node affinity + pull latest multi-arch images (#651)
+- docs: clarify support on ROSA Classic vs. HCP
+- Set the Falcon sensor cleanup node sleep time to infinity
+- Fix: Add required OpenShift image labels
+- docs: Add note to ensure falcon-kac is installed in unique namespace
+
 ## [1.5.0] - 2025-04-17
 
 ### Changed

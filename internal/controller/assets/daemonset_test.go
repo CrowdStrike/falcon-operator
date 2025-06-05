@@ -1,6 +1,8 @@
 package assets
 
 import (
+	"fmt"
+	"maps"
 	"testing"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -182,11 +184,80 @@ func TestSensorCapabilities(t *testing.T) {
 	}
 }
 
+func TestGKEManageAutoPilotLabels(t *testing.T) {
+	falconNode := falconv1alpha1.FalconNodeSensor{}
+	gkeEnabled := true
+	dsType := "testType"
+	dsName := "testName"
+	deployAllowlistVersion := "v1.0.0"
+	cleanupAllowlistVersion := "v1.0.0"
+
+	falconNode.Spec.Node.GKE.Enabled = &gkeEnabled
+	falconNode.Spec.Node.GKE.DeployAllowListVersion = &deployAllowlistVersion
+	falconNode.Spec.Node.GKE.CleanupAllowListVersion = &cleanupAllowlistVersion
+
+	commonLabels := common.CRLabels(dsType, dsName, common.FalconKernelSensor)
+
+	want := map[string]string{
+		common.GKEAutoPilotAllowListLabelKey: fmt.Sprintf("%s-%s", common.GKEAutoPilotDeployDSAllowlistPrefix, deployAllowlistVersion),
+	}
+
+	maps.Copy(want, commonLabels)
+
+	got := dsManageAutoPilotLabels(dsType, dsName, dsAutoPilotDeployAllowlistLabel, &falconNode)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("dsAutoPilotDeployAllowlistLabel() mismatch with Autopilot Enabled (-want +got): %s", diff)
+	}
+
+	want = map[string]string{
+		common.GKEAutoPilotAllowListLabelKey: fmt.Sprintf("%s-%s", common.GKEAutoPilotCleanupAllowlistPrefix, cleanupAllowlistVersion),
+	}
+
+	maps.Copy(want, commonLabels)
+
+	got = dsManageAutoPilotLabels(dsType, dsName, dsAutoPilotCleanupAllowlistLabel, &falconNode)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("dsAutoPilotCleanupAllowlistLabel() mismatch with Autopilot Enabled (-want +got): %s", diff)
+	}
+
+	gkeEnabled = false
+	want = commonLabels
+
+	got = dsManageAutoPilotLabels(dsType, dsName, dsAutoPilotDeployAllowlistLabel, &falconNode)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("dsAutoPilotDeployAllowlistLabel() mismatch with Autopilot Disabled (-want +got): %s", diff)
+	}
+
+	got = dsManageAutoPilotLabels(dsType, dsName, dsAutoPilotCleanupAllowlistLabel, &falconNode)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("dsAutoPilotCleanupAllowlistLabel() mismatch with Autopilot Disabled (-want +got): %s", diff)
+	}
+}
+
+func TestDaemonsetConfigMapName(t *testing.T) {
+	falconNode := falconv1alpha1.FalconNodeSensor{}
+	falconNode.Name = "test-name"
+	autopilot := false
+	falconNode.Spec.Node.GKE.Enabled = &autopilot
+
+	want := falconNode.Name + "-config"
+	got := DaemonsetConfigMapName(&falconNode)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("DaemonsetConfigMapName() mismatch with Autopilot Disabled (-want +got): %s", diff)
+	}
+
+	autopilot = true
+	want = common.GKEAutoPilotConfigMapName
+	got = DaemonsetConfigMapName(&falconNode)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("DaemonsetConfigMapName() mismatch with Autopilot Enabled (-want +got): %s", diff)
+	}
+}
+
 func TestDaemonset(t *testing.T) {
 	falconNode := falconv1alpha1.FalconNodeSensor{}
 	falconNode.Namespace = "falcon-system"
 	falconNode.Name = "test"
-	autopilot := false
 	image := "testImage"
 	dsName := "test-DaemonSet"
 	falconNode.Spec.Node.Tolerations = &[]corev1.Toleration{
@@ -206,8 +277,9 @@ func TestDaemonset(t *testing.T) {
 			Effect:   "NoSchedule",
 		},
 	}
+	autopilot := false
 	falconNode.Spec.Node.GKE.Enabled = &autopilot
-
+	dsType := "daemonset"
 	privileged := true
 	escalation := true
 	readOnlyFSDisabled := false
@@ -227,16 +299,16 @@ func TestDaemonset(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
 			Namespace: falconNode.Spec.InstallNamespace,
-			Labels:    common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
+			Labels:    common.CRLabels(dsType, dsName, common.FalconKernelSensor),
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
+				MatchLabels: common.CRLabels(dsType, dsName, common.FalconKernelSensor),
 			},
 			UpdateStrategy: dsUpdateStrategy(&falconNode),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      common.CRLabels("daemonset", dsName, common.FalconKernelSensor),
+					Labels:      dsManageAutoPilotLabels(dsType, dsName, dsAutoPilotDeployAllowlistLabel, &falconNode),
 					Annotations: map[string]string{"sensor.falcon-system.crowdstrike.com/injection": "disabled"},
 				},
 				Spec: corev1.PodSpec{
@@ -256,7 +328,7 @@ func TestDaemonset(t *testing.T) {
 							Name:      "init-falconstore",
 							Image:     image,
 							Command:   common.FalconShellCommand,
-							Args:      common.InitContainerArgs(autopilot),
+							Args:      common.InitContainerArgs(),
 							Resources: initContainerResources(&falconNode),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
@@ -282,7 +354,7 @@ func TestDaemonset(t *testing.T) {
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: dsName + "-config",
+											Name: DaemonsetConfigMapName(&falconNode),
 										},
 									},
 								},
@@ -342,6 +414,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 		},
 	}
 
+	dsType := "cleanup"
 	privileged := true
 	nonPrivileged := false
 	escalation := true
@@ -349,20 +422,22 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 	readOnlyFs := true
 	hostpid := true
 	runAsRoot := int64(0)
+	autopilot := false
+	falconNode.Spec.Node.GKE.Enabled = &autopilot
 
 	want := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dsName,
 			Namespace: falconNode.Spec.InstallNamespace,
-			Labels:    common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
+			Labels:    common.CRLabels(dsType, dsName, common.FalconKernelSensor),
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
+				MatchLabels: common.CRLabels(dsType, dsName, common.FalconKernelSensor),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels:      common.CRLabels("cleanup", dsName, common.FalconKernelSensor),
+					Labels:      dsManageAutoPilotLabels(dsType, dsName, dsAutoPilotCleanupAllowlistLabel, &falconNode),
 					Annotations: map[string]string{common.FalconContainerInjection: "disabled"},
 				},
 				Spec: corev1.PodSpec{
