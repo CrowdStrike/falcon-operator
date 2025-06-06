@@ -582,18 +582,6 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 						},
 					},
 				},
-				corev1.EnvVar{
-					Name:  "__CS_SNAPSHOTS_ENABLED",
-					Value: "true",
-				},
-				corev1.EnvVar{
-					Name:  "__CS_SNAPSHOT_INTERVAL",
-					Value: "22h0m0s",
-				},
-				corev1.EnvVar{
-					Name:  "__CS_WATCH_EVENTS_ENABLED",
-					Value: "true",
-				},
 			},
 			EnvFrom: []corev1.EnvFromSource{
 				{

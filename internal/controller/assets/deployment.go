@@ -2,7 +2,6 @@ package assets
 
 import (
 	"reflect"
-	"strconv"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
@@ -843,18 +842,6 @@ func admissionDepWatcherEnvVars(admission *falconv1alpha1.FalconAdmission) []cor
 					FieldPath:  "spec.nodeName",
 				},
 			},
-		},
-		corev1.EnvVar{
-			Name:  "__CS_SNAPSHOTS_ENABLED",
-			Value: strconv.FormatBool(admission.Spec.AdmissionConfig.GetSnapshotsEnabled()),
-		},
-		corev1.EnvVar{
-			Name:  "__CS_SNAPSHOT_INTERVAL",
-			Value: admission.Spec.AdmissionConfig.GetSnapshotsInterval().String(),
-		},
-		corev1.EnvVar{
-			Name:  "__CS_WATCH_EVENTS_ENABLED",
-			Value: strconv.FormatBool(admission.Spec.AdmissionConfig.GetWatcherEnabled()),
 		},
 	}
 
