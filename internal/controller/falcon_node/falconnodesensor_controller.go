@@ -1029,8 +1029,13 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 			// When the pods have a status of completed or running, increment the count.
 			// The reason running is an acceptable value is because the pods should be running the sleep command and have already cleaned up /opt/CrowdStrike
 			for _, pod := range pods.Items {
-				if pod.Status.Phase == "Completed" || pod.Status.Phase == "Running" || pod.Status.Phase == "CrashLoopBackOff" {
+				switch pod.Status.Phase {
+				case "Running", "Succeeded":
 					completedCount++
+				case "Pending":
+					if k8sutils.IsInitPodCrashLooping(&pod) {
+						completedCount++
+					}
 				}
 			}
 
