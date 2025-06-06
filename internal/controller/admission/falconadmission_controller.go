@@ -581,6 +581,11 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		updated = true
 	}
 
+	if !reflect.DeepEqual(dep.Spec.Template.Spec.Affinity.NodeAffinity, existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity) {
+		existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity = dep.Spec.Template.Spec.Affinity.NodeAffinity
+		updated = true
+	}
+
 	if len(dep.Spec.Template.Spec.Containers) != len(existingDeployment.Spec.Template.Spec.Containers) {
 		existingDeployment.Spec.Template.Spec.Containers = dep.Spec.Template.Spec.Containers
 		updated = true
