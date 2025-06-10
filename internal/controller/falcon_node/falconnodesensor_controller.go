@@ -2,7 +2,9 @@ package falcon
 
 import (
 	"context"
+	"fmt"
 	"reflect"
+	"slices"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
@@ -1005,6 +1007,9 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 			return err
 		}
 
+		var lastCompletedCount int32
+		var lastNodeCount int32
+		var crashloopingPodNodes []string
 		// Start inifite loop to check that all pods have either completed or are running in the DS
 		for {
 			// List all pods with the "cleanup" label in the appropriate NS
@@ -1023,14 +1028,26 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 			// Reset the nodeCount to the desired number of pods to be scheduled for cleanup each loop, in case the cluster has scaled down
 			for _, dSet := range dsList.Items {
 				nodeCount = dSet.Status.DesiredNumberScheduled
-				logger.Info("Setting DaemonSet node count", "Number of nodes", nodeCount)
+				if lastNodeCount != nodeCount {
+					logger.Info("Setting DaemonSet node count", "Number of nodes", nodeCount)
+				}
+				lastNodeCount = nodeCount
 			}
 
 			// When the pods have a status of completed or running, increment the count.
 			// The reason running is an acceptable value is because the pods should be running the sleep command and have already cleaned up /opt/CrowdStrike
 			for _, pod := range pods.Items {
-				if pod.Status.Phase == "Completed" || pod.Status.Phase == "Running" || pod.Status.Phase == "CrashLoopBackOff" {
+				switch pod.Status.Phase {
+				case "Running", "Succeeded":
 					completedCount++
+				case "Pending":
+					if k8sutils.IsInitPodCrashLooping(&pod) {
+						if !slices.Contains(crashloopingPodNodes, pod.Spec.NodeName) {
+							logger.Info(fmt.Sprintf("/opt/CrowdStrike may have not been removed on node %s due to the cleanup pod crashlooping. See the troubleshooting section of the node sensor documentation for more information.", pod.Spec.NodeName))
+							_ = append(crashloopingPodNodes, pod.Spec.NodeName)
+						}
+						completedCount++
+					}
 				}
 			}
 
@@ -1039,7 +1056,10 @@ func (r *FalconNodeSensorReconciler) finalizeDaemonset(ctx context.Context, imag
 				logger.Info("Clean up pods should be done. Continuing deleting.")
 				break
 			} else if completedCount < nodeCount && completedCount > 0 {
-				logger.Info("Waiting for cleanup pods to complete. Retrying....", "Number of pods still processing task", completedCount)
+				if completedCount != lastCompletedCount {
+					logger.Info("Waiting for cleanup pods to complete. Retrying....", "Number of pods still processing task", completedCount)
+				}
+				lastCompletedCount = completedCount
 			}
 
 			err = common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: dsCleanupName, Namespace: nodesensor.Spec.InstallNamespace}, daemonset)

@@ -184,3 +184,11 @@ To upgrade the sensor version, simply add and/or update the `version` field in t
   ```sh
   {{ .KubeCmd }} get falconnodesensors -A -o=jsonpath='{.items[].status.version}'
   ```
+
+- There are some instances where you may see Pods crashlooping when uninstalling the node sensor. An example from the operator logs:
+  ```
+  2025-06-10T15:43:00Z    INFO    /opt/CrowdStrike may have not been removed on node colima-arm64 due to the cleanup pod crashlooping. See the troubleshooting section of the node sensor documentation for more information.    {"controller": "falconnodesensor", "controllerGroup": ││  "falcon.crowdstrike.com", "controllerKind": "FalconNodeSensor", "FalconNodeSensor": {"name":"falcon-node-sensor"}, "namespace": "", "name": "falcon-node-sensor", "reconcileID": "b19a4bb0-bfb7-4ac0-99b4-15f93713fc04", "DaemonSet": {"name":"falcon-node-sensor"}}
+  ```
+  In the event of an incomplete uninstallation, manually remove the /opt/CrowdStrike directory on affected nodes identified in the logs to prevent these potential issues:
+  1. The /opt/CrowdStrike directory will consume unnecessary disk space
+  2. Subsequent sensor reinstallations will reuse the previous Agent ID (AID) found in /opt/CrowdStrike/falconstore

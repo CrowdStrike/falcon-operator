@@ -331,3 +331,13 @@ func oLogMessage(kind, obj string) string {
 func logMessage(msg, falconKind, kind string) string {
 	return fmt.Sprintf("%s %s %s", msg, falconKind, kind)
 }
+
+func IsInitPodCrashLooping(pod *corev1.Pod) bool {
+	for _, containerStatus := range pod.Status.InitContainerStatuses {
+		if containerStatus.State.Waiting != nil &&
+			containerStatus.State.Waiting.Reason == "CrashLoopBackOff" {
+			return true
+		}
+	}
+	return false
+}
