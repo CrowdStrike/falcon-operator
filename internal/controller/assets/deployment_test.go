@@ -249,7 +249,7 @@ func testSideCarDeployment(name string, namespace string, component string, imag
 											{
 												Key:      "kubernetes.io/arch",
 												Operator: corev1.NodeSelectorOpIn,
-												Values:   []string{"amd64"},
+												Values:   []string{"amd64", "arm64"},
 											},
 										},
 									},
@@ -689,7 +689,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 											{
 												Key:      "kubernetes.io/arch",
 												Operator: corev1.NodeSelectorOpIn,
-												Values:   []string{"amd64"},
+												Values:   []string{"amd64", "arm64"},
 											},
 										},
 									},
