@@ -881,7 +881,10 @@ func getDefaultAffinity() *corev1.Affinity {
 							{
 								Key:      "kubernetes.io/arch",
 								Operator: corev1.NodeSelectorOpIn,
-								Values:   []string{"amd64"},
+								Values: []string{
+									"amd64",
+									"arm64",
+								},
 							},
 						},
 					},

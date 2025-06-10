@@ -40,8 +40,7 @@ spec:
 | `>= 1.3.x`                   | `>= 7.20.x`                               |
 
 > [!IMPORTANT]
-> Falcon KAC will have multi-arch images starting with version `7.26.x`. Operator versions <= 1.3.x are still compatible with Falcon KAC v7.26+, but Falcon KAC will only be deployed to ARM64 clusters if it is configured with the new node affinity option added in Operator version `1.6.x`.
-> Multi architecture images will not automatically deploy to ARM64 clusters, without updating `admissionConfig.nodeAffinity`.
+> Falcon KAC will have multi-arch images starting with version `7.26.x`. Operator versions <= 1.3.x are still compatible with Falcon KAC v7.26+, but Falcon KAC will only be deployed to AMD64 clusters if using Operator versions <= 1.3.x.
 
 #### Falcon API Settings
 | Spec                     | Description                                                                                                                                                                                                                          |
@@ -82,7 +81,7 @@ spec:
 | admissionConfig.resourcesWatcher          | (optional) Configure the resources watcher of the Falcon Admission Controller                                                                                                                                           |
 | admissionConfig.resources                 | (optional) Configure the resources of the Falcon Admission Controller                                                                                                                                                   |
 | admissionConfig.updateStrategy            | (optional) Configure the deployment update strategy of the Falcon Admission Controller                                                                                                                                  |
-| admissionConfig.nodeAffinity              | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity.                                                                                       |
+| admissionConfig.nodeAffinity              | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity. AMD64 and ARM64 architectures are supported by default.     |
 
 > [!IMPORTANT] Always install the Falcon KAC to its own unique namespace. We recommend the namespace `falcon-kac`. If you choose a different one, make sure it's used exclusively for Falcon KAC. Not only is this a Kubernetes best practice, it's also a security best practice. The admission controller does not monitor its own namespace.
 
