@@ -111,6 +111,21 @@ var _ = Describe("FalconDeployment Controller", func() {
 			CID:          &overrideFalconCID,
 		}
 
+		falconSecretNameSpace := "falcon-secrets"
+		falconSecretName := "falcon-secret"
+		overrideFalconSecretNameSpace := "falcon-secrets-override"
+		overrideFalconSecretName := "falcon-secret-override"
+
+		topLevelFalconSecret := falconv1alpha1.FalconSecret{
+			Namespace:  falconSecretNameSpace,
+			SecretName: falconSecretName,
+		}
+
+		lowerLevelFalconSecret := falconv1alpha1.FalconSecret{
+			Namespace:  overrideFalconSecretNameSpace,
+			SecretName: overrideFalconSecretName,
+		}
+
 		It("should successfully reconcile the resource", func() {
 			By("Creating the custom resource for the Kind FalconDeployment - No Overrides")
 			deployContainerSensor := true
@@ -128,6 +143,7 @@ var _ = Describe("FalconDeployment Controller", func() {
 					Spec: falconv1alpha1.FalconDeploymentSpec{
 						FalconAPI:             &mockFalconAPI,
 						Registry:              defaultRegistry,
+						FalconSecret:          topLevelFalconSecret,
 						DeployContainerSensor: &deployContainerSensor,
 						FalconAdmission: falconv1alpha1.FalconAdmissionSpec{
 							InstallNamespace: admissionControllerNamespace,
@@ -168,7 +184,7 @@ var _ = Describe("FalconDeployment Controller", func() {
 			})
 			Expect(err).To(Not(HaveOccurred()))
 
-			By("Validate override FalconAPI credentials are used in the child CRs - FalconAdmission")
+			By("Validate FalconDeployment top level FalconAPI credentials are used in the child CRs - FalconAdmission - without overrides")
 			falconAdmission := &falconv1alpha1.FalconAdmission{}
 			err = k8sClient.Get(ctx, typeAdmissionNamespacedName, falconAdmission)
 			Expect(err).To(Not(HaveOccurred()))
@@ -176,7 +192,7 @@ var _ = Describe("FalconDeployment Controller", func() {
 			Expect(falconAdmission.Spec.FalconAPI.ClientSecret).To(Equal(mockFalconAPI.ClientSecret))
 			Expect(falconAdmission.Spec.FalconAPI.CloudRegion).To(Equal(mockFalconAPI.CloudRegion))
 
-			By("Validate override FalconAPI credentials are used in the child CRs - FalconImageAnalyzer")
+			By("Validate FalconDeployment top level FalconAPI credentials are used in the child CRs - FalconImageAnalyzer - without overrides")
 			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{}
 			err = k8sClient.Get(ctx, typeIARNamespacedName, falconImageAnalyzer)
 			Expect(err).To(Not(HaveOccurred()))
@@ -184,7 +200,7 @@ var _ = Describe("FalconDeployment Controller", func() {
 			Expect(falconImageAnalyzer.Spec.FalconAPI.ClientSecret).To(Equal(mockFalconAPI.ClientSecret))
 			Expect(falconImageAnalyzer.Spec.FalconAPI.CloudRegion).To(Equal(mockFalconAPI.CloudRegion))
 
-			By("Validate override FalconAPI credentials are used in the child CRss - FalconNodeSensor")
+			By("Validate FalconDeployment top level FalconAPI credentials are used in the child CRss - FalconNodeSensor - without overrides")
 			falconNodeSensor := &falconv1alpha1.FalconNodeSensor{}
 			err = k8sClient.Get(ctx, typeNodeNamespacedName, falconNodeSensor)
 			Expect(err).To(Not(HaveOccurred()))
@@ -192,13 +208,19 @@ var _ = Describe("FalconDeployment Controller", func() {
 			Expect(falconNodeSensor.Spec.FalconAPI.ClientSecret).To(Equal(mockFalconAPI.ClientSecret))
 			Expect(falconNodeSensor.Spec.FalconAPI.CloudRegion).To(Equal(mockFalconAPI.CloudRegion))
 
-			By("Validate override FalconAPI credentials are used in the child CRs - FalconContainer")
+			By("Validate FalconDeployment top level FalconAPI credentials are used in the child CRs - FalconContainer - without overrides")
 			falconContainer := &falconv1alpha1.FalconContainer{}
 			err = k8sClient.Get(ctx, typeContainerNamespacedName, falconContainer)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(falconContainer.Spec.FalconAPI.ClientId).To(Equal(mockFalconAPI.ClientId))
 			Expect(falconContainer.Spec.FalconAPI.ClientSecret).To(Equal(mockFalconAPI.ClientSecret))
 			Expect(falconContainer.Spec.FalconAPI.CloudRegion).To(Equal(mockFalconAPI.CloudRegion))
+
+			By("Validate FalconDeployment top level FalconSecret spec is used in the child CRs - without overrides")
+			Expect(falconAdmission.Spec.FalconSecret).To(Equal(topLevelFalconSecret))
+			Expect(falconImageAnalyzer.Spec.FalconSecret).To(Equal(topLevelFalconSecret))
+			Expect(falconNodeSensor.Spec.FalconSecret).To(Equal(topLevelFalconSecret))
+			Expect(falconContainer.Spec.FalconSecret).To(Equal(topLevelFalconSecret))
 
 			By("Deleting the FalconDeployment to perform the tests")
 			_ = k8sClient.Delete(ctx, falconAdmission)
@@ -227,20 +249,24 @@ var _ = Describe("FalconDeployment Controller", func() {
 							InstallNamespace: admissionControllerOverrideNamespace,
 							FalconAPI:        &overrideFalconAPI,
 							Registry:         overrideRegistry,
+							FalconSecret:     lowerLevelFalconSecret,
 						},
 						FalconNodeSensor: falconv1alpha1.FalconNodeSensorSpec{
 							InstallNamespace: nodeSensorOverrideNamespace,
 							FalconAPI:        &overrideFalconAPI,
+							FalconSecret:     lowerLevelFalconSecret,
 						},
 						FalconImageAnalyzer: falconv1alpha1.FalconImageAnalyzerSpec{
 							InstallNamespace: imageAnalyzerOverrideNamespace,
 							FalconAPI:        &overrideFalconAPI,
 							Registry:         overrideRegistry,
+							FalconSecret:     lowerLevelFalconSecret,
 						},
 						FalconContainerSensor: falconv1alpha1.FalconContainerSpec{
 							InstallNamespace: sidecarSensorOverrideNamespace,
 							FalconAPI:        &overrideFalconAPI,
 							Registry:         overrideRegistry,
+							FalconSecret:     lowerLevelFalconSecret,
 						},
 					},
 				}
@@ -294,6 +320,11 @@ var _ = Describe("FalconDeployment Controller", func() {
 			Expect(falconContainer.Spec.FalconAPI.ClientSecret).To(Equal(overrideFalconAPI.ClientSecret))
 			Expect(falconContainer.Spec.FalconAPI.CloudRegion).To(Equal(overrideFalconAPI.CloudRegion))
 
+			By("Validate lower level FalconSecret spec is used in the child CRs - with overrides")
+			Expect(falconAdmission.Spec.FalconSecret).To(Equal(lowerLevelFalconSecret))
+			Expect(falconImageAnalyzer.Spec.FalconSecret).To(Equal(lowerLevelFalconSecret))
+			Expect(falconNodeSensor.Spec.FalconSecret).To(Equal(lowerLevelFalconSecret))
+			Expect(falconContainer.Spec.FalconSecret).To(Equal(lowerLevelFalconSecret))
 		})
 	})
 })

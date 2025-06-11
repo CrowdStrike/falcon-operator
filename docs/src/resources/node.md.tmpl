@@ -102,12 +102,12 @@ Falcon secret settings are used to read the following sensitive Falcon API and s
 > If a key/value does not exist in your k8s secret, the value will be overwritten as an empty string.
 
 ##### Secret Keys
-| Secret Key                | Description                                                                                                     |
-|:--------------------------|:----------------------------------------------------------------------------------------------------------------|
-| falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined     |
-| falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined |
-| falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings) and [`falcon.cid`](#falcon-sensor-settings)                   |
-| falcon-provisioning-token | Replaces [`falcon.provisioning_token`](#falcon-sensor-settings)                                                 |
+| Secret Key                | Description                                                                                   |
+|:--------------------------|:----------------------------------------------------------------------------------------------|
+| falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings)                                       |
+| falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings)                                   |
+| falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings) and [`falcon.cid`](#falcon-sensor-settings) |
+| falcon-provisioning-token | Replaces [`falcon.provisioning_token`](#falcon-sensor-settings)                               |
 
 Example of creating k8s secret with sensitive Falcon values:
 ```bash

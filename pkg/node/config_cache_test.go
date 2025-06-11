@@ -22,7 +22,7 @@ var config = ConfigCache{
 	cid:             falconCID,
 	imageUri:        falconImage,
 	nodesensor:      &falconNode,
-	falconApiConfig: &falconApiConfig,
+	falconApiConfig: nil,
 }
 
 func TestCID(t *testing.T) {
@@ -150,7 +150,9 @@ func TestNewConfigCache(t *testing.T) {
 }
 
 func TestConfigCacheTest(t *testing.T) {
-	want := config
+	testConfig := config
+	testConfig.falconApiConfig = &falconApiConfig
+	want := testConfig
 
 	newCache := ConfigCacheTest(falconCID, falconImage, &falconNode, &falconApiConfig)
 	if want != *newCache {
@@ -177,6 +179,7 @@ func TestGetFalconImage(t *testing.T) {
 	}
 
 	falconNode.Spec.FalconAPI = nil
+	testConfig.falconApiConfig = nil
 	_, err = testConfig.getFalconImage(context.Background(), &falconNode)
 	if err != nil {
 		if err != ErrFalconAPINotConfigured {

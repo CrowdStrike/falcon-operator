@@ -69,7 +69,35 @@ The additional configurations for each component are mapped to the Spec for each
 * [Falcon Kubernetes Admission Controller Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/admission/README.md)  
 * [Falcon Image Assessment at Runtime Agent Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/imageanalyzer/README.md)
 
-### 
+#### Falcon Secret Settings
+| Spec                    | Description                                                                                    |
+|:------------------------|:-----------------------------------------------------------------------------------------------|
+| falconSecret.enabled    | Enable reading sensitive Falcon API and Falcon sensor values from k8s secret; Default: `false` |
+| falconSecret.namespace  | Required if `enabled: true`; k8s namespace with relevant k8s secret                            |
+| falconSecret.secretName | Required if `enabled: true`; name of k8s secret with sensitive Falcon API and sensor values    |
+
+Falcon secret settings are used to read the following sensitive Falcon API and sensor values from an existing k8s secret on your cluster.
+
+> [!IMPORTANT]
+> When Falcon Secret is enabled, ALL spec parameters in the list of [secret keys](#secret-keys) will be overwritten.
+> If a key/value does not exist in your k8s secret, the value will be overwritten as an empty string.
+
+##### Secret Keys
+| Secret Key                | Description                                |
+|:--------------------------|:-------------------------------------------|
+| falcon-client-id          | Replaces `falcon_api.client_id`            |
+| falcon-client-secret      | Replaces `falcon_api.client_secret`        |
+| falcon-cid                | Replaces `falcon_api.cid` and `falcon.cid` |
+| falcon-provisioning-token | Replaces `falcon.provisioning_token`       |
+
+Example of creating k8s secret with sensitive Falcon values:
+```bash
+kubectl create secret generic falcon-secrets -n $FALCON_SECRET_NAMESPACE \
+--from-literal=falcon-client-id=$FALCON_CLIENT_ID \
+--from-literal=falcon-client-secret=$FALCON_CLIENT_SECRET \
+--from-literal=falcon-cid=$FALCON_CID \
+--from-literal=falcon-provisioning-token=$FALCON_PROVISIONING_TOKEN
+```
 
 ### Example Configurations
 

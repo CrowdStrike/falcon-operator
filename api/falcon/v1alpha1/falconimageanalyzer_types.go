@@ -203,3 +203,23 @@ type FalconImageAnalyzerList struct {
 func init() {
 	SchemeBuilder.Register(&FalconImageAnalyzer{}, &FalconImageAnalyzerList{})
 }
+
+func (fia *FalconImageAnalyzer) GetFalconSecretSpec() FalconSecret {
+	return fia.Spec.FalconSecret
+}
+
+func (fia *FalconImageAnalyzer) GetFalconAPISpec() *FalconAPI {
+	return fia.Spec.FalconAPI
+}
+
+func (fia *FalconImageAnalyzer) SetFalconAPISpec(falconApiSpec *FalconAPI) {
+	fia.Spec.FalconAPI = falconApiSpec
+}
+
+func (fia *FalconImageAnalyzer) GetFalconSpec() FalconSensor {
+	return FalconSensor{}
+}
+
+func (fia *FalconImageAnalyzer) SetFalconSpec(FalconSensor) {
+	// noop
+}

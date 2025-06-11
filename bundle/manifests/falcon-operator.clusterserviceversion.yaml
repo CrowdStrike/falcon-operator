@@ -792,6 +792,19 @@ spec:
           location.
         displayName: Image Pull Secrets
         path: falconNodeSensor.node.imagePullSecrets
+      - description: Enable injecting sensitive Falcon values from existing k8s secret
+        displayName: Falcon Secret Enabled
+        path: falconSecret.enabled
+      - description: |-
+          FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
+
+
+          When configured, it will pull the sensor from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
+
+
+          If using the API is not desired, the sensor can be manually configured.
+        displayName: Falcon Platform API Configuration
+        path: falcon_api
       - description: Falcon OAuth2 API Client ID
         displayName: Client ID
         path: falcon_api.client_id
@@ -933,21 +946,19 @@ spec:
       - description: Name of the priority class to use for the DaemonSet.
         displayName: Name of the Priority Class to use
         path: falconNodeSensor.node.priorityClass.name
-      - description: |-
-          FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
-
-
-          When configured, it will pull the sensor from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
-
-
-          If using the API is not desired, the sensor can be manually configured.
-        displayName: Falcon Platform API Configuration
-        path: falcon_api
+      - description: Namespace where the Falcon k8s secret is located.
+        displayName: Falcon Secret Namespace
+        path: falconSecret.namespace
       - description: Falcon OAuth2 API Client Secret
         displayName: Client Secret
         path: falcon_api.client_secret
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:password
+      - description: Registry configures container image registry to which registry
+          image will be pushed.
+        displayName: Registry Configuration for FalconAdmission, FalconImageanalyzer,
+          and FalconContainer
+        path: registry
       - description: TLS configures TLS connection for push of Falcon Container image
           to the registry
         displayName: Registry TLS Configuration
@@ -1062,15 +1073,22 @@ spec:
           the Deploy field to be set to true.
         displayName: Priority Class Value
         path: falconNodeSensor.node.priorityClass.value
+      - description: |-
+          FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+          The following Falcon values are supported by k8s secret injection:
+            falcon-cid
+            falcon-provisioning-token
+            falcon-client-id
+            falcon-client-secret
+        displayName: Falcon Platform Secrets Configuration
+        path: falconSecret
+      - description: SecretName of the existing Falcon k8s secret
+        displayName: Falcon Secret SecretName
+        path: falconSecret.secretName
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falcon_api.cloud_region
-      - description: Registry configures container image registry to which registry
-          image will be pushed.
-        displayName: Registry Configuration for FalconAdmission, FalconImageanalyzer,
-          and FalconContainer
-        path: registry
       - description: Azure Container Registry Name represents the name of the ACR
           for the Falcon Container push. Only applicable to Azure cloud.
         displayName: Azure Container Registry Name

@@ -12,6 +12,7 @@ import (
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
+	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -81,9 +82,8 @@ func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name s
 		data["AGENT_CLIENT_SECRET"] = falconImageAnalyzer.Spec.FalconAPI.ClientSecret
 	}
 
-	if falconImageAnalyzer.Spec.FalconAPI.CloudRegion != "" {
-		data["AGENT_REGION"] = falconImageAnalyzer.Spec.FalconAPI.CloudRegion
-	}
+	// cloud region is required
+	data["AGENT_REGION"] = falcon.Cloud(falconImageAnalyzer.Spec.FalconAPI.CloudRegion).String()
 
 	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.ClusterName != "" {
 		data["AGENT_CLUSTER_NAME"] = falconImageAnalyzer.Spec.ImageAnalyzerConfig.ClusterName
