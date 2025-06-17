@@ -337,7 +337,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 											{
 												Key:      "kubernetes.io/arch",
 												Operator: corev1.NodeSelectorOpIn,
-												Values:   []string{"amd64"},
+												Values:   []string{"amd64", "arm64"},
 											},
 										},
 									},
