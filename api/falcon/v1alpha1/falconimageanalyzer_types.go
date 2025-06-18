@@ -54,6 +54,10 @@ type FalconImageAnalyzerSpec struct {
 	// Falcon Image Analyzer Version. The latest version will be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Version",order=7
 	Version *string `json:"version,omitempty"`
+
+	// Specifies node affinity for scheduling the Sensor.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=8
+	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
 }
 
 type FalconImageAnalyzerConfigSpec struct {
