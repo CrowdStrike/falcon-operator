@@ -336,6 +336,16 @@ func TestDaemonset(t *testing.T) {
 								ReadOnlyRootFilesystem:   &readOnlyFSEnabled,
 								AllowPrivilegeEscalation: &escalation,
 							},
+							Env: []corev1.EnvVar{
+								{
+									Name: "POD_NODE_NAME",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "spec.nodeName",
+										},
+									},
+								},
+							},
 						},
 					},
 					ServiceAccountName: common.NodeServiceAccountName,
