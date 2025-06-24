@@ -321,6 +321,11 @@ func (r *FalconImageAnalyzerReconciler) reconcileImageAnalyzerDeployment(ctx con
 		updated = true
 	}
 
+	if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity, dep.Spec.Template.Spec.Affinity.NodeAffinity) {
+		existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity = dep.Spec.Template.Spec.Affinity.NodeAffinity
+		updated = true
+	}
+
 	if updated {
 		if err := k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, existingDeployment); err != nil {
 			return err
