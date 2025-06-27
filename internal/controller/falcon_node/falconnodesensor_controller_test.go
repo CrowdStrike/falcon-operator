@@ -95,7 +95,6 @@ var _ = Describe("FalconNodeSensor controller", func() {
 		})
 
 		It("should successfully reconcile a custom resource for FalconNodeSensor", func() {
-			//Skip("skipping test")
 			By("Creating the custom resource for the Kind FalconNodeSensor")
 			falconNode := &falconv1alpha1.FalconNodeSensor{}
 			err := k8sClient.Get(ctx, sensorNamespacedName, falconNode)

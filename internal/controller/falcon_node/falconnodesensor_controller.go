@@ -11,7 +11,6 @@ import (
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_secret"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/node"
 	"github.com/crowdstrike/falcon-operator/version"
@@ -65,6 +64,14 @@ func (r *FalconNodeSensorReconciler) SetupWithManager(mgr ctrl.Manager, tracker 
 
 	r.tracker = tracker
 	return nil
+}
+
+func (r *FalconNodeSensorReconciler) GetK8sClient() client.Client {
+	return r.Client
+}
+
+func (r *FalconNodeSensorReconciler) GetK8sReader() client.Reader {
+	return r.Reader
 }
 
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;delete;deletecollection
@@ -1109,32 +1116,6 @@ func shouldTrackSensorVersions(obj *falconv1alpha1.FalconNodeSensor) bool {
 
 func (r *FalconNodeSensorReconciler) injectFalconSecretData(ctx context.Context, nodeSensor *falconv1alpha1.FalconNodeSensor, logger logr.Logger) error {
 	logger.Info("injecting Falcon secret data into Spec.Falcon and Spec.FalconAPI - sensitive manifest values will be overwritten with values in k8s secret")
-	falconSecret := &corev1.Secret{}
-	falconSecretNamespacedName := types.NamespacedName{
-		Name:      nodeSensor.Spec.FalconSecret.SecretName,
-		Namespace: nodeSensor.Spec.FalconSecret.Namespace,
-	}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
-	if err != nil {
-		return err
-	}
-
-	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
-	nodeSensor.Spec.Falcon.CID = &cid
-
-	provisioningToken := falcon_secret.GetFalconProvisioningTokenFromSecret(falconSecret)
-	nodeSensor.Spec.Falcon.PToken = provisioningToken
-
-	if nodeSensor.Spec.FalconAPI == nil {
-		logger.Info("skipped injecting FalconAPI secrets - Spec.FalconAPI is nil")
-		return nil
-	}
-
-	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
-	nodeSensor.Spec.FalconAPI.ClientId = clientId
-	nodeSensor.Spec.FalconAPI.ClientSecret = clientSecret
-	nodeSensor.Spec.FalconAPI.CID = &cid
-
-	return nil
+	return k8sutils.InjectFalconSecretData(ctx, r, nodeSensor)
 }

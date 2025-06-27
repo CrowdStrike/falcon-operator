@@ -4185,6 +4185,31 @@ spec:
                         type: string
                     type: object
                 type: object
+              falconSecret:
+                default:
+                  enabled: false
+                description: |-
+                  FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+                  The following Falcon values are supported by k8s secret injection:
+                    falcon-cid
+                    falcon-provisioning-token
+                    falcon-client-id
+                    falcon-client-secret
+                properties:
+                  enabled:
+                    default: false
+                    description: Enable injecting sensitive Falcon values from existing
+                      k8s secret
+                    type: boolean
+                  namespace:
+                    description: Namespace where the Falcon k8s secret is located.
+                    type: string
+                  secretName:
+                    description: SecretName of the existing Falcon k8s secret
+                    type: string
+                required:
+                - enabled
+                type: object
               registry:
                 default:
                   type: crowdstrike

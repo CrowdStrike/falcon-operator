@@ -16,6 +16,7 @@ package e2e
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -27,3 +28,7 @@ func TestE2E(t *testing.T) {
 	fmt.Fprintf(GinkgoWriter, "Starting Falcon Operator suite\n")
 	RunSpecs(t, "Falcon e2e suite")
 }
+
+var _ = BeforeSuite(func() {
+	SetDefaultEventuallyTimeout(20 * time.Minute)
+})

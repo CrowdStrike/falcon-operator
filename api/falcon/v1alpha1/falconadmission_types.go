@@ -303,3 +303,23 @@ func (ac *FalconAdmission) GetAdmissionControlEnabled() bool {
 
 	return *ac.Spec.AdmissionConfig.AdmissionControlEnabled
 }
+
+func (ac *FalconAdmission) GetFalconSecretSpec() FalconSecret {
+	return ac.Spec.FalconSecret
+}
+
+func (ac *FalconAdmission) GetFalconAPISpec() *FalconAPI {
+	return ac.Spec.FalconAPI
+}
+
+func (ac *FalconAdmission) SetFalconAPISpec(falconApiSpec *FalconAPI) {
+	ac.Spec.FalconAPI = falconApiSpec
+}
+
+func (ac *FalconAdmission) GetFalconSpec() FalconSensor {
+	return ac.Spec.Falcon
+}
+
+func (ac *FalconAdmission) SetFalconSpec(falconSpec FalconSensor) {
+	ac.Spec.Falcon = falconSpec
+}

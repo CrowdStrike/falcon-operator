@@ -3,7 +3,9 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	internalErrors "github.com/crowdstrike/falcon-operator/internal/errors"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_secret"
 	"github.com/crowdstrike/falcon-operator/version"
@@ -118,18 +120,24 @@ func (fa *FalconAPI) ApiConfigWithSecret(
 	}
 
 	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconApiSecret)
+	if strings.TrimSpace(clientId) == "" || strings.TrimSpace(clientSecret) == "" {
+		return &falcon.ApiConfig{}, internalErrors.ErrMissingFalconAPICredentialsInSecret
+	}
+
+	cloudRegion := ""
+	hostOverride := ""
+	if fa != nil {
+		cloudRegion = fa.CloudRegion
+		hostOverride = fa.HostOverride
+	}
 
 	return &falcon.ApiConfig{
-		Cloud:             falcon.Cloud(fa.CloudRegion),
+		Cloud:             falcon.Cloud(cloudRegion),
 		ClientId:          clientId,
 		ClientSecret:      clientSecret,
-		HostOverride:      fa.HostOverride,
+		HostOverride:      hostOverride,
 		UserAgentOverride: fmt.Sprintf("falcon-operator/%s", version.Version),
 	}, nil
-}
-
-func (fa *FalconAPI) FalconCloud(ctx context.Context) (falcon.CloudType, error) {
-	return falcon_api.FalconCloud(ctx, fa.ApiConfig())
 }
 
 func (fa *FalconAPI) FalconCloudWithSecret(

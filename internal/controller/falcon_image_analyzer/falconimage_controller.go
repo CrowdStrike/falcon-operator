@@ -13,7 +13,6 @@ import (
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_secret"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
@@ -53,6 +52,14 @@ func (r *FalconImageAnalyzerReconciler) SetupWithManager(mgr ctrl.Manager) error
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Complete(r)
+}
+
+func (r *FalconImageAnalyzerReconciler) GetK8sClient() client.Client {
+	return r.Client
+}
+
+func (r *FalconImageAnalyzerReconciler) GetK8sReader() client.Reader {
+	return r.Reader
 }
 
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconimageanalyzers,verbs=get;list;watch;create;update;patch;delete
@@ -461,28 +468,6 @@ func (r *FalconImageAnalyzerReconciler) injectFalconSecretData(
 	logger logr.Logger,
 ) error {
 	logger.Info("injecting Falcon secret data into Spec.Falcon and Spec.FalconAPI - sensitive manifest values will be overwritten with values in k8s secret")
-	if falconImageAnalyzer.Spec.FalconAPI == nil {
-		logger.Info("skipped injecting FalconAPI secrets - Spec.FalconAPI is nil")
-		return nil
-	}
 
-	falconSecret := &corev1.Secret{}
-	falconSecretNamespacedName := types.NamespacedName{
-		Name:      falconImageAnalyzer.Spec.FalconSecret.SecretName,
-		Namespace: falconImageAnalyzer.Spec.FalconSecret.Namespace,
-	}
-
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
-	if apierrors.IsNotFound(err) {
-		return err
-	}
-
-	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
-	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
-
-	falconImageAnalyzer.Spec.FalconAPI.ClientId = clientId
-	falconImageAnalyzer.Spec.FalconAPI.ClientSecret = clientSecret
-	falconImageAnalyzer.Spec.FalconAPI.CID = &cid
-
-	return nil
+	return k8sutils.InjectFalconSecretData(ctx, r, falconImageAnalyzer)
 }
