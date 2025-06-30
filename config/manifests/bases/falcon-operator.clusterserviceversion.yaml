@@ -1159,7 +1159,7 @@ spec:
         displayName: Trace Level
         path: falconNodeSensor.falcon.trace
       - description: Kills pod after a specificed amount of time (in seconds). Default
-          is 30 seconds.
+          is 60 seconds.
         displayName: Termination Grace Period
         path: falconNodeSensor.node.terminationGracePeriod
       - description: Falcon Admission Controller Configuration
@@ -1653,7 +1653,7 @@ spec:
         displayName: Trace Level
         path: falcon.trace
       - description: Kills pod after a specificed amount of time (in seconds). Default
-          is 30 seconds.
+          is 60 seconds.
         displayName: Termination Grace Period
         path: node.terminationGracePeriod
       - description: Utilize default or Pay-As-You-Go billing.

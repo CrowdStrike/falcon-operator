@@ -82,8 +82,8 @@ type FalconNodeSensorConfig struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Update Strategy",order=6
 	DSUpdateStrategy FalconNodeUpdateStrategy `json:"updateStrategy,omitempty"`
 
-	// Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.
-	// +kubebuilder:default:=30
+	// Kills pod after a specificed amount of time (in seconds). Default is 60 seconds.
+	// +kubebuilder:default:=60
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=7
 	TerminationGracePeriod int64 `json:"terminationGracePeriod,omitempty"`
 
