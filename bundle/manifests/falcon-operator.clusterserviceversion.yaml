@@ -1328,6 +1328,9 @@ spec:
       - description: Set the falcon image analyzer volume size limit.
         displayName: Falcon Image Analyzer Volume Size Limit
         path: falconImageAnalyzer.imageAnalyzerConfig.sizeLimit
+      - description: Specifies node affinity for scheduling the Sensor.
+        displayName: Node Affinity
+        path: falconImageAnalyzer.nodeAffinity
       - description: Utilize default or Pay-As-You-Go billing.
         displayName: Billing
         path: falconNodeSensor.falcon.billing
@@ -1644,6 +1647,9 @@ spec:
       - description: Set the falcon image analyzer volume size limit.
         displayName: Falcon Image Analyzer Volume Size Limit
         path: imageAnalyzerConfig.sizeLimit
+      - description: Specifies node affinity for scheduling the Sensor.
+        displayName: Node Affinity
+        path: nodeAffinity
       - description: Set the falcon image analyzer volume mount path.
         displayName: Falcon Image Analyzer Volume Mount Path
         path: imageAnalyzerConfig.mountPath
