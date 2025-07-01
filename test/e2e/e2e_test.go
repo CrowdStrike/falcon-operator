@@ -23,7 +23,7 @@ import (
 // constant parts of the file
 const (
 	namespace              = "falcon-operator-system"
-	defaultTimeout         = 2 * time.Minute
+	defaultTimeout         = 3 * time.Minute
 	defaultPollPeriod      = 5 * time.Second
 	metricsServiceName     = "falcon-operator-controller-manager-metrics-service"
 	metricsRoleBindingName = "falcon-operator-metrics-binding"

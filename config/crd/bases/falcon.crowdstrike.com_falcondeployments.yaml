@@ -92,6 +92,7 @@ spec:
                     - us-2
                     - eu-1
                     - us-gov-1
+                    - us-gov-2
                     type: string
                 required:
                 - cloud_region
@@ -820,6 +821,7 @@ spec:
                         - us-2
                         - eu-1
                         - us-gov-1
+                        - us-gov-2
                         type: string
                     required:
                     - cloud_region
@@ -1021,6 +1023,7 @@ spec:
                         - us-2
                         - eu-1
                         - us-gov-1
+                        - us-gov-2
                         type: string
                     required:
                     - cloud_region
@@ -3291,6 +3294,7 @@ spec:
                         - us-2
                         - eu-1
                         - us-gov-1
+                        - us-gov-2
                         type: string
                     required:
                     - cloud_region
@@ -3872,6 +3876,7 @@ spec:
                         - us-2
                         - eu-1
                         - us-gov-1
+                        - us-gov-2
                         type: string
                     required:
                     - cloud_region

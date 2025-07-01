@@ -26,8 +26,8 @@ The Falcon Operator retrieves the component images from the CrowdStrike registry
 
 ## How the FalconDeployment CRD works
 
-The FalconDeployment acts as a parent resource that manages the deployment and configuration of Falcon component Custom Resources (CRs). It uses a single manifest to simplify and streamline the deployment process across your Kubernetes environment.  
-![Falcon-Operator](../images/falcon-operator.png) 
+The FalconDeployment acts as a parent resource that manages the deployment and configuration of Falcon component Custom Resources (CRs). It uses a single manifest to simplify and streamline the deployment process across your Kubernetes environment.
+![Falcon-Operator](../images/falcon-operator.png)
 
 This streamlined process allows for easier management, updates, and scaling of your Falcon components within your Kubernetes clusters.
 
@@ -46,8 +46,8 @@ The FalconDeployment Spec contains fields that are shared by all child component
 | :---- | :---- |
 | falcon\_api.client\_id | Required. CrowdStrike API Client ID |
 | falcon\_api.client\_secret | Required. CrowdStrike API Client Secret |
-| falcon\_api.cloud\_region | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1) |
-| falcon\_api.cid | (Optional) CrowdStrike Falcon CID API override |
+| falcon\_api.cloud\_region | CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1, us-gov-2); `autodiscover` cannot be used for us-gov-1 or us-gov-2 |
+| falcon\_api.cid | (Optional) CrowdStrike Falcon CID API override;<br> Required for us-gov-2 |
 | registry.type | (Optional) Type of container registry to be used. Options: acr, ecr, gcr, crowdstrike, openshift |
 | registry.acr\_name | (Optional) (Azure only) Name of the Azure Container Registry for Falcon Container push |
 | registry.tls.caCertificate | (Optional) CA Certificate bundle as a string or base64 encoded string |
@@ -62,11 +62,11 @@ The FalconDeployment Spec contains fields that are shared by all child component
 | falconContainerSensor | (Optional) Additional configurations that map to FalconContainerSpec. All values within the custom resource spec can be overridden here. |
 | falconAdmission | (Optional) Additional configurations that map to FalconAdmissionConfigSpec. All values within the custom resource spec can be overridden here. |
 
-The additional configurations for each component are mapped to the Spec for each of the custom resource definitions (CRDs). For specific configuration info, see: 
+The additional configurations for each component are mapped to the Spec for each of the custom resource definitions (CRDs). For specific configuration info, see:
 
-* [Falcon Sensor for Linux Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/node/README.md)  
-* [Falcon Container sensor for Linux Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/container/README.md)  
-* [Falcon Kubernetes Admission Controller Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/admission/README.md)  
+* [Falcon Sensor for Linux Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/node/README.md)
+* [Falcon Container sensor for Linux Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/container/README.md)
+* [Falcon Kubernetes Admission Controller Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/admission/README.md)
 * [Falcon Image Assessment at Runtime Agent Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/imageanalyzer/README.md)
 
 #### Falcon Secret Settings
@@ -190,7 +190,7 @@ Determine if your cluster is using OLM by running:
 
 If your cluster has OLM, you'll see:
 
-`NAME CREATED AT`  
+`NAME CREATED AT`
 clusterserviceversions.operators.coreos.com `YYYY-MM-DDTHH:MM:SSZ`
 
 If your cluster does not have OLM, you'll see:
@@ -213,12 +213,12 @@ This command creates and applies the FalconDeployment manifest file for the Falc
 
 To install Falcon Operator:
 
-1. Create and open the FalconDeployment manifest file for editing. Make sure to replace `[version_number]` with the correct version tag.  
-   `kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/refs/tags/[version_number]/config/samples/falcon_v1alpha1_falcondeployment.yaml --edit=true`  
-2. Set the individual resources in the Spec section of the manifest to `true` or `false`. To see basic deployment examples, see [Falcon Operator Spec examples](?tab=t.0#heading=h.d6esf7ainssd).  
-3. Optional. Provide your custom configuration within the manifest file for each resource.   
-4. Save the new manifest configuration and exit the editor.  
-5. The Falcon Operator will automatically detect the changes and initiate the reconciliation process.  
+1. Create and open the FalconDeployment manifest file for editing. Make sure to replace `[version_number]` with the correct version tag.
+   `kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/refs/tags/[version_number]/config/samples/falcon_v1alpha1_falcondeployment.yaml --edit=true`
+2. Set the individual resources in the Spec section of the manifest to `true` or `false`. To see basic deployment examples, see [Falcon Operator Spec examples](?tab=t.0#heading=h.d6esf7ainssd).
+3. Optional. Provide your custom configuration within the manifest file for each resource.
+4. Save the new manifest configuration and exit the editor.
+5. The Falcon Operator will automatically detect the changes and initiate the reconciliation process.
 6. The Operator will work to bring the actual state of the cluster in line with the desired state specified in your configuration.
 
 **Note:** When deploying the Kubernetes Admission Controller, the Falcon Operator can trigger multiple restarts for the Falcon Admission Controller Pods when deploying alongside other resources. Falcon KAC is designed to ignore namespaces managed by CrowdStrike, so, as new resources are added, such as falconContainer or falconNodeSensor, the KAC pod will redeploy to ignore the new namespaces.
@@ -227,22 +227,22 @@ To install Falcon Operator:
 
 Some cloud platforms have additional configuration requirements. For details, see the appropriate deployment guide:
 
-* AKS  
-* EKS  
-* Fargate  
-* Cloudformation  
-* GKE  
+* AKS
+* EKS
+* Fargate
+* Cloudformation
+* GKE
 * OpenShift
 
 ## Modify Falcon components
 
 To add or remove individual resources without a complete uninstallation:
 
-1. Open the current manifest configuration:   
-   `kubectl edit falcondeployments`  
-2. In the opened editor, modify the Spec field for the desired resources to `true` or `false`.  
-3. Set any other individual resources in the Spec as needed.  
-4. Provide any custom configuration required.  
+1. Open the current manifest configuration:
+   `kubectl edit falcondeployments`
+2. In the opened editor, modify the Spec field for the desired resources to `true` or `false`.
+3. Set any other individual resources in the Spec as needed.
+4. Provide any custom configuration required.
 5. Save the new manifest configuration and exit the editor.
 
 The Falcon Operator will automatically detect these changes and reconcile them, bringing the actual state of the cluster in line with the newly specified desired state.
@@ -251,12 +251,12 @@ The Falcon Operator will automatically detect these changes and reconcile them, 
 
 Each component deployed with the Falcon Operator can be individually upgraded. Follow these steps to upgrade a component:
 
-1. Open the current manifest configuration for editing:   
-   `kubectl edit falcondeployments`  
-2. In the opened editor, locate the specific component you want to upgrade.  
-3. Update the component version using one of these methods:  
-- If using Falcon API credentials: Add or update the `version` field for the component.  
-- If using a custom image: Add or update the `image` field for the component.  
+1. Open the current manifest configuration for editing:
+   `kubectl edit falcondeployments`
+2. In the opened editor, locate the specific component you want to upgrade.
+3. Update the component version using one of these methods:
+- If using Falcon API credentials: Add or update the `version` field for the component.
+- If using a custom image: Add or update the `image` field for the component.
 4. Save the new manifest configuration and exit the editor.
 
 The Falcon Operator will automatically detect these changes and initiate the upgrade process, reconciling the actual state of the cluster with the newly specified desired state.
