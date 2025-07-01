@@ -26,9 +26,6 @@ import (
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
 	fmt.Fprintf(GinkgoWriter, "Starting Falcon Operator suite\n")
+	SetDefaultEventuallyTimeout(20 * time.Minute)
 	RunSpecs(t, "Falcon e2e suite")
 }
-
-var _ = BeforeSuite(func() {
-	SetDefaultEventuallyTimeout(20 * time.Minute)
-})

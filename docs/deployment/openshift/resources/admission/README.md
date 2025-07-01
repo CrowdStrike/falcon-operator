@@ -47,8 +47,8 @@ spec:
 |:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | falcon_api.client_id     | (optional) CrowdStrike API Client ID                                                                                                                                                                                                 |
 | falcon_api.client_secret | (optional) CrowdStrike API Client Secret                                                                                                                                                                                             |
-| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover` |
-| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override                                                                                                                                                                                       |
+| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1, us-gov-2);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover`;<br> `autodiscover` cannot be used for us-gov-1 or us-gov-2 |
+| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override; Required for us-gov-2                                                                                                                                                                                        |
 
 #### Admission Controller Configuration Settings
 | Spec                                      | Description                                                                                                                                                                                                             |
@@ -91,7 +91,7 @@ spec:
 #### Falcon Sensor Settings
 | Spec                      | Description                                                                                                                                                                                        |
 |:--------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| falcon.cid                | (optional) CrowdStrike Falcon CID override;<br> [Falcon API credentials](#falcon-api-settings) or [Falcon Secret with credentials](#falcon-secret-settings) are required if this field is not set. |
+| falcon.cid                | (optional) CrowdStrike Falcon CID override;<br> [Falcon API credentials](#falcon-api-settings) or [Falcon Secret with credentials](#falcon-secret-settings) are required if this field is not set;<br> Required for us-gov-2 |
 | falcon.apd                | (optional) Configure Falcon Sensor to leverage a proxy host                                                                                                                                        |
 | falcon.aph                | (optional) Configure the host Falcon Sensor should leverage for proxying                                                                                                                           |
 | falcon.app                | (optional) Configure the port Falcon Sensor should leverage for proxying                                                                                                                           |
