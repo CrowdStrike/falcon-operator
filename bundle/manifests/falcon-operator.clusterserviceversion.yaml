@@ -587,6 +587,8 @@ spec:
         path: injector.disableDefaultPodInjection
       - displayName: Azure Config file path
         path: injector.azureConfigPath
+      - displayName: Enable Alternate Mount Path
+        path: injector.alternateMountPath
       - displayName: Injector replica count
         path: injector.replicas
       - description: |-
@@ -1385,6 +1387,8 @@ spec:
         path: falconContainerSensor
       - displayName: Disable Default Pod Injection
         path: falconContainerSensor.injector.disableDefaultPodInjection
+      - displayName: Enable Alternate Mount Path
+        path: falconContainerSensor.injector.alternateMountPath
       - description: Exclusions for the Falcon Image Analyzer.
         displayName: Falcon Image Analyzer Exclusions
         path: falconImageAnalyzer.imageAnalyzerConfig.exclusions

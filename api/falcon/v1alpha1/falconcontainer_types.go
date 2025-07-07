@@ -120,6 +120,10 @@ type FalconContainerInjectorSpec struct {
 	// +kubebuilder:validation:Maximum:=65535
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Injector replica count",order=13
 	Replicas *int32 `json:"replicas,omitempty"`
+
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Alternate Mount Path", order=14
+	AlternateMountPath bool `json:"alternateMountPath,omitempty"`
 }
 
 type FalconContainerServiceAccount struct {
