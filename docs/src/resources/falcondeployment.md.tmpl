@@ -35,13 +35,6 @@ This streamlined process allows for easier management, updates, and scaling of y
 
 The FalconDeployment Spec contains fields that are shared by all child components, such as `falcon_api` for configuring Falcon API credentials, as well as fields that enable and optionally configure individual child component settings. For example, when `deployNodeSensor` is `true`, the Falcon Operator deploys the FalconNodeSensor resource using its default settings merged with the settings under falconNodeSensor. The value of falconNodeSensor matches the FalconNodeSensor Spec.
 
-> [!IMPORTANT]
-> Currently, configuring `falconSecret` is available for the individual sensor specs, but not at the FalconDeployment top level spec.
-> When configuring `falconSecret` with Falcon API credentials for each individual sensor, `falcon_api` for FalconDeployment can be undefined.
-> If you decide to configure `falconSecret` at the sensor level spec AND `falcon_api` at the FalconDeployment top level spec,
-> you must define `falcon_api.client_id` and `falcon_api.client_secret` in the FalconDeployment spec if `falcon_api.cloud_region: autodiscover`.
-> Falcon secret support will be added to FalconDeployment in a future release, coming soon.
-
 | CRD attributes | Description |
 | :---- | :---- |
 | falcon\_api.client\_id | Required. CrowdStrike API Client ID |
