@@ -40,7 +40,7 @@ spec:
 | `>= 1.3.x`                   | `>= 7.20.x`                               |
 
 > [!IMPORTANT]
-> Falcon KAC will have multi-arch images starting with version `7.26.x`. Operator versions <= 1.3.x are still compatible with Falcon KAC v7.26+, but Falcon KAC will only be deployed to AMD64 clusters if using Operator versions <= 1.3.x.
+> Falcon KAC will have multi-arch images starting with version `7.26.x`. Operator versions >= 1.3.x are still compatible with Falcon KAC v7.26+, but Falcon KAC can only be deployed to ARM64 clusters if using Operator versions 1.6.0+.
 
 #### Falcon API Settings
 | Spec                     | Description                                                                                                                                                                                                                          |
