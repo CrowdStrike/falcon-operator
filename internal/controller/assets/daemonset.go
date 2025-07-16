@@ -284,6 +284,16 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 								AllowPrivilegeEscalation: &escalation,
 								Capabilities:             sensorCapabilities(node, true),
 							},
+							Env: []corev1.EnvVar{
+								{
+									Name: "POD_NODE_NAME",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "spec.nodeName",
+										},
+									},
+								},
+							},
 						},
 					},
 					ServiceAccountName: serviceAccount,

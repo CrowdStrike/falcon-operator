@@ -54,6 +54,10 @@ type FalconImageAnalyzerSpec struct {
 	// Falcon Image Analyzer Version. The latest version will be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Version",order=7
 	Version *string `json:"version,omitempty"`
+
+	// Specifies node affinity for scheduling the Sensor.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=8
+	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
 }
 
 type FalconImageAnalyzerConfigSpec struct {
@@ -198,4 +202,24 @@ type FalconImageAnalyzerList struct {
 
 func init() {
 	SchemeBuilder.Register(&FalconImageAnalyzer{}, &FalconImageAnalyzerList{})
+}
+
+func (fia *FalconImageAnalyzer) GetFalconSecretSpec() FalconSecret {
+	return fia.Spec.FalconSecret
+}
+
+func (fia *FalconImageAnalyzer) GetFalconAPISpec() *FalconAPI {
+	return fia.Spec.FalconAPI
+}
+
+func (fia *FalconImageAnalyzer) SetFalconAPISpec(falconApiSpec *FalconAPI) {
+	fia.Spec.FalconAPI = falconApiSpec
+}
+
+func (fia *FalconImageAnalyzer) GetFalconSpec() FalconSensor {
+	return FalconSensor{}
+}
+
+func (fia *FalconImageAnalyzer) SetFalconSpec(FalconSensor) {
+	// noop
 }

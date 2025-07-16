@@ -5,6 +5,87 @@
 <details>
   <summary>Click to expand</summary>
 
+### Configuring the AllowlistSynchronizer
+Running Daemonset Pods with privileged access on GKE Autopilot requires special configurations due to default security restrictions. To enable these privileged Pods, you need to configure an AllowlistSynchronizer. This resource applies CrowdStrike specific WorkloadAllowlists to your cluster, which the GKE Autopilot validating webhook uses to approve Pod deployments based on their manifest spec and image digests. Follow these steps to properly configure the AllowlistSynchronizer:
+Comment
+
+
+1. Create a file named `allowlist-synchronizer.yaml` with the following contents:
+```
+apiVersion: auto.gke.io/v1
+kind: AllowlistSynchronizer
+metadata:
+  name: crowdstrike-synchronizer
+spec:
+  allowlistPaths:
+  - CrowdStrike/falcon-sensor/*
+```
+2. Apply the AllowlistSynchronizer to your cluster:
+```
+kubectl apply -f allowlist-synchronizer.yaml
+```
+
+3. Ensure the AllowlistSynchronizer is running:
+```
+kubectl get allowlistsynchronizers
+```
+
+4. Ensure the AllowlistSynchronizer has fetched the WorkloadAllowlist:
+```
+kubectl get workloadallowlists
+```
+An example output of the above command is:
+```
+NAME                                                  AGE
+crowdstrike-falconsensor-cleanup-allowlist-v1.0.0     7d
+crowdstrike-falconsensor-cleanup-allowlist-v1.0.1     7d
+crowdstrike-falconsensor-cleanup-allowlist-v1.0.2     7d
+crowdstrike-falconsensor-deploy-allowlist-v1.0.0      7d
+crowdstrike-falconsensor-deploy-allowlist-v1.0.1      7d
+crowdstrike-falconsensor-deploy-allowlist-v1.0.2      7d
+crowdstrike-falconsensor-deploy-allowlist-v1.0.3      6h40m
+crowdstrike-falconsensor-falconctl-allowlist-v1.0.0   7d
+crowdstrike-falconsensor-falconctl-allowlist-v1.0.1   7d
+```
+#### WorkloadAllowlist Definitions
+The WorkloadAllowlists serve the following purposes:
+- crowdstrike-falconsensor-cleanup-allowlist-vX.X.X: Authorizes the Falcon Sensor Cleanup DaemonSet to operate within the cluster.
+- crowdstrike-falconsensor-deploy-allowlist-vX.X.X: Permits the deployment and execution of the Falcon Sensor Deploy DaemonSet in the cluster environment.
+- crowdstrike-falconsensor-falconctl-allowlist-vX.X.X: Enables the Falconctl job to run, facilitating sensor configuration and management tasks.
+
+> [!NOTE]
+> Additional information about AllowlistSynchronizer can be found here: [https://cloud.google.com/kubernetes-engine/docs/reference/crds/allowlistsynchronizer](https://cloud.google.com/kubernetes-engine/docs/reference/crds/allowlistsynchronizer)
+
+#### Obtaining an Authorized Image
+WorkloadAllowlists ensure that only authorized container images are deployed to pods by verifying their image digests. To view the list of approved image digests, execute the following command:
+```
+kubectl get workloadallowlists <crowdstrike-falconsensor-XXXXXXX-allowlist-vX.X.X>  -o=jsonpath='{range .containerImageDigests[*].imageDigests[*]}{@}{"\n"}{end}'
+```
+To obtain the Falcon Node sensor image, you have two options:
+
+1. Pull directly from the CrowdStrike registry
+2. Copy the image from the CrowdStrike registry to your private registry
+
+For option 2, we provide an automation script to simplify the process:
+[https://github.com/CrowdStrike/falcon-scripts/tree/main/bash/containers/falcon-container-sensor-pull](https://github.com/CrowdStrike/falcon-scripts/tree/main/bash/containers/falcon-container-sensor-pull)
+
+When copying images to a private registry, it's crucial to preserve the image digest. We recommend using tools like Skopeo for this purpose, as they ensure the digest of the image remains the same after the transfer. Additionally, the usage of an image digest should be used in the deployment manifest when an private registry is used. Example:
+```
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconNodeSensor
+metadata:
+  name: falcon-node-sensor
+spec:
+  falcon_api:
+    client_id: <client_id>
+    client_secret: <client_secret>
+    cloud_region: autodiscover
+node:
+  image: private.registry/falcon-sensor:sha256:ef5b80182894bba37c23aeea2748683bde186914b28e193708e6919c2549d396
+  imagePullSecrets:
+    - name: internal-registry-secret
+```
+
 ### Setting the PriorityClass
 
 When you enable GKE Autopilot deployment in the Falcon Operator, this creates a new PriorityClass to ensure that the sensor DaemonSet has priority over other application pods. This means that it’s possible that some application pods are evicted or pushed back in the scheduling queue depending on cluster resources availability to accommodate sensor Pods. You can either allow the operator to deploy its own PriorityClass or specify an existing PriorityClass.
@@ -49,7 +130,7 @@ The sensor resource limits are only enabled when `backend: bpf`, which is a requ
 
 <details>
   <summary>Click to expand</summary>
-  
+
 To enable GKE Autopilot and deploy the sensor running in user mode, configure the following settings:
 
 1. Set the backend to run in user mode.

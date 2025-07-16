@@ -31,7 +31,7 @@ spec:
     imagePullSecrets:
       - name: pullSecret1
       - name: pullSecret2
-    terminationGracePeriod: 30
+    terminationGracePeriod: 60
     tolerations:
       - effect: NoSchedule
         key: node-role.kubernetes.io/master

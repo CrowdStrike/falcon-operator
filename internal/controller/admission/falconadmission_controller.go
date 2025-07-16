@@ -13,7 +13,6 @@ import (
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_secret"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/crowdstrike/falcon-operator/pkg/tls"
 	"github.com/crowdstrike/falcon-operator/version"
@@ -56,6 +55,14 @@ func (r *FalconAdmissionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&arv1.ValidatingWebhookConfiguration{}).
 		Complete(r)
+}
+
+func (r *FalconAdmissionReconciler) GetK8sClient() client.Client {
+	return r.Client
+}
+
+func (r *FalconAdmissionReconciler) GetK8sReader() client.Reader {
+	return r.Reader
 }
 
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconadmissions,verbs=get;list;watch;create;update;patch;delete
@@ -581,6 +588,11 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		updated = true
 	}
 
+	if !reflect.DeepEqual(dep.Spec.Template.Spec.Affinity.NodeAffinity, existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity) {
+		existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity = dep.Spec.Template.Spec.Affinity.NodeAffinity
+		updated = true
+	}
+
 	if len(dep.Spec.Template.Spec.Containers) != len(existingDeployment.Spec.Template.Spec.Containers) {
 		existingDeployment.Spec.Template.Spec.Containers = dep.Spec.Template.Spec.Containers
 		updated = true
@@ -739,31 +751,6 @@ func (r *FalconAdmissionReconciler) admissionDeploymentUpdate(ctx context.Contex
 
 func (r *FalconAdmissionReconciler) injectFalconSecretData(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission, logger logr.Logger) error {
 	logger.Info("injecting Falcon secret data into Spec.Falcon and Spec.FalconAPI - sensitive manifest values will be overwritten with values in k8s secret")
-	falconSecret := &corev1.Secret{}
-	falconSecretNamespacedName := types.NamespacedName{
-		Name:      falconAdmission.Spec.FalconSecret.SecretName,
-		Namespace: falconAdmission.Spec.FalconSecret.Namespace,
-	}
 
-	if err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret); err != nil {
-		return err
-	}
-
-	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
-	falconAdmission.Spec.Falcon.CID = &cid
-
-	provisioningToken := falcon_secret.GetFalconProvisioningTokenFromSecret(falconSecret)
-	falconAdmission.Spec.Falcon.PToken = provisioningToken
-
-	if falconAdmission.Spec.FalconAPI == nil {
-		logger.Info("skipped injecting FalconAPI secrets - Spec.FalconAPI is nil")
-		return nil
-	}
-
-	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
-	falconAdmission.Spec.FalconAPI.ClientId = clientId
-	falconAdmission.Spec.FalconAPI.ClientSecret = clientSecret
-	falconAdmission.Spec.FalconAPI.CID = &cid
-
-	return nil
+	return k8sutils.InjectFalconSecretData(ctx, r, falconAdmission)
 }

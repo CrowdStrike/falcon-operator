@@ -18,13 +18,23 @@ type FalconDeploymentSpec struct {
 	// When configured, it will pull the sensor from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
 	//
 	// If using the API is not desired, the sensor can be manually configured.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=1
 	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
 
 	// Registry configures container image registry to which registry image will be pushed.
 	// +kubebuilder:default:={"type": "crowdstrike"}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Registry Configuration for FalconAdmission, FalconImageanalyzer, and FalconContainer",order=3
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Registry Configuration for FalconAdmission, FalconImageanalyzer, and FalconContainer",order=2
 	Registry RegistrySpec `json:"registry,omitempty"`
+
+	// FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+	// The following Falcon values are supported by k8s secret injection:
+	//   falcon-cid
+	//   falcon-provisioning-token
+	//   falcon-client-id
+	//   falcon-client-secret
+	// +kubebuilder:default={"enabled": false}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration",order=3
+	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
 
 	// Determines if Falcon Admission Controller is deployed
 	// +kubebuilder:default:=true

@@ -148,7 +148,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2025-06-03T22:34:20Z"
+    createdAt: "2025-07-16T15:44:54Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -589,6 +589,8 @@ spec:
         path: injector.azureConfigPath
       - displayName: Injector replica count
         path: injector.replicas
+      - displayName: Enable Alternate Mount Path
+        path: injector.alternateMountPath
       - description: |-
           Advanced configures various options that go against industry practices or are otherwise not recommended for use.
           Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
@@ -792,6 +794,19 @@ spec:
           location.
         displayName: Image Pull Secrets
         path: falconNodeSensor.node.imagePullSecrets
+      - description: Enable injecting sensitive Falcon values from existing k8s secret
+        displayName: Falcon Secret Enabled
+        path: falconSecret.enabled
+      - description: |-
+          FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
+
+
+          When configured, it will pull the sensor from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
+
+
+          If using the API is not desired, the sensor can be manually configured.
+        displayName: Falcon Platform API Configuration
+        path: falcon_api
       - description: Falcon OAuth2 API Client ID
         displayName: Client ID
         path: falcon_api.client_id
@@ -933,21 +948,19 @@ spec:
       - description: Name of the priority class to use for the DaemonSet.
         displayName: Name of the Priority Class to use
         path: falconNodeSensor.node.priorityClass.name
-      - description: |-
-          FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
-
-
-          When configured, it will pull the sensor from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
-
-
-          If using the API is not desired, the sensor can be manually configured.
-        displayName: Falcon Platform API Configuration
-        path: falcon_api
+      - description: Namespace where the Falcon k8s secret is located.
+        displayName: Falcon Secret Namespace
+        path: falconSecret.namespace
       - description: Falcon OAuth2 API Client Secret
         displayName: Client Secret
         path: falcon_api.client_secret
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:password
+      - description: Registry configures container image registry to which registry
+          image will be pushed.
+        displayName: Registry Configuration for FalconAdmission, FalconImageanalyzer,
+          and FalconContainer
+        path: registry
       - description: TLS configures TLS connection for push of Falcon Container image
           to the registry
         displayName: Registry TLS Configuration
@@ -1062,15 +1075,22 @@ spec:
           the Deploy field to be set to true.
         displayName: Priority Class Value
         path: falconNodeSensor.node.priorityClass.value
+      - description: |-
+          FalconSecret config is used to inject k8s secrets with sensitive data for the FalconSensor and the FalconAPI.
+          The following Falcon values are supported by k8s secret injection:
+            falcon-cid
+            falcon-provisioning-token
+            falcon-client-id
+            falcon-client-secret
+        displayName: Falcon Platform Secrets Configuration
+        path: falconSecret
+      - description: SecretName of the existing Falcon k8s secret
+        displayName: Falcon Secret SecretName
+        path: falconSecret.secretName
       - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falcon_api.cloud_region
-      - description: Registry configures container image registry to which registry
-          image will be pushed.
-        displayName: Registry Configuration for FalconAdmission, FalconImageanalyzer,
-          and FalconContainer
-        path: registry
       - description: Azure Container Registry Name represents the name of the ACR
           for the Falcon Container push. Only applicable to Azure cloud.
         displayName: Azure Container Registry Name
@@ -1285,7 +1305,7 @@ spec:
         displayName: Trace Level
         path: falconNodeSensor.falcon.trace
       - description: Kills pod after a specificed amount of time (in seconds). Default
-          is 30 seconds.
+          is 60 seconds.
         displayName: Termination Grace Period
         path: falconNodeSensor.node.terminationGracePeriod
       - description: Falcon Admission Controller Configuration
@@ -1310,6 +1330,9 @@ spec:
       - description: Set the falcon image analyzer volume size limit.
         displayName: Falcon Image Analyzer Volume Size Limit
         path: falconImageAnalyzer.imageAnalyzerConfig.sizeLimit
+      - description: Specifies node affinity for scheduling the Sensor.
+        displayName: Node Affinity
+        path: falconImageAnalyzer.nodeAffinity
       - description: Utilize default or Pay-As-You-Go billing.
         displayName: Billing
         path: falconNodeSensor.falcon.billing
@@ -1395,6 +1418,8 @@ spec:
         path: falconAdmission.admissionConfig.resourcesWatcher
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - displayName: Enable Alternate Mount Path
+        path: falconContainerSensor.injector.alternateMountPath
       - description: Determines if snapshots of Kubernetes resources are periodically
           taken for cluster visibility.
         displayName: Enable Resource Snapshots
@@ -1626,6 +1651,9 @@ spec:
       - description: Set the falcon image analyzer volume size limit.
         displayName: Falcon Image Analyzer Volume Size Limit
         path: imageAnalyzerConfig.sizeLimit
+      - description: Specifies node affinity for scheduling the Sensor.
+        displayName: Node Affinity
+        path: nodeAffinity
       - description: Set the falcon image analyzer volume mount path.
         displayName: Falcon Image Analyzer Volume Mount Path
         path: imageAnalyzerConfig.mountPath
@@ -1779,7 +1807,7 @@ spec:
         displayName: Trace Level
         path: falcon.trace
       - description: Kills pod after a specificed amount of time (in seconds). Default
-          is 30 seconds.
+          is 60 seconds.
         displayName: Termination Grace Period
         path: node.terminationGracePeriod
       - description: Utilize default or Pay-As-You-Go billing.

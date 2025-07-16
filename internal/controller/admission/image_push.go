@@ -11,7 +11,6 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/image"
-	"github.com/crowdstrike/falcon-operator/internal/errors"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
@@ -237,10 +236,6 @@ func (r *FalconAdmissionReconciler) falconApiConfig(
 	ctx context.Context,
 	falconAdmission *falconv1alpha1.FalconAdmission,
 ) (*falcon.ApiConfig, error) {
-	if falconAdmission.Spec.FalconAPI == nil {
-		return nil, internalErrors.ErrNilFalconAPIConfiguration
-	}
-
 	cfg, err := falconAdmission.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Reader, falconAdmission.Spec.FalconSecret)
 	cfg.Context = ctx
 	return cfg, err

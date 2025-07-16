@@ -8,6 +8,7 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
+	internalErrors "github.com/crowdstrike/falcon-operator/internal/errors"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -70,20 +71,9 @@ var _ = Describe("FalconContainer controller", func() {
 				return len(deployList.Items)
 			}, 6*time.Second, 2*time.Second).Should(Equal(0))
 
-			// Delete cluster level resources
-			clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: injectorClusterRoleBindingName}, clusterRoleBinding)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, clusterRoleBinding)).To(Succeed())
-
 			// Delete FalconContainer custom resource
 			falconContainerCR := &falconv1alpha1.FalconContainer{}
 			Expect(k8sClient.Get(ctx, containerNamespacedName, falconContainerCR)).To(Succeed())
-
-			// Remove finalizer for successful FalconNodeSensor CR deletion
-			patch := client.MergeFrom(falconContainerCR.DeepCopy())
-			falconContainerCR.SetFinalizers(nil)
-			_ = k8sClient.Patch(ctx, falconContainerCR, patch)
-
 			Expect(k8sClient.Delete(ctx, falconContainerCR)).To(Succeed())
 
 			Eventually(func() bool {
@@ -91,6 +81,12 @@ var _ = Describe("FalconContainer controller", func() {
 				err := k8sClient.Get(ctx, containerNamespacedName, falconContainerCR)
 				return errors.IsNotFound(err)
 			}, 6*time.Second, 2*time.Second).Should(BeTrue())
+
+			// Delete cluster level resources
+			clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+			if err := k8sClient.Get(ctx, types.NamespacedName{Name: injectorClusterRoleBindingName}, clusterRoleBinding); err == nil {
+				Expect(k8sClient.Delete(ctx, clusterRoleBinding)).To(Succeed())
+			}
 
 			_ = k8sClient.Delete(ctx, &testNamespace)
 		})
@@ -253,7 +249,7 @@ var _ = Describe("FalconContainer controller", func() {
 			err = k8sClient.Create(ctx, testSecret)
 			Expect(err).To(Not(HaveOccurred()))
 
-			By("Creating the FalconAdmission CR with FalconSecret configured")
+			By("Creating the FalconContainer CR with FalconSecret configured")
 			falconContainer := &falconv1alpha1.FalconContainer{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      SidecarSensorName,
@@ -339,6 +335,90 @@ var _ = Describe("FalconContainer controller", func() {
 
 				return nil
 			}, 10*time.Second, time.Second).Should(Succeed())
+
+			By("Cleaning up the test specific resources")
+			err = k8sClient.Delete(ctx, testSecret)
+			Expect(err).To(Not(HaveOccurred()))
+		})
+
+		It("should error if falcon secret is enabled and Falcon API credentials are missing", func() {
+			By("Creating test secrets - without Falcon API credentials")
+			secretName := "falcon-secrets-1"
+			testSecretNamespace := "falcon-secret-1"
+
+			falconSecretNamespace := corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testSecretNamespace,
+					Namespace: testSecretNamespace,
+				},
+			}
+
+			err := k8sClient.Create(ctx, &falconSecretNamespace)
+			Expect(err).To(Not(HaveOccurred()))
+
+			testSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: testSecretNamespace,
+				},
+				Type: corev1.SecretTypeOpaque,
+				StringData: map[string]string{
+					"falcon-cid": falconCID,
+				},
+			}
+			err = k8sClient.Create(ctx, testSecret)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Creating the FalconContainer CR with FalconSecret configured")
+			falconContainer := &falconv1alpha1.FalconContainer{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      SidecarSensorName,
+					Namespace: containerNamespacedName.Name,
+				},
+				Spec: falconv1alpha1.FalconContainerSpec{
+					InstallNamespace: containerNamespacedName.Namespace,
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						CloudRegion: "autodiscover",
+					},
+					FalconSecret: falconv1alpha1.FalconSecret{
+						Enabled:    true,
+						Namespace:  testSecretNamespace,
+						SecretName: secretName,
+					},
+					Falcon: falconv1alpha1.FalconSensor{
+						CID: &falconCID,
+					},
+					//Image: &containerImage,
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+				},
+			}
+
+			err = k8sClient.Create(ctx, falconContainer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				falconContainer := &falconv1alpha1.FalconContainer{}
+				return k8sClient.Get(ctx, containerNamespacedName, falconContainer)
+			}, 6*time.Second, time.Second).Should(Succeed())
+
+			By("Reconciling the custom resource created")
+			tracker, cancel := sensorversion.NewTestTracker()
+			defer cancel()
+
+			falconContainerReconciler := &FalconContainerReconciler{
+				Client:  k8sClient,
+				Reader:  k8sReader,
+				Scheme:  k8sClient.Scheme(),
+				tracker: tracker,
+			}
+
+			_, err = falconContainerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: containerNamespacedName,
+			})
+			Expect(err).To(MatchError(ContainSubstring(internalErrors.ErrMissingFalconAPICredentialsInSecret.Error())))
 
 			By("Cleaning up the test specific resources")
 			err = k8sClient.Delete(ctx, testSecret)
