@@ -56,7 +56,7 @@ func (cc *ConfigCache) CID() string {
 }
 
 func (cc *ConfigCache) UsingCrowdStrikeRegistry() bool {
-	if cc.nodesensor.Spec.Node.Image == "" && cc.nodesensor.Spec.FalconAPI == nil {
+	if cc.nodesensor.Spec.Node.Image == "" && cc.falconApiConfig == nil {
 		return os.Getenv("RELATED_IMAGE_NODE_SENSOR") == ""
 	}
 	return cc.nodesensor.Spec.Node.Image == ""
@@ -74,7 +74,7 @@ func (cc *ConfigCache) GetImageURI(ctx context.Context, logger logr.Logger) (str
 }
 
 func (cc *ConfigCache) GetPullToken(ctx context.Context) ([]byte, error) {
-	if cc.nodesensor.Spec.FalconAPI == nil {
+	if cc.falconApiConfig == nil {
 		return nil, ErrFalconAPINotConfigured
 	}
 	return pulltoken.CrowdStrike(ctx, cc.falconApiConfig)
@@ -97,15 +97,15 @@ func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1a
 	}
 
 	nodeImage := os.Getenv("RELATED_IMAGE_NODE_SENSOR")
-	if nodeImage != "" && nodesensor.Spec.FalconAPI == nil {
+	if nodeImage != "" && cc.falconApiConfig == nil {
 		return nodeImage, nil
 	}
 
-	if nodesensor.Spec.FalconAPI == nil {
+	if cc.falconApiConfig == nil {
 		return "", ErrFalconAPINotConfigured
 	}
 
-	cloud, err := nodesensor.Spec.FalconAPI.FalconCloud(ctx)
+	cloud, err := falcon_api.FalconCloud(ctx, cc.falconApiConfig)
 	if err != nil {
 		return "", err
 	}

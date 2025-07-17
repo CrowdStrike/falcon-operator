@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2025-07-16
+
+### Changed
+
+- chore(docs): clean up docs for v1.7.0 release
+- chore(falcon-deployment): remove note about falcon secret
+- Add us-gov-2 to allowed regions (#683)
+- generate manifests with IAR node affinity changes
+- update node sensor default termination grace period to 60s
+- add FalconSecret spec to FalconDeployment CRD
+- Update to golang 1.23 and fix dependabot findings
+- Add POD_NODE_NAME to init container
+- iterating changes
+- Add ARM64 to IAR nodeAffinity
+- Add AllowlistSynchronizer documentation for GKE Autopilot
+- add arm64 to default node affinity for kac and container sensor
+- Update descriptions of GKE Autopilot allowlist variables in Daemonset spec
+- Ensure Cleanup Daemonset still terminates even if Pods are crashlooping
+- Move watcher vars from watcher container to KAC configmap
+- Ensure KAC and Lumos redeploy when nodeAffinity is updated
+- Add alternateMountPath option to Falcon Operator to enable mount points at /falcon instead of /tmp for NVCF environment
+
 ## [1.6.0] - 2025-06-03
 
 ### Changed

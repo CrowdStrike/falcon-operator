@@ -11,7 +11,6 @@ import (
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
-	"github.com/crowdstrike/falcon-operator/pkg/falcon_secret"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
@@ -66,6 +65,14 @@ func (r *FalconContainerReconciler) SetupWithManager(mgr ctrl.Manager, tracker s
 
 	r.tracker = tracker
 	return nil
+}
+
+func (r *FalconContainerReconciler) GetK8sClient() client.Client {
+	return r.Client
+}
+
+func (r *FalconContainerReconciler) GetK8sReader() client.Reader {
+	return r.Reader
 }
 
 //+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=falconcontainers,verbs=get;list;watch;create;update;patch;delete
@@ -225,12 +232,15 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			}
 			if err != nil {
 				log.Error(err, "Failed to verify CrowdStrike Container Image Registry access")
-				err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to verify CrowdStrike Container Image Registry access: %v", err))
+				fullErr := fmt.Errorf("failed to verify CrowdStrike Container Image Registry access: %v", err)
+
+				err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fullErr.Error())
 				if err != nil {
 					return ctrl.Result{}, err
 				}
-				time.Sleep(time.Second * 5)
-				return ctrl.Result{RequeueAfter: 5 * time.Second}, fmt.Errorf("failed to verify CrowdStrike Container Image Registry access")
+
+				time.Sleep(5 * time.Second)
+				return ctrl.Result{RequeueAfter: 5 * time.Second}, fullErr
 			}
 
 			if _, err = r.reconcileRegistrySecrets(ctx, log, falconContainer); err != nil {
@@ -373,34 +383,8 @@ func (r *FalconContainerReconciler) reconcileObjectWithName(ctx context.Context,
 
 func (r *FalconContainerReconciler) injectFalconSecretData(ctx context.Context, falconContainer *falconv1alpha1.FalconContainer, logger logr.Logger) error {
 	logger.Info("injecting Falcon secret data into Spec.Falcon and Spec.FalconAPI - sensitive manifest values will be overwritten with values in k8s secret")
-	falconSecret := &corev1.Secret{}
-	falconSecretNamespacedName := types.NamespacedName{
-		Name:      falconContainer.Spec.FalconSecret.SecretName,
-		Namespace: falconContainer.Spec.FalconSecret.Namespace,
-	}
 
-	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, falconSecretNamespacedName, falconSecret)
-	if errors.IsNotFound(err) {
-		return err
-	}
-
-	cid := falcon_secret.GetFalconCIDFromSecret(falconSecret)
-	falconContainer.Spec.Falcon.CID = &cid
-
-	provisioningToken := falcon_secret.GetFalconProvisioningTokenFromSecret(falconSecret)
-	falconContainer.Spec.Falcon.PToken = provisioningToken
-
-	if falconContainer.Spec.FalconAPI == nil {
-		logger.Info("skipped injecting FalconAPI secrets - Spec.FalconAPI is nil")
-		return nil
-	}
-
-	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconSecret)
-	falconContainer.Spec.FalconAPI.ClientId = clientId
-	falconContainer.Spec.FalconAPI.ClientSecret = clientSecret
-	falconContainer.Spec.FalconAPI.CID = &cid
-
-	return nil
+	return k8sutils.InjectFalconSecretData(ctx, r, falconContainer)
 }
 
 func shouldTrackSensorVersions(obj *falconv1alpha1.FalconContainer) bool {

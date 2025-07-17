@@ -3,7 +3,9 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	internalErrors "github.com/crowdstrike/falcon-operator/internal/errors"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_secret"
 	"github.com/crowdstrike/falcon-operator/version"
@@ -17,7 +19,7 @@ import (
 // FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 type FalconAPI struct {
 	// Cloud Region defines CrowdStrike Falcon Cloud Region to which the operator will connect and register.
-	// +kubebuilder:validation:Enum=autodiscover;us-1;us-2;eu-1;us-gov-1
+	// +kubebuilder:validation:Enum=autodiscover;us-1;us-2;eu-1;us-gov-1;us-gov-2
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="CrowdStrike Falcon Cloud Region",order=3
 	CloudRegion string `json:"cloud_region"`
 
@@ -118,18 +120,24 @@ func (fa *FalconAPI) ApiConfigWithSecret(
 	}
 
 	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(falconApiSecret)
+	if strings.TrimSpace(clientId) == "" || strings.TrimSpace(clientSecret) == "" {
+		return &falcon.ApiConfig{}, internalErrors.ErrMissingFalconAPICredentialsInSecret
+	}
+
+	cloudRegion := ""
+	hostOverride := ""
+	if fa != nil {
+		cloudRegion = fa.CloudRegion
+		hostOverride = fa.HostOverride
+	}
 
 	return &falcon.ApiConfig{
-		Cloud:             falcon.Cloud(fa.CloudRegion),
+		Cloud:             falcon.Cloud(cloudRegion),
 		ClientId:          clientId,
 		ClientSecret:      clientSecret,
-		HostOverride:      fa.HostOverride,
+		HostOverride:      hostOverride,
 		UserAgentOverride: fmt.Sprintf("falcon-operator/%s", version.Version),
 	}, nil
-}
-
-func (fa *FalconAPI) FalconCloud(ctx context.Context) (falcon.CloudType, error) {
-	return falcon_api.FalconCloud(ctx, fa.ApiConfig())
 }
 
 func (fa *FalconAPI) FalconCloudWithSecret(

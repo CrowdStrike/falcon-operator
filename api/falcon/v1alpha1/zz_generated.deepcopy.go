@@ -929,6 +929,7 @@ func (in *FalconDeploymentSpec) DeepCopyInto(out *FalconDeploymentSpec) {
 		(*in).DeepCopyInto(*out)
 	}
 	in.Registry.DeepCopyInto(&out.Registry)
+	out.FalconSecret = in.FalconSecret
 	if in.DeployAdmissionController != nil {
 		in, out := &in.DeployAdmissionController, &out.DeployAdmissionController
 		*out = new(bool)
@@ -1133,6 +1134,11 @@ func (in *FalconImageAnalyzerSpec) DeepCopyInto(out *FalconImageAnalyzerSpec) {
 		in, out := &in.Version, &out.Version
 		*out = new(string)
 		**out = **in
+	}
+	if in.NodeAffinity != nil {
+		in, out := &in.NodeAffinity, &out.NodeAffinity
+		*out = new(corev1.NodeAffinity)
+		(*in).DeepCopyInto(*out)
 	}
 }
 

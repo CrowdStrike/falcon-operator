@@ -202,7 +202,7 @@ var _ = Describe("FalconImageAnalyzer controller", func() {
 			err = k8sClient.Create(ctx, testSecret)
 			Expect(err).To(Not(HaveOccurred()))
 
-			By("Creating the FalconAdmission CR with FalconSecret configured")
+			By("Creating the FalconImageAnalyzer CR with FalconSecret configured")
 			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ImageAnalyzerName,

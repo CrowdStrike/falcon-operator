@@ -152,6 +152,11 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log
 		update = true
 	}
 
+	if !reflect.DeepEqual(deployment.Spec.Template.Spec.Affinity.NodeAffinity, existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity) {
+		existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity = deployment.Spec.Template.Spec.Affinity.NodeAffinity
+		update = true
+	}
+
 	if update {
 		return existingDeployment, r.Update(ctx, log, falconContainer, existingDeployment)
 	}

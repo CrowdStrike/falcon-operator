@@ -2,7 +2,6 @@ package assets
 
 import (
 	"reflect"
-	"strconv"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
@@ -165,7 +164,7 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 					},
 				},
 				Spec: corev1.PodSpec{
-					Affinity: sidecarNodeAffinity(falconContainer),
+					Affinity: getNodeAffinity(falconContainer.Spec.NodeAffinity),
 					TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
 						{
 							MaxSkew:           1,
@@ -324,28 +323,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 					},
 				},
 				Spec: corev1.PodSpec{
-					Affinity: &corev1.Affinity{
-						NodeAffinity: &corev1.NodeAffinity{
-							RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-								NodeSelectorTerms: []corev1.NodeSelectorTerm{
-									{
-										MatchExpressions: []corev1.NodeSelectorRequirement{
-											{
-												Key:      "kubernetes.io/os",
-												Operator: corev1.NodeSelectorOpIn,
-												Values:   []string{"linux"},
-											},
-											{
-												Key:      "kubernetes.io/arch",
-												Operator: corev1.NodeSelectorOpIn,
-												Values:   []string{"amd64"},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
+					Affinity: getNodeAffinity(falconImageAnalyzer.Spec.NodeAffinity),
 					Containers: []corev1.Container{
 						{
 							Name: "falcon-image-analyzer",
@@ -729,7 +707,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 					},
 				},
 				Spec: corev1.PodSpec{
-					Affinity: admissionNodeAffinity(falconAdmission),
+					Affinity: getNodeAffinity(falconAdmission.Spec.AdmissionConfig.NodeAffinity),
 					TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
 						{
 							MaxSkew:           1,
@@ -844,42 +822,16 @@ func admissionDepWatcherEnvVars(admission *falconv1alpha1.FalconAdmission) []cor
 				},
 			},
 		},
-		corev1.EnvVar{
-			Name:  "__CS_SNAPSHOTS_ENABLED",
-			Value: strconv.FormatBool(admission.Spec.AdmissionConfig.GetSnapshotsEnabled()),
-		},
-		corev1.EnvVar{
-			Name:  "__CS_SNAPSHOT_INTERVAL",
-			Value: admission.Spec.AdmissionConfig.GetSnapshotsInterval().String(),
-		},
-		corev1.EnvVar{
-			Name:  "__CS_WATCH_EVENTS_ENABLED",
-			Value: strconv.FormatBool(admission.Spec.AdmissionConfig.GetWatcherEnabled()),
-		},
 	}
 
 	return envVars
 }
 
-func sidecarNodeAffinity(falconContainer *falconv1alpha1.FalconContainer) (nodeAffinity *corev1.Affinity) {
-	nodeAffinity = getDefaultAffinity()
-	if falconContainer.Spec.NodeAffinity != nil && !reflect.DeepEqual(falconContainer.Spec.NodeAffinity, corev1.NodeAffinity{}) {
-		nodeAffinity = &corev1.Affinity{NodeAffinity: falconContainer.Spec.NodeAffinity}
+func getNodeAffinity(nodeAffinity *corev1.NodeAffinity) *corev1.Affinity {
+	if nodeAffinity != nil && !reflect.DeepEqual(nodeAffinity, corev1.NodeAffinity{}) {
+		return &corev1.Affinity{NodeAffinity: nodeAffinity}
 	}
 
-	return nodeAffinity
-}
-
-func admissionNodeAffinity(falconAdmission *falconv1alpha1.FalconAdmission) (nodeAffinity *corev1.Affinity) {
-	nodeAffinity = getDefaultAffinity()
-	if falconAdmission.Spec.AdmissionConfig.NodeAffinity != nil && !reflect.DeepEqual(falconAdmission.Spec.AdmissionConfig.NodeAffinity, corev1.NodeAffinity{}) {
-		nodeAffinity = &corev1.Affinity{NodeAffinity: falconAdmission.Spec.AdmissionConfig.NodeAffinity}
-	}
-
-	return nodeAffinity
-}
-
-func getDefaultAffinity() *corev1.Affinity {
 	return &corev1.Affinity{
 		NodeAffinity: &corev1.NodeAffinity{
 			RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
@@ -894,7 +846,10 @@ func getDefaultAffinity() *corev1.Affinity {
 							{
 								Key:      "kubernetes.io/arch",
 								Operator: corev1.NodeSelectorOpIn,
-								Values:   []string{"amd64"},
+								Values: []string{
+									"amd64",
+									"arm64",
+								},
 							},
 						},
 					},
