@@ -128,6 +128,7 @@ spec:
                     - us-2
                     - eu-1
                     - us-gov-1
+                    - us-gov-2
                     type: string
                 required:
                 - cloud_region
@@ -521,9 +522,9 @@ spec:
                         type: object
                     type: object
                   terminationGracePeriod:
-                    default: 30
+                    default: 60
                     description: Kills pod after a specificed amount of time (in seconds).
-                      Default is 30 seconds.
+                      Default is 60 seconds.
                     format: int64
                     type: integer
                   tolerations:

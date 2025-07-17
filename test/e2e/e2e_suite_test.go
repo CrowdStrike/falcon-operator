@@ -16,6 +16,7 @@ package e2e
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -25,5 +26,6 @@ import (
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
 	fmt.Fprintf(GinkgoWriter, "Starting Falcon Operator suite\n")
+	SetDefaultEventuallyTimeout(20 * time.Minute)
 	RunSpecs(t, "Falcon e2e suite")
 }

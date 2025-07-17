@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM registry.access.redhat.com/ubi8/go-toolset:1.22.9-3.1744031965 AS builder
+FROM registry.access.redhat.com/ubi8/go-toolset:1.23.9-2.1750813114 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 ARG VERSION
@@ -25,7 +25,7 @@ COPY pkg/ pkg/
 # was called. For example, if we call make docker-build in a local env which has the Apple Silicon M1 SO
 # the docker BUILDPLATFORM arg will be linux/arm64 when for Apple x86 it will be linux/amd64. Therefore,
 # by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
-# 
+#
 # FIPS documentation: https://developers.redhat.com/articles/2025/01/23/fips-mode-red-hat-go-toolset#validating_fips_mode_capabilities
 RUN GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -tags \
     "exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_openpgp" \
@@ -42,12 +42,12 @@ COPY --from=builder /etc/pki /etc/pki
 COPY --from=builder /workspace/manager .
 USER 65532:65532
 
-LABEL name="falcon-operator" \      
-      vendor="CrowdStrike, Inc" \      
-      version="${VERSION}" \      
-      release="1" \      
+LABEL name="falcon-operator" \
+      vendor="CrowdStrike, Inc" \
+      version="${VERSION}" \
+      release="1" \
       summary="Crowdstrike Falcon Operator Controller" \
-      description="The CrowdStrike Falcon Operator installs CrowdStrike Falcon custom resources on a Kubernetes cluster." \              
-      maintainer="support@crowdstrike.com" 
+      description="The CrowdStrike Falcon Operator installs CrowdStrike Falcon custom resources on a Kubernetes cluster." \
+      maintainer="support@crowdstrike.com"
 
 ENTRYPOINT ["/manager"]

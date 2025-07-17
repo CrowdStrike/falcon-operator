@@ -35,8 +35,8 @@ spec:
 |:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | falcon_api.client_id     | (optional) CrowdStrike API Client ID                                                                                                                                                                                                 |
 | falcon_api.client_secret | (optional) CrowdStrike API Client Secret                                                                                                                                                                                             |
-| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover` |
-| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override                                                                                                                                                                                       |
+| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1, us-gov-2);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover`;<br> `autodiscover` cannot be used for us-gov-1 or us-gov-2 |
+| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override; Required for us-gov-2                                                                                                                                                                                       |
 
 #### Falcon Image Analyzer Configuration Settings
 | Spec                                      | Description                                                                                                                                                                                                             |
@@ -44,6 +44,7 @@ spec:
 | installNamespace                          | (optional) Override the default namespace of falcon-iar                                                                                                                                                                 |
 | image                                     | (optional) Leverage a Falcon Image Analyzer Sensor image that is not managed by the operator; typically used with custom repositories; overrides all registry settings; might require imageAnalyzerConfig.imagePullSecrets to be set |
 | version                                   | (optional) Enforce particular Falcon Image Analyzer version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                                                                                            |
+| nodeAffinity                              | See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity. AMD64 and ARM64 architectures are supported by default. |
 | registry.type                             | Registry to mirror Falcon Image Analyzer (allowed values: acr, ecr, crowdstrike, gcr, openshift)                                                                                                                  |
 | registry.tls.insecure_skip_verify         | (optional) Skip TLS check when pushing Falcon Image Analyzer to target registry (only for demoing purposes on self-signed openshift clusters)                                                                           |
 | registry.tls.caCertificate                | (optional) A string containing an optionally base64-encoded Certificate Authority Chain for self-signed TLS Registry Certificates                                                                                       |
@@ -78,11 +79,11 @@ Falcon secret settings are used to read the following sensitive Falcon API and s
 > If a key/value does not exist in your k8s secret, the value will be overwritten as an empty string.
 
 ##### Secret Keys
-| Secret Key                | Description                                                                                                     |
-|:--------------------------|:----------------------------------------------------------------------------------------------------------------|
-| falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined     |
-| falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined |
-| falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined           |
+| Secret Key                | Description                                                 |
+|:--------------------------|:------------------------------------------------------------|
+| falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings)     |
+| falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings) |
+| falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings)           |
 
 Example of creating k8s secret with sensitive Falcon values:
 ```bash

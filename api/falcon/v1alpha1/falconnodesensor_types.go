@@ -82,8 +82,8 @@ type FalconNodeSensorConfig struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Update Strategy",order=6
 	DSUpdateStrategy FalconNodeUpdateStrategy `json:"updateStrategy,omitempty"`
 
-	// Kills pod after a specificed amount of time (in seconds). Default is 30 seconds.
-	// +kubebuilder:default:=30
+	// Kills pod after a specificed amount of time (in seconds). Default is 60 seconds.
+	// +kubebuilder:default:=60
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=7
 	TerminationGracePeriod int64 `json:"terminationGracePeriod,omitempty"`
 
@@ -241,9 +241,29 @@ func init() {
 	SchemeBuilder.Register(&FalconNodeSensor{}, &FalconNodeSensorList{})
 }
 
-func (node FalconNodeSensor) GetTolerations() *[]corev1.Toleration {
+func (node *FalconNodeSensor) GetTolerations() *[]corev1.Toleration {
 	if node.Spec.Node.Tolerations == nil {
 		return &[]corev1.Toleration{}
 	}
 	return node.Spec.Node.Tolerations
+}
+
+func (node *FalconNodeSensor) GetFalconSecretSpec() FalconSecret {
+	return node.Spec.FalconSecret
+}
+
+func (node *FalconNodeSensor) GetFalconAPISpec() *FalconAPI {
+	return node.Spec.FalconAPI
+}
+
+func (node *FalconNodeSensor) SetFalconAPISpec(falconApiSpec *FalconAPI) {
+	node.Spec.FalconAPI = falconApiSpec
+}
+
+func (node *FalconNodeSensor) GetFalconSpec() FalconSensor {
+	return node.Spec.Falcon
+}
+
+func (node *FalconNodeSensor) SetFalconSpec(falconSpec FalconSensor) {
+	node.Spec.Falcon = falconSpec
 }

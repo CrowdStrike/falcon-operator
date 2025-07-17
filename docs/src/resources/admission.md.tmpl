@@ -40,16 +40,15 @@ spec:
 | `>= 1.3.x`                   | `>= 7.20.x`                               |
 
 > [!IMPORTANT]
-> Falcon KAC will have multi-arch images starting with version `7.26.x`. Operator versions <= 1.3.x are still compatible with Falcon KAC v7.26+, but Falcon KAC will only be deployed to ARM64 clusters if it is configured with the new node affinity option added in Operator version `1.6.x`.
-> Multi architecture images will not automatically deploy to ARM64 clusters, without updating `admissionConfig.nodeAffinity`.
+> Falcon KAC will have multi-arch images starting with version `7.26.x`. Operator versions >= 1.3.x are still compatible with Falcon KAC v7.26+, but Falcon KAC can only be deployed to ARM64 clusters if using Operator versions 1.6.0+.
 
 #### Falcon API Settings
 | Spec                     | Description                                                                                                                                                                                                                          |
 |:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | falcon_api.client_id     | (optional) CrowdStrike API Client ID                                                                                                                                                                                                 |
 | falcon_api.client_secret | (optional) CrowdStrike API Client Secret                                                                                                                                                                                             |
-| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover` |
-| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override                                                                                                                                                                                       |
+| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1, us-gov-2);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover`;<br> `autodiscover` cannot be used for us-gov-1 or us-gov-2 |
+| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override; Required for us-gov-2                                                                                                                                                                                        |
 
 #### Admission Controller Configuration Settings
 | Spec                                      | Description                                                                                                                                                                                                             |
@@ -82,7 +81,7 @@ spec:
 | admissionConfig.resourcesWatcher          | (optional) Configure the resources watcher of the Falcon Admission Controller                                                                                                                                           |
 | admissionConfig.resources                 | (optional) Configure the resources of the Falcon Admission Controller                                                                                                                                                   |
 | admissionConfig.updateStrategy            | (optional) Configure the deployment update strategy of the Falcon Admission Controller                                                                                                                                  |
-| admissionConfig.nodeAffinity              | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity.                                                                                       |
+| admissionConfig.nodeAffinity              | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity. AMD64 and ARM64 architectures are supported by default.     |
 
 > [!IMPORTANT] Always install the Falcon KAC to its own unique namespace. We recommend the namespace `falcon-kac`. If you choose a different one, make sure it's used exclusively for Falcon KAC. Not only is this a Kubernetes best practice, it's also a security best practice. The admission controller does not monitor its own namespace.
 
@@ -92,7 +91,7 @@ spec:
 #### Falcon Sensor Settings
 | Spec                      | Description                                                                                                                                                                                        |
 |:--------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| falcon.cid                | (optional) CrowdStrike Falcon CID override;<br> [Falcon API credentials](#falcon-api-settings) or [Falcon Secret with credentials](#falcon-secret-settings) are required if this field is not set. |
+| falcon.cid                | (optional) CrowdStrike Falcon CID override;<br> [Falcon API credentials](#falcon-api-settings) or [Falcon Secret with credentials](#falcon-secret-settings) are required if this field is not set;<br> Required for us-gov-2 |
 | falcon.apd                | (optional) Configure Falcon Sensor to leverage a proxy host                                                                                                                                        |
 | falcon.aph                | (optional) Configure the host Falcon Sensor should leverage for proxying                                                                                                                           |
 | falcon.app                | (optional) Configure the port Falcon Sensor should leverage for proxying                                                                                                                           |
@@ -118,12 +117,12 @@ Falcon secret settings are used to read the following sensitive Falcon API and s
 > If a key/value does not exist in your k8s secret, the value will be overwritten as an empty string.
 
 ##### Secret Keys
-| Secret Key                | Description                                                                                                     |
-|:--------------------------|:----------------------------------------------------------------------------------------------------------------|
-| falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined     |
-| falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined |
-| falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings) and [`falcon.cid`](#falcon-sensor-settings)                   |
-| falcon-provisioning-token | Replaces [`falcon.provisioning_token`](#falcon-sensor-settings)                                                 |
+| Secret Key                | Description                                                                                   |
+|:--------------------------|:----------------------------------------------------------------------------------------------|
+| falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings)                                       |
+| falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings)                                   |
+| falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings) and [`falcon.cid`](#falcon-sensor-settings) |
+| falcon-provisioning-token | Replaces [`falcon.provisioning_token`](#falcon-sensor-settings)                               |
 
 Example of creating k8s secret with sensitive Falcon values:
 ```bash

@@ -49,20 +49,20 @@ spec:
 |:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | falcon_api.client_id     | (optional) CrowdStrike API Client ID                                                                                                                                                                                           |
 | falcon_api.client_secret | (optional) CrowdStrike API Client Secret                                                                                                                                                                                       |
-| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover` |
-| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override                                                                                                                                                                                 |
+| falcon_api.cloud_region  | (optional CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1, us-gov-2);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover`;<br> `autodiscover` cannot be used for us-gov-1 or us-gov-2 |
+| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override; Required for us-gov-2                                                                                                                                                                                 |
 
 #### Sidecar Injection Configuration Settings
 | Spec                                      | Description                                                                                                                                                                                                             |
-| :----------------------------------       | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| installNamespace                          | (optional) Override the default namespace of falcon-system                                                                                                                                                                 |
+|:------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| installNamespace                          | (optional) Override the default namespace of falcon-system                                                                                                                                                              |
 | image                                     | (optional) Leverage a Falcon Container Sensor image that is not managed by the operator; typically used with custom repositories; overrides all registry settings; might require injector.imagePullSecretName to be set |
 | version                                   | (optional) Enforce particular Falcon Container version to be installed (example: "6.31", "6.31.0", "6.31.0-1409")                                                                                                       |
-| nodeAffinity                              | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity. Only amd64 is supported at this time. 
-| registry.type                             | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift)                                              |
-| registry.tls.insecure_skip_verify         | (optional) Skip TLS check when pushing Falcon Container to target registry (only for demoing purposes on self-signed openshift clusters) |
-| registry.tls.caCertificate                | (optional) A string containing an optionally base64-encoded Certificate Authority Chain for self-signed TLS Registry Certificates
-| registry.tls.caCertificateConfigMap       | (optional) The name of a ConfigMap containing CA Certificate Authority Chains under keys ending in ".tls"  for self-signed TLS Registry Certificates (ignored when registry.tls.caCertificate is set)
+| nodeAffinity                              | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity. AMD64 and ARM64 architectures are supported by default.                               |
+| registry.type                             | Registry to mirror Falcon Container (allowed values: acr, ecr, crowdstrike, gcr, openshift)                                                                                                                             |
+| registry.tls.insecure_skip_verify         | (optional) Skip TLS check when pushing Falcon Container to target registry (only for demoing purposes on self-signed openshift clusters)                                                                                |
+| registry.tls.caCertificate                | (optional) A string containing an optionally base64-encoded Certificate Authority Chain for self-signed TLS Registry Certificates                                                                                       |
+| registry.tls.caCertificateConfigMap       | (optional) The name of a ConfigMap containing CA Certificate Authority Chains under keys ending in ".tls"  for self-signed TLS Registry Certificates (ignored when registry.tls.caCertificate is set)                   |
 | registry.acr_name                         | (optional) Name of ACR for the Falcon Container push. Only applicable to Azure cloud. (`registry.type="acr"`)                                                                                                           |
 | injector.serviceAccount.annotations       | (optional) Annotations that should be added to the Service Account (e.g. for IAM role association)                                                                                                                      |
 | injector.listenPort                       | (optional) Override the default Injector Listen Port of 4433                                                                                                                                                            |
@@ -76,11 +76,12 @@ spec:
 | injector.additionalEnvironmentVariables   | (optional) Provide additional environment variables for Falcon Container                                                                                                                                                |
 | injector.disableDefaultNamespaceInjection | (optional) If set to true, disables default Falcon Container injection at the namespace scope; namespaces requiring injection will need to be labeled as specified below                                                |
 | injector.disableDefaultPodInjection       | (optional) If set to true, disables default Falcon Container injection at the pod scope; pods requiring injection will need to be annotated as specified below                                                          |
+| injector.alternateMountPath               | (optional) Enable volume mounts at /falcon instead of /tmp for NVCF environment                                                                                                                                         |
 
 #### Falcon Sensor Settings
 | Spec                      | Description                                                                                                                                                                                        |
 |:--------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| falcon.cid                | (optional) CrowdStrike Falcon CID override;<br> [Falcon API credentials](#falcon-api-settings) or [Falcon Secret with credentials](#falcon-secret-settings) are required if this field is not set. |
+| falcon.cid                | (optional) CrowdStrike Falcon CID override;<br> [Falcon API credentials](#falcon-api-settings) or [Falcon Secret with credentials](#falcon-secret-settings) are required if this field is not set;<br> Required for us-gov-2 |
 | falcon.apd                | (optional) Configure Falcon Sensor to leverage a proxy host                                                                                                                                        |
 | falcon.aph                | (optional) Configure the host Falcon Sensor should leverage for proxying                                                                                                                           |
 | falcon.app                | (optional) Configure the port Falcon Sensor should leverage for proxying                                                                                                                           |
@@ -103,12 +104,12 @@ Falcon secret settings are used to read the following sensitive Falcon API and s
 > If a key/value does not exist in your k8s secret, the value will be overwritten as an empty string.
 
 ##### Secret Keys
-| Secret Key                | Description                                                                                                     |
-|:--------------------------|:----------------------------------------------------------------------------------------------------------------|
-| falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined     |
-| falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined |
-| falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings) and [`falcon.cid`](#falcon-sensor-settings)                   |
-| falcon-provisioning-token | Replaces [`falcon.provisioning_token`](#falcon-sensor-settings)                                                 |
+| Secret Key                | Description                                                                                   |
+|:--------------------------|:----------------------------------------------------------------------------------------------|
+| falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings)                                       |
+| falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings)                                   |
+| falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings) and [`falcon.cid`](#falcon-sensor-settings) |
+| falcon-provisioning-token | Replaces [`falcon.provisioning_token`](#falcon-sensor-settings)                               |
 
 Example of creating k8s secret with sensitive Falcon values:
 ```bash

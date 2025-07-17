@@ -120,6 +120,10 @@ type FalconContainerInjectorSpec struct {
 	// +kubebuilder:validation:Maximum:=65535
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Injector replica count",order=13
 	Replicas *int32 `json:"replicas,omitempty"`
+
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Alternate Mount Path", order=14
+	AlternateMountPath bool `json:"alternateMountPath,omitempty"`
 }
 
 type FalconContainerServiceAccount struct {
@@ -177,4 +181,24 @@ type FalconContainerList struct {
 
 func init() {
 	SchemeBuilder.Register(&FalconContainer{}, &FalconContainerList{})
+}
+
+func (fc *FalconContainer) GetFalconSecretSpec() FalconSecret {
+	return fc.Spec.FalconSecret
+}
+
+func (fc *FalconContainer) GetFalconAPISpec() *FalconAPI {
+	return fc.Spec.FalconAPI
+}
+
+func (fc *FalconContainer) SetFalconAPISpec(falconApiSpec *FalconAPI) {
+	fc.Spec.FalconAPI = falconApiSpec
+}
+
+func (fc *FalconContainer) GetFalconSpec() FalconSensor {
+	return fc.Spec.Falcon
+}
+
+func (fc *FalconContainer) SetFalconSpec(falconSpec FalconSensor) {
+	fc.Spec.Falcon = falconSpec
 }

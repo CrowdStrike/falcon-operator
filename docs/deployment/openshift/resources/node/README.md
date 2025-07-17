@@ -51,26 +51,26 @@ spec:
 |:-------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | falcon_api.client_id     | (optional) CrowdStrike API Client ID                                                                                                                                                                                                 |
 | falcon_api.client_secret | (optional) CrowdStrike API Client Secret                                                                                                                                                                                             |
-| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover` |
-| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override                                                                                                                                                                                       |
+| falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1, us-gov-2);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover`;<br> `autodiscover` cannot be used for us-gov-1 or us-gov-2                                                                                                                                                                      |
+| falcon_api.cid           | (optional) CrowdStrike Falcon CID API override; Required for us-gov-2                                                                                                                                                                                           |
 
 #### Node Configuration Settings
-| Spec                                | Description                                                                                                                               |
-| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
-| installNamespace                    | (optional) Override the default namespace of falcon-system                                                                                |
-| node.tolerations                    | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ for examples on configuring tolerations      |
-| node.nodeAffinity                   | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity          |
-| node.image                          | (optional) Location of the Falcon Sensor Image. Specify only when you mirror the original image to your own image repository              |
-| node.imagePullPolicy                | (optional) Override the default Falcon Container image pull policy of Always                                                              |
-| node.imagePullSecrets               | (optional) list of references to secrets to use for pulling image from image_override location.                                           |
-| node.terminationGracePeriod         | (optional) Kills pod after a specified amount of time (in seconds). Default is 30 seconds.                                                |
-| node.serviceAccount.annotations     | (optional) Annotations that should be added to the Service Account (e.g. for IAM role association)                                        |
-| node.backend                        | (optional) Configure the backend mode for Falcon Sensor (allowed values: kernel, bpf)                                                     |
-| node.disableCleanup                 | (optional) Cleans up `/opt/CrowdStrike` on the nodes by deleting the files and directory.                                                 |
-| node.version                        | (optional) Enforce particular Falcon Sensor version to be installed (example: "6.35", "6.35.0-13207")                                     |
-| node.gke.autopilot                  | (optional) Enable GKE Autopilot support for FalconNodeSensor.                                                                             |
-| node.gke.deployAllowListVersion     | (optional) WorkloadAllowlist version for the sensor daemonset when using GKE AutoPilot.                                                   |
-| node.gke.cleanupAllowListVersion    | (optional) WorkloadAllowlist version for the cleanup daemonset when using GKE AutoPilot.                                                  |
+| Spec                                | Description                                                                                                                                                                               |
+| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| installNamespace                    | (optional) Override the default namespace of falcon-system                                                                                                                                |
+| node.tolerations                    | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ for examples on configuring tolerations                                                      |
+| node.nodeAffinity                   | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity                                                          |
+| node.image                          | (optional) Location of the Falcon Sensor Image. Specify only when you mirror the original image to your own image repository                                                              |
+| node.imagePullPolicy                | (optional) Override the default Falcon Container image pull policy of Always                                                                                                              |
+| node.imagePullSecrets               | (optional) list of references to secrets to use for pulling image from image_override location.                                                                                           |
+| node.terminationGracePeriod         | (optional) Kills pod after a specified amount of time (in seconds). Default is 60 seconds.                                                                                                |
+| node.serviceAccount.annotations     | (optional) Annotations that should be added to the Service Account (e.g. for IAM role association)                                                                                        |
+| node.backend                        | (optional) Configure the backend mode for Falcon Sensor (allowed values: kernel, bpf)                                                                                                     |
+| node.disableCleanup                 | (optional) Cleans up `/opt/CrowdStrike` on the nodes by deleting the files and directory.                                                                                                 |
+| node.version                        | (optional) Enforce particular Falcon Sensor version to be installed (example: "6.35", "6.35.0-13207")                                                                                     |
+| node.gke.autopilot                  | (optional) Enable GKE Autopilot support for FalconNodeSensor.                                                                                                                             |
+| node.gke.deployAllowListVersion     | (optional) WorkloadAllowlist version for the sensor daemonset when using GKE AutoPilot. (example: "v1.0.3" for crowdstrike-falconsensor-deploy-allowlist-v1.0.3)  |
+| node.gke.cleanupAllowListVersion    | (optional) WorkloadAllowlist version for the cleanup daemonset when using GKE AutoPilot (example: "v1.0.2" for crowdstrike-falconsensor-cleanup-allowlist-v1.0.2)  |
 
 
 > [!IMPORTANT]
@@ -79,7 +79,7 @@ spec:
 #### Falcon Sensor Settings
 | Spec                      | Description                                                                                                                                                                                       |
 |:--------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| falcon.cid                | (optional) CrowdStrike Falcon CID override;<br> [Falcon API credentials](#falcon-api-settings) or [Falcon Secret with credentials](#falcon-secret-settings) are required if this field is not set. |
+| falcon.cid                | (optional) CrowdStrike Falcon CID override;<br> [Falcon API credentials](#falcon-api-settings) or [Falcon Secret with credentials](#falcon-secret-settings) are required if this field is not set;<br> Required for us-gov-2 |
 | falcon.apd                | (optional) Disable the Falcon Sensor's use of a proxy.                                                                                                                                            |
 | falcon.aph                | (optional)  The application proxy host to use for Falcon sensor proxy configuration.                                                                                                              |
 | falcon.app                | (optional)  The application proxy port to use for Falcon sensor proxy configuration.                                                                                                              |
@@ -102,12 +102,12 @@ Falcon secret settings are used to read the following sensitive Falcon API and s
 > If a key/value does not exist in your k8s secret, the value will be overwritten as an empty string.
 
 ##### Secret Keys
-| Secret Key                | Description                                                                                                     |
-|:--------------------------|:----------------------------------------------------------------------------------------------------------------|
-| falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined     |
-| falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings); Requires `falcon_api.cloud` in CRD spec is defined |
-| falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings) and [`falcon.cid`](#falcon-sensor-settings)                   |
-| falcon-provisioning-token | Replaces [`falcon.provisioning_token`](#falcon-sensor-settings)                                                 |
+| Secret Key                | Description                                                                                   |
+|:--------------------------|:----------------------------------------------------------------------------------------------|
+| falcon-client-id          | Replaces [`falcon_api.client_id`](#falcon-api-settings)                                       |
+| falcon-client-secret      | Replaces [`falcon_api.client_secret`](#falcon-api-settings)                                   |
+| falcon-cid                | Replaces [`falcon_api.cid`](#falcon-api-settings) and [`falcon.cid`](#falcon-sensor-settings) |
+| falcon-provisioning-token | Replaces [`falcon.provisioning_token`](#falcon-sensor-settings)                               |
 
 Example of creating k8s secret with sensitive Falcon values:
 ```bash
@@ -210,3 +210,11 @@ To upgrade the sensor version, simply add and/or update the `version` field in t
   ```sh
   oc get falconnodesensors -A -o=jsonpath='{.items[].status.version}'
   ```
+
+- There are some instances where you may see Pods crashlooping when uninstalling the node sensor. An example from the operator logs:
+  ```
+  2025-06-10T15:43:00Z    INFO    /opt/CrowdStrike may have not been removed on node colima-arm64 due to the cleanup pod crashlooping. See the troubleshooting section of the node sensor documentation for more information.    {"controller": "falconnodesensor", "controllerGroup": ││  "falcon.crowdstrike.com", "controllerKind": "FalconNodeSensor", "FalconNodeSensor": {"name":"falcon-node-sensor"}, "namespace": "", "name": "falcon-node-sensor", "reconcileID": "b19a4bb0-bfb7-4ac0-99b4-15f93713fc04", "DaemonSet": {"name":"falcon-node-sensor"}}
+  ```
+  In the event of an incomplete uninstallation, manually remove the /opt/CrowdStrike directory on affected nodes identified in the logs to prevent these potential issues:
+  1. The /opt/CrowdStrike directory will consume unnecessary disk space
+  2. Subsequent sensor reinstallations will reuse the previous Agent ID (AID) found in /opt/CrowdStrike/falconstore
