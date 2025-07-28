@@ -5,6 +5,150 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2025-07-16
+
+### Changed
+
+- chore(docs): clean up docs for v1.7.0 release
+- chore(falcon-deployment): remove note about falcon secret
+- Add us-gov-2 to allowed regions (#683)
+- generate manifests with IAR node affinity changes
+- update node sensor default termination grace period to 60s
+- add FalconSecret spec to FalconDeployment CRD
+- Update to golang 1.23 and fix dependabot findings
+- Add POD_NODE_NAME to init container
+- iterating changes
+- Add ARM64 to IAR nodeAffinity
+- Add AllowlistSynchronizer documentation for GKE Autopilot
+- add arm64 to default node affinity for kac and container sensor
+- Update descriptions of GKE Autopilot allowlist variables in Daemonset spec
+- Ensure Cleanup Daemonset still terminates even if Pods are crashlooping
+- Move watcher vars from watcher container to KAC configmap
+- Ensure KAC and Lumos redeploy when nodeAffinity is updated
+- Add alternateMountPath option to Falcon Operator to enable mount points at /falcon instead of /tmp for NVCF environment
+
+## [1.6.0] - 2025-06-03
+
+### Changed
+
+- chore: remove old registry code
+- bump operator version and run make bundle
+- update Falcon KAC docs for ARM64 support
+- feat(all-sensors): add k8s secret support for sensitive Falcon API and Falcon sensor values
+- Add GKE AutoPilot labels to spec for troubleshooting WorkloadAllowlists
+- Add flag to disable the validating webhoook in falcon-kac
+- Fix IAR cloud region requirements
+- Add configurable nodeAffinity to falcon-container
+- feat(falcon-kac): add optional node affinity + pull latest multi-arch images (#651)
+- docs: clarify support on ROSA Classic vs. HCP
+- Set the Falcon sensor cleanup node sleep time to infinity
+- Fix: Add required OpenShift image labels
+- docs: Add note to ensure falcon-kac is installed in unique namespace
+
+## [1.5.0] - 2025-04-17
+
+### Changed
+
+- Fix: Update caching to lower overall operator memory consumption
+- Update go version in github actions
+- Fix: Exclude configure-cluster-id from GKE Autopilot
+- Migrate from deprecated kube-proxy to native controller metrics endpoint
+- docs: revert accidental rollback of openshift and IAR docs
+- New: Add cluster-config-id to sensor init container
+- New: Adding configurable Lease Duration and Renewal Deadline
+
+## [1.4.0] - 2025-02-18
+
+### Changed
+
+- New: Add FalconDeployment CR
+- fix: deployments to prevent endless reconciles
+- add fsGroup as nobody group
+- fix: ensure latest IAR image is used as default
+- fix: updating sidecar manifest for controller-gen v0.14.0
+- fix: prevent e2e test failures caused by node sensor cleanup
+- build(deps): bump golang.org/x/net from 0.26.0 to 0.33.0
+- build(deps): bump golang.org/x/crypto from 0.23.0 to 0.31.0
+- build(deps): bump helm/kind-action from 1.10.0 to 1.12.0
+- build(deps): bump github.com/cert-manager/cert-manager
+- Update resources limits for KAC containers
+- cdp: set ClusterFirstWithHostNet, so cluster DNS resolution is possible from host network
+- cdp: added resources and verbs for the cluster role
+- Update support statement
+- Upgrade controller-gen to v0.14.0 and fix defaults
+- Update tolerations to accommodate an empty list
+- Update README support statement
+- docs: fix scopes and required parameters for IAR
+- docs: Use absolute links in readme.
+- Hint at OpenShift pull secret needed for IAR.
+- docs: improve ROSA/ARO support language
+- docs: use absolute link for install guide in CSV
+
+## [1.3.1] - 2024-10-22
+
+### Changed
+
+- feat: pin go version for releases
+- Bumping to version 1.3.0
+- feat: add cluster visibility to FalconAdmission
+
+## [1.3.0] - 2024-10-09
+
+### Changed
+
+- feat: add cluster visibility to FalconAdmission
+
+## [1.2.0] - 2024-09-04
+
+### Changed
+
+- fix: bump version to 1.2.0 across the project
+- fix: bump Makefile version to 1.2.0
+- feat: advanced settings
+- fix: remove unused functions to satisfy linter
+- feat: automatic sensor updates
+- fix: disable provenance in Docker builds
+- fix: add warning in docs about AutoPilot resource mismatches
+- fix: corrected display names in unsafe sub-specs
+- feat: add support for sensor version selection by update policy
+- build(deps): bump github.com/docker/docker
+- build(deps): bump github.com/docker/docker
+- fix: bumped Golang to 1.21 in the docs and GitHub Actions
+- bump: golang to 1.21 and container/image to 5.31
+- revert: PR #549 -- artifactory tag workaround
+- revert: "fix: accept 400 errors in config_cache_test"
+- feat: allow API host override during NodeSensor config-cache tests
+- fix: correct documentation template
+- fix: ignore the KAC replica setting but say so in the logs
+- build(deps): bump docker/build-push-action from 5 to 6
+- fix: only run release workflow on full releases
+- fix: force the use of a single replica in FalconAdmission
+- Fix GUI uninstall </details> location. Fix delete-project image name.
+- Add missing OpenShift cleanup steps. Closes CrowdStrike/falcon-operator#552
+- docs: update openshift installation docs for new certified operator
+- fix handling of invalid tags in artifactory
+- feat: make eBPF primary sensor
+- Bumping to version 1.0.0
+
+## [1.1.0] - 2024-07-17
+
+### Changed
+
+- fix: accept 400 errors in config_cache_test
+- fix: ignore the KAC replica setting but say so in the logs
+- add missing OpenShift uninstall steps
+- build(deps): bump docker/build-push-action from 5 to 6
+- feat: make eBPF primary sensor
+- fix: only run release workflow on full releases
+- docs: update openshift installation docs for new certified operator
+- fix changelog
+
+## [1.0.1] - 2024-06-05
+
+### Changed
+
+- fix handling of invalid tags in artifactory
+
 ## [1.0.0] - 2024-06-03
 
 ### Changed
