@@ -441,12 +441,12 @@ spec:
         path: injector.disableDefaultNamespaceInjection
       - displayName: Disable Default Pod Injection
         path: injector.disableDefaultPodInjection
-      - displayName: Enable Alternate Mount Path
-        path: injector.alternateMountPath
       - displayName: Azure Config file path
         path: injector.azureConfigPath
       - displayName: Injector replica count
         path: injector.replicas
+      - displayName: Enable Alternate Mount Path
+        path: injector.alternateMountPath
       - description: |-
           Advanced configures various options that go against industry practices or are otherwise not recommended for use.
           Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
@@ -1243,8 +1243,6 @@ spec:
         path: falconContainerSensor
       - displayName: Disable Default Pod Injection
         path: falconContainerSensor.injector.disableDefaultPodInjection
-      - displayName: Enable Alternate Mount Path
-        path: falconContainerSensor.injector.alternateMountPath
       - description: Exclusions for the Falcon Image Analyzer.
         displayName: Falcon Image Analyzer Exclusions
         path: falconImageAnalyzer.imageAnalyzerConfig.exclusions
@@ -1276,6 +1274,8 @@ spec:
         path: falconAdmission.admissionConfig.resourcesWatcher
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - displayName: Enable Alternate Mount Path
+        path: falconContainerSensor.injector.alternateMountPath
       - description: Determines if snapshots of Kubernetes resources are periodically
           taken for cluster visibility.
         displayName: Enable Resource Snapshots
