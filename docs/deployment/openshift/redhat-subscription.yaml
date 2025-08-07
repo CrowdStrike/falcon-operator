@@ -7,3 +7,11 @@ spec:
   name: falcon-operator
   source: certified-operators
   sourceNamespace: openshift-marketplace
+  config:
+    env:
+      - name: LEADER_ELECT
+        value: 'true'
+      - name: LEASE_DURATION
+        value: '60s'
+      - name: RENEW_DEADLINE
+        value: '45s'
