@@ -29,7 +29,7 @@ type FalconNodeSensorSpec struct {
 
 	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Sensor Configuration",order=2
-	Falcon FalconSensor `json:"falcon,omitempty"`
+	Falcon FalconUnified `json:"falcon,omitempty"`
 
 	// FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
 	//
@@ -261,9 +261,9 @@ func (node *FalconNodeSensor) SetFalconAPISpec(falconApiSpec *FalconAPI) {
 }
 
 func (node *FalconNodeSensor) GetFalconSpec() FalconSensor {
-	return node.Spec.Falcon
+	return node.Spec.Falcon.FalconSensor
 }
 
 func (node *FalconNodeSensor) SetFalconSpec(falconSpec FalconSensor) {
-	node.Spec.Falcon = falconSpec
+	node.Spec.Falcon.FalconSensor = falconSpec
 }
