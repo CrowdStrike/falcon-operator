@@ -1,8 +1,9 @@
 package falcon_secret
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	"strings"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 func GetFalconCredsFromSecret(secret *corev1.Secret) (clientId, clientSecret string) {
@@ -17,9 +18,13 @@ func GetFalconCredsFromSecret(secret *corev1.Secret) (clientId, clientSecret str
 	return clientId, clientSecret
 }
 
-func GetFalconCIDFromSecret(secret *corev1.Secret) (cid string) {
+func GetFalconCIDFromSecret(secret *corev1.Secret) (cid *string) {
 	if cidFromSecret, exists := secret.Data["falcon-cid"]; exists {
-		cid = strings.TrimSpace(string(cidFromSecret))
+		trimmedCID := strings.TrimSpace(string(cidFromSecret))
+		if trimmedCID == "" {
+			return nil
+		}
+		cid = &trimmedCID
 	}
 
 	return cid
