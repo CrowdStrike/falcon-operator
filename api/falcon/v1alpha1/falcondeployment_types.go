@@ -61,7 +61,7 @@ type FalconDeploymentSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Configuration",order=8
 	FalconAdmission FalconAdmissionSpec `json:"falconAdmission,omitempty"`
 
-	// Falcon Admission Controller Configuration
+	// Falcon Node Sensor Controller Configuration
 	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Node Sensor Configuration",order=9
 	FalconNodeSensor FalconNodeSensorSpec `json:"falconNodeSensor,omitempty"`

@@ -107,8 +107,10 @@ var _ = Describe("FalconNodeSensor controller", func() {
 						Namespace: sensorNamespacedName.Namespace,
 					},
 					Spec: falconv1alpha1.FalconNodeSensorSpec{
-						Falcon: falconv1alpha1.FalconSensor{
-							CID: &falconCID,
+						Falcon: falconv1alpha1.FalconUnified{
+							FalconSensor: falconv1alpha1.FalconSensor{
+								CID: &falconCID,
+							},
 						},
 						Node: falconv1alpha1.FalconNodeSensorConfig{
 							Image: "example.com/image:test",
@@ -191,6 +193,41 @@ var _ = Describe("FalconNodeSensor controller", func() {
 				}
 				return nil
 			}, 10*time.Second, time.Second).Should(Succeed())
+
+			By("Checking if Deployment was created with updated config map")
+			Eventually(func() error {
+				nodeSensorConfigMap := &corev1.ConfigMap{}
+				err = common.GetNamespacedObject(
+					ctx,
+					falconNodeReconciler.Client,
+					falconNodeReconciler.Reader,
+					types.NamespacedName{Name: NodeSensorName + "-config", Namespace: sensorNamespacedName.Namespace},
+					nodeSensorConfigMap,
+				)
+				if err != nil {
+					return fmt.Errorf("failed to get nodeSensor configmap: %w", err)
+				}
+
+				nodeSensorDaemonSet := &appsv1.DaemonSet{}
+				err = k8sClient.Get(ctx, types.NamespacedName{Name: NodeSensorName, Namespace: sensorNamespacedName.Namespace}, nodeSensorDaemonSet)
+				if err != nil {
+					return fmt.Errorf("failed to get nodeSensor daemonset: %w", err)
+				}
+
+				// Check for environment variables with secret references
+				containers := nodeSensorDaemonSet.Spec.Template.Spec.Containers
+				if len(containers) == 0 {
+					return fmt.Errorf("no containers found in nodeSensor deployment")
+				}
+
+				expectedNodeSensorContainerName := "falcon-node-sensor"
+				Expect(nodeSensorDaemonSet).To(haveContainerNamed(expectedNodeSensorContainerName))
+				Expect(nodeSensorDaemonSet).To(haveContainerWithConfigMapEnvFrom(expectedNodeSensorContainerName, NodeSensorName+"-config"))
+				Expect(nodeSensorConfigMap.Data["FALCONCTL_OPT_CID"]).To(Equal(falconCID))
+				Expect(nodeSensorConfigMap.Data).NotTo(HaveKey("FALCONCTL_OPT_CLOUD"))
+
+				return nil
+			}, 10*time.Second, time.Second).Should(Succeed())
 		})
 
 		It("should correctly handle and inject existing secrets into configmap", func() {
@@ -228,14 +265,18 @@ var _ = Describe("FalconNodeSensor controller", func() {
 			Expect(err).To(Not(HaveOccurred()))
 
 			By("Creating the FalconNodeSensor CR with FalconSecret configured")
+			cloudRegion := "us-1"
 			falconNode := &falconv1alpha1.FalconNodeSensor{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      NodeSensorName,
 					Namespace: sensorNamespacedName.Namespace,
 				},
 				Spec: falconv1alpha1.FalconNodeSensorSpec{
-					Falcon: falconv1alpha1.FalconSensor{
-						CID: &falconCID,
+					Falcon: falconv1alpha1.FalconUnified{
+						FalconSensor: falconv1alpha1.FalconSensor{
+							CID: &falconCID,
+						},
+						Cloud: cloudRegion,
 					},
 					Node: falconv1alpha1.FalconNodeSensorConfig{
 						Image: "example.com/image:test",
@@ -308,6 +349,7 @@ var _ = Describe("FalconNodeSensor controller", func() {
 				Expect(nodeSensorDaemonSet).To(haveContainerWithConfigMapEnvFrom(expectedNodeSensorContainerName, NodeSensorName+"-config"))
 				Expect(nodeSensorConfigMap.Data["FALCONCTL_OPT_CID"]).To(Equal(falconCID))
 				Expect(nodeSensorConfigMap.Data["FALCONCTL_OPT_PROVISIONING_TOKEN"]).To(Equal(provisioningToken))
+				Expect(nodeSensorConfigMap.Data["FALCONCTL_OPT_CLOUD"]).To(Equal(cloudRegion))
 
 				return nil
 			}, 10*time.Second, time.Second).Should(Succeed())

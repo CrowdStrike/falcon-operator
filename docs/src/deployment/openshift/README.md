@@ -136,37 +136,6 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 <details>
   <summary>Click to expand</summary>
 
-### Install using the Krew plugin (Preferred)
-
-<details>
-  <summary>Click to expand</summary>
-
-To easily uninstall the operator, install Krew if it is not already installed:
-
-1. Install Krew. See https://krew.sigs.k8s.io/docs/user-guide/setup/install/
-2. Verify install with `oc krew`
-3. Update krew `oc krew update`
-4. Install the operator krew plugin `oc krew install operator`
-
-Once the Krew plugin is installed:
-
-- Authenticate to your OpenShift cluster
-  ```
-  oc login --token=sha256~abcde-ABCDE-1 --server=https://openshift.example.com
-  ```
-
-- If you are not installing the Falcon Operator in the `openshift-operators` namespace, create either the `falcon-operator` namespace or a desired custom namespace:
-  ```
-  oc new-project falcon-operator
-  ```
-
-- Using the krew plugin, install the certified operator
-   ```
-   oc operator install falcon-operator --create-operator-group -n falcon-operator
-   ```
-
-</details>
-
 ### Install using the Subscription/CSV method
 
 <details>
@@ -384,27 +353,6 @@ remove automatically when the operator is uninstalled.
 
 <details>
   <summary>Click to expand</summary>
-
-#### Uninstall using the Krew plugin (Preferred)
-
-<details>
-  <summary>Click to expand</summary>
-
-To easily uninstall the operator, install Krew if it is not already installed:
-
-1. Install Krew. See https://krew.sigs.k8s.io/docs/user-guide/setup/install/
-2. Verify install with `oc krew`
-3. Update krew `oc krew update`
-4. Install the operator krew plugin `oc krew install operator`
-
-Once the Krew plugin is installed:
-
-1. Using the krew plugin, uninstall the certified operator if it is already installed with
-   ```
-   oc operator uninstall falcon-operator -n falcon-operator -X
-   ```
-
-</details>
 
 #### Uninstall using the Subscription/CSV method
 

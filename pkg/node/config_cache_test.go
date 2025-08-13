@@ -107,17 +107,26 @@ func TestGetPullToken(t *testing.T) {
 }
 
 func TestSensorEnvVars(t *testing.T) {
+	testConfig := config
 	want := make(map[string]string)
 	want["FALCONCTL_OPT_CID"] = falconCID
 
-	got := config.SensorEnvVars()
+	got := testConfig.SensorEnvVars()
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("SensorEnvVars() mismatch (-want +got): %s", diff)
 	}
 
-	config.nodesensor.Spec.Node.Backend = "kernel"
+	testConfig.nodesensor.Spec.Node.Backend = "kernel"
 	want["FALCONCTL_OPT_BACKEND"] = "kernel"
-	got = config.SensorEnvVars()
+	got = testConfig.SensorEnvVars()
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("SensorEnvVars() mismatch (-want +got): %s", diff)
+	}
+
+	cloudRegion := "us-2"
+	testConfig.nodesensor.Spec.Falcon.Cloud = cloudRegion
+	want["FALCONCTL_OPT_CLOUD"] = cloudRegion
+	got = testConfig.SensorEnvVars()
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("SensorEnvVars() mismatch (-want +got): %s", diff)
 	}

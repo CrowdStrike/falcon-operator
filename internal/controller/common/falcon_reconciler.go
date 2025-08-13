@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_secret"
@@ -36,7 +37,7 @@ func InjectFalconSecretData[T FalconReconciler[T], U FalconCRD](
 	cid := falcon_secret.GetFalconCIDFromSecret(secret)
 	provisioningToken := falcon_secret.GetFalconProvisioningTokenFromSecret(secret)
 
-	falconSpec.CID = &cid
+	falconSpec.CID = cid
 	falconSpec.PToken = provisioningToken
 	falconCrd.SetFalconSpec(falconSpec)
 
@@ -48,7 +49,7 @@ func InjectFalconSecretData[T FalconReconciler[T], U FalconCRD](
 	clientId, clientSecret := falcon_secret.GetFalconCredsFromSecret(secret)
 	falconApi.ClientId = clientId
 	falconApi.ClientSecret = clientSecret
-	falconApi.CID = &cid
+	falconApi.CID = cid
 	falconCrd.SetFalconAPISpec(falconApi)
 
 	return nil

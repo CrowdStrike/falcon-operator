@@ -103,7 +103,7 @@ func TestMakeSensorEnvMap(t *testing.T) {
 	sensorConfig["FALCONCTL_OPT_TAGS"] = strings.Join(falconSensor.Tags, ",")
 	sensorConfig["FALCONCTL_OPT_TRACE"] = falconSensor.Trace
 
-	if got := MakeSensorEnvMap(falconSensor); !reflect.DeepEqual(got, sensorConfig) {
+	if got := MakeSensorEnvMap(falconSensor.FalconSensor); !reflect.DeepEqual(got, sensorConfig) {
 		t.Errorf("MakeSensorEnvMap() = %v, want %v", got, sensorConfig)
 	}
 
@@ -114,7 +114,7 @@ func TestMakeSensorEnvMap(t *testing.T) {
 	sensorConfig["FALCONCTL_OPT_APH"] = falconSensor.APH
 	sensorConfig["FALCONCTL_OPT_APP"] = strconv.Itoa(*falconSensor.APP)
 
-	if got := MakeSensorEnvMap(falconSensor); !reflect.DeepEqual(got, sensorConfig) {
+	if got := MakeSensorEnvMap(falconSensor.FalconSensor); !reflect.DeepEqual(got, sensorConfig) {
 		t.Errorf("MakeSensorEnvMap() = %v, want %v", got, sensorConfig)
 	}
 }

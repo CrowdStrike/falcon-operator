@@ -1215,7 +1215,7 @@ spec:
       - description: Set the falcon image analyzer volume mount path.
         displayName: Falcon Image Analyzer Volume Mount Path
         path: falconImageAnalyzer.imageAnalyzerConfig.mountPath
-      - description: Falcon Admission Controller Configuration
+      - description: Falcon Node Sensor Controller Configuration
         displayName: Falcon Node Sensor Configuration
         path: falconNodeSensor
       - description: Configure resource requests and limits for the DaemonSet Sensor.
@@ -1303,6 +1303,11 @@ spec:
           This is useful for passing along AWS IAM Role or GCP Workload Identity.
         displayName: Annotations
         path: falconContainerSensor.injector.serviceAccount.annotations
+      - description: Falcon Customer Cloud Region - With the unified installer, you
+          can let the sensor discover the CID's cloud automatically, or you can specify
+          the cloud where the CID resides.
+        displayName: CrowdStrike Falcon Cloud Region
+        path: falconNodeSensor.falcon.cloud
       - description: |-
           Advanced configures various options that go against industry practices or are otherwise not recommended for use.
           Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
@@ -1685,6 +1690,11 @@ spec:
           Autopilot clusters, but can be set for any cluster.
         displayName: Priority Class
         path: node.priorityClass
+      - description: Falcon Customer Cloud Region - With the unified installer, you
+          can let the sensor discover the CID's cloud automatically, or you can specify
+          the cloud where the CID resides.
+        displayName: CrowdStrike Falcon Cloud Region
+        path: falcon.cloud
       - description: |-
           Advanced configures various options that go against industry practices or are otherwise not recommended for use.
           Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.

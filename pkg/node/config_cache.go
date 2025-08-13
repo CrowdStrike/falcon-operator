@@ -81,13 +81,17 @@ func (cc *ConfigCache) GetPullToken(ctx context.Context) ([]byte, error) {
 }
 
 func (cc *ConfigCache) SensorEnvVars() map[string]string {
-	sensorConfig := common.MakeSensorEnvMap(cc.nodesensor.Spec.Falcon)
+	sensorConfig := common.MakeSensorEnvMap(cc.nodesensor.Spec.Falcon.FalconSensor)
 	if cc.cid != "" {
 		sensorConfig["FALCONCTL_OPT_CID"] = cc.cid
 	}
 	if cc.nodesensor.Spec.Node.Backend != "" {
 		sensorConfig["FALCONCTL_OPT_BACKEND"] = cc.nodesensor.Spec.Node.Backend
 	}
+	if cc.nodesensor.Spec.Falcon.Cloud != "" {
+		sensorConfig["FALCONCTL_OPT_CLOUD"] = cc.nodesensor.Spec.Falcon.Cloud
+	}
+
 	return sensorConfig
 }
 
