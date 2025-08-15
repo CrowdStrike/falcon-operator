@@ -700,6 +700,11 @@ spec:
                       cluster visibility.
                     type: boolean
                 type: object
+              clusterName:
+                description: Cluster Name if Falcon KAC cannot discover the cluster
+                  name. This will be overwritten if Falcon KAC is able to discover
+                  the cluster name.
+                type: string
               falcon:
                 default: {}
                 description: CrowdStrike Falcon sensor configuration
@@ -4136,6 +4141,11 @@ spec:
                           for cluster visibility.
                         type: boolean
                     type: object
+                  clusterName:
+                    description: Cluster Name if Falcon KAC cannot discover the cluster
+                      name. This will be overwritten if Falcon KAC is able to discover
+                      the cluster name.
+                    type: string
                   falcon:
                     default: {}
                     description: CrowdStrike Falcon sensor configuration

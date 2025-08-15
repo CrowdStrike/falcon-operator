@@ -254,6 +254,11 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	clusterNameConfigUpdated, err := r.reconcileClusterNameConfigMap(ctx, req, log, falconAdmission)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	serviceUpdated, err := r.reconcileService(ctx, req, log, falconAdmission)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -279,7 +284,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	if configUpdated || serviceUpdated || webhookUpdated {
+	if configUpdated || clusterNameConfigUpdated || serviceUpdated || webhookUpdated {
 		err = r.admissionDeploymentUpdate(ctx, req, log, falconAdmission)
 		if err != nil {
 			return ctrl.Result{}, err
