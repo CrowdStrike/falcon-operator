@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -53,26 +52,9 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
-const (
-	defaultMetricsAddress           = "0"
-	defaultHealthProbeAddress       = ":8081"
-	defaultProfileAddress           = "localhost:8082"
-	defaultSensorAutoUpdateInterval = time.Hour * 24
-	defaultLeaseDuration            = time.Second * 30
-	defaultRenewDeadline            = time.Second * 20
-
-	OperatorEnvOptionMetricsBindAddress       = "METRICS_BIND_ADDRESS"
-	OperatorEnvOptionHealthProbeBindAddress   = "HEALTH_PROBE_BIND_ADDRESS"
-	OperatorEnvOptionProfileBindAddress       = "PROFILE_BIND_ADDRESS"
-	OperatorEnvOptionEnableProfiling          = "ENABLE_PROFILING"
-	OperatorEnvOptionEnableHttp2              = "ENABLE_HTTP2"
-	OperatorEnvOptionMetricsSecure            = "METRICS_SECURE"
-	OperatorEnvOptionLeaderElect              = "LEADER_ELECT"
-	OperatorEnvOptionVersion                  = "SHOW_VERSION"
-	OperatorEnvOptionSensorAutoUpdateInterval = "SENSOR_AUTO_UPDATE_INTERVAL"
-	OperatorEnvOptionLeaseDuration            = "LEASE_DURATION"
-	OperatorEnvOptionRenewDeadline            = "RENEW_DEADLINE"
-)
+const defaultSensorAutoUpdateInterval = time.Hour * 24
+const defaultLeaseDuration = time.Second * 30
+const defaultRenewDeadline = time.Second * 20
 
 var (
 	scheme            = runtime.NewScheme()
@@ -122,22 +104,6 @@ var (
 	}
 )
 
-type deploymentOptions struct {
-	metricsAddr              string
-	enableLeaderElection     bool
-	probeAddr                string
-	profileAddr              string
-	enableProfiling          bool
-	enableHTTP2              bool
-	secureMetrics            bool
-	tlsOpts                  []func(*tls.Config)
-	ver                      bool
-	err                      error
-	sensorAutoUpdateInterval time.Duration
-	leaseDuration            time.Duration
-	renewDeadline            time.Duration
-}
-
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(imagev1.AddToScheme(scheme))
@@ -147,23 +113,36 @@ func init() {
 }
 
 func main() {
-	dOpts := deploymentOptions{}
-	flag.StringVar(&dOpts.metricsAddr, "metrics-bind-address", defaultMetricsAddress, "The address the metrics endpoint binds to. "+
+	var metricsAddr string
+	var enableLeaderElection bool
+	var probeAddr string
+	var profileAddr string
+	var enableProfiling bool
+	var enableHTTP2 bool
+	var secureMetrics bool
+	var tlsOpts []func(*tls.Config)
+	var ver bool
+	var err error
+	var sensorAutoUpdateInterval time.Duration
+	var leaseDuration time.Duration
+	var renewDeadline time.Duration
+
+	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
-	flag.StringVar(&dOpts.probeAddr, "health-probe-bind-address", defaultHealthProbeAddress, "The address the probe endpoint binds to.")
-	flag.StringVar(&dOpts.profileAddr, "profile-bind-address", defaultProfileAddress, "The address the profiling endpoint binds to.")
-	flag.BoolVar(&dOpts.enableProfiling, "profile", false, "Enable profiling.")
-	flag.BoolVar(&dOpts.enableHTTP2, "enable-http2", false,
+	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.StringVar(&profileAddr, "profile-bind-address", "localhost:8082", "The address the profiling endpoint binds to.")
+	flag.BoolVar(&enableProfiling, "profile", false, "Enable profiling.")
+	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
-	flag.BoolVar(&dOpts.secureMetrics, "metrics-secure", true,
+	flag.BoolVar(&secureMetrics, "metrics-secure", true,
 		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
-	flag.BoolVar(&dOpts.enableLeaderElection, "leader-elect", false,
+	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.BoolVar(&dOpts.ver, "version", false, "Print version")
-	flag.DurationVar(&dOpts.sensorAutoUpdateInterval, "sensor-auto-update-interval", defaultSensorAutoUpdateInterval, "The rate at which the Falcon API is queried for new sensor versions")
-	flag.DurationVar(&dOpts.leaseDuration, "lease-duration", defaultLeaseDuration, "The duration that non-leader candidates will wait to force acquire leadership.")
-	flag.DurationVar(&dOpts.renewDeadline, "renew-deadline", defaultRenewDeadline, "the duration that the acting controlplane will retry refreshing leadership before giving up.")
+	flag.BoolVar(&ver, "version", false, "Print version")
+	flag.DurationVar(&sensorAutoUpdateInterval, "sensor-auto-update-interval", defaultSensorAutoUpdateInterval, "The rate at which the Falcon API is queried for new sensor versions")
+	flag.DurationVar(&leaseDuration, "lease-duration", defaultLeaseDuration, "The duration that non-leader candidates will wait to force acquire leadership.")
+	flag.DurationVar(&renewDeadline, "renew-deadline", defaultRenewDeadline, "the duration that the acting controlplane will retry refreshing leadership before giving up.")
 
 	if env := os.Getenv("ARGS"); env != "" {
 		os.Args = append(os.Args, strings.Split(env, " ")...)
@@ -178,7 +157,7 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	if dOpts.ver {
+	if ver {
 		fmt.Printf("%s version: %q, go version: %q\n", os.Args[0], version.Get(), version.GoVersion)
 		os.Exit(0)
 	}
@@ -203,10 +182,6 @@ func main() {
 		requiredCacheObjs[&imagev1.ImageStream{}] = cache.ByObject{
 			Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
 		}
-
-		// Openshift does not support persisting command line arguments when deploying the operator.
-		// Env vars must be used instead if operator deployment options are updated.
-		dOpts = setDeploymentOptionsFromEnvVars(dOpts)
 	} else {
 		setupLog.Info(fmt.Sprintf("openshift api is not available. cluster is running %s", environment))
 	}
@@ -222,17 +197,17 @@ func main() {
 		c.NextProtos = []string{"http/1.1"}
 	}
 
-	if !dOpts.enableHTTP2 {
-		dOpts.tlsOpts = append(dOpts.tlsOpts, disableHTTP2)
+	if !enableHTTP2 {
+		tlsOpts = append(tlsOpts, disableHTTP2)
 	}
 
 	metricsServerOptions := metricsserver.Options{
-		BindAddress:   dOpts.metricsAddr,
-		SecureServing: dOpts.secureMetrics,
-		TLSOpts:       dOpts.tlsOpts,
+		BindAddress:   metricsAddr,
+		SecureServing: secureMetrics,
+		TLSOpts:       tlsOpts,
 	}
 
-	if dOpts.secureMetrics {
+	if secureMetrics {
 		// FilterProvider is used to protect the metrics endpoint with authn/authz.
 		// These configurations ensure that only authorized users and service accounts
 		// can access the metrics endpoint. The RBAC are configured in 'config/rbac/kustomization.yaml'. More info:
@@ -253,11 +228,11 @@ func main() {
 	options := ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,
-		HealthProbeBindAddress: dOpts.probeAddr,
-		LeaderElection:         dOpts.enableLeaderElection,
+		HealthProbeBindAddress: probeAddr,
+		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "falcon-operator-lock",
-		LeaseDuration:          &dOpts.leaseDuration,
-		RenewDeadline:          &dOpts.renewDeadline,
+		LeaseDuration:          &leaseDuration,
+		RenewDeadline:          &renewDeadline,
 		Cache: cache.Options{
 			ByObject: requiredCacheObjs,
 		},
@@ -281,7 +256,7 @@ func main() {
 	}
 
 	ctx := ctrl.SetupSignalHandler()
-	tracker := sensorversion.NewTracker(ctx, dOpts.sensorAutoUpdateInterval)
+	tracker := sensorversion.NewTracker(ctx, sensorAutoUpdateInterval)
 
 	if err = (&containercontroller.FalconContainerReconciler{
 		Client:     mgr.GetClient(),
@@ -336,7 +311,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if dOpts.enableProfiling {
+	if enableProfiling {
 		setupLog.Info("Establishing profile endpoint.")
 		go func() {
 			pprofMux := http.NewServeMux()
@@ -345,7 +320,7 @@ func main() {
 			pprofMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 			pprofMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 			pprofMux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-			srv := &http.Server{Addr: dOpts.profileAddr, ReadHeaderTimeout: time.Second * 10, ReadTimeout: time.Second * 60, WriteTimeout: time.Second * 10, Handler: pprofMux}
+			srv := &http.Server{Addr: profileAddr, ReadHeaderTimeout: time.Second * 10, ReadTimeout: time.Second * 60, WriteTimeout: time.Second * 10, Handler: pprofMux}
 			err := srv.ListenAndServe()
 			if err != nil {
 				setupLog.Error(err, "unable to establish profile endpoint")
@@ -369,98 +344,4 @@ func isOpenShift(client discovery.DiscoveryInterface) bool {
 
 func isCertManagerInstalled(client discovery.DiscoveryInterface) (bool, error) {
 	return discovery.IsResourceEnabled(client, certv1.SchemeGroupVersion.WithResource("issuers"))
-}
-
-func setDeploymentOptionsFromEnvVars(dOpts deploymentOptions) deploymentOptions {
-	if value, exists := getEnvVar(OperatorEnvOptionMetricsBindAddress); exists {
-		setupLog.Info(fmt.Sprintf("configuring deployment option %s from env with value: %s", OperatorEnvOptionMetricsBindAddress, value))
-		dOpts.metricsAddr = value
-	}
-
-	if value, exists := getEnvVar(OperatorEnvOptionHealthProbeBindAddress); exists {
-		setupLog.Info(fmt.Sprintf("configuring deployment option %s from env with value: %s", OperatorEnvOptionHealthProbeBindAddress, value))
-		dOpts.probeAddr = value
-	}
-
-	if value, exists := getEnvVar(OperatorEnvOptionProfileBindAddress); exists {
-		setupLog.Info(fmt.Sprintf("configuring deployment option %s from env with value: %s", OperatorEnvOptionProfileBindAddress, value))
-		dOpts.profileAddr = value
-	}
-
-	if value, exists := getBoolEnvVar(OperatorEnvOptionEnableProfiling); exists {
-		setupLog.Info(fmt.Sprintf("configuring deployment option %s from env with value: %s", OperatorEnvOptionEnableProfiling, value))
-		dOpts.enableProfiling = value
-	}
-
-	if value, exists := getBoolEnvVar(OperatorEnvOptionEnableHttp2); exists {
-		setupLog.Info(fmt.Sprintf("configuring deployment option %s from env with value: %s", OperatorEnvOptionEnableHttp2, value))
-		dOpts.enableHTTP2 = value
-	}
-
-	if value, exists := getBoolEnvVar(OperatorEnvOptionMetricsSecure); exists {
-		setupLog.Info(fmt.Sprintf("configuring deployment option %s from env with value: %s", OperatorEnvOptionMetricsSecure, value))
-		dOpts.secureMetrics = value
-	}
-
-	if value, exists := getBoolEnvVar(OperatorEnvOptionLeaderElect); exists {
-		setupLog.Info(fmt.Sprintf("configuring deployment option %s from env with value: %s", OperatorEnvOptionLeaderElect, value))
-		dOpts.enableLeaderElection = value
-	}
-
-	if value, exists := getBoolEnvVar(OperatorEnvOptionVersion); exists {
-		setupLog.Info(fmt.Sprintf("configuring deployment option %s from env with value: %s", OperatorEnvOptionVersion, value))
-		dOpts.ver = value
-	}
-
-	if value, exists := getDurationEnvVar(OperatorEnvOptionSensorAutoUpdateInterval); exists {
-		setupLog.Info(fmt.Sprintf("configuring deployment option %s from env with value: %s", OperatorEnvOptionSensorAutoUpdateInterval, value))
-		dOpts.sensorAutoUpdateInterval = value
-	}
-
-	if value, exists := getDurationEnvVar(OperatorEnvOptionLeaseDuration); exists {
-		setupLog.Info(fmt.Sprintf("configuring deployment option %s from env with value: %s", OperatorEnvOptionLeaseDuration, value))
-		dOpts.leaseDuration = value
-	}
-
-	if value, exists := getDurationEnvVar(OperatorEnvOptionRenewDeadline); exists {
-		setupLog.Info(fmt.Sprintf("configuring deployment option %s from env with value: %s", OperatorEnvOptionRenewDeadline, value))
-		dOpts.renewDeadline = value
-	}
-
-	return dOpts
-}
-
-func getEnvVar(key string) (string, bool) {
-	return os.LookupEnv(key)
-}
-
-func getBoolEnvVar(key string) (boolValue, exists bool) {
-	stringValue, exists := os.LookupEnv(key)
-	if !exists {
-		return boolValue, exists
-	}
-
-	boolValue, err := strconv.ParseBool(stringValue)
-	if err != nil {
-		setupLog.Error(err, fmt.Sprintf("failed to parse boolean value from environment variable %s", key))
-		return boolValue, false
-	}
-
-	return boolValue, exists
-}
-
-// getDurationEnvVar returns the environment variable parsed as duration and a bool indicating success
-func getDurationEnvVar(key string) (time.Duration, bool) {
-	stringValue, exists := os.LookupEnv(key)
-	if !exists {
-		return 0, false
-	}
-
-	durationValue, err := time.ParseDuration(stringValue)
-	if err != nil {
-		setupLog.Error(err, fmt.Sprintf("failed to parse duration value from environment variable %s", key))
-		return 0, false
-	}
-
-	return durationValue, true
 }
