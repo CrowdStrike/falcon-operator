@@ -144,8 +144,11 @@ func main() {
 	flag.DurationVar(&leaseDuration, "lease-duration", defaultLeaseDuration, "The duration that non-leader candidates will wait to force acquire leadership.")
 	flag.DurationVar(&renewDeadline, "renew-deadline", defaultRenewDeadline, "the duration that the acting controlplane will retry refreshing leadership before giving up.")
 
+	// Openshift does not support persisting command line arguments when deploying the operator.
+	// The ARGS env var must be used instead if operator deployment options are updated.
 	if env := os.Getenv("ARGS"); env != "" {
 		os.Args = append(os.Args, strings.Split(env, " ")...)
+		setupLog.Info(fmt.Sprintf("configuring deployment args from env with the following options: %s", env))
 	}
 
 	opts := zap.Options{
