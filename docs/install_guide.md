@@ -147,7 +147,7 @@ spec:
 ```
 
 For OpenShift installations, the manager container args are not persisted between updates to your Falcon Operator subscription.
-Instead, you will have to update the env vars in the subscription manifest for your deployment options to be configured properly. For example:
+Instead, you will have to add the `ARGS` env variable in the subscription manifest for your deployment options to be configured properly. For example:
 ```yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -155,12 +155,8 @@ spec:
   channel: certified-1.0
   config:
     env:
-      - name: LEADER_ELECT
-        value: 'true'
-      - name: LEASE_DURATION
-        value: '60s'
-      - name: RENEW_DEADLINE
-        value: '45s'
+      - name: ARGS
+        value: '--leader-elect --lease-duration=60s --renew-deadline=45s'
   installPlanApproval: Automatic
   name: falcon-operator
   source: certified-operators
