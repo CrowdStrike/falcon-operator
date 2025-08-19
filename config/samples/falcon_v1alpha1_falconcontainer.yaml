@@ -16,7 +16,7 @@ metadata:
     crowdstrike.com/name: falconcontainer
     crowdstrike.com/part-of: Falcon
     crowdstrike.com/provider: crowdstrike
-  name: falcon-sidecar-sensor
+  name: falcon-container-sensor
 spec:
   falcon_api:
     client_id: PLEASE_FILL_IN
