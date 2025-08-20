@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2025-08-19
+
+### Changed
+
+- feat(node-sensor): add falcon.cloud option for unified sensor installation
+- fix: Add nodes permission to iar clusterrole
+- refactor: fix e2e test namespace conflicts
+- docs: Remove Krew install docs
+- fix: Update image tags to include minor versions
+- fix: Ensure Falcon.CID matches Spec to allow for in-place updates of secrets and API creds
+- chore(docs): update support statement + add SUPPORT.md
+
 ## [1.7.0] - 2025-07-16
 
 ### Changed

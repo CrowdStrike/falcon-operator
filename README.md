@@ -13,7 +13,7 @@
 The CrowdStrike Falcon Operator installs CrowdStrike Falcon custom resources on a Kubernetes cluster.
 
 ## About the CrowdStrike Falcon Operator
-The CrowdStrike Falcon Operator deploys CrowdStrike Falcon to the cluster. The operator exposes custom resources that allow you to protect your Kubernetes clusters when deployed.
+The CrowdStrike Falcon Operator is designed to streamline the deployment and use of CrowdStrike products on Kubernetes clusters. The operator exposes custom resources that allow you to protect your Kubernetes clusters when deployed.
 
 ## About Custom Resources
 
@@ -44,7 +44,9 @@ You can contribute by:
 All bugs, tasks or enhancements are tracked as [GitHub issues](https://github.com/CrowdStrike/falcon-operator/issues).
 
 ## Support
-The CrowdStrike Falcon Operator is a community-driven, open source project designed to streamline the deployment and use of the CrowdStrike products on Kubernetes clusters. While not a formal CrowdStrike product, the CrowdStrike Falcon Operator is maintained by CrowdStrike and supported in partnership with the open source developer community.
+The CrowdStrike Falcon Operator is an open source project maintained by CrowdStrike. CrowdStrike will support use of `falcon-operator` in connection with the use of CrowdStrike’s products pursuant to applicable terms in the license for such product.
+
+Learn how to get help, where to submit requests, and more [here](SUPPORT.md)
 
 ## Additional Resources
  - CrowdStrike Container Security: [Product Page](https://www.crowdstrike.com/products/cloud-security/falcon-cloud-workload-protection/container-security/)

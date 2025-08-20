@@ -7184,11 +7184,12 @@ spec:
                 type: object
               falconNodeSensor:
                 default: {}
-                description: Falcon Admission Controller Configuration
+                description: Falcon Node Sensor Controller Configuration
                 properties:
                   falcon:
                     default: {}
-                    description: CrowdStrike Falcon Sensor configuration settings.
+                    description: FalconUnified Sensor configuration settings, extends
+                      FalconSensor with fields used for unified installation
                     properties:
                       apd:
                         default: false
@@ -7213,6 +7214,18 @@ spec:
                       cid:
                         description: Falcon Customer ID (CID)
                         pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
+                        type: string
+                      cloud:
+                        description: Falcon Customer Cloud Region - With the unified
+                          installer, you can let the sensor discover the CID's cloud
+                          automatically, or you can specify the cloud where the CID
+                          resides.
+                        enum:
+                        - us-1
+                        - us-2
+                        - eu-1
+                        - us-gov-1
+                        - us-gov-2
                         type: string
                       provisioning_token:
                         description: Installation token that prevents unauthorized
@@ -8621,7 +8634,8 @@ spec:
             properties:
               falcon:
                 default: {}
-                description: CrowdStrike Falcon Sensor configuration settings.
+                description: FalconUnified Sensor configuration settings, extends
+                  FalconSensor with fields used for unified installation
                 properties:
                   apd:
                     default: false
@@ -8646,6 +8660,17 @@ spec:
                   cid:
                     description: Falcon Customer ID (CID)
                     pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
+                    type: string
+                  cloud:
+                    description: Falcon Customer Cloud Region - With the unified installer,
+                      you can let the sensor discover the CID's cloud automatically,
+                      or you can specify the cloud where the CID resides.
+                    enum:
+                    - us-1
+                    - us-2
+                    - eu-1
+                    - us-gov-1
+                    - us-gov-2
                     type: string
                   provisioning_token:
                     description: Installation token that prevents unauthorized hosts
@@ -9492,6 +9517,7 @@ rules:
   - namespaces
   - pods
   - secrets
+  - nodes
   verbs:
   - get
   - list
@@ -9830,7 +9856,7 @@ spec:
         - name: WATCH_NAMESPACE
         - name: OPERATOR_NAME
           value: falcon-operator
-        image: quay.io/crowdstrike/falcon-operator:1.7.0
+        image: quay.io/crowdstrike/falcon-operator:1.8.0
         livenessProbe:
           httpGet:
             path: /healthz

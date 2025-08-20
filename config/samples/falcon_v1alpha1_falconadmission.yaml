@@ -9,7 +9,7 @@ metadata:
     crowdstrike.com/name: falconadmission
     crowdstrike.com/part-of: Falcon
     crowdstrike.com/provider: crowdstrike
-  name: falcon-admission
+  name: falcon-kac
 spec:
   falcon_api:
     client_id: PLEASE_FILL_IN
