@@ -204,6 +204,8 @@ If you want to automate the deployment of the operator, the CLI method is recomm
   ```
   Replace the `channel` in the above spec to the desired deployment channel e.g. `certified-X` (where X is the version), or `stable`, etc. An [example subscription of the official Red Hat certified operator is available](redhat-subscription.yaml) to use and modify as appropriate for your cluster. If a specific operator version is desired, add `startingCSV` with the desired operator version e.g. `startingCSV: falcon-operator.v0.1.2`.
 
+  Red Hat docs for operator subscription spec options: https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/operatorhub_apis/subscription-operators-coreos-com-v1alpha1
+
 #### Deploy the operator
 
 Deploy the `subscription.yaml` that you create to the cluster for the operator to install.
