@@ -126,7 +126,7 @@ spec:
           - --lease-duration=60s
           - --renew-deadline=45s
 ```
-Update the file `falcon-operator.clusterserviceversion.yaml` for olm installations, including OpenShift. For example:
+Update the file `falcon-operator.clusterserviceversion.yaml` for olm installations. For example:
 ```yaml
 apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
@@ -145,3 +145,22 @@ spec:
                   - --lease-duration=60s
                   - --renew-deadline=45s
 ```
+
+For OpenShift installations, the manager container args are not persisted between updates to your Falcon Operator subscription.
+Instead, you will have to add the `ARGS` env variable in the subscription manifest for your deployment options to be configured properly. For example:
+```yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+spec:
+  channel: certified-1.0
+  config:
+    env:
+      - name: ARGS
+        value: '--leader-elect --lease-duration=60s --renew-deadline=45s'
+  installPlanApproval: Automatic
+  name: falcon-operator
+  source: certified-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: falcon-operator.v1.7.0
+```
+You can find more information on configuring environment variables for your operator subscription in the OLM docs: https://github.com/operator-framework/operator-lifecycle-manager/blob/master/doc/design/subscription-config.md
