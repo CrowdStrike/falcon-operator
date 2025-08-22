@@ -163,3 +163,4 @@ spec:
   sourceNamespace: openshift-marketplace
   startingCSV: falcon-operator.v1.7.0
 ```
+You can find more information on configuring environment variables for your operator subscription in the OLM docs: https://github.com/operator-framework/operator-lifecycle-manager/blob/master/doc/design/subscription-config.md
