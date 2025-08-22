@@ -7,7 +7,3 @@ spec:
   name: falcon-operator
   source: certified-operators
   sourceNamespace: openshift-marketplace
-  config:
-    env:
-      - name: ARGS
-        value: '--leader-elect --lease-duration=60s --renew-deadline=45s'
