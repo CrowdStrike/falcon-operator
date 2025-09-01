@@ -38,13 +38,13 @@ jobs:
           go-version: ${{ matrix.go-version }}
         id: go
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
         if: github.event_name != 'pull_request_target'
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{github.event.pull_request.head.sha}}
           fetch-depth: 0
