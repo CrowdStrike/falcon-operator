@@ -1,0 +1,24 @@
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconAdmission
+metadata:
+  labels:
+    crowdstrike.com/component: sample
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: falcon-admission
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: falconadmission
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
+  name: falcon-kac
+spec:
+  falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
+    cloud_region: autodiscover
+  registry:
+    type: crowdstrike
+  falcon:
+    trace: none
+    tags:
+      - admission_controller
+  clusterName: test-cluster
