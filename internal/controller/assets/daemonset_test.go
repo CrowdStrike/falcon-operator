@@ -333,7 +333,7 @@ func TestDaemonset(t *testing.T) {
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
-								ReadOnlyRootFilesystem:   &readOnlyFSEnabled,
+								ReadOnlyRootFilesystem:   falconNode.Spec.Node.GKE.Enabled,
 								AllowPrivilegeEscalation: &escalation,
 							},
 							Env: []corev1.EnvVar{
@@ -468,7 +468,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
-								ReadOnlyRootFilesystem:   &readOnlyFs,
+								ReadOnlyRootFilesystem:   falconNode.Spec.Node.GKE.Enabled,
 								AllowPrivilegeEscalation: &escalation,
 							},
 						},
