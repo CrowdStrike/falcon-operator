@@ -229,7 +229,6 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 	privileged := true
 	escalation := true
 	readOnlyFSDisabled := false
-	readOnlyFSEnabled := true
 	hostpid := true
 	hostnetwork := true
 	hostipc := true
@@ -280,7 +279,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
-								ReadOnlyRootFilesystem:   &readOnlyFSEnabled,
+								ReadOnlyRootFilesystem:   node.Spec.Node.GKE.Enabled,
 								AllowPrivilegeEscalation: &escalation,
 								Capabilities:             sensorCapabilities(node, true),
 							},
@@ -380,7 +379,7 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
-								ReadOnlyRootFilesystem:   &readOnlyFs,
+								ReadOnlyRootFilesystem:   node.Spec.Node.GKE.Enabled,
 								AllowPrivilegeEscalation: &escalation,
 								Capabilities:             sensorCapabilities(node, true),
 							},
