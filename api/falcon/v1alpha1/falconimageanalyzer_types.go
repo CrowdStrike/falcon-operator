@@ -231,7 +231,7 @@ func (fia *FalconImageAnalyzer) SetFalconSpec(FalconSensor) {
 
 func (fia *FalconImageAnalyzer) GetTolerations() *[]corev1.Toleration {
 	if fia.Spec.ImageAnalyzerConfig.Tolerations == nil {
-		return &[]corev1.Toleration{}
+		return nil
 	}
 	return fia.Spec.ImageAnalyzerConfig.Tolerations
 }

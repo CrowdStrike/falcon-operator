@@ -865,12 +865,12 @@ func getTolerations(falconAdmission *falconv1alpha1.FalconAdmission) []corev1.To
 	if falconAdmission.Spec.AdmissionConfig.Tolerations != nil {
 		return *falconAdmission.Spec.AdmissionConfig.Tolerations
 	}
-	return []corev1.Toleration{}
+	return nil
 }
 
 func getImageAnalyzerTolerations(falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) []corev1.Toleration {
 	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.Tolerations != nil {
 		return *falconImageAnalyzer.Spec.ImageAnalyzerConfig.Tolerations
 	}
-	return []corev1.Toleration{}
+	return nil
 }

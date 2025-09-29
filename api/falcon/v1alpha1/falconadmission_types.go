@@ -331,7 +331,7 @@ func (ac *FalconAdmission) SetFalconSpec(falconSpec FalconSensor) {
 
 func (ac *FalconAdmission) GetTolerations() *[]corev1.Toleration {
 	if ac.Spec.AdmissionConfig.Tolerations == nil {
-		return &[]corev1.Toleration{}
+		return nil
 	}
 	return ac.Spec.AdmissionConfig.Tolerations
 }
