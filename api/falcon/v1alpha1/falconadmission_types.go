@@ -190,6 +190,11 @@ type FalconAdmissionConfigSpec struct {
 	// Specifies node affinity for scheduling the Admission Controller.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=18
 	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
+
+	// Specifies tolerations for custom taints on the admission controller pods.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=19
+	Tolerations *[]corev1.Toleration `json:"tolerations,omitempty"`
 }
 
 type FalconAdmissionServiceAccount struct {
@@ -322,4 +327,11 @@ func (ac *FalconAdmission) GetFalconSpec() FalconSensor {
 
 func (ac *FalconAdmission) SetFalconSpec(falconSpec FalconSensor) {
 	ac.Spec.Falcon = falconSpec
+}
+
+func (ac *FalconAdmission) GetTolerations() *[]corev1.Toleration {
+	if ac.Spec.AdmissionConfig.Tolerations == nil {
+		return &[]corev1.Toleration{}
+	}
+	return ac.Spec.AdmissionConfig.Tolerations
 }
