@@ -238,6 +238,30 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
+	Context("Falcon Node Sensor with Tolerations", func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconnodesensor_with_tolerations.yaml"
+		It("should deploy successfully with tolerations", func() {
+			updateManifestApiCreds(manifest)
+			nodeConfig.manageCrdInstance(crApply, manifest)
+			nodeConfig.validateRunningStatus(shouldBeRunning)
+			nodeConfig.validateCrStatus()
+
+			// Validate tolerations on DaemonSet
+			expectedTolerations := []ExpectedToleration{
+				{Key: "node-role.kubernetes.io/control-plane", Operator: "Exists", Effect: "NoSchedule"},
+				{Key: "node-role.kubernetes.io/master", Operator: "Exists", Effect: "NoSchedule"},
+				{Key: "node-role.kubernetes.io/infra", Operator: "Exists", Effect: "NoSchedule"},
+				{Key: "dedicated", Operator: "Equal", Value: "security", Effect: "NoSchedule"},
+			}
+			nodeConfig.validateDaemonSetTolerations("falcon-node-sensor", expectedTolerations)
+		})
+		It("should cleanup successfully", func() {
+			nodeConfig.manageCrdInstance(crDelete, manifest)
+			nodeConfig.validateRunningStatus(shouldBeTerminated)
+			nodeConfig.waitForNamespaceDeletion()
+		})
+	})
+
 	Context("Falcon Admission Controller", func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
 		It("should deploy successfully", func() {
@@ -250,6 +274,73 @@ var _ = Describe("falcon", Ordered, func() {
 			kacConfig.manageCrdInstance(crDelete, manifest)
 			kacConfig.validateRunningStatus(shouldBeTerminated)
 			kacConfig.waitForNamespaceDeletion()
+		})
+	})
+
+	Context("Falcon Admission Controller with Tolerations", func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconadmission_with_tolerations.yaml"
+		It("should deploy successfully with tolerations", func() {
+			updateManifestApiCreds(manifest)
+			kacConfig.manageCrdInstance(crApply, manifest)
+			kacConfig.validateRunningStatus(shouldBeRunning)
+			kacConfig.validateCrStatus()
+
+			// Get deployment name and validate tolerations
+			deploymentName, err := kacConfig.getDeploymentName()
+			Expect(err).NotTo(HaveOccurred())
+
+			expectedTolerations := []ExpectedToleration{
+				{Key: "node-role.kubernetes.io/control-plane", Operator: "Exists", Effect: "NoSchedule"},
+				{Key: "node-role.kubernetes.io/master", Operator: "Exists", Effect: "NoSchedule"},
+				{Key: "dedicated", Operator: "Equal", Value: "admission", Effect: "NoSchedule"},
+			}
+			kacConfig.validateDeploymentTolerations(deploymentName, expectedTolerations)
+		})
+		It("should cleanup successfully", func() {
+			kacConfig.manageCrdInstance(crDelete, manifest)
+			kacConfig.validateRunningStatus(shouldBeTerminated)
+			kacConfig.waitForNamespaceDeletion()
+		})
+	})
+
+	Context("Falcon Image Analyzer", func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconimageanalyzer.yaml"
+		It("should deploy successfully", func() {
+			updateManifestApiCreds(manifest)
+			iarConfig.manageCrdInstance(crApply, manifest)
+			iarConfig.validateRunningStatus(shouldBeRunning)
+			iarConfig.validateCrStatus()
+		})
+		It("should cleanup successfully", func() {
+			iarConfig.manageCrdInstance(crDelete, manifest)
+			iarConfig.validateRunningStatus(shouldBeTerminated)
+			iarConfig.waitForNamespaceDeletion()
+		})
+	})
+
+	Context("Falcon Image Analyzer with Tolerations", func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconimageanalyzer_with_tolerations.yaml"
+		It("should deploy successfully with tolerations", func() {
+			updateManifestApiCreds(manifest)
+			iarConfig.manageCrdInstance(crApply, manifest)
+			iarConfig.validateRunningStatus(shouldBeRunning)
+			iarConfig.validateCrStatus()
+
+			// Get deployment name and validate tolerations
+			deploymentName, err := iarConfig.getDeploymentName()
+			Expect(err).NotTo(HaveOccurred())
+
+			expectedTolerations := []ExpectedToleration{
+				{Key: "node-role.kubernetes.io/control-plane", Operator: "Exists", Effect: "NoSchedule"},
+				{Key: "node-role.kubernetes.io/master", Operator: "Exists", Effect: "NoSchedule"},
+				{Key: "dedicated", Operator: "Equal", Value: "image-analyzer", Effect: "NoSchedule"},
+			}
+			iarConfig.validateDeploymentTolerations(deploymentName, expectedTolerations)
+		})
+		It("should cleanup successfully", func() {
+			iarConfig.manageCrdInstance(crDelete, manifest)
+			iarConfig.validateRunningStatus(shouldBeTerminated)
+			iarConfig.waitForNamespaceDeletion()
 		})
 	})
 
