@@ -115,6 +115,11 @@ type FalconImageAnalyzerConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Enable Debugging",order=13
 	// +kubebuilder:default:=false
 	EnableDebug bool `json:"debug,omitempty"`
+
+	// Specifies tolerations for custom taints on the image analyzer pods.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=14
+	Tolerations *[]corev1.Toleration `json:"tolerations,omitempty"`
 }
 
 type FalconImageAnalyzerPriorityClass struct {
@@ -222,4 +227,11 @@ func (fia *FalconImageAnalyzer) GetFalconSpec() FalconSensor {
 
 func (fia *FalconImageAnalyzer) SetFalconSpec(FalconSensor) {
 	// noop
+}
+
+func (fia *FalconImageAnalyzer) GetTolerations() *[]corev1.Toleration {
+	if fia.Spec.ImageAnalyzerConfig.Tolerations == nil {
+		return &[]corev1.Toleration{}
+	}
+	return fia.Spec.ImageAnalyzerConfig.Tolerations
 }
