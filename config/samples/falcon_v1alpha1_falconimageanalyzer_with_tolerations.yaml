@@ -9,7 +9,7 @@ metadata:
     crowdstrike.com/name: falconimageanalyzer
     crowdstrike.com/part-of: Falcon
     crowdstrike.com/provider: crowdstrike
-  name: falcon-iar
+  name: falcon-image-analyzer
 spec:
   falcon_api:
     client_id: PLEASE_FILL_IN
