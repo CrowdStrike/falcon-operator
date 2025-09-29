@@ -1,0 +1,35 @@
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconImageAnalyzer
+metadata:
+  labels:
+    crowdstrike.com/component: sample
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: falcon-image-analyzer
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: falconimageanalyzer
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
+  name: falcon-image-analyzer
+spec:
+  falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
+    cloud_region: autodiscover
+  registry:
+    type: crowdstrike
+  imageAnalyzerConfig:
+    # Example tolerations configuration
+    tolerations:
+      # Tolerate control-plane nodes
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+      # Tolerate master nodes
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+      # Custom toleration example for dedicated image analyzer nodes
+      - key: "dedicated"
+        operator: "Equal"
+        value: "image-analyzer"
+        effect: "NoSchedule"
