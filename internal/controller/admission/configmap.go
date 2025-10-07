@@ -77,6 +77,7 @@ func (r *FalconAdmissionReconciler) newConfigMap(ctx context.Context, name strin
 	data["__CS_SNAPSHOTS_ENABLED"] = strconv.FormatBool(falconAdmission.Spec.AdmissionConfig.GetSnapshotsEnabled())
 	data["__CS_SNAPSHOT_INTERVAL"] = falconAdmission.Spec.AdmissionConfig.GetSnapshotsInterval().String()
 	data["__CS_WATCH_EVENTS_ENABLED"] = strconv.FormatBool(falconAdmission.Spec.AdmissionConfig.GetWatcherEnabled())
+	data["__CS_VISIBILITY_CONFIGMAPS_ENABLED"] = strconv.FormatBool(falconAdmission.Spec.AdmissionConfig.GetConfigMapEnabled())
 
 	cid := ""
 	if falconAdmission.Spec.Falcon.CID != nil {

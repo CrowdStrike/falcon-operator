@@ -111,6 +111,13 @@ spec:
                         description: Determines if the admission controller webhook
                           is enabled
                         type: boolean
+                      configMapEnabled:
+                        default: true
+                        description: KAC watches configmaps by default. It tries to
+                          redact sensitive information by doing regex pattern matching
+                          for known sensitive patterns, before sending the events
+                          to CrowdStrike cloud.
+                        type: boolean
                       containerPort:
                         default: 4443
                         description: Port on which the Falcon Admission Controller

@@ -74,7 +74,7 @@ func (r *FalconAdmissionReconciler) GetK8sReader() client.Reader {
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;update
-//+kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=nodes;serviceaccounts,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=replicationcontrollers,verbs=get;list;watch
 //+kubebuilder:rbac:groups="apps",resources=daemonsets,verbs=get;list;watch
 //+kubebuilder:rbac:groups="apps",resources=replicasets,verbs=get;list;watch
@@ -85,7 +85,11 @@ func (r *FalconAdmissionReconciler) GetK8sReader() client.Reader {
 //+kubebuilder:rbac:groups="image.openshift.io",resources=imagestreams,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=create;get;list;update;watch;delete
-//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=create;get;list;update;watch;delete
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles;clusterrolebindings,verbs=create;get;list;update;watch;delete
+//+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies;ingresses,verbs=get;list;watch
+//+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
+//+kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gatewayclasses;gateways;httproutes,verbs=get;list;watch
+//+kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
