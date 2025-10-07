@@ -10,11 +10,12 @@ import (
 )
 
 const (
-	DeployWatcherDefault           = true
-	SnapshotsEnabledDefault        = true
-	SnapshotsIntervalDefault       = 22
-	WatcherEnabledDefault          = true
-	AdmissionControlEnabledDefault = true
+	DeployWatcherDefault             = true
+	SnapshotsEnabledDefault          = true
+	SnapshotsIntervalDefault         = 22
+	WatcherEnabledDefault            = true
+	AdmissionControlEnabledDefault   = true
+	AdmissionConfigMapEnabledDefault = true
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -148,6 +149,11 @@ type FalconAdmissionConfigSpec struct {
 	// +kubebuilder:default:=true
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Admission Controller",order=18
 	AdmissionControlEnabled *bool `json:"admissionControlEnabled,omitempty"`
+
+	// KAC watches configmaps by default. It tries to redact sensitive information by doing regex pattern matching for known sensitive patterns, before sending the events to CrowdStrike cloud.
+	// +kubebuilder:default:=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable ConfigMap Watcher",order=19
+	ConfigMapEnabled *bool `json:"configMapEnabled,omitempty"`
 
 	// Currently ignored and internally set to 1
 	// +kubebuilder:default:=2
@@ -294,6 +300,14 @@ func (watcher FalconAdmissionConfigSpec) GetWatcherEnabled() bool {
 	}
 
 	return *watcher.WatcherEnabled
+}
+
+func (ac FalconAdmissionConfigSpec) GetConfigMapEnabled() bool {
+	if ac.ConfigMapEnabled == nil {
+		return AdmissionConfigMapEnabledDefault
+	}
+
+	return *ac.ConfigMapEnabled
 }
 
 func (ac *FalconAdmission) GetAdmissionControlEnabled() bool {
