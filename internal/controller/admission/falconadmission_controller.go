@@ -593,6 +593,11 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		updated = true
 	}
 
+	if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Tolerations, dep.Spec.Template.Spec.Tolerations) {
+		existingDeployment.Spec.Template.Spec.Tolerations = dep.Spec.Template.Spec.Tolerations
+		updated = true
+	}
+
 	if len(dep.Spec.Template.Spec.Containers) != len(existingDeployment.Spec.Template.Spec.Containers) {
 		existingDeployment.Spec.Template.Spec.Containers = dep.Spec.Template.Spec.Containers
 		updated = true
