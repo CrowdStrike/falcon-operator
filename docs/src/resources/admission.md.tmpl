@@ -83,6 +83,7 @@ spec:
 | admissionConfig.resources                 | (optional) Configure the resources of the Falcon Admission Controller                                                                                                                                                   |
 | admissionConfig.updateStrategy            | (optional) Configure the deployment update strategy of the Falcon Admission Controller                                                                                                                                  |
 | admissionConfig.nodeAffinity              | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity. AMD64 and ARM64 architectures are supported by default.     |
+| admissionConfig.falconImageAnalyzerNamespace  | (optional) This variable can be used to pass your Falcon Image Analyzer namespace to KAC. This is only required if your IAR namespace is not `falcon-image-analyzer`. |
 
 > [!IMPORTANT] Always install the Falcon KAC to its own unique namespace. We recommend the namespace `falcon-kac`. If you choose a different one, make sure it's used exclusively for Falcon KAC. Not only is this a Kubernetes best practice, it's also a security best practice. The admission controller does not monitor its own namespace.
 
