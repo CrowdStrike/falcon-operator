@@ -424,6 +424,10 @@ spec:
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: admissionConfig.nodeAffinity
+      - description: Namespace where Falcon Image Analyzer is installed. KAC needs
+          to know this to discover and communicate with IAR.
+        displayName: Falcon Image Analyzer Namespace
+        path: admissionConfig.falconImageAnalyzerNamespace
       version: v1alpha1
     - description: FalconContainer is the Schema for the falconcontainers API
       displayName: Falcon Container
@@ -1446,6 +1450,10 @@ spec:
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: falconAdmission.admissionConfig.nodeAffinity
+      - description: Namespace where Falcon Image Analyzer is installed. KAC needs
+          to know this to discover and communicate with IAR.
+        displayName: Falcon Image Analyzer Namespace
+        path: falconAdmission.admissionConfig.falconImageAnalyzerNamespace
       - description: |-
           Advanced configures various options that go against industry practices or are otherwise not recommended for use.
           Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
