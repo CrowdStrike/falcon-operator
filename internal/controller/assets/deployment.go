@@ -824,6 +824,13 @@ func admissionDepWatcherEnvVars(admission *falconv1alpha1.FalconAdmission) []cor
 		},
 	}
 
+	if admission.Spec.AdmissionConfig.FalconImageAnalyzerNamespace != nil {
+		envVars = append(envVars, corev1.EnvVar{
+			Name:  "__CS_IAR_NAMESPACE",
+			Value: *admission.Spec.AdmissionConfig.FalconImageAnalyzerNamespace,
+		})
+	}
+
 	return envVars
 }
 
