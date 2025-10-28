@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	//nolint:golint
@@ -246,6 +248,38 @@ var _ = Describe("falcon", Ordered, func() {
 			kacConfig.validateRunningStatus(shouldBeRunning)
 			kacConfig.validateCrStatus()
 		})
+	})
+
+	Context("Falcon Admission Controller", func() {
+		It("should manage falcon-kac-meta configMap changes successfully", func() {
+			manifest := "./config/samples/falcon_v1alpha1_falconadmission_custom_clustername.yaml"
+			updateManifestApiCreds(manifest)
+
+			By("update with a clustom clusterName")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "apply", "-f", filepath.Join(projectDir, manifest), "-n", namespace)
+				_, err := utils.Run(cmd)
+				return err
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validate the cluster name in the falcon-kac-meta configMap has updated")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "get", "configmap", "falcon-kac-meta",
+					"-n", kacConfig.namespace, "-o", "jsonpath='{.data.ClusterName}'")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "test-cluster") {
+					return fmt.Errorf("falcon-admission pod configMap not updated: %s", output)
+				}
+				return nil
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			kacConfig.validateRunningStatus(shouldBeRunning)
+		})
+	})
+
+	Context("Falcon Admission Controller", func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
 		It("should cleanup successfully", func() {
 			kacConfig.manageCrdInstance(crDelete, manifest)
 			kacConfig.validateRunningStatus(shouldBeTerminated)

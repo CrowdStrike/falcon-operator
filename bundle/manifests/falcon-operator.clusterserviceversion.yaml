@@ -387,6 +387,10 @@ spec:
         path: admissionConfig.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Cluster Name if Falcon KAC cannot discover the cluster name.
+          This will be overwritten if Falcon KAC is able to discover the cluster name.
+        displayName: Falcon Admission Cluster Name
+        path: clusterName
       - description: Type of Deployment update. Can be "RollingUpdate" or "OnDelete".
           Default is RollingUpdate.
         displayName: Deployment Update Strategy
@@ -1370,6 +1374,10 @@ spec:
         path: falconAdmission.admissionConfig.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Cluster Name if Falcon KAC cannot discover the cluster name.
+          This will be overwritten if Falcon KAC is able to discover the cluster name.
+        displayName: Falcon Admission Cluster Name
+        path: falconAdmission.clusterName
       - displayName: Disable Default Namespace Injection
         path: falconContainerSensor.injector.disableDefaultNamespaceInjection
       - description: Falcon Image Analyzer Configuration
