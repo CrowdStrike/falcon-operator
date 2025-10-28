@@ -212,7 +212,7 @@ type FalconAdmissionTLS struct {
 	// Validity of the TLS certificate in days. Default is 3650 days.
 	// +kubebuilder:validation:XIntOrString
 	// +kubebuilder:validation:Pattern="^[0-9]{1-4}$"
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Injector TLS Validity Length (days)",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller TLS Validity Length (days)",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	Validity *int `json:"validity,omitempty"`
 }
 

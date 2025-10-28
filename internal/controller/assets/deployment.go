@@ -273,12 +273,25 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 				},
 			},
 		},
+		{
+			Name: name + "-tls-certs",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: name + "-tls",
+				},
+			},
+		},
 	}
 
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "tmp-volume",
 			MountPath: falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeMountPath,
+		},
+		{
+			Name:      name + "-tls-certs",
+			MountPath: "/run/secrets/tls",
+			ReadOnly:  true,
 		},
 	}
 
@@ -344,6 +357,13 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 							Image:           imageUri,
 							ImagePullPolicy: falconImageAnalyzer.Spec.ImageAnalyzerConfig.ImagePullPolicy,
 							Args:            []string{"-runmode", "watcher"},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: falconImageAnalyzer.Spec.ImageAnalyzerConfig.IARAgentService.Port,
+									Name:          common.FalconServiceHTTPSName,
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
