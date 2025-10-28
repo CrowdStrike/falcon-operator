@@ -6769,6 +6769,28 @@ spec:
                               type: string
                             type: array
                         type: object
+                      iarAgentService:
+                        default: {}
+                        description: IAR Agent Service configuration for enabling
+                          communication between IAR components.
+                        properties:
+                          certExpiration:
+                            default: 3650
+                            description: Certificate validity duration in number of
+                              days.
+                            type: integer
+                          domainName:
+                            description: |-
+                              For custom DNS configurations when .svc requires a domain for services.
+                              For example if service.my-namespace.svc doesn't resolve and the cluster uses
+                              service.my-namespace.svc.testing.io, you would add testing.io as the value below.
+                            type: string
+                          port:
+                            default: 8001
+                            description: HTTPS Port for the IAR Agent Service.
+                            format: int32
+                            type: integer
+                        type: object
                       imagePullPolicy:
                         default: Always
                         description: PullPolicy describes a policy for if/when to
@@ -6798,6 +6820,19 @@ spec:
                           type: object
                           x-kubernetes-map-type: atomic
                         type: array
+                      kac:
+                        default: {}
+                        description: IAR Agent Service configuration for enabling
+                          inter-communication between Image Analyzer and Admission
+                          Controller.
+                        properties:
+                          namespace:
+                            default: falcon-kac
+                            description: |-
+                              Namespace where Falcon Admission Controller (KAC) is installed within the same cluster.
+                              Image Analyzer must know the namespace for KAC to enable inter-communication between IAR and KAC.
+                            type: string
+                        type: object
                       mountPath:
                         default: /tmp
                         description: Set the falcon image analyzer volume mount path.
@@ -6811,10 +6846,16 @@ spec:
                             type: string
                         type: object
                       registryConfig:
+                        default: {}
                         description: RegistryConfig for the Falcon Image Analyzer.
                         properties:
+                          autoDiscoverCredentials:
+                            default: true
+                            description: Enable auto-discovery of registry credentials
+                              from secrets in the cluster.
+                            type: boolean
                           credentials:
-                            description: If neceeary, configure the registry credentials
+                            description: If necessary, configure the registry credentials
                               for the Falcon Image Analyzer.
                             items:
                               properties:
@@ -8098,6 +8139,27 @@ spec:
                           type: string
                         type: array
                     type: object
+                  iarAgentService:
+                    default: {}
+                    description: IAR Agent Service configuration for enabling communication
+                      between IAR components.
+                    properties:
+                      certExpiration:
+                        default: 3650
+                        description: Certificate validity duration in number of days.
+                        type: integer
+                      domainName:
+                        description: |-
+                          For custom DNS configurations when .svc requires a domain for services.
+                          For example if service.my-namespace.svc doesn't resolve and the cluster uses
+                          service.my-namespace.svc.testing.io, you would add testing.io as the value below.
+                        type: string
+                      port:
+                        default: 8001
+                        description: HTTPS Port for the IAR Agent Service.
+                        format: int32
+                        type: integer
+                    type: object
                   imagePullPolicy:
                     default: Always
                     description: PullPolicy describes a policy for if/when to pull
@@ -8127,6 +8189,18 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     type: array
+                  kac:
+                    default: {}
+                    description: IAR Agent Service configuration for enabling inter-communication
+                      between Image Analyzer and Admission Controller.
+                    properties:
+                      namespace:
+                        default: falcon-kac
+                        description: |-
+                          Namespace where Falcon Admission Controller (KAC) is installed within the same cluster.
+                          Image Analyzer must know the namespace for KAC to enable inter-communication between IAR and KAC.
+                        type: string
+                    type: object
                   mountPath:
                     default: /tmp
                     description: Set the falcon image analyzer volume mount path.
@@ -8140,10 +8214,16 @@ spec:
                         type: string
                     type: object
                   registryConfig:
+                    default: {}
                     description: RegistryConfig for the Falcon Image Analyzer.
                     properties:
+                      autoDiscoverCredentials:
+                        default: true
+                        description: Enable auto-discovery of registry credentials
+                          from secrets in the cluster.
+                        type: boolean
                       credentials:
-                        description: If neceeary, configure the registry credentials
+                        description: If necessary, configure the registry credentials
                           for the Falcon Image Analyzer.
                         items:
                           properties:
