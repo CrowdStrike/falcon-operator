@@ -43,6 +43,12 @@ spec:
           secretName: secret
         - namespace: test2
           secretName: secret2
+      autoDiscoverCredentials: false
+    iarAgentService:
+      port: 8001
+      certExpiration: 100
+    kac:
+      namespace: falcon-kac
   registry:
     type: acr
     acr_name: falcon-sensor-repo
