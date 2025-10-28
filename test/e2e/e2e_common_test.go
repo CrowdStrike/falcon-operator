@@ -120,3 +120,11 @@ func addFalconSecretToManifest(manifest string) {
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	}
 }
+
+func (c crConfig) validateInitContainerReadOnlyRootFilesystem() {
+	By("validating that the init container has readOnlyRootFilesystem set to true")
+	cmd := exec.Command("kubectl", "get", "daemonset", "falcon-node-sensor", "-n", c.namespace, "-o", "jsonpath={.spec.template.spec.initContainers[0].securityContext.readOnlyRootFilesystem}")
+	output, err := utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, string(output)).To(Equal("true"))
+}

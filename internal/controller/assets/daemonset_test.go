@@ -283,7 +283,6 @@ func TestDaemonset(t *testing.T) {
 	privileged := true
 	escalation := true
 	readOnlyFSDisabled := false
-	readOnlyFSEnabled := true
 	hostpid := true
 	hostnetwork := true
 	hostipc := true
@@ -333,7 +332,7 @@ func TestDaemonset(t *testing.T) {
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
-								ReadOnlyRootFilesystem:   &readOnlyFSEnabled,
+								ReadOnlyRootFilesystem:   isInitReadOnlyRootFilesystem(&falconNode),
 								AllowPrivilegeEscalation: &escalation,
 							},
 							Env: []corev1.EnvVar{
@@ -429,7 +428,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 	nonPrivileged := false
 	escalation := true
 	allowEscalation := false
-	readOnlyFs := true
+	readOnlyFSEnabled := true
 	hostpid := true
 	runAsRoot := int64(0)
 	autopilot := false
@@ -468,7 +467,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
-								ReadOnlyRootFilesystem:   &readOnlyFs,
+								ReadOnlyRootFilesystem:   isInitReadOnlyRootFilesystem(&falconNode),
 								AllowPrivilegeEscalation: &escalation,
 							},
 						},
@@ -483,7 +482,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 							Resources: initContainerResources(&falconNode),
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &nonPrivileged,
-								ReadOnlyRootFilesystem:   &readOnlyFs,
+								ReadOnlyRootFilesystem:   &readOnlyFSEnabled,
 								AllowPrivilegeEscalation: &allowEscalation,
 							},
 						},
