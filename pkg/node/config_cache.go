@@ -15,6 +15,11 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
+	"golang.org/x/mod/semver"
+)
+
+const (
+	MinimumUnifiedSensorVersion = "7.31.0"
 )
 
 var ErrFalconAPINotConfigured = errors.New("missing falcon_api configuration")
@@ -113,7 +118,13 @@ func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1a
 	if err != nil {
 		return "", err
 	}
+
 	imageUri := falcon_registry.ImageURINode(cloud)
+	if nodesensor.Status.Sensor != nil {
+		if IsMinimumUnifiedSensorVersion(strings.Split(*nodesensor.Status.Sensor, "-")[0]) {
+			imageUri = falcon_registry.UnifiedImageURINode(cloud)
+		}
+	}
 
 	if versionLock(nodesensor) {
 		return fmt.Sprintf("%s:%s", imageUri, *nodesensor.Status.Sensor), nil
@@ -129,6 +140,10 @@ func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1a
 	imageTag, err := imageRepo.GetPreferredImage(ctx, falcon.NodeSensor, nodesensor.Spec.Node.Version, nodesensor.Spec.Node.Advanced.UpdatePolicy)
 	if err != nil {
 		return "", err
+	}
+
+	if IsMinimumUnifiedSensorVersion(strings.Split(imageTag, "-")[0]) {
+		imageUri = falcon_registry.UnifiedImageURINode(cloud)
 	}
 
 	return fmt.Sprintf("%s:%s", imageUri, imageTag), nil
@@ -149,4 +164,8 @@ func ConfigCacheTest(cid string, imageUri string, nodeTest *falconv1alpha1.Falco
 		nodesensor:      nodeTest,
 		falconApiConfig: apiConfig,
 	}
+}
+
+func IsMinimumUnifiedSensorVersion(version string) bool {
+	return semver.Compare("v"+version, "v"+MinimumUnifiedSensorVersion) >= 0
 }

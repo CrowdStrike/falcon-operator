@@ -11,7 +11,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 
-	"github.com/crowdstrike/falcon-operator/internal/errors"
+	internalErrors "github.com/crowdstrike/falcon-operator/internal/errors"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
 	"github.com/crowdstrike/gofalcon/falcon"
@@ -168,7 +168,24 @@ func registryFQDN(cloud falcon.CloudType) string {
 	switch cloud {
 	case falcon.CloudUsGov1:
 		return "registry.laggar.gcw.crowdstrike.com"
+	case falcon.CloudGov1:
+		return "registry.laggar.gcw.crowdstrike.com"
+	case falcon.CloudUsGov2:
+		return "registry.us-gov-2.crowdstrike.mil"
+	case falcon.CloudGov2:
+		return "registry.us-gov-2.crowdstrike.mil"
 	default:
 		return "registry.crowdstrike.com"
+	}
+}
+
+func registryCloud(cloud falcon.CloudType) string {
+	switch cloud {
+	case falcon.CloudUsGov1:
+		return "gov1"
+	case falcon.CloudUsGov2:
+		return "gov2"
+	default:
+		return cloud.String()
 	}
 }

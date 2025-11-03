@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.24.7
 	github.com/cert-manager/cert-manager v1.12.14
 	github.com/containers/image/v5 v5.31.1
-	github.com/crowdstrike/gofalcon v0.15.0
+	github.com/crowdstrike/gofalcon v0.18.0
 	github.com/go-logr/logr v1.4.2
 	github.com/go-openapi/swag v0.23.0
 	github.com/google/go-cmp v0.6.0
@@ -19,6 +19,7 @@ require (
 	github.com/operator-framework/operator-lib v0.11.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
+	golang.org/x/mod v0.17.0
 	k8s.io/api v0.31.0
 	k8s.io/apimachinery v0.31.0
 	k8s.io/client-go v0.31.0
