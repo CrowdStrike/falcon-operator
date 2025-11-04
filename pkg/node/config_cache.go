@@ -15,21 +15,17 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
-	"golang.org/x/mod/semver"
-)
-
-const (
-	MinimumUnifiedSensorVersion = "7.31.0"
 )
 
 var ErrFalconAPINotConfigured = errors.New("missing falcon_api configuration")
 
 // ConfigCache holds config values for node sensor. Those values are either provided by user or fetched dynamically. That happens transparently to the caller.
 type ConfigCache struct {
-	cid             string
-	imageUri        string
-	nodesensor      *falconv1alpha1.FalconNodeSensor
-	falconApiConfig *falcon.ApiConfig
+	cid                     string
+	imageUri                string
+	nodesensor              *falconv1alpha1.FalconNodeSensor
+	falconApiConfig         *falcon.ApiConfig
+	crowdstrikeRepoOverride string
 }
 
 func NewConfigCache(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) (*ConfigCache, error) {
@@ -100,6 +96,14 @@ func (cc *ConfigCache) SensorEnvVars() map[string]string {
 	return sensorConfig
 }
 
+func (cc *ConfigCache) SetCrowdstrikeRepoOverride(repo string) {
+	cc.crowdstrikeRepoOverride = repo
+}
+
+func (cc *ConfigCache) GetCrowdstrikeRepoOverride() string {
+	return cc.crowdstrikeRepoOverride
+}
+
 func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) (string, error) {
 	if nodesensor.Spec.Node.Image != "" {
 		return nodesensor.Spec.Node.Image, nil
@@ -119,10 +123,16 @@ func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1a
 		return "", err
 	}
 
+	isUsingCustomCrowdstrikeRepo := cc.GetCrowdstrikeRepoOverride() != ""
 	imageUri := falcon_registry.ImageURINode(cloud)
-	if nodesensor.Status.Sensor != nil {
-		if IsMinimumUnifiedSensorVersion(strings.Split(*nodesensor.Status.Sensor, "-")[0]) {
-			imageUri = falcon_registry.UnifiedImageURINode(cloud)
+
+	if isUsingCustomCrowdstrikeRepo {
+		imageUri = falcon_registry.CrowdstrikeRepoOverride(cloud, cc.GetCrowdstrikeRepoOverride())
+	} else {
+		if nodesensor.Status.Sensor != nil {
+			if falcon_registry.IsMinimumUnifiedSensorVersion(strings.Split(*nodesensor.Status.Sensor, "-")[0]) {
+				imageUri = falcon_registry.UnifiedImageURINode(cloud)
+			}
 		}
 	}
 
@@ -137,13 +147,13 @@ func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1a
 		return "", err
 	}
 
+	if isUsingCustomCrowdstrikeRepo {
+		imageRepo.SetOverrideImageUri(imageUri)
+	}
+
 	imageTag, err := imageRepo.GetPreferredImage(ctx, falcon.NodeSensor, nodesensor.Spec.Node.Version, nodesensor.Spec.Node.Advanced.UpdatePolicy)
 	if err != nil {
 		return "", err
-	}
-
-	if IsMinimumUnifiedSensorVersion(strings.Split(imageTag, "-")[0]) {
-		imageUri = falcon_registry.UnifiedImageURINode(cloud)
 	}
 
 	return fmt.Sprintf("%s:%s", imageUri, imageTag), nil
@@ -164,8 +174,4 @@ func ConfigCacheTest(cid string, imageUri string, nodeTest *falconv1alpha1.Falco
 		nodesensor:      nodeTest,
 		falconApiConfig: apiConfig,
 	}
-}
-
-func IsMinimumUnifiedSensorVersion(version string) bool {
-	return semver.Compare("v"+version, "v"+MinimumUnifiedSensorVersion) >= 0
 }

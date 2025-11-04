@@ -38,11 +38,12 @@ import (
 // FalconNodeSensorReconciler reconciles a FalconNodeSensor object
 type FalconNodeSensorReconciler struct {
 	client.Client
-	Reader          client.Reader
-	Log             logr.Logger
-	Scheme          *runtime.Scheme
-	reconcileObject func(client.Object)
-	tracker         sensorversion.Tracker
+	Reader                  client.Reader
+	Log                     logr.Logger
+	Scheme                  *runtime.Scheme
+	CrowdStrikeRepoOverride string
+	reconcileObject         func(client.Object)
+	tracker                 sensorversion.Tracker
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -215,6 +216,10 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	config, err := node.NewConfigCache(ctx, nodesensor)
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	if nodesensor.Spec.FalconRegistryRepoOverride != nil {
+		config.SetCrowdstrikeRepoOverride(*nodesensor.Spec.FalconRegistryRepoOverride)
 	}
 
 	sensorConf, updated, err := r.handleConfigMaps(ctx, config, nodesensor, logger)

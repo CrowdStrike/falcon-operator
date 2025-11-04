@@ -19,9 +19,10 @@ import (
 )
 
 type FalconRegistry struct {
-	token       string
-	falconCloud falcon.CloudType
-	falconCID   string
+	token              string
+	falconCloud        falcon.CloudType
+	falconCID          string
+	falconOverrideRepo string
 }
 
 func NewFalconRegistry(ctx context.Context, apiCfg *falcon.ApiConfig) (*FalconRegistry, error) {
@@ -84,6 +85,14 @@ func (reg *FalconRegistry) PullInfo(ctx context.Context, sensorType falcon.Senso
 		return
 	}
 	return
+}
+
+func (reg *FalconRegistry) SetFalconOverrideRepo(repo string) {
+	reg.falconOverrideRepo = repo
+}
+
+func (reg *FalconRegistry) GettFalconOverrideRepo(repo string) string {
+	return reg.falconOverrideRepo
 }
 
 func imageReference(imageUri, tag string) (types.ImageReference, error) {

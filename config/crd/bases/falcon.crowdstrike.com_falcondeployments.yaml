@@ -3949,6 +3949,8 @@ spec:
                     required:
                     - cloud_region
                     type: object
+                  falconRegistryRepoOverride:
+                    type: string
                   falconSecret:
                     default:
                       enabled: false
