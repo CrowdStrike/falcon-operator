@@ -21,11 +21,10 @@ var ErrFalconAPINotConfigured = errors.New("missing falcon_api configuration")
 
 // ConfigCache holds config values for node sensor. Those values are either provided by user or fetched dynamically. That happens transparently to the caller.
 type ConfigCache struct {
-	cid                     string
-	imageUri                string
-	nodesensor              *falconv1alpha1.FalconNodeSensor
-	falconApiConfig         *falcon.ApiConfig
-	crowdstrikeRepoOverride string
+	cid             string
+	imageUri        string
+	nodesensor      *falconv1alpha1.FalconNodeSensor
+	falconApiConfig *falcon.ApiConfig
 }
 
 func NewConfigCache(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) (*ConfigCache, error) {
@@ -96,14 +95,6 @@ func (cc *ConfigCache) SensorEnvVars() map[string]string {
 	return sensorConfig
 }
 
-func (cc *ConfigCache) SetCrowdstrikeRepoOverride(repo string) {
-	cc.crowdstrikeRepoOverride = repo
-}
-
-func (cc *ConfigCache) GetCrowdstrikeRepoOverride() string {
-	return cc.crowdstrikeRepoOverride
-}
-
 func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) (string, error) {
 	if nodesensor.Spec.Node.Image != "" {
 		return nodesensor.Spec.Node.Image, nil
@@ -123,12 +114,13 @@ func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1a
 		return "", err
 	}
 
-	isUsingCustomCrowdstrikeRepo := cc.GetCrowdstrikeRepoOverride() != ""
-	imageUri := falcon_registry.ImageURINode(cloud)
+	var imageUri string
+	isUsingCustomCrowdstrikeRepo := nodesensor.Spec.CrowdstrikeRegistryRepoOverride != nil
 
 	if isUsingCustomCrowdstrikeRepo {
-		imageUri = falcon_registry.CrowdstrikeRepoOverride(cloud, cc.GetCrowdstrikeRepoOverride())
+		imageUri = falcon_registry.CrowdstrikeRepoOverride(cloud, *nodesensor.Spec.CrowdstrikeRegistryRepoOverride)
 	} else {
+		imageUri = falcon_registry.ImageURINode(cloud)
 		if nodesensor.Status.Sensor != nil {
 			if falcon_registry.IsMinimumUnifiedSensorVersion(strings.Split(*nodesensor.Status.Sensor, "-")[0]) {
 				imageUri = falcon_registry.UnifiedImageURINode(cloud)

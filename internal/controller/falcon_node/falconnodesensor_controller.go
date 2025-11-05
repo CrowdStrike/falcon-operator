@@ -218,10 +218,6 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	if nodesensor.Spec.FalconRegistryRepoOverride != nil {
-		config.SetCrowdstrikeRepoOverride(*nodesensor.Spec.FalconRegistryRepoOverride)
-	}
-
 	sensorConf, updated, err := r.handleConfigMaps(ctx, config, nodesensor, logger)
 	if err != nil {
 		err = r.conditionsUpdate(falconv1alpha1.ConditionFailed,

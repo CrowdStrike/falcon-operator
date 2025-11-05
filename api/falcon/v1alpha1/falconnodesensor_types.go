@@ -50,7 +50,7 @@ type FalconNodeSensorSpec struct {
 	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Custom repository path within registry.crowdstrike.com for Falcon Node Sensor",order=6
-	FalconRegistryRepoOverride *string `json:"falconRegistryRepoOverride,omitempty"`
+	CrowdstrikeRegistryRepoOverride *string `json:"crowdstrikeRegistryRepoOverride,omitempty"`
 }
 
 // FalconNodeSensorConfig defines aspects about how the daemonset works.

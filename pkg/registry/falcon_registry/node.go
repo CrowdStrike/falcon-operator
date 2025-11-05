@@ -21,26 +21,20 @@ func (reg *FalconRegistry) LastNodeTag(ctx context.Context, versionRequested *st
 
 	filter := func(tag string) bool {
 		return (tag[0] >= '0' && tag[0] <= '9' &&
-			strings.Contains(tag, ".falcon-linux") &&
 			(versionRequested == nil || strings.HasPrefix(tag, *versionRequested)))
 	}
 
-	var imageUri string
 	if reg.falconOverrideRepo != "" {
-		imageUri = reg.falconOverrideRepo
-		filter = func(tag string) bool {
-			return (tag[0] >= '0' && tag[0] <= '9' &&
-				(versionRequested == nil || strings.HasPrefix(tag, *versionRequested)))
-		}
-	} else {
-		if versionRequested == nil || (versionRequested != nil && IsMinimumUnifiedSensorVersion(strings.Split(*versionRequested, "-")[0])) {
-			imageUri = UnifiedImageURINode(reg.falconCloud)
-		} else {
-			imageUri = ImageURINode(reg.falconCloud)
-		}
+		imageUri := reg.falconOverrideRepo
+		return lastTag(ctx, systemContext, imageUri, filter)
 	}
 
-	return lastTag(ctx, systemContext, imageUri, filter)
+	tag, err := lastTag(ctx, systemContext, UnifiedImageURINode(reg.falconCloud), filter)
+	if err != nil {
+		return lastTag(ctx, systemContext, ImageURINode(reg.falconCloud), filter)
+	}
+
+	return tag, err
 }
 
 func (reg *FalconRegistry) SetCrowdstrikeRepoOverride(repo string) {

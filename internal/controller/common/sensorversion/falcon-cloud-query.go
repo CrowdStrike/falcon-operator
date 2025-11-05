@@ -14,7 +14,7 @@ func NewFalconCloudQuery(sensorType falcon.SensorType, apiConfig *falcon.ApiConf
 }
 
 func getLatestSensorVersion(ctx context.Context, sensorType falcon.SensorType, apiConfig *falcon.ApiConfig) (string, error) {
-	if sensorType == falcon.NodeSensor || sensorType == falcon.RegionedNodeSensor {
+	if sensorType == falcon.NodeSensor {
 		return getLatestSensorNodeVersion(ctx, apiConfig)
 	}
 

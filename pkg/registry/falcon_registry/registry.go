@@ -91,10 +91,6 @@ func (reg *FalconRegistry) SetFalconOverrideRepo(repo string) {
 	reg.falconOverrideRepo = repo
 }
 
-func (reg *FalconRegistry) GettFalconOverrideRepo(repo string) string {
-	return reg.falconOverrideRepo
-}
-
 func imageReference(imageUri, tag string) (types.ImageReference, error) {
 	return docker.ParseReference(fmt.Sprintf("//%s:%s", imageUri, tag))
 }

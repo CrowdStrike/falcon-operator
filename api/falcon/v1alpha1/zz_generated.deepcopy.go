@@ -1350,8 +1350,8 @@ func (in *FalconNodeSensorSpec) DeepCopyInto(out *FalconNodeSensorSpec) {
 		(*in).DeepCopyInto(*out)
 	}
 	out.FalconSecret = in.FalconSecret
-	if in.FalconRegistryRepoOverride != nil {
-		in, out := &in.FalconRegistryRepoOverride, &out.FalconRegistryRepoOverride
+	if in.CrowdstrikeRegistryRepoOverride != nil {
+		in, out := &in.CrowdstrikeRegistryRepoOverride, &out.CrowdstrikeRegistryRepoOverride
 		*out = new(string)
 		**out = **in
 	}

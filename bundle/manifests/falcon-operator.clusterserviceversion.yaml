@@ -1280,6 +1280,9 @@ spec:
       - description: Enable priority class for the Falcon Image Analyzer deployment.
         displayName: Priority Class
         path: falconImageAnalyzer.imageAnalyzerConfig.priorityClass
+      - displayName: Custom repository path within registry.crowdstrike.com for Falcon
+          Node Sensor
+        path: falconNodeSensor.crowdstrikeRegistryRepoOverride
       - description: 'Sensor grouping tags are optional, user-defined identifiers
           that can used to group and filter hosts. Allowed characters: all alphanumerics,
           ''/'', ''-'', and ''_''.'
@@ -1873,6 +1876,9 @@ spec:
           to allowing scheduling on all nodes.
         displayName: Node Affinity
         path: node.nodeAffinity
+      - displayName: Custom repository path within registry.crowdstrike.com for Falcon
+          Node Sensor
+        path: crowdstrikeRegistryRepoOverride
       - description: 'Sensor grouping tags are optional, user-defined identifiers
           that can used to group and filter hosts. Allowed characters: all alphanumerics,
           ''/'', ''-'', and ''_''.'
@@ -2279,7 +2285,7 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: OPERATOR_NAME
                   value: falcon-operator
-                image: quay.io/crowdstrike/falcon-operator:1.6.0
+                image: controller:latest
                 livenessProbe:
                   httpGet:
                     path: /healthz

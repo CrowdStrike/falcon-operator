@@ -7248,6 +7248,8 @@ spec:
                 default: {}
                 description: Falcon Node Sensor Controller Configuration
                 properties:
+                  crowdstrikeRegistryRepoOverride:
+                    type: string
                   falcon:
                     default: {}
                     description: FalconUnified Sensor configuration settings, extends
@@ -7346,8 +7348,6 @@ spec:
                     required:
                     - cloud_region
                     type: object
-                  falconRegistryRepoOverride:
-                    type: string
                   falconSecret:
                     default:
                       enabled: false
@@ -8735,6 +8735,8 @@ spec:
           spec:
             description: FalconNodeSensorSpec defines the desired state of FalconNodeSensor
             properties:
+              crowdstrikeRegistryRepoOverride:
+                type: string
               falcon:
                 default: {}
                 description: FalconUnified Sensor configuration settings, extends
@@ -8832,8 +8834,6 @@ spec:
                 required:
                 - cloud_region
                 type: object
-              falconRegistryRepoOverride:
-                type: string
               falconSecret:
                 default:
                   enabled: false
