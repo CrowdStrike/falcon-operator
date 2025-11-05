@@ -3843,8 +3843,6 @@ spec:
                 default: {}
                 description: Falcon Node Sensor Controller Configuration
                 properties:
-                  crowdstrikeRegistryRepoOverride:
-                    type: string
                   falcon:
                     default: {}
                     description: FalconUnified Sensor configuration settings, extends
@@ -3975,6 +3973,13 @@ spec:
                       For best security practices, this should be a dedicated namespace that is not used for any other purpose.
                       It also should not be the same namespace where the Falcon Operator, or other Falcon resources are deployed.
                     type: string
+                  internal:
+                    description: FalconInternal defines configurations used for internal
+                      testing
+                    properties:
+                      crowdstrikeRegistryRepoOverride:
+                        type: string
+                    type: object
                   node:
                     default: {}
                     description: Various configuration for DaemonSet Deployment

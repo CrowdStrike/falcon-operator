@@ -115,10 +115,10 @@ func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1a
 	}
 
 	var imageUri string
-	isUsingCustomCrowdstrikeRepo := nodesensor.Spec.CrowdstrikeRegistryRepoOverride != nil
+	isUsingCustomCrowdstrikeRepo := nodesensor.Spec.Internal.CrowdstrikeRegistryRepoOverride != nil
 
 	if isUsingCustomCrowdstrikeRepo {
-		imageUri = falcon_registry.CrowdstrikeRepoOverride(cloud, *nodesensor.Spec.CrowdstrikeRegistryRepoOverride)
+		imageUri = falcon_registry.CrowdstrikeRepoOverride(cloud, *nodesensor.Spec.Internal.CrowdstrikeRegistryRepoOverride)
 	} else {
 		imageUri = falcon_registry.ImageURINode(cloud)
 		if nodesensor.Status.Sensor != nil {
