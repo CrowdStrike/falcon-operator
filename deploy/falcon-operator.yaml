@@ -9415,6 +9415,7 @@ rules:
   - nodes
   - pods
   - replicationcontrollers
+  - secrets
   - services
   verbs:
   - get
