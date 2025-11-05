@@ -240,6 +240,21 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
+	Context("Falcon Node Sensor - GKE Autopilot", func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconnodesensor-gke-autopilot.yaml"
+		It("should deploy successfully", func() {
+			updateManifestApiCreds(manifest)
+			nodeConfig.manageCrdInstance(crApply, manifest)
+			nodeConfig.validateCrStatus()
+			nodeConfig.validateInitContainerReadOnlyRootFilesystem()
+		})
+		It("should cleanup successfully", func() {
+			nodeConfig.manageCrdInstance(crDelete, manifest)
+			nodeConfig.validateRunningStatus(shouldBeTerminated)
+			nodeConfig.waitForNamespaceDeletion()
+		})
+	})
+
 	Context("Falcon Admission Controller", func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
 		It("should deploy successfully", func() {
