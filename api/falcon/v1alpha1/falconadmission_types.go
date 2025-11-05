@@ -153,6 +153,11 @@ type FalconAdmissionConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Admission Controller",order=18
 	AdmissionControlEnabled *bool `json:"admissionControlEnabled,omitempty"`
 
+	// Namespace where Falcon Image Analyzer is installed. KAC needs to know this to discover and communicate with IAR.
+	// +kubebuilder:default:="falcon-image-analyzer"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Namespace",order=19
+	FalconImageAnalyzerNamespace string `json:"falconImageAnalyzerNamespace,omitempty"`
+
 	// Currently ignored and internally set to 1
 	// +kubebuilder:default:=2
 	// +kubebuilder:validation:XIntOrString

@@ -90,6 +90,11 @@ spec:
                     - Ignore
                     - Fail
                     type: string
+                  falconImageAnalyzerNamespace:
+                    default: falcon-image-analyzer
+                    description: Namespace where Falcon Image Analyzer is installed.
+                      KAC needs to know this to discover and communicate with IAR.
+                    type: string
                   imagePullPolicy:
                     default: Always
                     description: PullPolicy describes a policy for if/when to pull

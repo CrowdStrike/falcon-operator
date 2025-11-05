@@ -459,6 +459,43 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 		log.Info("ignoring Replicas setting as only one is currently supported")
 	}
 
+	falconClientEnv := []corev1.EnvVar{
+		{
+			Name: "__CS_POD_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.namespace",
+				},
+			},
+		},
+		{
+			Name: "__CS_POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.name",
+				},
+			},
+		},
+		{
+			Name: "__CS_POD_NODENAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "spec.nodeName",
+				},
+			},
+		},
+	}
+
+	if falconAdmission.Spec.AdmissionConfig.FalconImageAnalyzerNamespace != "" {
+		falconClientEnv = append(falconClientEnv, corev1.EnvVar{
+			Name:  "__CS_IAR_NAMESPACE",
+			Value: falconAdmission.Spec.AdmissionConfig.FalconImageAnalyzerNamespace,
+		})
+	}
+
 	kacContainers := &[]corev1.Container{
 		{
 			Name:            "falcon-client",
@@ -475,35 +512,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 					},
 				},
 			},
-			Env: []corev1.EnvVar{
-				{
-					Name: "__CS_POD_NAMESPACE",
-					ValueFrom: &corev1.EnvVarSource{
-						FieldRef: &corev1.ObjectFieldSelector{
-							APIVersion: "v1",
-							FieldPath:  "metadata.namespace",
-						},
-					},
-				},
-				{
-					Name: "__CS_POD_NAME",
-					ValueFrom: &corev1.EnvVarSource{
-						FieldRef: &corev1.ObjectFieldSelector{
-							APIVersion: "v1",
-							FieldPath:  "metadata.name",
-						},
-					},
-				},
-				{
-					Name: "__CS_POD_NODENAME",
-					ValueFrom: &corev1.EnvVarSource{
-						FieldRef: &corev1.ObjectFieldSelector{
-							APIVersion: "v1",
-							FieldPath:  "spec.nodeName",
-						},
-					},
-				},
-			},
+			Env: falconClientEnv,
 			EnvFrom: []corev1.EnvFromSource{
 				{
 					ConfigMapRef: &corev1.ConfigMapEnvSource{
