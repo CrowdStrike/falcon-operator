@@ -89,6 +89,11 @@ spec:
 | falcon.trace              | (optional)  Set sensor trace level.                                                                                                                                                                                          |
 | falcon.cloud              | (optional)  CrowdStrike cloud region to specify where the CID resides (`us-1`, `us-2`, `eu-1`, `us-gov-1`, `us-gov-2`)<br><br>**NOTE:** This option is supported by Falcon sensor version 7.28 and above                      |
 
+#### Falcon Internal Settings
+| Spec                                         | Description                                                                                                                                |
+|:-------------------------------------------- |:-------------------------------------------------------------------------------------------------------------------------------------------|
+| internal.crowdstrikeRegistryRepoOverride     | (optional) Specify a custom repository path within registry.crowdstrike.com for the sensor image when using Falcon API credentials.        |
+
 #### Falcon Secret Settings
 | Spec                    | Description                                                                                    |
 |:------------------------|:-----------------------------------------------------------------------------------------------|
