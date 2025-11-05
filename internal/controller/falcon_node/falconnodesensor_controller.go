@@ -38,12 +38,11 @@ import (
 // FalconNodeSensorReconciler reconciles a FalconNodeSensor object
 type FalconNodeSensorReconciler struct {
 	client.Client
-	Reader                  client.Reader
-	Log                     logr.Logger
-	Scheme                  *runtime.Scheme
-	CrowdStrikeRepoOverride string
-	reconcileObject         func(client.Object)
-	tracker                 sensorversion.Tracker
+	Reader          client.Reader
+	Log             logr.Logger
+	Scheme          *runtime.Scheme
+	reconcileObject func(client.Object)
+	tracker         sensorversion.Tracker
 }
 
 // SetupWithManager sets up the controller with the Manager.
