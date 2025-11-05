@@ -148,7 +148,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2025-11-05T07:42:24Z"
+    createdAt: "2025-11-05T18:34:58Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -1285,6 +1285,10 @@ spec:
           ''/'', ''-'', and ''_''.'
         displayName: Sensor Grouping Tags
         path: falconNodeSensor.falcon.tags
+      - displayName: Configurations used for internal testing
+        path: falconNodeSensor.internal
+      - displayName: Custom sensor image repository path within registry.crowdstrike.com
+        path: falconNodeSensor.internal.crowdstrikeRegistryRepoOverride
       - description: Type of DaemonSet update. Can be "RollingUpdate" or "OnDelete".
           Default is RollingUpdate.
         displayName: DaemonSet Update Strategy
@@ -1878,6 +1882,10 @@ spec:
           ''/'', ''-'', and ''_''.'
         displayName: Sensor Grouping Tags
         path: falcon.tags
+      - displayName: Configurations used for internal testing
+        path: internal
+      - displayName: Custom sensor image repository path within registry.crowdstrike.com
+        path: internal.crowdstrikeRegistryRepoOverride
       - description: Type of DaemonSet update. Can be "RollingUpdate" or "OnDelete".
           Default is RollingUpdate.
         displayName: DaemonSet Update Strategy
