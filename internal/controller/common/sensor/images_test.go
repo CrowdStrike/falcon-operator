@@ -180,6 +180,10 @@ func (m *mockFalcon) LastNodeTag(ctx context.Context, versionRequested *string) 
 	return args.String(0), args.Error(1)
 }
 
+func (m *mockFalcon) SetCrowdstrikeRepoOverride(repo string) {
+	m.Called(repo)
+}
+
 func (m *mockFalcon) QuerySensorUpdatePolicies(params *sensor_update_policies.QuerySensorUpdatePoliciesParams, opts ...sensor_update_policies.ClientOption) (*sensor_update_policies.QuerySensorUpdatePoliciesOK, error) {
 	args := m.Called(params, opts)
 	return args.Get(0).(*sensor_update_policies.QuerySensorUpdatePoliciesOK), args.Error(1)
