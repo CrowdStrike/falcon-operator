@@ -486,9 +486,22 @@ func (r *FalconImageAnalyzerReconciler) injectFalconSecretData(
 
 func (r *FalconImageAnalyzerReconciler) reconcileIARAgentService(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) error {
 	selector := map[string]string{common.FalconComponentKey: common.FalconImageAnalyzer}
-	port := falconImageAnalyzer.Spec.ImageAnalyzerConfig.IARAgentService.Port
 
-	service := assets.Service(common.FalconImageAnalyzerAgentService, falconImageAnalyzer.Spec.InstallNamespace, common.FalconImageAnalyzerAgentService, selector, common.FalconImageAnalyzerHTTPSName, port)
+	// Add labels required for KAC -> IAR communication
+	labels := common.CRLabels("service", common.FalconImageAnalyzerAgentService, common.FalconImageAnalyzerAgentService)
+	labels[common.AppLabelKey] = common.FalconImageAnalyzerAgentServiceApp
+	labels[common.KubernetesComponentKey] = common.FalconImageAnalyzerComponentName
+	labels[common.KubernetesNameKey] = falconImageAnalyzer.Name
+
+	service := assets.ServiceWithCustomLabels(
+		common.FalconImageAnalyzerAgentService,
+		falconImageAnalyzer.Spec.InstallNamespace,
+		selector,
+		labels,
+		"",
+		common.FalconImageAnalyzerAgentServicePortName,
+		common.FalconImageAnalyzerAgentServicePort,
+	)
 
 	existingService := &corev1.Service{}
 	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconImageAnalyzerAgentService, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingService)
@@ -554,7 +567,13 @@ func (r *FalconImageAnalyzerReconciler) reconcileIARTLSSecret(ctx context.Contex
 			"ca.crt":  b,
 		}
 
-		iarTLSSecret := assets.Secret(name, falconImageAnalyzer.Spec.InstallNamespace, common.FalconImageAnalyzer, secretData, corev1.SecretTypeTLS)
+		// Add labels required for KAC -> IAR communication
+		labels := common.CRLabels("secret", name, common.FalconImageAnalyzer)
+		labels[common.AppLabelKey] = common.FalconImageAnalyzerAgentServiceApp
+		labels[common.KubernetesComponentKey] = common.FalconImageAnalyzerComponentName
+		labels[common.KubernetesNameKey] = falconImageAnalyzer.Name
+
+		iarTLSSecret := assets.SecretWithCustomLabels(name, falconImageAnalyzer.Spec.InstallNamespace, secretData, corev1.SecretTypeTLS, labels)
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, iarTLSSecret)
 		if err != nil {
 			return &corev1.Secret{}, err
