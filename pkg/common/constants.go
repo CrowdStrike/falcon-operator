@@ -22,9 +22,15 @@ const (
 	FalconServiceHTTPSPort                  = 443
 	FalconAdmissionValidatingWebhookName    = "validating.admission.falcon.crowdstrike.com"
 	FalconAdmissionClusterNameConfigMapName = "falcon-kac-meta"
+	FalconImageAnalyzerComponentName        = "iar"
 	FalconImageAnalyzerAgentService         = "iar-agent-service"
-	FalconImageAnalyzerHTTPSName            = "service-port"
+	FalconImageAnalyzerAgentServiceApp      = "falcon-image-analyzer"
+	FalconImageAnalyzerAgentServicePort     = 443
+	FalconImageAnalyzerAgentServicePortName = "service-port"
 
+	AppLabelKey              = "app"
+	KubernetesComponentKey   = "app.kubernetes.io/component"
+	KubernetesNameKey        = "app.kubernetes.io/name"
 	FalconInstanceNameKey    = "crowdstrike.com/name"
 	FalconInstanceKey        = "crowdstrike.com/instance"
 	FalconComponentKey       = "crowdstrike.com/component"
