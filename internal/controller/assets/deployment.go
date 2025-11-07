@@ -360,7 +360,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: falconImageAnalyzer.Spec.ImageAnalyzerConfig.IARAgentService.Port,
-									Name:          common.FalconServiceHTTPSName,
+									Name:          common.FalconImageAnalyzerAgentServicePortName,
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},

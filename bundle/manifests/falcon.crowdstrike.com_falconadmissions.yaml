@@ -91,7 +91,7 @@ spec:
                     - Fail
                     type: string
                   falconImageAnalyzerNamespace:
-                    default: falcon-image-analyzer
+                    default: falcon-iar
                     description: Namespace where Falcon Image Analyzer is installed.
                       KAC needs to know this to discover and communicate with IAR.
                     type: string
