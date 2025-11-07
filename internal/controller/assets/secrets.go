@@ -24,3 +24,26 @@ func Secret(name string, namespace string, component string, data map[string][]b
 		Type: sType,
 	}
 }
+
+// SecretWithCustomLabels returns a Kubernetes Secret object with custom labels
+func SecretWithCustomLabels(
+	name string,
+	namespace string,
+	data map[string][]byte,
+	sType corev1.SecretType,
+	labels map[string]string,
+) *corev1.Secret {
+	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Data: data,
+		Type: sType,
+	}
+}
