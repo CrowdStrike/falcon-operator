@@ -3,6 +3,8 @@ FROM registry.access.redhat.com/ubi8/go-toolset:1.23 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 ARG VERSION
+ARG GOPROXY
+ENV GOPROXY=${GOPROXY}
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
