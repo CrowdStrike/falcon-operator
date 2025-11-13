@@ -13,6 +13,9 @@ During the course of a cluster deployment with `oc mirror`, there are three impo
 2. Configure your `ImageSetConfiguration` to mirror region-specific container images.
 3. Upon sensor deployment, reference your mirrored images.
 
+> [!NOTE]
+> Please keep in mind this guide is maintained as a best effort by CrowdStrike solution architects. CrowdStrike engineering does not formally test on a mirror-installed OpenShift cluster. If you experience any trouble, talk to your cloud sales engineer or file an issue on this repository.
+
 ## Gather CrowdStrike Pull Secret
 
 During the course of the mirroring process, you will prepare a pull secrets file containing your Red Hat pull secret and credentials for your mirror registry. Because CrowdStrike container images require authentication, you also need to add credentials for the CrowdStrike registry to your pull secret.
