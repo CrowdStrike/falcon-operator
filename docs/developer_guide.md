@@ -25,6 +25,11 @@ To build and test changes for golang code changes, run the following commands:
 ```sh
 make docker-build docker-push IMG="myregistry/crowdstrike/falcon-operator:test_tag"
 ```
+> [!NOTE]
+> If mirrors are required for base images or go packages, the following variables can be used:
+> - `BUILDKIT_CONFIG_PATH`: Set a custom buildkitd.toml file
+> - `REGISTRY`: Specify a custom container registry for image builds
+> - `GOPROXY`: Configure package retrieval
 
 Deploy the operator:
 

@@ -1,5 +1,6 @@
+ARG REGISTRY=registry.access.redhat.com
 # Build the manager binary
-FROM registry.access.redhat.com/ubi8/go-toolset:1.23 AS builder
+FROM ${REGISTRY}/ubi8/go-toolset:1.23 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 ARG VERSION
@@ -36,7 +37,7 @@ RUN GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -tags \
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM registry.access.redhat.com/ubi8-minimal:8.10
+FROM ${REGISTRY}/ubi8-minimal:8.10
 ARG VERSION
 WORKDIR /
 COPY LICENSE licenses/

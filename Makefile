@@ -73,8 +73,15 @@ GOFLAGS ?= -a \
 # tools. (i.e. podman)
 CONTAINER_TOOL ?= docker
 
+
+# REGISTRY: If defined, specifies a custom container registry to use for image builds
+# REGISTRY_BUILD_ARG: Constructs a build argument to pass the custom registry to docker build
+ifdef REGISTRY
+REGISTRY_BUILD_ARG ?= --build-arg REGISTRY=$(REGISTRY)
+endif
+
 # CONTAINER_BUILD_ARGS defines additional build arguments to pass to the $CONTAINER_TOOL during build.
-CONTAINER_BUILD_ARGS ?= --build-arg VERSION=$(VERSION) --build-arg GOPROXY=$(GOPROXY)
+CONTAINER_BUILD_ARGS ?= --build-arg VERSION=$(VERSION) --build-arg GOPROXY=$(GOPROXY) $(REGISTRY_BUILD_ARG)
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
@@ -172,11 +179,19 @@ docker-push: ## Push docker image with the manager.
 # - be able to push the image to your registry (i.e. if you do not set a valid value via IMG=<myregistry/image:<tag>> then the export will fail)
 # To adequately provide solutions that are compatible with multiple platforms, you should consider using this option.
 PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
+
+# BUILDKIT_CONFIG_PATH specifies the location of the buildkitd configuration file
+# More info: https://docs.docker.com/build/buildkit/toml-configuration/
+# BUILDKIT_BUILD_ARG defines additional build arguments to pass to docker buildx create when using a custom buildkit config
+ifdef BUILDKIT_CONFIG_PATH
+BUILDKIT_BUILD_ARG ?= --config $(BUILDKIT_CONFIG_PATH)
+endif
+
 .PHONY: docker-buildx
 docker-buildx: ## Build and push docker image for the manager for cross-platform support
 	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
 	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
-	- $(CONTAINER_TOOL) buildx create --name project-v3-builder
+	- $(CONTAINER_TOOL) buildx create --name project-v3-builder $(BUILDKIT_BUILD_ARG)
 	$(CONTAINER_TOOL) buildx use project-v3-builder
 	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) $(CONTAINER_BUILD_ARGS) --provenance=false --tag ${IMG} -f Dockerfile.cross .
 	- $(CONTAINER_TOOL) buildx rm project-v3-builder
