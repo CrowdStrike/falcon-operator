@@ -488,7 +488,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileIARAgentService(ctx context.Con
 	selector := map[string]string{common.FalconComponentKey: common.FalconImageAnalyzer}
 
 	// Add labels required for KAC -> IAR communication
-	labels := common.CRLabels("service", common.FalconImageAnalyzerAgentService, common.FalconImageAnalyzerAgentService)
+	labels := common.CRLabels("service", falconImageAnalyzer.Name, common.FalconImageAnalyzer)
 	labels[common.AppLabelKey] = common.FalconImageAnalyzerAgentServiceApp
 	labels[common.KubernetesComponentKey] = common.FalconImageAnalyzerComponentName
 	labels[common.KubernetesNameKey] = falconImageAnalyzer.Name
