@@ -540,14 +540,14 @@ func (r *FalconImageAnalyzerReconciler) reconcileIARTLSSecret(ctx context.Contex
 		domainName := falconImageAnalyzer.Spec.ImageAnalyzerConfig.IARAgentService.DomainName
 
 		fullName := fmt.Sprintf("%s.%s.svc", common.FalconImageAnalyzerAgentService, namespace)
+		if domainName != "" {
+			fullName = fmt.Sprintf("%s.%s.svc.%s", common.FalconImageAnalyzerAgentService, namespace, domainName)
+		}
+
 		altDNSNames := []string{
 			fullName,
 			fmt.Sprintf("%s.cluster.local", fullName),
 			fmt.Sprintf("%s.%s", fullName, namespace),
-		}
-
-		if domainName != "" {
-			altDNSNames = append(altDNSNames, fmt.Sprintf("%s.%s.svc.%s", common.FalconImageAnalyzerAgentService, namespace, domainName))
 		}
 
 		certInfo := tls.CertInfo{
