@@ -558,9 +558,13 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		}
 	}
 
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].Image, existingDeployment.Spec.Template.Spec.Containers[0].Image) {
-		existingDeployment.Spec.Template.Spec.Containers[0].Image = dep.Spec.Template.Spec.Containers[0].Image
-		updated = true
+	for i := range dep.Spec.Template.Spec.Containers {
+		if i < len(existingDeployment.Spec.Template.Spec.Containers) {
+			if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[i].Image, existingDeployment.Spec.Template.Spec.Containers[i].Image) {
+				existingDeployment.Spec.Template.Spec.Containers[i].Image = dep.Spec.Template.Spec.Containers[i].Image
+				updated = true
+			}
+		}
 	}
 
 	if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].ImagePullPolicy, existingDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy) {
