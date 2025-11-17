@@ -370,7 +370,11 @@ func (r *FalconAdmissionReconciler) reconcileTLSSecret(ctx context.Context, req 
 			"ca.crt":  b,
 		}
 
-		admissionTLSSecret := assets.Secret(name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, secretData, corev1.SecretTypeTLS)
+		labels := common.CRLabels("secret", name, common.FalconAdmissionController)
+		labels[common.AppLabelKey] = common.FalconAdmissionServiceApp
+		labels[common.KubernetesComponentKey] = common.FalconAdmissionComponentName
+		labels[common.KubernetesNameKey] = falconAdmission.Name
+		admissionTLSSecret := assets.SecretWithCustomLabels(name, falconAdmission.Spec.InstallNamespace, secretData, corev1.SecretTypeTLS, labels)
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, admissionTLSSecret)
 		if err != nil {
 			return &corev1.Secret{}, err
@@ -393,7 +397,21 @@ func (r *FalconAdmissionReconciler) reconcileService(ctx context.Context, req ct
 		port = *falconAdmission.Spec.AdmissionConfig.Port
 	}
 
-	service := assets.Service(falconAdmission.Name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, selector, common.FalconAdmissionServiceHTTPSName, port)
+	// Add labels required for IAR -> KAC communication
+	labels := common.CRLabels("service", falconAdmission.Name, common.FalconAdmissionController)
+	labels[common.AppLabelKey] = common.FalconAdmissionServiceApp
+	labels[common.KubernetesComponentKey] = common.FalconAdmissionComponentName
+	labels[common.KubernetesNameKey] = falconAdmission.Name
+
+	service := assets.ServiceWithCustomLabels(
+		falconAdmission.Name,
+		falconAdmission.Spec.InstallNamespace,
+		selector,
+		labels,
+		common.FalconAdmissionServiceHTTPSName,
+		common.FalconServiceHTTPSName,
+		port,
+	)
 
 	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingService)
 
