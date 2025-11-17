@@ -74,8 +74,8 @@ func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name s
 		}
 	}
 
-	// AGENT_HELM_VERSION must be set to >= 1.0.17 for latest IAR features
-	data["AGENT_HELM_VERSION"] = "1.0.17"
+	// AGENT_HELM_VERSION must be set to >= 1.1.17 for latest IAR features
+	data["AGENT_HELM_VERSION"] = "1.1.17"
 
 	if falconImageAnalyzer.Spec.FalconAPI.ClientId != "" {
 		data["AGENT_CLIENT_ID"] = falconImageAnalyzer.Spec.FalconAPI.ClientId
