@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2025-11-18
+
+### Changed
+
+- fix(falcon-admission): add required KAC labels (#728)
+- feat: Refactor release workflows for external builds (#727)
+- docs: oc mirror (#725)
+- Add GOPROXY to Makefile (#726)
+- harden release workflow (#723)
+- fix(FalconImageAnalyzer): Add required IAR agent service labels (#722)
+- chore(deps): bump github.com/ulikunitz/xz from 0.5.12 to 0.5.14
+- feat(falconnodesensor): Add unified daemonset image support (#720)
+- add IAR agent service to IAR CRD
+- fix(falconnodesensor): Ensure readOnlyRootFilesystem is only true for GKE Autopilot for init-container
+- add IAR namespace env to correct KAC container + regenerate manifests
+- add additional permissions to KAC cluster role
+- update docs
+- generate manifest and bundle updates
+- add FalconImageAnalyzerNamespace to FalconAdmission CRD
+- feat: Add clusterName to KAC
+- add links to operator subscription spec docs
+- revert redhat-subsciption change
+- add logs for ARGS env injection + update docs
+- Revert "feat(openshift): support operator deployment options with env vars"
+- update install guide docs
+- feat(openshift): support operator deployment options with env vars
+
 ## [1.8.0] - 2025-08-19
 
 ### Changed
