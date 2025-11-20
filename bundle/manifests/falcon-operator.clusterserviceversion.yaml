@@ -147,7 +147,7 @@ metadata:
       ]
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
-    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:ffe00e9e22e209d1e08f29c3d257bbd51937fcbde68a1ed93b542a26dd436dee
+    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:a31709f0e35564badc0123095952f957d0d639ced1fe000610008222e4d45725
     createdAt: "2025-11-18T23:39:10Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
@@ -166,7 +166,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: registry.connect.redhat.com/crowdstrike/falcon-operator
     support: CrowdStrike
-  name: falcon-operator.v1.8.0
+  name: falcon-operator.v1.9.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -2299,14 +2299,14 @@ spec:
                 - name: OPERATOR_NAME
                   value: falcon-operator
                 - name: RELATED_IMAGE_NODE_SENSOR
-                  value: registry.crowdstrike.com/falcon-sensor/us-1/release/falcon-sensor@sha256:ed4f3fe8d9f5f491600f18d4440dc1d8e3a07d4b9c08a1f17382a23a3a5cf523
+                  value: registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:b3b575772b6e9ca4dc3cfadac0d3e5c8d752adb3687553d0e52f72eee3229074
                 - name: RELATED_IMAGE_SIDECAR_SENSOR
-                  value: registry.crowdstrike.com/falcon-container/us-1/release/falcon-sensor@sha256:92d222cd604c9f2c9e9f2c9b402b9fb0858fcb04dac38c15e25125978f43c99b
+                  value: registry.crowdstrike.com/falcon-container/us-1/release/falcon-sensor@sha256:b9b27660c5924fe99666f638540da51e682c1ad1af0c982f1f8af7b6de1bda20
                 - name: RELATED_IMAGE_ADMISSION_CONTROLLER
-                  value: registry.crowdstrike.com/falcon-kac/us-1/release/falcon-kac@sha256:5049128dcfe9565f39fc6e28fb94f5bf05fb7c51cf787fc6fe5c63a2b04f800d
+                  value: registry.crowdstrike.com/falcon-kac/us-1/release/falcon-kac@sha256:14b3a07db24aac43d7397aa1428a8551a15984eba26e79655d66d7a4473cb4a0
                 - name: RELATED_IMAGE_IMAGE_ANALYZER
-                  value: registry.crowdstrike.com/falcon-imageanalyzer/us-1/release/falcon-imageanalyzer@sha256:f08603648658041ad52ccf0cfd058da40b385904830030aa82dc50609aed7ceb
-                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:ffe00e9e22e209d1e08f29c3d257bbd51937fcbde68a1ed93b542a26dd436dee
+                  value: registry.crowdstrike.com/falcon-imageanalyzer/us-1/release/falcon-imageanalyzer@sha256:cd6294a2b62d3b57d18f0528c3b0eda669afd5f393b2bbc582665223329ad8cc
+                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:a31709f0e35564badc0123095952f957d0d639ced1fe000610008222e4d45725
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -2406,17 +2406,17 @@ spec:
     name: CrowdStrike
     url: https://crowdStrike.com
   relatedImages:
-  - image: "registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:ffe00e9e22e209d1e08f29c3d257bbd51937fcbde68a1ed93b542a26dd436dee"
+  - image: "registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:a31709f0e35564badc0123095952f957d0d639ced1fe000610008222e4d45725"
     name: operator
-  - image: "registry.crowdstrike.com/falcon-sensor/us-1/release/falcon-sensor@sha256:ed4f3fe8d9f5f491600f18d4440dc1d8e3a07d4b9c08a1f17382a23a3a5cf523"
+  - image: "registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:b3b575772b6e9ca4dc3cfadac0d3e5c8d752adb3687553d0e52f72eee3229074"
     name: node-sensor
-  - image: "registry.crowdstrike.com/falcon-container/us-1/release/falcon-sensor@sha256:92d222cd604c9f2c9e9f2c9b402b9fb0858fcb04dac38c15e25125978f43c99b"
+  - image: "registry.crowdstrike.com/falcon-container/us-1/release/falcon-sensor@sha256:b9b27660c5924fe99666f638540da51e682c1ad1af0c982f1f8af7b6de1bda20"
     name: sidecar-sensor
-  - image: "registry.crowdstrike.com/falcon-kac/us-1/release/falcon-kac@sha256:5049128dcfe9565f39fc6e28fb94f5bf05fb7c51cf787fc6fe5c63a2b04f800d"
+  - image: "registry.crowdstrike.com/falcon-kac/us-1/release/falcon-kac@sha256:14b3a07db24aac43d7397aa1428a8551a15984eba26e79655d66d7a4473cb4a0"
     name: admission-controller
-  - image: "registry.crowdstrike.com/falcon-imageanalyzer/us-1/release/falcon-imageanalyzer@sha256:f08603648658041ad52ccf0cfd058da40b385904830030aa82dc50609aed7ceb"
+  - image: "registry.crowdstrike.com/falcon-imageanalyzer/us-1/release/falcon-imageanalyzer@sha256:cd6294a2b62d3b57d18f0528c3b0eda669afd5f393b2bbc582665223329ad8cc"
     name: image-analyzer
-  replaces: falcon-operator.v1.7.0
-  version: 1.8.0
+  replaces: falcon-operator.v1.8.0
+  version: 1.9.0
   skips:
   - falcon-operator.v1.3.0
