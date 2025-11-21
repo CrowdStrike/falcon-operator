@@ -577,7 +577,9 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 	}
 
 	if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].Image, existingDeployment.Spec.Template.Spec.Containers[0].Image) {
-		existingDeployment.Spec.Template.Spec.Containers[0].Image = dep.Spec.Template.Spec.Containers[0].Image
+		for i := range existingDeployment.Spec.Template.Spec.Containers {
+			existingDeployment.Spec.Template.Spec.Containers[i].Image = dep.Spec.Template.Spec.Containers[0].Image
+		}
 		updated = true
 	}
 
