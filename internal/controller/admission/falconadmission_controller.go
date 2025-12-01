@@ -576,23 +576,8 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		}
 	}
 
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].Image, existingDeployment.Spec.Template.Spec.Containers[0].Image) {
-		existingDeployment.Spec.Template.Spec.Containers[0].Image = dep.Spec.Template.Spec.Containers[0].Image
-		updated = true
-	}
-
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].ImagePullPolicy, existingDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy) {
-		existingDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy = dep.Spec.Template.Spec.Containers[0].ImagePullPolicy
-		updated = true
-	}
-
 	if !reflect.DeepEqual(dep.Spec.Template.Spec.ImagePullSecrets, existingDeployment.Spec.Template.Spec.ImagePullSecrets) {
 		existingDeployment.Spec.Template.Spec.ImagePullSecrets = dep.Spec.Template.Spec.ImagePullSecrets
-		updated = true
-	}
-
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].Ports, existingDeployment.Spec.Template.Spec.Containers[0].Ports) {
-		existingDeployment.Spec.Template.Spec.Containers[0].Ports = dep.Spec.Template.Spec.Containers[0].Ports
 		updated = true
 	}
 
@@ -621,6 +606,25 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		updated = true
 	} else {
 		for i, containers := range dep.Spec.Template.Spec.Containers {
+			if containers.Name == "falcon-client" || containers.Name == "falcon-watcher" {
+				if !reflect.DeepEqual(containers.Ports, existingDeployment.Spec.Template.Spec.Containers[i].Ports) {
+					existingDeployment.Spec.Template.Spec.Containers[i].Ports = containers.Ports
+					updated = true
+				}
+			}
+
+			if !reflect.DeepEqual(containers.Image, existingDeployment.Spec.Template.Spec.Containers[i].Image) {
+				for i := range existingDeployment.Spec.Template.Spec.Containers {
+					existingDeployment.Spec.Template.Spec.Containers[i].Image = containers.Image
+				}
+				updated = true
+			}
+
+			if !reflect.DeepEqual(containers.ImagePullPolicy, existingDeployment.Spec.Template.Spec.Containers[i].ImagePullPolicy) {
+				existingDeployment.Spec.Template.Spec.Containers[i].ImagePullPolicy = containers.ImagePullPolicy
+				updated = true
+			}
+
 			if !reflect.DeepEqual(containers.Resources, existingDeployment.Spec.Template.Spec.Containers[i].Resources) {
 				existingDeployment.Spec.Template.Spec.Containers[i].Resources = containers.Resources
 				updated = true
