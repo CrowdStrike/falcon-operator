@@ -21,7 +21,7 @@ import (
 func InitContainerArgs() []string {
 	return []string{
 		"-c",
-		fmt.Sprintf("echo \"Running %[1]s\"; %[1]s; echo \"Running %[2]s\"; test -f \"%[2]s\" && %[2]s || echo \"%[2]s not found. Skipping.\"", FalconDaemonsetInitBinary, FalconDaemonsetConfigureClusterIdBinary),
+		fmt.Sprintf("set -e; if [ ! -f %[1]s ]; then echo \"Error: This is not a falcon node sensor(DaemonSet) image\"; exit 1; fi; echo \"Running %[2]s\"; %[2]s; echo \"Running %[3]s\"; test -f \"%[3]s\" && %[3]s || echo \"%[3]s not found. Skipping.\"", FalconDaemonsetBinary, FalconDaemonsetInitBinary, FalconDaemonsetConfigureClusterIdBinary),
 	}
 }
 
