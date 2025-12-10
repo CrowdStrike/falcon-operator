@@ -358,6 +358,11 @@ func (in *FalconAdmissionConfigSpec) DeepCopyInto(out *FalconAdmissionConfigSpec
 		*out = new(bool)
 		**out = **in
 	}
+	if in.ConfigMapWatcherEnabled != nil {
+		in, out := &in.ConfigMapWatcherEnabled, &out.ConfigMapWatcherEnabled
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
 		*out = new(int32)
