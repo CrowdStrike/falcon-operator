@@ -58,6 +58,11 @@ spec:
                     description: Determines if the admission controller webhook is
                       enabled
                     type: boolean
+                  configMapWatcherEnabled:
+                    default: true
+                    description: Determines if the admission controller watches for
+                      configMap events
+                    type: boolean
                   containerPort:
                     default: 4443
                     description: Port on which the Falcon Admission Controller container
