@@ -15,6 +15,7 @@ const (
 	SnapshotsIntervalDefault       = 22
 	WatcherEnabledDefault          = true
 	AdmissionControlEnabledDefault = true
+	ConfigMapWatcherEnabledDefault = true
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -153,9 +154,14 @@ type FalconAdmissionConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Admission Controller",order=18
 	AdmissionControlEnabled *bool `json:"admissionControlEnabled,omitempty"`
 
+	// Determines if the admission controller watches for configMap events
+	// +kubebuilder:default:=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable ConfigMap Event Watcher",order=19
+	ConfigMapWatcherEnabled *bool `json:"configMapWatcherEnabled,omitempty"`
+
 	// Namespace where Falcon Image Analyzer is installed. KAC needs to know this to discover and communicate with IAR.
 	// +kubebuilder:default:="falcon-iar"
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Namespace",order=19
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Namespace",order=20
 	FalconImageAnalyzerNamespace string `json:"falconImageAnalyzerNamespace,omitempty"`
 
 	// Currently ignored and internally set to 1
@@ -311,6 +317,14 @@ func (ac *FalconAdmission) GetAdmissionControlEnabled() bool {
 	}
 
 	return *ac.Spec.AdmissionConfig.AdmissionControlEnabled
+}
+
+func (ac *FalconAdmissionConfigSpec) GetConfigMapWatcherEnabled() bool {
+	if ac.ConfigMapWatcherEnabled == nil {
+		return ConfigMapWatcherEnabledDefault
+	}
+
+	return *ac.ConfigMapWatcherEnabled
 }
 
 func (ac *FalconAdmission) GetFalconSecretSpec() FalconSecret {
