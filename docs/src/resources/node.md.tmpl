@@ -95,11 +95,11 @@ spec:
 | internal.crowdstrikeRegistryRepoOverride     | (optional) Specify a custom repository path within registry.crowdstrike.com for the sensor image when using Falcon API credentials.        |
 
 #### Falcon Secret Settings
-| Spec                    | Description                                                                                    |
-|:------------------------|:-----------------------------------------------------------------------------------------------|
-| falconSecret.enabled    | Enable reading sensitive Falcon API and Falcon sensor values from k8s secret; Default: `false` |
-| falconSecret.namespace  | Required if `enabled: true`; k8s namespace with relevant k8s secret                            |
-| falconSecret.secretName | Required if `enabled: true`; name of k8s secret with sensitive Falcon API and sensor values    |
+| Spec                    | Description                                                                                                                                                                                    |
+|:------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| falconSecret.enabled    | Enable reading sensitive Falcon API and Falcon sensor values from k8s secret; Default: `false`                                                                                                 |
+| falconSecret.namespace  | Required if `enabled: true`; k8s namespace with relevant k8s secret                                                                                                                            |
+| falconSecret.secretName | Required if `enabled: true`; name of k8s secret with sensitive Falcon API and sensor values<br><br> Secret name must be `"falcon-node-sensor-secret"` if deploying on a GKE Autopilot cluster. |
 
 Falcon secret settings are used to read the following sensitive Falcon API and sensor values from an existing k8s secret on your cluster.
 

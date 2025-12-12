@@ -126,6 +126,9 @@ falcon-helm-falcon-node-sensor-slsmg   498m         223Mi
 
 The sensor resource limits are only enabled when `backend: bpf`, which is a requirement for GKE Autopilot.
 
+### Falcon Secret Usage with GKE Autopilot
+When using the `falconSecret` configuration options with GKE Autopilot, `falconSecret.secretName` must be `"falcon-node-sensor-secret"`. Any other K8s secret name for the `falconSecret` option is disallowed.
+
 ### Enabling GKE Autopilot
 
 <details>
@@ -163,13 +166,22 @@ To enable GKE Autopilot and deploy the sensor running in user mode, configure th
    > [!WARNING]
    > If you set the requests or limits too low, you can potentially cause the sensor deployment to fail or cause loss of clouded events.
 
-Add the following toleration to deploy correctly on autopilot:
+5. Add the following toleration to deploy correctly on autopilot:
 
 ```yaml
     - effect: NoSchedule
       key: kubernetes.io/arch
       operator: Equal
       value: amd64
+```
+
+6. If using an existing K8s secret for sensitive Falcon data, make sure your secret name is `falcon-node-sensor-secret`.
+
+```yaml
+falconSecret:
+  enabled: true
+  namespace: <falcon-secret-namespace>
+  secretName: falcon-node-sensor-secret
 ```
 
 Putting it altogether, an example completed node sensor configuration for GKE Autopilot could look like the following:
@@ -188,6 +200,11 @@ node:
       operator: Equal
       key: kubernetes.io/arch
       value: amd64
+
+falconSecret:
+  enabled: true
+  namespace: falcon-system
+  secretName: falcon-node-sensor-secret
 ```
 
 </details>
