@@ -7429,6 +7429,12 @@ spec:
                         - kernel
                         - bpf
                         type: string
+                      clusterName:
+                        description: When running on an unmanaged K8S cluster, set
+                          a cluster name. When running on managed, K8S cluster name
+                          is resolved cloud-side
+                        pattern: ^[0-9a-zA-Z]{1}[0-9a-zA-Z_-]{1,99}$
+                        type: string
                       disableCleanup:
                         default: false
                         description: |-
@@ -8918,6 +8924,12 @@ spec:
                     enum:
                     - kernel
                     - bpf
+                    type: string
+                  clusterName:
+                    description: When running on an unmanaged K8S cluster, set a cluster
+                      name. When running on managed, K8S cluster name is resolved
+                      cloud-side
+                    pattern: ^[0-9a-zA-Z]{1}[0-9a-zA-Z_-]{1,99}$
                     type: string
                   disableCleanup:
                     default: false
