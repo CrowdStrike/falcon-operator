@@ -4087,6 +4087,12 @@ spec:
                           type: object
                           x-kubernetes-map-type: atomic
                         type: array
+                      initConfigImage:
+                        description: Location of the init-container image for pre-configuration.
+                          This image should contain the configuration logic that runs
+                          before the main sensor.
+                        pattern: ^.*:.*$
+                        type: string
                       nodeAffinity:
                         description: Specifies node affinity for scheduling the DaemonSet.
                           Defaults to allowing scheduling on all nodes.

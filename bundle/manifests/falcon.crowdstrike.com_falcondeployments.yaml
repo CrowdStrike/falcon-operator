@@ -111,6 +111,11 @@ spec:
                         description: Determines if the admission controller webhook
                           is enabled
                         type: boolean
+                      configMapWatcherEnabled:
+                        default: true
+                        description: Determines if the admission controller watches
+                          for configMap events
+                        type: boolean
                       containerPort:
                         default: 4443
                         description: Port on which the Falcon Admission Controller
@@ -4074,6 +4079,12 @@ spec:
                           type: object
                           x-kubernetes-map-type: atomic
                         type: array
+                      initConfigImage:
+                        description: Location of the init-container image for pre-configuration.
+                          This image should contain the configuration logic that runs
+                          before the main sensor.
+                        pattern: ^.*:.*$
+                        type: string
                       nodeAffinity:
                         description: Specifies node affinity for scheduling the DaemonSet.
                           Defaults to allowing scheduling on all nodes.
