@@ -18,7 +18,7 @@ type FakeDiscovery struct {
 }
 
 func TestInitContainerClusterIDArgs(t *testing.T) {
-	want := []string{"-c", `echo "Running /opt/CrowdStrike/falcon-daemonset-init -i"; /opt/CrowdStrike/falcon-daemonset-init -i; echo "Running /opt/CrowdStrike/configure-cluster-id"; test -f "/opt/CrowdStrike/configure-cluster-id" && /opt/CrowdStrike/configure-cluster-id || echo "/opt/CrowdStrike/configure-cluster-id not found. Skipping."`}
+	want := []string{"-c", `set -e; if [ ! -f /opt/CrowdStrike/falcon-daemonset-init ]; then echo "Error: This is not a falcon node sensor(DaemonSet) image"; exit 1; fi; echo "Running /opt/CrowdStrike/falcon-daemonset-init -i"; /opt/CrowdStrike/falcon-daemonset-init -i; if [ ! -f /opt/CrowdStrike/configure-cluster-id ]; then echo "/opt/CrowdStrike/configure-cluster-id not found. Skipping."; else echo "Running /opt/CrowdStrike/configure-cluster-id"; /opt/CrowdStrike/configure-cluster-id; fi`}
 	if got := InitContainerArgs(); !reflect.DeepEqual(got, want) {
 		t.Errorf("InitContainerArgs() = %v, want %v", got, want)
 	}
