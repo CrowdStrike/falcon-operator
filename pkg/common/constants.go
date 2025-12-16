@@ -12,6 +12,7 @@ const (
 	FalconDaemonsetInitBinary               = "/opt/CrowdStrike/falcon-daemonset-init -i"
 	FalconDaemonsetConfigureClusterIdBinary = "/opt/CrowdStrike/configure-cluster-id"
 	FalconDaemonsetCleanupBinary            = "/opt/CrowdStrike/falcon-daemonset-init -u"
+	FalconDaemonsetBinary                   = "/opt/CrowdStrike/falcon-daemonset-init"
 	FalconContainerProbePath                = "/live"
 	FalconAdmissionClientStartupProbePath   = "/startz"
 	FalconAdmissionClientLivenessProbePath  = "/livez"
