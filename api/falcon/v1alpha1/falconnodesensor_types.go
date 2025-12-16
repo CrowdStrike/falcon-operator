@@ -76,6 +76,11 @@ type FalconNodeSensorConfig struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
 	Image string `json:"image,omitempty"`
 
+	// Location of the init-container image for pre-configuration. This image should contain the configuration logic that runs before the main sensor.
+	// +kubebuilder:validation:Pattern="^.*:.*$"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=2
+	InitConfigImage string `json:"initConfigImage,omitempty"`
+
 	// ImagePullSecrets is an optional list of references to secrets in the falcon-system namespace to use for pulling image from image_override location.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=1
 	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
