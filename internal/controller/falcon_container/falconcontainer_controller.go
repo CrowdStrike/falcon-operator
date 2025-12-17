@@ -26,8 +26,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // FalconContainerReconciler reconciles a FalconContainer object
@@ -37,8 +40,96 @@ type FalconContainerReconciler struct {
 	Log             logr.Logger
 	Scheme          *runtime.Scheme
 	RestConfig      *rest.Config
+	OpenShift       bool
 	reconcileObject func(client.Object)
 	tracker         sensorversion.Tracker
+}
+
+// serviceAccountPredicate returns a predicate that ignores ServiceAccount events
+// when running on OpenShift if the ServiceAccount is owned by a FalconContainer
+func (r *FalconContainerReconciler) serviceAccountPredicate() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			// Always process create events
+			return true
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return r.shouldProcessServiceAccountUpdateEvent(e.ObjectOld, e.ObjectNew)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			// Always process delete events
+			return true
+		},
+	}
+}
+
+// shouldProcessServiceAccountUpdateEvent determines if a ServiceAccount update event should be processed
+// Returns false (ignore event) if running on OpenShift and the ServiceAccount is owned by a FalconContainer
+// and only labels or annotations changed
+func (r *FalconContainerReconciler) shouldProcessServiceAccountUpdateEvent(oldObj, newObj client.Object) bool {
+	// If not on OpenShift, process all events
+	if !r.OpenShift {
+		return true
+	}
+
+	// Check if this ServiceAccount is owned by a FalconContainer
+	isOwnedByFalconContainer := false
+	for _, ref := range newObj.GetOwnerReferences() {
+		if ref.APIVersion == "falcon.crowdstrike.com/v1alpha1" &&
+			ref.Kind == "FalconContainer" &&
+			ref.Controller != nil && *ref.Controller {
+			isOwnedByFalconContainer = true
+			break
+		}
+	}
+
+	// If not owned by FalconContainer, process the event
+	if !isOwnedByFalconContainer {
+		return true
+	}
+
+	// For ServiceAccounts owned by FalconContainer on OpenShift,
+	// check if only metadata (labels/annotations) changed
+	return r.hasSignificantServiceAccountChanges(oldObj, newObj)
+}
+
+// hasSignificantServiceAccountChanges checks if there are changes beyond labels and annotations
+func (r *FalconContainerReconciler) hasSignificantServiceAccountChanges(oldObj, newObj client.Object) bool {
+	oldSA, oldOk := oldObj.(*corev1.ServiceAccount)
+	newSA, newOk := newObj.(*corev1.ServiceAccount)
+
+	if !oldOk || !newOk {
+		// If we can't cast to ServiceAccount, process the event to be safe
+		return true
+	}
+
+	// Check if significant fields changed (ignoring labels and annotations)
+	if oldSA.Name != newSA.Name ||
+		oldSA.Namespace != newSA.Namespace ||
+		oldSA.DeletionTimestamp != newSA.DeletionTimestamp ||
+		len(oldSA.Secrets) != len(newSA.Secrets) ||
+		len(oldSA.ImagePullSecrets) != len(newSA.ImagePullSecrets) ||
+		oldSA.AutomountServiceAccountToken != newSA.AutomountServiceAccountToken {
+		return true
+	}
+
+	// Check if Secrets changed
+	for i, secret := range oldSA.Secrets {
+		if i >= len(newSA.Secrets) || secret != newSA.Secrets[i] {
+			return true
+		}
+	}
+
+	// Check if ImagePullSecrets changed
+	for i, secret := range oldSA.ImagePullSecrets {
+		if i >= len(newSA.ImagePullSecrets) || secret != newSA.ImagePullSecrets[i] {
+			return true
+		}
+	}
+
+	// If we reach here, only labels/annotations might have changed
+	// Return false to ignore the event
+	return false
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -50,7 +141,7 @@ func (r *FalconContainerReconciler) SetupWithManager(mgr ctrl.Manager, tracker s
 		Owns(&corev1.Secret{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
-		Owns(&corev1.ServiceAccount{}).
+		Owns(&corev1.ServiceAccount{}, builder.WithPredicates(r.serviceAccountPredicate())).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&arv1.MutatingWebhookConfiguration{}).
 		Build(r)
