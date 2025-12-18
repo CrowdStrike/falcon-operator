@@ -198,6 +198,54 @@ func dsResources(node *falconv1alpha1.FalconNodeSensor) corev1.ResourceRequireme
 	return corev1.ResourceRequirements{}
 }
 
+func buildInitContainers(image string, node *falconv1alpha1.FalconNodeSensor) []corev1.Container {
+	privileged := true
+	escalation := true
+	runAsRoot := int64(0)
+
+	return []corev1.Container{
+		{
+			Name:      "init-falconstore",
+			Image:     image,
+			Command:   common.FalconShellCommand,
+			Args:      common.InitContainerArgs(),
+			Resources: initContainerResources(node),
+			SecurityContext: &corev1.SecurityContext{
+				Privileged:               &privileged,
+				RunAsUser:                &runAsRoot,
+				ReadOnlyRootFilesystem:   isInitReadOnlyRootFilesystem(node),
+				AllowPrivilegeEscalation: &escalation,
+				Capabilities:             sensorCapabilities(node, true),
+			},
+			Env: []corev1.EnvVar{
+				{
+					Name: "POD_NODE_NAME",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath: "spec.nodeName",
+						},
+					},
+				},
+			},
+		},
+		{
+			Name:  "init-preconfiguration",
+			Image: node.Spec.Node.PreconfigImage,
+			SecurityContext: &corev1.SecurityContext{
+				RunAsUser:                &runAsRoot,
+				ReadOnlyRootFilesystem:   isInitReadOnlyRootFilesystem(node),
+				AllowPrivilegeEscalation: &escalation,
+			},
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "opt-crowdstrike",
+					MountPath: "/opt/CrowdStrike",
+				},
+			},
+		},
+	}
+}
+
 // volumes returns the volumes for the daemonset
 func volumes() []corev1.Volume {
 	pathTypeUnset := corev1.HostPathUnset
@@ -230,74 +278,6 @@ func DaemonsetConfigMapName(node *falconv1alpha1.FalconNodeSensor) string {
 	}
 
 	return node.Name + "-config"
-}
-
-// buildInitContainers returns the init containers for the daemonset
-func buildInitContainers(image string, node *falconv1alpha1.FalconNodeSensor) []corev1.Container {
-	privileged := true
-	escalation := true
-	runAsRoot := int64(0)
-
-	initContainers := []corev1.Container{
-		{
-			Name:      "init-falconstore",
-			Image:     image,
-			Command:   common.FalconShellCommand,
-			Args:      common.InitContainerArgs(),
-			Resources: initContainerResources(node),
-			SecurityContext: &corev1.SecurityContext{
-				Privileged:               &privileged,
-				RunAsUser:                &runAsRoot,
-				ReadOnlyRootFilesystem:   isInitReadOnlyRootFilesystem(node),
-				AllowPrivilegeEscalation: &escalation,
-				Capabilities:             sensorCapabilities(node, true),
-			},
-			Env: []corev1.EnvVar{
-				{
-					Name: "POD_NODE_NAME",
-					ValueFrom: &corev1.EnvVarSource{
-						FieldRef: &corev1.ObjectFieldSelector{
-							FieldPath: "spec.nodeName",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	// Add init-configuration container if InitConfigImage is specified
-	if node.Spec.Node.InitConfigImage != "" {
-		initConfigContainer := corev1.Container{
-			Name:    "init-configuration",
-			Image:   node.Spec.Node.InitConfigImage,
-			Command: common.FalconShellCommand,
-			Args: []string{
-				"-c",
-				`# Check if AID file exists (indicating a restart)
-if [ -f /opt/CrowdStrike/falconstore ]; then
-    echo "AID detected, skipping configuration copy (restart scenario)"
-else
-    echo "No AID detected, copying configuration (first install)"
-    # Add your configuration copy logic here
-    # This is where the init container would copy pre-configuration
-fi`,
-			},
-			SecurityContext: &corev1.SecurityContext{
-				RunAsUser:                &runAsRoot,
-				ReadOnlyRootFilesystem:   isInitReadOnlyRootFilesystem(node),
-				AllowPrivilegeEscalation: &escalation,
-			},
-			VolumeMounts: []corev1.VolumeMount{
-				{
-					Name:      "opt-crowdstrike",
-					MountPath: "/opt/CrowdStrike",
-				},
-			},
-		}
-		initContainers = append(initContainers, initConfigContainer)
-	}
-
-	return initContainers
 }
 
 func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.FalconNodeSensor) *appsv1.DaemonSet {

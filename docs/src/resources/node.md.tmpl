@@ -57,7 +57,7 @@ spec:
 #### Node Configuration Settings
 | Spec                                | Description                                                                                                                                                                               |
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| node.initConfigImage                | (required) Location of the init-container image for pre-configuration. Only copies configuration on first install.                                                |
+| node.preconfigImage                 | (required) Location of the init-container image for preconfiguration. Only copies configuration on first install.                                                |
 | installNamespace                    | (optional) Override the default namespace of falcon-system                                                                                                                                |
 | node.tolerations                    | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ for examples on configuring tolerations                                                      |
 | node.nodeAffinity                   | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity                                                          |
