@@ -266,6 +266,7 @@ func main() {
 		Reader:     mgr.GetAPIReader(),
 		Scheme:     mgr.GetScheme(),
 		RestConfig: mgr.GetConfig(),
+		OpenShift:  openShift,
 	}).SetupWithManager(mgr, tracker); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconContainer")
 		os.Exit(1)

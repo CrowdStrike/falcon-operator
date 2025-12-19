@@ -73,6 +73,16 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log
 	}
 
 	deployment := assets.SideCarDeployment(injectorName, falconContainer.Spec.InstallNamespace, common.FalconSidecarSensor, imageUri, falconContainer)
+
+	if !r.OpenShift {
+		var runAsUser int64 = 1234
+		var runAsGroup int64 = 1234
+		deployment.Spec.Template.Spec.Containers[0].SecurityContext.RunAsUser = &runAsUser
+		deployment.Spec.Template.Spec.Containers[0].SecurityContext.RunAsGroup = &runAsGroup
+	} else {
+		log.V(1).Info("OpenShift cluster detected: skipping explicit UID/GID assignment as OpenShift manages security context automatically")
+	}
+
 	existingDeployment := &appsv1.Deployment{}
 
 	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
