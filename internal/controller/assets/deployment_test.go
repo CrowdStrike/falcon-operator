@@ -107,6 +107,7 @@ func testSideCarDeployment(name string, namespace string, component string, imag
 	certPath := "/etc/docker/certs.d/falcon-system-certs"
 	hostPathFile := corev1.HostPathFile
 	resources := &corev1.ResourceRequirements{}
+	allowPrivilegeEscalation := false
 	var rootUid int64 = 0
 	var readMode int32 = 420
 	runNonRoot := true
@@ -268,6 +269,9 @@ func testSideCarDeployment(name string, namespace string, component string, imag
 					},
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsNonRoot: &runNonRoot,
+						SeccompProfile: &corev1.SeccompProfile{
+							Type: corev1.SeccompProfileTypeRuntimeDefault,
+						},
 					},
 					InitContainers:     initContainers,
 					ServiceAccountName: common.SidecarServiceAccountName,
@@ -323,6 +327,9 @@ func testSideCarDeployment(name string, namespace string, component string, imag
 								FailureThreshold:    3,
 							},
 							Resources: *resources,
+							SecurityContext: &corev1.SecurityContext{
+								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+							},
 						},
 					},
 					Volumes: volumes,

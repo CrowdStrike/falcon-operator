@@ -37,6 +37,7 @@ type FalconContainerReconciler struct {
 	Log             logr.Logger
 	Scheme          *runtime.Scheme
 	RestConfig      *rest.Config
+	OpenShift       bool
 	reconcileObject func(client.Object)
 	tracker         sensorversion.Tracker
 }
