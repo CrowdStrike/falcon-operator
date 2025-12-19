@@ -578,7 +578,7 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 				updated = true
 			}
 			if updated {
-				log.Info("Updating FalconNodeSensor Deployment Proxy Settings")
+				log.Info("Updating FalconAdmission Deployment Proxy Settings")
 			}
 		}
 	}
