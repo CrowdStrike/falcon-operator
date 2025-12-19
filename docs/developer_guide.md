@@ -67,6 +67,12 @@ To run e2e testing, make sure that you are logged in to a running kubernetes clu
 make test-e2e
 ```
 
+To run e2e testing using OLM (Operator Lifecycle Manager) bundle installation:
+
+```sh
+make test-e2e BUNDLE_IMG="your-registry/falcon-operator-bundle:version"
+```
+
 To run integration tests, run the following command:
 
 ```sh
