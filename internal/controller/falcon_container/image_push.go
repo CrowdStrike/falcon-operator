@@ -17,6 +17,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/gcp"
 	"github.com/crowdstrike/falcon-operator/pkg/k8s_utils"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/auth"
+	"github.com/crowdstrike/falcon-operator/pkg/registry/falcon_registry"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pushtoken"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
@@ -172,6 +173,17 @@ func (r *FalconContainerReconciler) imageUri(ctx context.Context, falconContaine
 	imageTag, err := r.setImageTag(ctx, falconContainer)
 	if err != nil {
 		return "", fmt.Errorf("failed to set Falcon Container Image version: %v", err)
+	}
+
+	if falconContainer.Spec.Registry.Type == falconv1alpha1.RegistryTypeCrowdStrike {
+		semver := strings.Split(imageTag, "-")[0]
+		if !falcon_registry.IsMinimumUnifiedSensorVersion(semver, falcon.KacSensor) {
+			cloud, err := falconContainer.Spec.FalconAPI.FalconCloudWithSecret(ctx, r.Reader, falconContainer.Spec.FalconSecret)
+			if err != nil {
+				return "", err
+			}
+			registryUri = falcon.FalconContainerSensorImageURI(cloud, falcon.RegionedSidecarSensor)
+		}
 	}
 
 	return fmt.Sprintf("%s:%s", registryUri, imageTag), nil
