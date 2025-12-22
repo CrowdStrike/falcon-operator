@@ -6,11 +6,6 @@ import (
 	"strings"
 
 	"github.com/crowdstrike/gofalcon/falcon"
-	"golang.org/x/mod/semver"
-)
-
-const (
-	MinimumUnifiedSensorVersion = "7.31.0"
 )
 
 func (reg *FalconRegistry) LastNodeTag(ctx context.Context, versionRequested *string) (string, error) {
@@ -51,8 +46,4 @@ func UnifiedImageURINode(falconCloud falcon.CloudType) string {
 
 func CrowdstrikeRepoOverride(falconCloud falcon.CloudType, repoOverride string) string {
 	return fmt.Sprintf("%s/%s", registryFQDN(falconCloud), repoOverride)
-}
-
-func IsMinimumUnifiedSensorVersion(version string) bool {
-	return semver.Compare("v"+version, "v"+MinimumUnifiedSensorVersion) >= 0
 }
