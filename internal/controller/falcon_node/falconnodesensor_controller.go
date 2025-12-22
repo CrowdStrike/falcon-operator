@@ -701,52 +701,67 @@ func updateDaemonSetPriorityClass(ds, origDS *appsv1.DaemonSet, logger logr.Logg
 	return priorityClassUpdates
 }
 
-// reconcileDaemonSetContainers handles all init-container and container updates in a unified way
-// This replaces: updateDaemonSetImages, updateDaemonSetContainerVolumes, updateDaemonSetCapabilities,
-// updateDaemonSetEnv, updateDaemonSetResources, updateDaemonSetContainerProxy,
-// updateDaemonSetInitContainerResources, updateDaemonSetInitArgs
+// reconcileDaemonSetContainers handles all init-container and container updates
 func reconcileDaemonSetContainers(ds, origDS *appsv1.DaemonSet, origImg string, logger logr.Logger) bool {
 	updated := false
 
-	// Check if container count changed (new containers added/removed)
+	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
+		for i, container := range origDS.Spec.Template.Spec.Containers {
+			origDS.Spec.Template.Spec.Containers[i].Env = append(container.Env, proxy.ReadProxyVarsFromEnv()...)
+		}
+	}
+
+	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
+		for i, container := range ds.Spec.Template.Spec.Containers {
+			newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
+			updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
+			if !equality.Semantic.DeepEqual(ds.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
+				ds.Spec.Template.Spec.Containers[i].Env = newContainerEnv
+				updated = true
+			}
+			if !equality.Semantic.DeepEqual(ds.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
+				ds.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
+				updated = true
+			}
+			if updated {
+				logger.Info("Updating FalconNodeSensor DaemonSet Proxy Settings", "container", i)
+			}
+		}
+	}
+
+	// Reconcile each init container
 	if len(origDS.Spec.Template.Spec.InitContainers) != len(ds.Spec.Template.Spec.InitContainers) {
 		ds.Spec.Template.Spec.InitContainers = origDS.Spec.Template.Spec.InitContainers
 		updated = true
 		logger.Info("Updating FalconNodeSensor DaemonSet InitContainer count")
 	} else {
-		// Reconcile each init container
 		for i, origInitContainer := range origDS.Spec.Template.Spec.InitContainers {
 			initContainer := &ds.Spec.Template.Spec.InitContainers[i]
 
-			// Image updates (from updateDaemonSetImages)
 			if initContainer.Image != origImg {
 				initContainer.Image = origImg
 				updated = true
 				logger.Info("Updating FalconNodeSensor DaemonSet InitContainer image", "container", i, "Original Image", origImg, "Current Image", initContainer.Image)
 			}
 
-			// Args updates (from updateDaemonSetInitArgs)
 			if !equality.Semantic.DeepEqual(initContainer.Args, origInitContainer.Args) {
 				initContainer.Args = origInitContainer.Args
 				updated = true
 				logger.Info("Updating FalconNodeSensor DaemonSet init args", "container", i)
 			}
 
-			// Environment variables (from updateDaemonSetEnv)
 			if !equality.Semantic.DeepEqual(initContainer.Env, origInitContainer.Env) {
 				initContainer.Env = origInitContainer.Env
 				updated = true
 				logger.Info("Updating FalconNodeSensor DaemonSet InitContainer env", "container", i)
 			}
 
-			// Resources (from updateDaemonSetInitContainerResources)
 			if !equality.Semantic.DeepEqual(initContainer.Resources, origInitContainer.Resources) {
 				initContainer.Resources = origInitContainer.Resources
 				updated = true
 				logger.Info("Updating FalconNodeSensor DaemonSet InitContainer resources", "container", i)
 			}
 
-			// Security Context Capabilities (from updateDaemonSetCapabilities)
 			if initContainer.SecurityContext != nil && origInitContainer.SecurityContext != nil {
 				if !equality.Semantic.DeepEqual(initContainer.SecurityContext.Capabilities, origInitContainer.SecurityContext.Capabilities) {
 					initContainer.SecurityContext.Capabilities = origInitContainer.SecurityContext.Capabilities
@@ -755,7 +770,6 @@ func reconcileDaemonSetContainers(ds, origDS *appsv1.DaemonSet, origImg string, 
 				}
 			}
 
-			// Volume Mounts (from updateDaemonSetContainerVolumes)
 			if !equality.Semantic.DeepEqual(initContainer.VolumeMounts, origInitContainer.VolumeMounts) {
 				initContainer.VolumeMounts = origInitContainer.VolumeMounts
 				updated = true
@@ -764,38 +778,33 @@ func reconcileDaemonSetContainers(ds, origDS *appsv1.DaemonSet, origImg string, 
 		}
 	}
 
-	// Check if container count changed (new containers added/removed)
+	// Reconcile each main container
 	if len(origDS.Spec.Template.Spec.Containers) != len(ds.Spec.Template.Spec.Containers) {
 		ds.Spec.Template.Spec.Containers = origDS.Spec.Template.Spec.Containers
 		updated = true
 		logger.Info("Updating FalconNodeSensor DaemonSet Container count")
 	} else {
-		// Reconcile each main container
 		for i, origContainer := range origDS.Spec.Template.Spec.Containers {
 			container := &ds.Spec.Template.Spec.Containers[i]
 
-			// Image updates (from updateDaemonSetImages)
 			if container.Image != origImg {
 				container.Image = origImg
 				updated = true
 				logger.Info("Updating FalconNodeSensor DaemonSet image", "container", i, "Original Image", origImg, "Current Image", container.Image)
 			}
 
-			// Environment variables (from updateDaemonSetEnv)
 			if !equality.Semantic.DeepEqual(container.Env, origContainer.Env) {
 				container.Env = origContainer.Env
 				updated = true
 				logger.Info("Updating FalconNodeSensor DaemonSet Container env", "container", i)
 			}
 
-			// Resources (from updateDaemonSetResources)
 			if !equality.Semantic.DeepEqual(container.Resources, origContainer.Resources) {
 				container.Resources = origContainer.Resources
 				updated = true
 				logger.Info("Updating FalconNodeSensor DaemonSet resources", "container", i)
 			}
 
-			// Security Context Capabilities (from updateDaemonSetCapabilities)
 			if container.SecurityContext != nil && origContainer.SecurityContext != nil {
 				if !equality.Semantic.DeepEqual(container.SecurityContext.Capabilities, origContainer.SecurityContext.Capabilities) {
 					container.SecurityContext.Capabilities = origContainer.SecurityContext.Capabilities
@@ -804,30 +813,10 @@ func reconcileDaemonSetContainers(ds, origDS *appsv1.DaemonSet, origImg string, 
 				}
 			}
 
-			// Volume Mounts (from updateDaemonSetContainerVolumes)
 			if !equality.Semantic.DeepEqual(container.VolumeMounts, origContainer.VolumeMounts) {
 				container.VolumeMounts = origContainer.VolumeMounts
 				updated = true
 				logger.Info("Updating FalconNodeSensor DaemonSet Container volumeMounts", "container", i)
-			}
-		}
-
-		// Proxy environment variables (from updateDaemonSetContainerProxy)
-		if len(proxy.ReadProxyVarsFromEnv()) > 0 {
-			for i, container := range ds.Spec.Template.Spec.Containers {
-				newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
-				updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
-				if !equality.Semantic.DeepEqual(ds.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
-					ds.Spec.Template.Spec.Containers[i].Env = newContainerEnv
-					updated = true
-				}
-				if !equality.Semantic.DeepEqual(ds.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
-					ds.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
-					updated = true
-				}
-				if updated {
-					logger.Info("Updating FalconNodeSensor DaemonSet Proxy Settings", "container", i)
-				}
 			}
 		}
 	}
