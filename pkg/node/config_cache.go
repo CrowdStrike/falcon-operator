@@ -122,7 +122,7 @@ func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1a
 	} else {
 		imageUri = falcon_registry.ImageURINode(cloud)
 		if nodesensor.Status.Sensor != nil {
-			if falcon_registry.IsMinimumUnifiedSensorVersion(strings.Split(*nodesensor.Status.Sensor, "-")[0]) {
+			if falcon_registry.IsMinimumUnifiedSensorVersion(strings.Split(*nodesensor.Status.Sensor, "-")[0], falcon.NodeSensor) {
 				imageUri = falcon_registry.UnifiedImageURINode(cloud)
 			}
 		}

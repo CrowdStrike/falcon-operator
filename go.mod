@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.24.7
 	github.com/cert-manager/cert-manager v1.12.14
 	github.com/containers/image/v5 v5.31.1
-	github.com/crowdstrike/gofalcon v0.18.0
+	github.com/crowdstrike/gofalcon v0.18.1-0.20251219213215-c969f34e7808
 	github.com/go-logr/logr v1.4.2
 	github.com/go-openapi/swag v0.23.0
 	github.com/google/go-cmp v0.6.0
