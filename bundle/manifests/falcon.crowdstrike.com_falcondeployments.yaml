@@ -111,6 +111,11 @@ spec:
                         description: Determines if the admission controller webhook
                           is enabled
                         type: boolean
+                      configMapWatcherEnabled:
+                        default: true
+                        description: Determines if the admission controller watches
+                          for configMap events
+                        type: boolean
                       containerPort:
                         default: 4443
                         description: Port on which the Falcon Admission Controller
@@ -4273,6 +4278,13 @@ spec:
                             type: object
                             x-kubernetes-map-type: atomic
                         type: object
+                      preconfigImage:
+                        description: Location of the pre-configuration container image.
+                          This image should contain the configuration logic that runs
+                          before the main sensor.
+                        minLength: 1
+                        pattern: ^.*:.*$
+                        type: string
                       priorityClass:
                         description: Enable priority class for the DaemonSet. This
                           is useful for GKE Autopilot clusters, but can be set for
@@ -4461,6 +4473,8 @@ spec:
                           version will be selected when this version specifier is
                           missing.
                         type: string
+                    required:
+                    - preconfigImage
                     type: object
                 type: object
               falconSecret:

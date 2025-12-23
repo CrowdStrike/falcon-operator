@@ -198,6 +198,54 @@ func dsResources(node *falconv1alpha1.FalconNodeSensor) corev1.ResourceRequireme
 	return corev1.ResourceRequirements{}
 }
 
+func buildInitContainers(image string, node *falconv1alpha1.FalconNodeSensor) []corev1.Container {
+	privileged := true
+	escalation := true
+	runAsRoot := int64(0)
+
+	return []corev1.Container{
+		{
+			Name:      "init-falconstore",
+			Image:     image,
+			Command:   common.FalconShellCommand,
+			Args:      common.InitContainerArgs(),
+			Resources: initContainerResources(node),
+			SecurityContext: &corev1.SecurityContext{
+				Privileged:               &privileged,
+				RunAsUser:                &runAsRoot,
+				ReadOnlyRootFilesystem:   isInitReadOnlyRootFilesystem(node),
+				AllowPrivilegeEscalation: &escalation,
+				Capabilities:             sensorCapabilities(node, true),
+			},
+			Env: []corev1.EnvVar{
+				{
+					Name: "POD_NODE_NAME",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath: "spec.nodeName",
+						},
+					},
+				},
+			},
+		},
+		{
+			Name:  "init-preconfiguration",
+			Image: node.Spec.Node.PreconfigImage,
+			SecurityContext: &corev1.SecurityContext{
+				RunAsUser:                &runAsRoot,
+				ReadOnlyRootFilesystem:   isInitReadOnlyRootFilesystem(node),
+				AllowPrivilegeEscalation: &escalation,
+			},
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      "opt-crowdstrike",
+					MountPath: "/opt/CrowdStrike",
+				},
+			},
+		},
+	}
+}
+
 // volumes returns the volumes for the daemonset
 func volumes() []corev1.Volume {
 	pathTypeUnset := corev1.HostPathUnset
@@ -212,8 +260,16 @@ func volumes() []corev1.Volume {
 				},
 			},
 		},
+		{
+			Name: "opt-crowdstrike",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: "/opt/CrowdStrike",
+					Type: &pathTypeUnset,
+				},
+			},
+		},
 	}
-
 }
 
 func DaemonsetConfigMapName(node *falconv1alpha1.FalconNodeSensor) string {
@@ -269,33 +325,8 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 					TerminationGracePeriodSeconds: getTermGracePeriod(node),
 					ImagePullSecrets:              pullSecrets(node),
 					SecurityContext:               &podSecuityContext,
-					InitContainers: []corev1.Container{
-						{
-							Name:      "init-falconstore",
-							Image:     image,
-							Command:   common.FalconShellCommand,
-							Args:      common.InitContainerArgs(),
-							Resources: initContainerResources(node),
-							SecurityContext: &corev1.SecurityContext{
-								Privileged:               &privileged,
-								RunAsUser:                &runAsRoot,
-								ReadOnlyRootFilesystem:   isInitReadOnlyRootFilesystem(node),
-								AllowPrivilegeEscalation: &escalation,
-								Capabilities:             sensorCapabilities(node, true),
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name: "POD_NODE_NAME",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "spec.nodeName",
-										},
-									},
-								},
-							},
-						},
-					},
-					ServiceAccountName: serviceAccount,
+					InitContainers:                buildInitContainers(image, node),
+					ServiceAccountName:            serviceAccount,
 					Containers: []corev1.Container{
 						{
 							SecurityContext: &corev1.SecurityContext{
