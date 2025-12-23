@@ -51,13 +51,30 @@ func (r *FalconImageAnalyzerReconciler) reconcileServiceAccount(ctx context.Cont
 		return err
 	}
 
-	if !reflect.DeepEqual(serviceAccount.ObjectMeta.Annotations, existingServiceAccount.ObjectMeta.Annotations) {
-		existingServiceAccount.ObjectMeta.Annotations = serviceAccount.ObjectMeta.Annotations
-		update = true
+	// Check if any annotations from serviceAccount need to be added to existingServiceAccount
+	if serviceAccount.ObjectMeta.Annotations != nil {
+		if existingServiceAccount.ObjectMeta.Annotations == nil {
+			existingServiceAccount.ObjectMeta.Annotations = make(map[string]string)
+		}
+		for key, value := range serviceAccount.ObjectMeta.Annotations {
+			if existingValue, exists := existingServiceAccount.ObjectMeta.Annotations[key]; !exists || existingValue != value {
+				existingServiceAccount.ObjectMeta.Annotations[key] = value
+				update = true
+			}
+		}
 	}
-	if !reflect.DeepEqual(serviceAccount.ObjectMeta.Labels, existingServiceAccount.ObjectMeta.Labels) {
-		existingServiceAccount.ObjectMeta.Labels = serviceAccount.ObjectMeta.Labels
-		update = true
+
+	// Check if any labels from serviceAccount need to be added to existingServiceAccount
+	if serviceAccount.ObjectMeta.Labels != nil {
+		if existingServiceAccount.ObjectMeta.Labels == nil {
+			existingServiceAccount.ObjectMeta.Labels = make(map[string]string)
+		}
+		for key, value := range serviceAccount.ObjectMeta.Labels {
+			if existingValue, exists := existingServiceAccount.ObjectMeta.Labels[key]; !exists || existingValue != value {
+				existingServiceAccount.ObjectMeta.Labels[key] = value
+				update = true
+			}
+		}
 	}
 
 	if update {
