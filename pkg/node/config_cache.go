@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensor"
@@ -91,8 +92,40 @@ func (cc *ConfigCache) SensorEnvVars() map[string]string {
 	if cc.nodesensor.Spec.Falcon.Cloud != "" {
 		sensorConfig["FALCONCTL_OPT_CLOUD"] = cc.nodesensor.Spec.Falcon.Cloud
 	}
+	if cc.nodesensor.Spec.Node.ClusterName != nil {
+		sensorConfig["FALCON_CLUSTER_NAME"] = sanitizeClusterName(cc.nodesensor.Spec.Node.ClusterName)
+	}
 
 	return sensorConfig
+}
+
+func sanitizeClusterName(clusterName *string) string {
+	if clusterName == nil {
+		return ""
+	}
+
+	if !isClusterNameValid(*clusterName) {
+		return ""
+	}
+
+	return *clusterName
+}
+
+// isClusterNameValid validates the clusterName.
+// Those rules had been taken from EKS (Amazon AWS).
+// See more at: https://docs.aws.amazon.com/eks/latest/APIReference/API_CreateCluster.html#API_CreateCluster_RequestSyntax
+func isClusterNameValid(clusterName string) bool {
+	if len(clusterName) > 100 || len(clusterName) == 0 {
+		return false
+	}
+
+	if !unicode.IsLetter(rune(clusterName[0])) && !unicode.IsNumber(rune(clusterName[0])) {
+		return false
+	}
+
+	return !strings.ContainsFunc(clusterName, func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsNumber(r) && r != '-' && r != '_'
+	})
 }
 
 func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1alpha1.FalconNodeSensor) (string, error) {
