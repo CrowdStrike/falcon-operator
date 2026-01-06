@@ -148,7 +148,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2025-11-18T23:39:10Z"
+    createdAt: "2026-01-06T23:11:25Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -165,7 +165,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
-  name: falcon-operator.v1.9.0
+  name: falcon-operator.v1.10.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -423,6 +423,10 @@ spec:
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: admissionConfig.nodeAffinity
+      - description: Determines if the admission controller watches for configMap
+          events
+        displayName: Enable ConfigMap Event Watcher
+        path: admissionConfig.configMapWatcherEnabled
       - description: Namespace where Falcon Image Analyzer is installed. KAC needs
           to know this to discover and communicate with IAR.
         displayName: Falcon Image Analyzer Namespace
@@ -1482,6 +1486,10 @@ spec:
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: falconAdmission.admissionConfig.nodeAffinity
+      - description: Determines if the admission controller watches for configMap
+          events
+        displayName: Enable ConfigMap Event Watcher
+        path: falconAdmission.admissionConfig.configMapWatcherEnabled
       - description: Namespace where Falcon Image Analyzer is installed. KAC needs
           to know this to discover and communicate with IAR.
         displayName: Falcon Image Analyzer Namespace
@@ -2087,6 +2095,14 @@ spec:
           - update
           - watch
         - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
           - apps
           resources:
           - daemonsets
@@ -2177,6 +2193,16 @@ spec:
           - patch
           - update
         - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - gatewayclasses
+          - gateways
+          - httproutes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
           - image.openshift.io
           resources:
           - imagestreams
@@ -2186,6 +2212,23 @@ spec:
           - get
           - list
           - update
+          - watch
+        - apiGroups:
+          - networking.istio.io
+          resources:
+          - virtualservices
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses
+          - networkpolicies
+          verbs:
+          - get
+          - list
           - watch
         - apiGroups:
           - rbac.authorization.k8s.io
@@ -2287,7 +2330,7 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: OPERATOR_NAME
                   value: falcon-operator
-                image: quay.io/crowdstrike/falcon-operator:1.9.0
+                image: quay.io/crowdstrike/falcon-operator:1.10.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -2386,4 +2429,4 @@ spec:
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
-  version: 1.9.0
+  version: 1.10.0
