@@ -4279,10 +4279,9 @@ spec:
                             x-kubernetes-map-type: atomic
                         type: object
                       preconfigImage:
-                        description: Location of the pre-configuration container image.
-                          This image should contain the configuration logic that runs
-                          before the main sensor.
-                        minLength: 1
+                        description: |-
+                          Location of the pre-configuration container image. This image should contain the configuration logic that runs before the main sensor.
+                          This field is optional. If provided, a preconfiguration init container will be added to extract configuration only on first install.
                         pattern: ^.*:.*$
                         type: string
                       priorityClass:
@@ -4473,8 +4472,6 @@ spec:
                           version will be selected when this version specifier is
                           missing.
                         type: string
-                    required:
-                    - preconfigImage
                     type: object
                 type: object
               falconSecret:

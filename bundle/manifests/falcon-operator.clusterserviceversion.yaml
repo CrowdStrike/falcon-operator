@@ -965,8 +965,9 @@ spec:
           mirror the original image to your repository/name:tag
         displayName: Image
         path: falconNodeSensor.node.image
-      - description: Location of the pre-configuration container image. This image
-          should contain the configuration logic that runs before the main sensor.
+      - description: |-
+          Location of the pre-configuration container image. This image should contain the configuration logic that runs before the main sensor.
+          This field is optional. If provided, a preconfiguration init container will be added to extract configuration only on first install.
         displayName: Preconfig Image
         path: falconNodeSensor.node.preconfigImage
       - description: Enables the operator to deploy a PriorityClass instead of rolling
@@ -1832,8 +1833,9 @@ spec:
           mirror the original image to your repository/name:tag
         displayName: Image
         path: node.image
-      - description: Location of the pre-configuration container image. This image
-          should contain the configuration logic that runs before the main sensor.
+      - description: |-
+          Location of the pre-configuration container image. This image should contain the configuration logic that runs before the main sensor.
+          This field is optional. If provided, a preconfiguration init container will be added to extract configuration only on first install.
         displayName: Preconfig Image
         path: node.preconfigImage
       - description: Enables the operator to deploy a PriorityClass instead of rolling
