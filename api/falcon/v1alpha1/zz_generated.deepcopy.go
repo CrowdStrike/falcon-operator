@@ -1299,6 +1299,11 @@ func (in *FalconNodeSensorConfig) DeepCopyInto(out *FalconNodeSensorConfig) {
 		}
 	}
 	in.NodeAffinity.DeepCopyInto(&out.NodeAffinity)
+	if in.PreconfigImage != nil {
+		in, out := &in.PreconfigImage, &out.PreconfigImage
+		*out = new(string)
+		**out = **in
+	}
 	if in.ImagePullSecrets != nil {
 		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
 		*out = make([]corev1.LocalObjectReference, len(*in))

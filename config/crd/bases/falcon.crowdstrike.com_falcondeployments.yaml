@@ -4286,6 +4286,12 @@ spec:
                             type: object
                             x-kubernetes-map-type: atomic
                         type: object
+                      preconfigImage:
+                        description: |-
+                          Location of the pre-configuration container image. This image should contain the configuration logic that runs before the main sensor.
+                          This field is optional. If provided, a preconfiguration init container will be added to extract configuration only on first install.
+                        pattern: ^.*:.*$
+                        type: string
                       priorityClass:
                         description: Enable priority class for the DaemonSet. This
                           is useful for GKE Autopilot clusters, but can be set for
