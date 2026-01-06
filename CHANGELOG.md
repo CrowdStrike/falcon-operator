@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-01-06
+
+### Changed
+
+- remove codeql workflow (#753)
+- fix(IAR): Ensure annotations added outside of the operator do not cause reconcile loops for service accounts (#749)
+- feat: Add unified sensor support for KAC and Lumos (#747)
+- feat: Add e2e tests for OLM (#745)
+- chore(lumos): Add injector container hardening (#742)
+- fix(FalconNodeSensor): Add check for incorrect sensor in init container (#738)
+- update docs with allowed secret name for GKE autopilot
+- feat(KAC): Add configMap monitoring (#739)
+- fix: Ensure daemonset pods are recreated when imagePullSecrets is updated (#729)
+- fix(falcon-kac): Ensure all containers are updated for in-place upgrades (#730)
+
 ## [1.9.0] - 2025-11-18
 
 ### Changed
