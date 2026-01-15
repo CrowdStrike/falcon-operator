@@ -58,7 +58,7 @@ func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Conte
 			}
 			return injectorTLSSecret, r.Create(ctx, log, falconContainer, injectorTLSSecret)
 		}
-		return &corev1.Secret{}, fmt.Errorf("unable to query existing injector TL secret %s: %v", injectorTLSSecretName, err)
+		return &corev1.Secret{}, fmt.Errorf("unable to query existing injector TLS secret %s: %v", injectorTLSSecretName, err)
 	}
 	return existingInjectorTLSSecret, nil
 
