@@ -86,6 +86,13 @@ func (r *FalconAdmissionReconciler) GetK8sReader() client.Reader {
 //+kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=validatingwebhookconfigurations,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=create;get;list;update;watch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=create;get;list;update;watch;delete
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch
+//+kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations,verbs=get;list;watch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=get;list;watch
+//+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies;ingresses,verbs=get;list;watch
+//+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
+//+kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gatewayclasses;gateways;httproutes,verbs=get;list;watch
+//+kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -254,6 +261,11 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	clusterNameConfigUpdated, err := r.reconcileClusterNameConfigMap(ctx, req, log, falconAdmission)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	serviceUpdated, err := r.reconcileService(ctx, req, log, falconAdmission)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -279,7 +291,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	if configUpdated || serviceUpdated || webhookUpdated {
+	if configUpdated || clusterNameConfigUpdated || serviceUpdated || webhookUpdated {
 		err = r.admissionDeploymentUpdate(ctx, req, log, falconAdmission)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -365,7 +377,11 @@ func (r *FalconAdmissionReconciler) reconcileTLSSecret(ctx context.Context, req 
 			"ca.crt":  b,
 		}
 
-		admissionTLSSecret := assets.Secret(name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, secretData, corev1.SecretTypeTLS)
+		labels := common.CRLabels("secret", name, common.FalconAdmissionController)
+		labels[common.AppLabelKey] = common.FalconAdmissionServiceApp
+		labels[common.KubernetesComponentKey] = common.FalconAdmissionComponentName
+		labels[common.KubernetesNameKey] = falconAdmission.Name
+		admissionTLSSecret := assets.SecretWithCustomLabels(name, falconAdmission.Spec.InstallNamespace, secretData, corev1.SecretTypeTLS, labels)
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, admissionTLSSecret)
 		if err != nil {
 			return &corev1.Secret{}, err
@@ -388,7 +404,21 @@ func (r *FalconAdmissionReconciler) reconcileService(ctx context.Context, req ct
 		port = *falconAdmission.Spec.AdmissionConfig.Port
 	}
 
-	service := assets.Service(falconAdmission.Name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, selector, common.FalconAdmissionServiceHTTPSName, port)
+	// Add labels required for IAR -> KAC communication
+	labels := common.CRLabels("service", falconAdmission.Name, common.FalconAdmissionController)
+	labels[common.AppLabelKey] = common.FalconAdmissionServiceApp
+	labels[common.KubernetesComponentKey] = common.FalconAdmissionComponentName
+	labels[common.KubernetesNameKey] = falconAdmission.Name
+
+	service := assets.ServiceWithCustomLabels(
+		falconAdmission.Name,
+		falconAdmission.Spec.InstallNamespace,
+		selector,
+		labels,
+		common.FalconAdmissionServiceHTTPSName,
+		common.FalconServiceHTTPSName,
+		port,
+	)
 
 	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingService)
 
@@ -553,23 +583,8 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		}
 	}
 
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].Image, existingDeployment.Spec.Template.Spec.Containers[0].Image) {
-		existingDeployment.Spec.Template.Spec.Containers[0].Image = dep.Spec.Template.Spec.Containers[0].Image
-		updated = true
-	}
-
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].ImagePullPolicy, existingDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy) {
-		existingDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy = dep.Spec.Template.Spec.Containers[0].ImagePullPolicy
-		updated = true
-	}
-
 	if !reflect.DeepEqual(dep.Spec.Template.Spec.ImagePullSecrets, existingDeployment.Spec.Template.Spec.ImagePullSecrets) {
 		existingDeployment.Spec.Template.Spec.ImagePullSecrets = dep.Spec.Template.Spec.ImagePullSecrets
-		updated = true
-	}
-
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].Ports, existingDeployment.Spec.Template.Spec.Containers[0].Ports) {
-		existingDeployment.Spec.Template.Spec.Containers[0].Ports = dep.Spec.Template.Spec.Containers[0].Ports
 		updated = true
 	}
 
@@ -603,6 +618,25 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		updated = true
 	} else {
 		for i, containers := range dep.Spec.Template.Spec.Containers {
+			if containers.Name == "falcon-client" || containers.Name == "falcon-watcher" {
+				if !reflect.DeepEqual(containers.Ports, existingDeployment.Spec.Template.Spec.Containers[i].Ports) {
+					existingDeployment.Spec.Template.Spec.Containers[i].Ports = containers.Ports
+					updated = true
+				}
+			}
+
+			if !reflect.DeepEqual(containers.Image, existingDeployment.Spec.Template.Spec.Containers[i].Image) {
+				for i := range existingDeployment.Spec.Template.Spec.Containers {
+					existingDeployment.Spec.Template.Spec.Containers[i].Image = containers.Image
+				}
+				updated = true
+			}
+
+			if !reflect.DeepEqual(containers.ImagePullPolicy, existingDeployment.Spec.Template.Spec.Containers[i].ImagePullPolicy) {
+				existingDeployment.Spec.Template.Spec.Containers[i].ImagePullPolicy = containers.ImagePullPolicy
+				updated = true
+			}
+
 			if !reflect.DeepEqual(containers.Resources, existingDeployment.Spec.Template.Spec.Containers[i].Resources) {
 				existingDeployment.Spec.Template.Spec.Containers[i].Resources = containers.Resources
 				updated = true

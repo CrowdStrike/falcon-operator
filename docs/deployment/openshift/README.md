@@ -14,25 +14,30 @@ If you want to automate the deployment of the operator, the CLI method is recomm
 ## Prerequisites
 
 > [!IMPORTANT]
-> - The correct CrowdStrike Cloud (not Endpoint) subscription
-> - CrowdStrike API Key Pair (*if installing the CrowdStrike Sensor via the CrowdStrike API*)
->
->    > If you need help creating a new API key pair, review our docs: [CrowdStrike Falcon](https://falcon.crowdstrike.com/support/api-clients-and-keys).
->
->  Make sure to assign the following permissions to the key pair:
->  - Falcon Images Download: **Read**
->  - Sensor Download: **Read**
+> OpenShift can be deployed in many different form factors. Please review _all_ prerequisite sections below before proceeding.
+
+### Falcon Platform Requirements
+
+- The correct CrowdStrike Cloud (not Endpoint) subscription
+- CrowdStrike API Key Pair (*if installing the CrowdStrike Sensor via the CrowdStrike API*)
+  - If you need help creating a new API key pair, review our docs: [CrowdStrike Falcon](https://falcon.crowdstrike.com/support/api-clients-and-keys).
+- Make sure to assign the following permissions to the key pair:
+  - Falcon Images Download: **Read**
+  - Sensor Download: **Read**
 
 ### Managed OpenShift Considerations
 
-> [!IMPORTANT]
-> On managed OpenShift services (e.g. ROSA Classic, ARO, RHOIC, OSD), Red Hat does not support running any workloads on control plane and infrastructure nodes (including OpenShift-certified operators like this one). For managed OpenShift services that provide access to control plane nodes _only_, you must choose one of these deployment options:
->
-> 1. **Deploy the Falcon sensor only to worker nodes.** This introduces risk by not having visibility and protection on control plane and infrastructure nodes, but maintains full support from Red Hat Site Reliability Engineering (SRE). To do so, set `spec.node.tolerations: []` on `FalconNodeSensor`.
->
-> 2. **Deploy the Falcon sensor to all nodes.** This provides full protection for the cluster, but may prevent Red Hat SRE from maintaining your service level agreement (SLA) for availability. We recommend working with your Red Hat account team to submit a support exception in this case. This is the default behavior of the operator, so no configuration is required. For more information, see the Red Hat support article [Running custom workloads in OSD/ROSA control plane or infra nodes](https://access.redhat.com/solutions/6972101).
->
-> These constraints are specific to managed OpenShift services. ROSA with Hosted Control Planes (HCP) is not affected because it does not provide access to the control plane. The Falcon sensor is _always_ supported on _all_ node types for self-managed OpenShift clusters, regardless of whether they are running on-premises or in the cloud.
+On managed OpenShift services (e.g. ROSA Classic, ARO, RHOIC, OSD), Red Hat does not support running any workloads on control plane and infrastructure nodes (including OpenShift-certified operators like this one). For managed OpenShift services that provide access to control plane nodes _only_, you must choose one of these deployment options:
+
+1. **Deploy the Falcon sensor only to worker nodes.** This introduces risk by not having visibility and protection on control plane and infrastructure nodes, but maintains full support from Red Hat Site Reliability Engineering (SRE). To do so, set `spec.node.tolerations: []` on `FalconNodeSensor`.
+
+2. **Deploy the Falcon sensor to all nodes.** This provides full protection for the cluster, but may prevent Red Hat SRE from maintaining your service level agreement (SLA) for availability. We recommend working with your Red Hat account team to submit a support exception in this case. This is the default behavior of the operator, so no configuration is required. For more information, see the Red Hat support article [Running custom workloads in OSD/ROSA control plane or infra nodes](https://access.redhat.com/solutions/6972101).
+
+These constraints are specific to managed OpenShift services. ROSA with Hosted Control Planes (HCP) is not affected because it does not provide access to the control plane. The Falcon sensor is _always_ supported on _all_ node types for self-managed OpenShift clusters, regardless of whether they are running on-premises or in the cloud.
+
+### Installing on Disconnected Clusters
+
+While the Falcon sensor requires a connection to the CrowdStrike Cloud, customers installing semi-disconnected clusters with `oc mirror` can still deploy the Falcon operator. The destination cluster must support an outbound connection the CrowdStrike Cloud, i.e. the cluster cannot be fully air-gapped. Refer to [Installing with `oc mirror`](oc-mirror.md).
 
 ## Installing the operator through the Web Console (GUI)
 

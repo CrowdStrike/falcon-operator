@@ -58,6 +58,11 @@ spec:
                     description: Determines if the admission controller webhook is
                       enabled
                     type: boolean
+                  configMapWatcherEnabled:
+                    default: true
+                    description: Determines if the admission controller watches for
+                      configMap events
+                    type: boolean
                   containerPort:
                     default: 4443
                     description: Port on which the Falcon Admission Controller container
@@ -89,6 +94,11 @@ spec:
                     enum:
                     - Ignore
                     - Fail
+                    type: string
+                  falconImageAnalyzerNamespace:
+                    default: falcon-iar
+                    description: Namespace where Falcon Image Analyzer is installed.
+                      KAC needs to know this to discover and communicate with IAR.
                     type: string
                   imagePullPolicy:
                     default: Always
@@ -726,6 +736,11 @@ spec:
                       cluster visibility.
                     type: boolean
                 type: object
+              clusterName:
+                description: Cluster Name if Falcon KAC cannot discover the cluster
+                  name. This will be overwritten if Falcon KAC is able to discover
+                  the cluster name.
+                type: string
               falcon:
                 default: {}
                 description: CrowdStrike Falcon sensor configuration

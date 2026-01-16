@@ -29,6 +29,7 @@ type ImageRepository struct {
 	api                   sensorUpdatePoliciesAPI
 	getSystemArchitecture func() string
 	tags                  tagRegistry
+	overrideImageUri      string
 }
 
 func NewImageRepository(ctx context.Context, apiConfig *falcon.ApiConfig) (ImageRepository, error) {
@@ -66,6 +67,10 @@ func (images ImageRepository) GetPreferredImage(ctx context.Context, sensorType 
 
 	logger.Info("selected sensor image", "tag", tag)
 	return tag, nil
+}
+
+func (images *ImageRepository) SetOverrideImageUri(imageUri string) {
+	images.tags.SetCrowdstrikeRepoOverride(imageUri)
 }
 
 func (images ImageRepository) findPolicy(policyName string) (string, error) {
@@ -108,6 +113,9 @@ func (images ImageRepository) findSensorVersionByUpdatePolicy(updatePolicy strin
 
 func (images ImageRepository) getImageTagForSensorVersion(ctx context.Context, sensorType falcon.SensorType, version *string) (string, error) {
 	if sensorType == falcon.NodeSensor {
+		if images.overrideImageUri != "" {
+			images.tags.SetCrowdstrikeRepoOverride(images.overrideImageUri)
+		}
 		return images.tags.LastNodeTag(ctx, version)
 	}
 
@@ -227,4 +235,5 @@ type sensorUpdatePoliciesAPI interface {
 type tagRegistry interface {
 	LastContainerTag(ctx context.Context, sensorType falcon.SensorType, versionRequested *string) (string, error)
 	LastNodeTag(ctx context.Context, versionRequested *string) (string, error)
+	SetCrowdstrikeRepoOverride(repo string)
 }

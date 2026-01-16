@@ -12,6 +12,7 @@ const (
 	FalconDaemonsetInitBinary               = "/opt/CrowdStrike/falcon-daemonset-init -i"
 	FalconDaemonsetConfigureClusterIdBinary = "/opt/CrowdStrike/configure-cluster-id"
 	FalconDaemonsetCleanupBinary            = "/opt/CrowdStrike/falcon-daemonset-init -u"
+	FalconDaemonsetBinary                   = "/opt/CrowdStrike/falcon-daemonset-init"
 	FalconContainerProbePath                = "/live"
 	FalconAdmissionClientStartupProbePath   = "/startz"
 	FalconAdmissionClientLivenessProbePath  = "/livez"
@@ -21,7 +22,18 @@ const (
 	FalconServiceHTTPSName                  = "https"
 	FalconServiceHTTPSPort                  = 443
 	FalconAdmissionValidatingWebhookName    = "validating.admission.falcon.crowdstrike.com"
+	FalconAdmissionClusterNameConfigMapName = "falcon-kac-meta"
+	FalconAdmissionComponentName            = "kac"
+	FalconAdmissionServiceApp               = "falcon-kac"
+	FalconImageAnalyzerComponentName        = "iar"
+	FalconImageAnalyzerAgentService         = "iar-agent-service"
+	FalconImageAnalyzerAgentServiceApp      = "falcon-image-analyzer"
+	FalconImageAnalyzerAgentServicePort     = 443
+	FalconImageAnalyzerAgentServicePortName = "service-port"
 
+	AppLabelKey              = "app"
+	KubernetesComponentKey   = "app.kubernetes.io/component"
+	KubernetesNameKey        = "app.kubernetes.io/name"
 	FalconInstanceNameKey    = "crowdstrike.com/name"
 	FalconInstanceKey        = "crowdstrike.com/instance"
 	FalconComponentKey       = "crowdstrike.com/component"

@@ -37,6 +37,7 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 	certPath := "/etc/docker/certs.d/falcon-system-certs"
 	hostPathFile := corev1.HostPathFile
 	resources := &corev1.ResourceRequirements{}
+	allowPrivilegeEscalation := false
 	var rootUid int64 = 0
 	var readMode int32 = 420
 	runNonRoot := true
@@ -177,6 +178,9 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 					},
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsNonRoot: &runNonRoot,
+						SeccompProfile: &corev1.SeccompProfile{
+							Type: corev1.SeccompProfileTypeRuntimeDefault,
+						},
 					},
 					InitContainers:     initContainers,
 					ServiceAccountName: common.SidecarServiceAccountName,
@@ -232,6 +236,9 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 								FailureThreshold:    3,
 							},
 							Resources: *resources,
+							SecurityContext: &corev1.SecurityContext{
+								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+							},
 						},
 					},
 					Volumes: volumes,
@@ -273,12 +280,25 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 				},
 			},
 		},
+		{
+			Name: name + "-tls-certs",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: name + "-tls",
+				},
+			},
+		},
 	}
 
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "tmp-volume",
 			MountPath: falconImageAnalyzer.Spec.ImageAnalyzerConfig.VolumeMountPath,
+		},
+		{
+			Name:      name + "-tls-certs",
+			MountPath: "/run/secrets/tls",
+			ReadOnly:  true,
 		},
 	}
 
@@ -344,6 +364,13 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 							Image:           imageUri,
 							ImagePullPolicy: falconImageAnalyzer.Spec.ImageAnalyzerConfig.ImagePullPolicy,
 							Args:            []string{"-runmode", "watcher"},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: falconImageAnalyzer.Spec.ImageAnalyzerConfig.IARAgentService.Port,
+									Name:          common.FalconImageAnalyzerAgentServicePortName,
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -460,6 +487,43 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 		log.Info("ignoring Replicas setting as only one is currently supported")
 	}
 
+	falconClientEnv := []corev1.EnvVar{
+		{
+			Name: "__CS_POD_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.namespace",
+				},
+			},
+		},
+		{
+			Name: "__CS_POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.name",
+				},
+			},
+		},
+		{
+			Name: "__CS_POD_NODENAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "spec.nodeName",
+				},
+			},
+		},
+	}
+
+	if falconAdmission.Spec.AdmissionConfig.FalconImageAnalyzerNamespace != "" {
+		falconClientEnv = append(falconClientEnv, corev1.EnvVar{
+			Name:  "__CS_IAR_NAMESPACE",
+			Value: falconAdmission.Spec.AdmissionConfig.FalconImageAnalyzerNamespace,
+		})
+	}
+
 	kacContainers := &[]corev1.Container{
 		{
 			Name:            "falcon-client",
@@ -476,35 +540,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 					},
 				},
 			},
-			Env: []corev1.EnvVar{
-				{
-					Name: "__CS_POD_NAMESPACE",
-					ValueFrom: &corev1.EnvVarSource{
-						FieldRef: &corev1.ObjectFieldSelector{
-							APIVersion: "v1",
-							FieldPath:  "metadata.namespace",
-						},
-					},
-				},
-				{
-					Name: "__CS_POD_NAME",
-					ValueFrom: &corev1.EnvVarSource{
-						FieldRef: &corev1.ObjectFieldSelector{
-							APIVersion: "v1",
-							FieldPath:  "metadata.name",
-						},
-					},
-				},
-				{
-					Name: "__CS_POD_NODENAME",
-					ValueFrom: &corev1.EnvVarSource{
-						FieldRef: &corev1.ObjectFieldSelector{
-							APIVersion: "v1",
-							FieldPath:  "spec.nodeName",
-						},
-					},
-				},
-			},
+			Env: falconClientEnv,
 			EnvFrom: []corev1.EnvFromSource{
 				{
 					ConfigMapRef: &corev1.ConfigMapEnvSource{

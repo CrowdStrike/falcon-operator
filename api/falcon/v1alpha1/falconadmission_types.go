@@ -15,6 +15,7 @@ const (
 	SnapshotsIntervalDefault       = 22
 	WatcherEnabledDefault          = true
 	AdmissionControlEnabledDefault = true
+	ConfigMapWatcherEnabledDefault = true
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -77,6 +78,10 @@ type FalconAdmissionSpec struct {
 	// Falcon Admission Controller Version. The latest version will be selected when version specifier is missing. Example: 6.31, 6.31.0, 6.31.0-1409, etc.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Version",order=9
 	Version *string `json:"version,omitempty"`
+
+	// Cluster Name if Falcon KAC cannot discover the cluster name. This will be overwritten if Falcon KAC is able to discover the cluster name.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Cluster Name",order=10
+	ClusterName *string `json:"clusterName,omitempty"`
 }
 
 type FalconAdmissionRQSpec struct {
@@ -149,6 +154,16 @@ type FalconAdmissionConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Admission Controller",order=18
 	AdmissionControlEnabled *bool `json:"admissionControlEnabled,omitempty"`
 
+	// Determines if the admission controller watches for configMap events
+	// +kubebuilder:default:=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable ConfigMap Event Watcher",order=19
+	ConfigMapWatcherEnabled *bool `json:"configMapWatcherEnabled,omitempty"`
+
+	// Namespace where Falcon Image Analyzer is installed. KAC needs to know this to discover and communicate with IAR.
+	// +kubebuilder:default:="falcon-iar"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Namespace",order=20
+	FalconImageAnalyzerNamespace string `json:"falconImageAnalyzerNamespace,omitempty"`
+
 	// Currently ignored and internally set to 1
 	// +kubebuilder:default:=2
 	// +kubebuilder:validation:XIntOrString
@@ -213,7 +228,7 @@ type FalconAdmissionTLS struct {
 	// Validity of the TLS certificate in days. Default is 3650 days.
 	// +kubebuilder:validation:XIntOrString
 	// +kubebuilder:validation:Pattern="^[0-9]{1-4}$"
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Injector TLS Validity Length (days)",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller TLS Validity Length (days)",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	Validity *int `json:"validity,omitempty"`
 }
 
@@ -307,6 +322,14 @@ func (ac *FalconAdmission) GetAdmissionControlEnabled() bool {
 	}
 
 	return *ac.Spec.AdmissionConfig.AdmissionControlEnabled
+}
+
+func (ac *FalconAdmissionConfigSpec) GetConfigMapWatcherEnabled() bool {
+	if ac.ConfigMapWatcherEnabled == nil {
+		return ConfigMapWatcherEnabledDefault
+	}
+
+	return *ac.ConfigMapWatcherEnabled
 }
 
 func (ac *FalconAdmission) GetFalconSecretSpec() FalconSecret {

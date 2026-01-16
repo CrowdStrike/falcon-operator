@@ -72,6 +72,11 @@ spec:
                     description: Determines if the admission controller webhook is
                       enabled
                     type: boolean
+                  configMapWatcherEnabled:
+                    default: true
+                    description: Determines if the admission controller watches for
+                      configMap events
+                    type: boolean
                   containerPort:
                     default: 4443
                     description: Port on which the Falcon Admission Controller container
@@ -103,6 +108,11 @@ spec:
                     enum:
                     - Ignore
                     - Fail
+                    type: string
+                  falconImageAnalyzerNamespace:
+                    default: falcon-iar
+                    description: Namespace where Falcon Image Analyzer is installed.
+                      KAC needs to know this to discover and communicate with IAR.
                     type: string
                   imagePullPolicy:
                     default: Always
@@ -700,6 +710,11 @@ spec:
                       cluster visibility.
                     type: boolean
                 type: object
+              clusterName:
+                description: Cluster Name if Falcon KAC cannot discover the cluster
+                  name. This will be overwritten if Falcon KAC is able to discover
+                  the cluster name.
+                type: string
               falcon:
                 default: {}
                 description: CrowdStrike Falcon sensor configuration
@@ -3506,6 +3521,11 @@ spec:
                         description: Determines if the admission controller webhook
                           is enabled
                         type: boolean
+                      configMapWatcherEnabled:
+                        default: true
+                        description: Determines if the admission controller watches
+                          for configMap events
+                        type: boolean
                       containerPort:
                         default: 4443
                         description: Port on which the Falcon Admission Controller
@@ -3538,6 +3558,12 @@ spec:
                         enum:
                         - Ignore
                         - Fail
+                        type: string
+                      falconImageAnalyzerNamespace:
+                        default: falcon-iar
+                        description: Namespace where Falcon Image Analyzer is installed.
+                          KAC needs to know this to discover and communicate with
+                          IAR.
                         type: string
                       imagePullPolicy:
                         default: Always
@@ -4136,6 +4162,11 @@ spec:
                           for cluster visibility.
                         type: boolean
                     type: object
+                  clusterName:
+                    description: Cluster Name if Falcon KAC cannot discover the cluster
+                      name. This will be overwritten if Falcon KAC is able to discover
+                      the cluster name.
+                    type: string
                   falcon:
                     default: {}
                     description: CrowdStrike Falcon sensor configuration
@@ -6748,6 +6779,28 @@ spec:
                               type: string
                             type: array
                         type: object
+                      iarAgentService:
+                        default: {}
+                        description: IAR Agent Service configuration for enabling
+                          communication between IAR components.
+                        properties:
+                          certExpiration:
+                            default: 3650
+                            description: Certificate validity duration in number of
+                              days.
+                            type: integer
+                          domainName:
+                            description: |-
+                              For custom DNS configurations when .svc requires a domain for services.
+                              For example if service.my-namespace.svc doesn't resolve and the cluster uses
+                              service.my-namespace.svc.testing.io, you would add testing.io as the value below.
+                            type: string
+                          port:
+                            default: 8001
+                            description: HTTPS Port for the IAR Agent Service.
+                            format: int32
+                            type: integer
+                        type: object
                       imagePullPolicy:
                         default: Always
                         description: PullPolicy describes a policy for if/when to
@@ -6777,6 +6830,19 @@ spec:
                           type: object
                           x-kubernetes-map-type: atomic
                         type: array
+                      kac:
+                        default: {}
+                        description: IAR Agent Service configuration for enabling
+                          inter-communication between Image Analyzer and Admission
+                          Controller.
+                        properties:
+                          namespace:
+                            default: falcon-kac
+                            description: |-
+                              Namespace where Falcon Admission Controller (KAC) is installed within the same cluster.
+                              Image Analyzer must know the namespace for KAC to enable inter-communication between IAR and KAC.
+                            type: string
+                        type: object
                       mountPath:
                         default: /tmp
                         description: Set the falcon image analyzer volume mount path.
@@ -6790,10 +6856,16 @@ spec:
                             type: string
                         type: object
                       registryConfig:
+                        default: {}
                         description: RegistryConfig for the Falcon Image Analyzer.
                         properties:
+                          autoDiscoverCredentials:
+                            default: true
+                            description: Enable auto-discovery of registry credentials
+                              from secrets in the cluster.
+                            type: boolean
                           credentials:
-                            description: If neceeary, configure the registry credentials
+                            description: If necessary, configure the registry credentials
                               for the Falcon Image Analyzer.
                             items:
                               properties:
@@ -7316,6 +7388,13 @@ spec:
                       For best security practices, this should be a dedicated namespace that is not used for any other purpose.
                       It also should not be the same namespace where the Falcon Operator, or other Falcon resources are deployed.
                     type: string
+                  internal:
+                    description: FalconInternal defines configurations used for internal
+                      testing
+                    properties:
+                      crowdstrikeRegistryRepoOverride:
+                        type: string
+                    type: object
                   node:
                     default: {}
                     description: Various configuration for DaemonSet Deployment
@@ -8077,6 +8156,27 @@ spec:
                           type: string
                         type: array
                     type: object
+                  iarAgentService:
+                    default: {}
+                    description: IAR Agent Service configuration for enabling communication
+                      between IAR components.
+                    properties:
+                      certExpiration:
+                        default: 3650
+                        description: Certificate validity duration in number of days.
+                        type: integer
+                      domainName:
+                        description: |-
+                          For custom DNS configurations when .svc requires a domain for services.
+                          For example if service.my-namespace.svc doesn't resolve and the cluster uses
+                          service.my-namespace.svc.testing.io, you would add testing.io as the value below.
+                        type: string
+                      port:
+                        default: 8001
+                        description: HTTPS Port for the IAR Agent Service.
+                        format: int32
+                        type: integer
+                    type: object
                   imagePullPolicy:
                     default: Always
                     description: PullPolicy describes a policy for if/when to pull
@@ -8106,6 +8206,18 @@ spec:
                       type: object
                       x-kubernetes-map-type: atomic
                     type: array
+                  kac:
+                    default: {}
+                    description: IAR Agent Service configuration for enabling inter-communication
+                      between Image Analyzer and Admission Controller.
+                    properties:
+                      namespace:
+                        default: falcon-kac
+                        description: |-
+                          Namespace where Falcon Admission Controller (KAC) is installed within the same cluster.
+                          Image Analyzer must know the namespace for KAC to enable inter-communication between IAR and KAC.
+                        type: string
+                    type: object
                   mountPath:
                     default: /tmp
                     description: Set the falcon image analyzer volume mount path.
@@ -8119,10 +8231,16 @@ spec:
                         type: string
                     type: object
                   registryConfig:
+                    default: {}
                     description: RegistryConfig for the Falcon Image Analyzer.
                     properties:
+                      autoDiscoverCredentials:
+                        default: true
+                        description: Enable auto-discovery of registry credentials
+                          from secrets in the cluster.
+                        type: boolean
                       credentials:
-                        description: If neceeary, configure the registry credentials
+                        description: If necessary, configure the registry credentials
                           for the Falcon Image Analyzer.
                         items:
                           properties:
@@ -8761,6 +8879,13 @@ spec:
                   For best security practices, this should be a dedicated namespace that is not used for any other purpose.
                   It also should not be the same namespace where the Falcon Operator, or other Falcon resources are deployed.
                 type: string
+              internal:
+                description: FalconInternal defines configurations used for internal
+                  testing
+                properties:
+                  crowdstrikeRegistryRepoOverride:
+                    type: string
+                type: object
               node:
                 default: {}
                 description: Various configuration for DaemonSet Deployment
@@ -9395,6 +9520,9 @@ rules:
   - pods
   - replicationcontrollers
   - services
+  - secrets
+  - configmaps
+  - serviceaccounts
   verbs:
   - get
   - list
@@ -9423,6 +9551,53 @@ rules:
   - admissionregistration.k8s.io
   resources:
   - validatingwebhookconfigurations
+  - mutatingwebhookconfigurations
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  - roles
+  - clusterroles
+  - rolebindings
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gatewayclasses
+  - gateways
+  - httproutes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.istio.io
+  resources:
+  - virtualservices
   verbs:
   - get
   - list
@@ -9517,6 +9692,7 @@ rules:
   - namespaces
   - pods
   - secrets
+  - services
   - nodes
   verbs:
   - get
@@ -9593,6 +9769,14 @@ rules:
   - get
   - list
   - update
+  - watch
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - apps
@@ -9685,6 +9869,16 @@ rules:
   - patch
   - update
 - apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gatewayclasses
+  - gateways
+  - httproutes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - image.openshift.io
   resources:
   - imagestreams
@@ -9694,6 +9888,23 @@ rules:
   - get
   - list
   - update
+  - watch
+- apiGroups:
+  - networking.istio.io
+  resources:
+  - virtualservices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  - networkpolicies
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - rbac.authorization.k8s.io

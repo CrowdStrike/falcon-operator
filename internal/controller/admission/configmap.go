@@ -14,8 +14,11 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (r *FalconAdmissionReconciler) reconcileRegistryCABundleConfigMap(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) (bool, error) {
@@ -47,6 +50,13 @@ func (r *FalconAdmissionReconciler) reconcileGenericConfigMap(name string, genFu
 		return false, err
 	}
 
+	if !isOwnedByKacController(existingCM) {
+		existingCM.TypeMeta = metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		}
+	}
+
 	if !reflect.DeepEqual(cm.Data, existingCM.Data) {
 		existingCM.Data = cm.Data
 		if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingCM); err != nil {
@@ -56,7 +66,6 @@ func (r *FalconAdmissionReconciler) reconcileGenericConfigMap(name string, genFu
 	}
 
 	return false, nil
-
 }
 
 func (r *FalconAdmissionReconciler) newCABundleConfigMap(ctx context.Context, name string, falconAdmission *falconv1alpha1.FalconAdmission) (*corev1.ConfigMap, error) {
@@ -77,6 +86,7 @@ func (r *FalconAdmissionReconciler) newConfigMap(ctx context.Context, name strin
 	data["__CS_SNAPSHOTS_ENABLED"] = strconv.FormatBool(falconAdmission.Spec.AdmissionConfig.GetSnapshotsEnabled())
 	data["__CS_SNAPSHOT_INTERVAL"] = falconAdmission.Spec.AdmissionConfig.GetSnapshotsInterval().String()
 	data["__CS_WATCH_EVENTS_ENABLED"] = strconv.FormatBool(falconAdmission.Spec.AdmissionConfig.GetWatcherEnabled())
+	data["__CS_VISIBILITY_CONFIGMAPS_ENABLED"] = strconv.FormatBool(falconAdmission.Spec.AdmissionConfig.GetConfigMapWatcherEnabled())
 
 	cid := ""
 	if falconAdmission.Spec.Falcon.CID != nil {
@@ -93,4 +103,57 @@ func (r *FalconAdmissionReconciler) newConfigMap(ctx context.Context, name strin
 	data["__CS_ADMISSION_CONTROL_ENABLED"] = strconv.FormatBool(admissionControlEnabled)
 
 	return assets.SensorConfigMap(name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, data), nil
+}
+
+func (r *FalconAdmissionReconciler) reconcileClusterNameConfigMap(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) (bool, error) {
+	if falconAdmission.Spec.ClusterName == nil {
+		changed, err := r.removeClusterNameConfigMapData(ctx, req, log, falconAdmission)
+		return changed, err
+	}
+	return r.reconcileGenericConfigMap(common.FalconAdmissionClusterNameConfigMapName, r.newClusterNameConfigMap, ctx, req, log, falconAdmission)
+}
+
+func (r *FalconAdmissionReconciler) newClusterNameConfigMap(ctx context.Context, name string, falconAdmission *falconv1alpha1.FalconAdmission) (*corev1.ConfigMap, error) {
+	return assets.SensorConfigMap(name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, map[string]string{"ClusterName": *falconAdmission.Spec.ClusterName}), nil
+}
+
+func (r *FalconAdmissionReconciler) removeClusterNameConfigMapData(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) (bool, error) {
+	existingCM := &corev1.ConfigMap{}
+	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconAdmissionClusterNameConfigMapName, Namespace: falconAdmission.Spec.InstallNamespace}, existingCM)
+	if err != nil {
+		return false, nil
+	}
+
+	if !isOwnedByKacController(existingCM) {
+		existingCM.TypeMeta = metav1.TypeMeta{
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "ConfigMap",
+		}
+		if _, exists := existingCM.Data["ClusterName"]; exists {
+			delete(existingCM.Data, "ClusterName")
+			if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingCM); err != nil {
+				return false, err
+			}
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func isOwnedByKacController(obj client.Object) bool {
+	gvk := schema.GroupVersionKind{
+		Group:   "falcon.crowdstrike.com",
+		Version: "v1alpha1",
+		Kind:    "FalconAdmission",
+	}
+
+	for _, ref := range obj.GetOwnerReferences() {
+		if ref.APIVersion == gvk.GroupVersion().String() &&
+			ref.Kind == gvk.Kind &&
+			ref.Controller != nil && *ref.Controller {
+			return true
+		}
+	}
+	return false
 }

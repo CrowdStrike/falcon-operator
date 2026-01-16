@@ -74,7 +74,7 @@ GOFLAGS ?= -a \
 CONTAINER_TOOL ?= docker
 
 # CONTAINER_BUILD_ARGS defines additional build arguments to pass to the $CONTAINER_TOOL during build.
-CONTAINER_BUILD_ARGS ?= --build-arg VERSION=$(VERSION)
+CONTAINER_BUILD_ARGS ?= --build-arg VERSION=$(VERSION) --build-arg GOPROXY=$(GOPROXY)
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
@@ -125,7 +125,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 
 # Utilize Kind or modify the e2e tests to load the image locally, enabling compatibility with other vendors.
 .PHONY: test-e2e  # Run the e2e tests against a Kind k8s instance that is spun up.
-test-e2e:
+test-e2e: operator-sdk
 	go test ./test/e2e/ -v -ginkgo.v -timeout 30m
 
 GOLANGCI_LINT = $(shell pwd)/bin/golangci-lint

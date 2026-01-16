@@ -58,7 +58,7 @@ func (r *FalconContainerReconciler) reconcileInjectorTLSSecret(ctx context.Conte
 			}
 			return injectorTLSSecret, r.Create(ctx, log, falconContainer, injectorTLSSecret)
 		}
-		return &corev1.Secret{}, fmt.Errorf("unable to query existing injector TL secret %s: %v", injectorTLSSecretName, err)
+		return &corev1.Secret{}, fmt.Errorf("unable to query existing injector TLS secret %s: %v", injectorTLSSecretName, err)
 	}
 	return existingInjectorTLSSecret, nil
 
@@ -73,6 +73,16 @@ func (r *FalconContainerReconciler) reconcileDeployment(ctx context.Context, log
 	}
 
 	deployment := assets.SideCarDeployment(injectorName, falconContainer.Spec.InstallNamespace, common.FalconSidecarSensor, imageUri, falconContainer)
+
+	if !r.OpenShift {
+		var runAsUser int64 = 1234
+		var runAsGroup int64 = 1234
+		deployment.Spec.Template.Spec.Containers[0].SecurityContext.RunAsUser = &runAsUser
+		deployment.Spec.Template.Spec.Containers[0].SecurityContext.RunAsGroup = &runAsGroup
+	} else {
+		log.V(1).Info("OpenShift cluster detected: skipping explicit UID/GID assignment as OpenShift manages security context automatically")
+	}
+
 	existingDeployment := &appsv1.Deployment{}
 
 	if len(proxy.ReadProxyVarsFromEnv()) > 0 {

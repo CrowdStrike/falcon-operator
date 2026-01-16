@@ -14,6 +14,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/pkg/aws"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/crowdstrike/falcon-operator/pkg/registry/pulltoken"
+	"github.com/crowdstrike/falcon-operator/pkg/tls"
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/go-logr/logr"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -48,6 +49,7 @@ func (r *FalconImageAnalyzerReconciler) SetupWithManager(mgr ctrl.Manager) error
 		Owns(&corev1.Namespace{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Secret{}).
+		Owns(&corev1.Service{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
@@ -68,6 +70,7 @@ func (r *FalconImageAnalyzerReconciler) GetK8sReader() client.Reader {
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;delete
+//+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;update
 //+kubebuilder:rbac:groups="apps",resources=deployments,verbs=get;list;watch;create;update;delete
@@ -226,6 +229,15 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	configUpdated, err := r.reconcileConfigMap(ctx, req, log, falconImageAnalyzer)
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	_, err = r.reconcileIARTLSSecret(ctx, req, log, falconImageAnalyzer)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.reconcileIARAgentService(ctx, req, log, falconImageAnalyzer); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -475,4 +487,107 @@ func (r *FalconImageAnalyzerReconciler) injectFalconSecretData(
 	logger.Info("injecting Falcon secret data into Spec.Falcon and Spec.FalconAPI - sensitive manifest values will be overwritten with values in k8s secret")
 
 	return k8sutils.InjectFalconSecretData(ctx, r, falconImageAnalyzer)
+}
+
+func (r *FalconImageAnalyzerReconciler) reconcileIARAgentService(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) error {
+	selector := map[string]string{common.FalconComponentKey: common.FalconImageAnalyzer}
+
+	// Add labels required for KAC -> IAR communication
+	labels := common.CRLabels("service", falconImageAnalyzer.Name, common.FalconImageAnalyzer)
+	labels[common.AppLabelKey] = common.FalconImageAnalyzerAgentServiceApp
+	labels[common.KubernetesComponentKey] = common.FalconImageAnalyzerComponentName
+	labels[common.KubernetesNameKey] = falconImageAnalyzer.Name
+
+	service := assets.ServiceWithCustomLabels(
+		common.FalconImageAnalyzerAgentService,
+		falconImageAnalyzer.Spec.InstallNamespace,
+		selector,
+		labels,
+		"",
+		common.FalconImageAnalyzerAgentServicePortName,
+		common.FalconImageAnalyzerAgentServicePort,
+	)
+
+	existingService := &corev1.Service{}
+	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: common.FalconImageAnalyzerAgentService, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingService)
+	if err != nil && apierrors.IsNotFound(err) {
+		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, service)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	} else if err != nil {
+		log.Error(err, "Failed to get FalconImageAnalyzer IAR Agent Service")
+		return err
+	}
+
+	if !reflect.DeepEqual(service.Spec, existingService.Spec) {
+		existingService.Spec = service.Spec
+		err = k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, existingService)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *FalconImageAnalyzerReconciler) reconcileIARTLSSecret(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) (*corev1.Secret, error) {
+	existingTLSSecret := &corev1.Secret{}
+	name := falconImageAnalyzer.Name + "-tls"
+
+	err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: name, Namespace: falconImageAnalyzer.Spec.InstallNamespace}, existingTLSSecret)
+
+	if err != nil && apierrors.IsNotFound(err) {
+		validity := falconImageAnalyzer.Spec.ImageAnalyzerConfig.IARAgentService.CertExpiration
+		namespace := falconImageAnalyzer.Spec.InstallNamespace
+		domainName := falconImageAnalyzer.Spec.ImageAnalyzerConfig.IARAgentService.DomainName
+
+		fullName := fmt.Sprintf("%s.%s.svc", common.FalconImageAnalyzerAgentService, namespace)
+		if domainName != "" {
+			fullName = fmt.Sprintf("%s.%s.svc.%s", common.FalconImageAnalyzerAgentService, namespace, domainName)
+		}
+
+		altDNSNames := []string{
+			fullName,
+			fmt.Sprintf("%s.cluster.local", fullName),
+			fmt.Sprintf("%s.%s", fullName, namespace),
+		}
+
+		certInfo := tls.CertInfo{
+			CommonName: fullName,
+			DNSNames:   altDNSNames,
+		}
+
+		c, k, b, err := tls.CertSetup(falconImageAnalyzer.Spec.InstallNamespace, validity, certInfo)
+		if err != nil {
+			log.Error(err, "Failed to generate IAR Agent TLS certificates")
+			return &corev1.Secret{}, err
+		}
+
+		secretData := map[string][]byte{
+			"tls.crt": c,
+			"tls.key": k,
+			"ca.crt":  b,
+		}
+
+		// Add labels required for KAC -> IAR communication
+		labels := common.CRLabels("secret", name, common.FalconImageAnalyzer)
+		labels[common.AppLabelKey] = common.FalconImageAnalyzerAgentServiceApp
+		labels[common.KubernetesComponentKey] = common.FalconImageAnalyzerComponentName
+		labels[common.KubernetesNameKey] = falconImageAnalyzer.Name
+
+		iarTLSSecret := assets.SecretWithCustomLabels(name, falconImageAnalyzer.Spec.InstallNamespace, secretData, corev1.SecretTypeTLS, labels)
+		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, iarTLSSecret)
+		if err != nil {
+			return &corev1.Secret{}, err
+		}
+		return iarTLSSecret, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get IAR Agent TLS Secret")
+		return &corev1.Secret{}, err
+	}
+
+	return existingTLSSecret, nil
 }

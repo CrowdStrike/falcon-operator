@@ -108,6 +108,7 @@ type FalconImageAnalyzerConfigSpec struct {
 	Exclusions Exclusions `json:"exclusions,omitempty"`
 
 	// RegistryConfig for the Falcon Image Analyzer.
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Registry Configuration Options",order=12
 	RegistryConfig RegistryConfig `json:"registryConfig,omitempty"`
 
@@ -115,6 +116,16 @@ type FalconImageAnalyzerConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Enable Debugging",order=13
 	// +kubebuilder:default:=false
 	EnableDebug bool `json:"debug,omitempty"`
+
+	// IAR Agent Service configuration for enabling communication between IAR components.
+	// +kubebuilder:default:={}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="IAR Agent Service Configuration",order=14
+	IARAgentService FalconImageAnalyzerAgentServiceSpec `json:"iarAgentService,omitempty"`
+
+	// IAR Agent Service configuration for enabling inter-communication between Image Analyzer and Admission Controller.
+	// +kubebuilder:default:={}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="KAC Inter-communication Configuration",order=14
+	KAC FalconImageAnalyzerKACSpec `json:"kac,omitempty"`
 
 	// Specifies tolerations for custom taints on the image analyzer pods.
 	// +optional
@@ -136,8 +147,34 @@ type FalconImageAnalyzerServiceAccount struct {
 
 type FalconImageAnalyzerUpdateStrategy struct {
 	// RollingUpdate is used to specify the strategy used to roll out a deployment
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admisison Controller deployment update configuration",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer deployment update configuration",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
 	RollingUpdate appsv1.RollingUpdateDeployment `json:"rollingUpdate,omitempty"`
+}
+
+type FalconImageAnalyzerAgentServiceSpec struct {
+	// HTTPS Port for the IAR Agent Service.
+	// +kubebuilder:default:=8001
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Agent Service HTTPS Port",order=1
+	Port int32 `json:"port,omitempty"`
+
+	// Certificate validity duration in number of days.
+	// +kubebuilder:default:=3650
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer TLS Certificate Expiration (days)",order=3
+	CertExpiration int `json:"certExpiration,omitempty"`
+
+	// For custom DNS configurations when .svc requires a domain for services.
+	// For example if service.my-namespace.svc doesn't resolve and the cluster uses
+	// service.my-namespace.svc.testing.io, you would add testing.io as the value below.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Domain Name",order=4
+	DomainName string `json:"domainName,omitempty"`
+}
+
+type FalconImageAnalyzerKACSpec struct {
+	// Namespace where Falcon Admission Controller (KAC) is installed within the same cluster.
+	// Image Analyzer must know the namespace for KAC to enable inter-communication between IAR and KAC.
+	// +kubebuilder:default:=falcon-kac
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="KAC Namespace",order=1
+	Namespace string `json:"namespace,omitempty"`
 }
 
 type Exclusions struct {
@@ -151,9 +188,14 @@ type Exclusions struct {
 }
 
 type RegistryConfig struct {
-	// If neceeary, configure the registry credentials for the Falcon Image Analyzer.
+	// If necessary, configure the registry credentials for the Falcon Image Analyzer.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Registry Credentials",order=1
 	Credentials []RegistryCreds `json:"credentials,omitempty"`
+
+	// Enable auto-discovery of registry credentials from secrets in the cluster.
+	// +kubebuilder:default:=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Auto Discover Registry Credentials",order=2
+	AutoDiscoverCredentials bool `json:"autoDiscoverCredentials,omitempty"`
 }
 
 type RegistryCreds struct {

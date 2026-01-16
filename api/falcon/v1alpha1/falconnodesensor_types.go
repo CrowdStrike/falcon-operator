@@ -48,6 +48,9 @@ type FalconNodeSensorSpec struct {
 	// +kubebuilder:default={"enabled": false}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration",order=5
 	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
+
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Configurations used for internal testing",order=6
+	Internal FalconInternal `json:"internal,omitempty"`
 }
 
 // FalconNodeSensorConfig defines aspects about how the daemonset works.

@@ -113,7 +113,20 @@ func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1a
 	if err != nil {
 		return "", err
 	}
-	imageUri := falcon_registry.ImageURINode(cloud)
+
+	var imageUri string
+	isUsingCustomCrowdstrikeRepo := nodesensor.Spec.Internal.CrowdstrikeRegistryRepoOverride != nil
+
+	if isUsingCustomCrowdstrikeRepo {
+		imageUri = falcon_registry.CrowdstrikeRepoOverride(cloud, *nodesensor.Spec.Internal.CrowdstrikeRegistryRepoOverride)
+	} else {
+		imageUri = falcon_registry.ImageURINode(cloud)
+		if nodesensor.Status.Sensor != nil {
+			if falcon_registry.IsMinimumUnifiedSensorVersion(strings.Split(*nodesensor.Status.Sensor, "-")[0], falcon.NodeSensor) {
+				imageUri = falcon_registry.UnifiedImageURINode(cloud)
+			}
+		}
+	}
 
 	if versionLock(nodesensor) {
 		return fmt.Sprintf("%s:%s", imageUri, *nodesensor.Status.Sensor), nil
@@ -124,6 +137,10 @@ func (cc *ConfigCache) getFalconImage(ctx context.Context, nodesensor *falconv1a
 	imageRepo, err := sensor.NewImageRepository(ctx, &apiConfig)
 	if err != nil {
 		return "", err
+	}
+
+	if isUsingCustomCrowdstrikeRepo {
+		imageRepo.SetOverrideImageUri(imageUri)
 	}
 
 	imageTag, err := imageRepo.GetPreferredImage(ctx, falcon.NodeSensor, nodesensor.Spec.Node.Version, nodesensor.Spec.Node.Advanced.UpdatePolicy)

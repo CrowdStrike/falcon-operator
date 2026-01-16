@@ -339,12 +339,15 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		initArgs := updateDaemonSetInitArgs(dsUpdate, dsTarget, logger)
 		proxyUpdates := updateDaemonSetContainerProxy(dsUpdate, logger)
 		tolsUpdate, err := r.updateDaemonSetTolerations(ctx, dsUpdate, nodesensor, logger)
+		pullSecretUpdate := r.updateImagePullSecrets(dsUpdate, dsTarget, logger)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
 		// Update the daemonset and re-spin pods with changes
-		if imgUpdate || tolsUpdate || affUpdate || containerVolUpdate || volumeUpdates || resources || pc || capabilities || initArgs || initResources || proxyUpdates || updated {
+		if imgUpdate || tolsUpdate || affUpdate || containerVolUpdate ||
+			volumeUpdates || resources || pc || capabilities || initArgs ||
+			initResources || proxyUpdates || pullSecretUpdate || updated {
 			err = r.Update(ctx, dsUpdate)
 			if err != nil {
 				err = r.conditionsUpdate(falconv1alpha1.ConditionDaemonSetReady,
@@ -662,6 +665,15 @@ func updateDaemonSetContainerProxy(ds *appsv1.DaemonSet, logger logr.Logger) boo
 	}
 
 	return updated
+}
+
+func (r *FalconNodeSensorReconciler) updateImagePullSecrets(existingDs *appsv1.DaemonSet, specDs *appsv1.DaemonSet, logger logr.Logger) bool {
+	if !equality.Semantic.DeepEqual(existingDs.Spec.Template.Spec.ImagePullSecrets, specDs.Spec.Template.Spec.ImagePullSecrets) {
+		logger.Info("Updating FalconNodeSensor DaemonSet ImagePullSecrets")
+		existingDs.Spec.Template.Spec.ImagePullSecrets = specDs.Spec.Template.Spec.ImagePullSecrets
+		return true
+	}
+	return false
 }
 
 // If an update is needed, this will update the tolerations from the given DaemonSet

@@ -35,7 +35,7 @@ func nodeAffinity(node *falconv1alpha1.FalconNodeSensor) *corev1.Affinity {
 }
 
 func pullSecrets(node *falconv1alpha1.FalconNodeSensor) []corev1.LocalObjectReference {
-	if node.Spec.Node.Image == "" {
+	if len(node.Spec.Node.ImagePullSecrets) == 0 {
 		return []corev1.LocalObjectReference{
 			{
 				Name: common.FalconPullSecretName,
@@ -229,7 +229,6 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 	privileged := true
 	escalation := true
 	readOnlyFSDisabled := false
-	readOnlyFSEnabled := true
 	hostpid := true
 	hostnetwork := true
 	hostipc := true
@@ -280,7 +279,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
-								ReadOnlyRootFilesystem:   &readOnlyFSEnabled,
+								ReadOnlyRootFilesystem:   isInitReadOnlyRootFilesystem(node),
 								AllowPrivilegeEscalation: &escalation,
 								Capabilities:             sensorCapabilities(node, true),
 							},
@@ -380,7 +379,7 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 							SecurityContext: &corev1.SecurityContext{
 								Privileged:               &privileged,
 								RunAsUser:                &runAsRoot,
-								ReadOnlyRootFilesystem:   &readOnlyFs,
+								ReadOnlyRootFilesystem:   isInitReadOnlyRootFilesystem(node),
 								AllowPrivilegeEscalation: &escalation,
 								Capabilities:             sensorCapabilities(node, true),
 							},
@@ -405,4 +404,8 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 			},
 		},
 	}
+}
+func isInitReadOnlyRootFilesystem(node *falconv1alpha1.FalconNodeSensor) *bool {
+	disabled := node.Spec.Node.GKE.Enabled != nil && *node.Spec.Node.GKE.Enabled
+	return &disabled
 }

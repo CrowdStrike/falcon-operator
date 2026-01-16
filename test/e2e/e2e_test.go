@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	//nolint:golint
@@ -53,6 +55,34 @@ var _ = Describe("falcon", Ordered, func() {
 	})
 
 	AfterAll(func() {
+		// Check if BUNDLE_IMG was used for installation and clean up accordingly
+		bundleImg := os.Getenv("BUNDLE_IMG")
+		if bundleImg != "" {
+			By("cleaning up OLM bundle installation")
+
+			// Get the proper operator-sdk executable path (following Makefile logic)
+			operatorSDKPath, err := getOperatorSDKPath()
+			if err == nil {
+				cmd := exec.Command(operatorSDKPath, "cleanup", "falcon-operator", "--namespace", namespace)
+				_, _ = utils.Run(cmd)
+
+				// Uninstall OLM only if not on OpenShift (OpenShift has built-in OLM)
+				if !isOpenShift() {
+					By("uninstalling OLM")
+					cmd = exec.Command(operatorSDKPath, "olm", "uninstall")
+					_, _ = utils.Run(cmd)
+				} else {
+					By("detected OpenShift - skipping OLM uninstall (managed by OpenShift)")
+				}
+			} else {
+				By("operator-sdk not found for cleanup, attempting manual cleanup")
+			}
+		} else {
+			By("cleaning up traditional deployment")
+			cmd := exec.Command("make", "undeploy")
+			_, _ = utils.Run(cmd)
+		}
+
 		By("removing manager namespace")
 		cmd := exec.Command("kubectl", "delete", "ns", namespace)
 		_, _ = utils.Run(cmd)
@@ -61,8 +91,12 @@ var _ = Describe("falcon", Ordered, func() {
 		By("removing metrics cluster role binding")
 		cmd = exec.Command("kubectl", "delete", "clusterrolebinding", metricsRoleBindingName)
 		_, _ = utils.Run(cmd)
-		cmd = exec.Command("make", "install")
-		_, _ = utils.Run(cmd)
+
+		// Only run make install for traditional deployment cleanup
+		if bundleImg == "" {
+			cmd = exec.Command("make", "install")
+			_, _ = utils.Run(cmd)
+		}
 	})
 
 	Context("Falcon Operator", func() {
@@ -77,28 +111,73 @@ var _ = Describe("falcon", Ordered, func() {
 				operatorImage = image
 			}
 
-			cmd := exec.Command("kind", "get", "clusters")
-			_, err = utils.Run(cmd)
-			if err == nil {
-				By("building the manager (Operator) image")
-				cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", operatorImage))
+			var outputMake []byte
+			var cmd *exec.Cmd
+
+			// Conditional installation: Use OLM bundle if BUNDLE_IMG is set, otherwise use traditional deployment
+			// This allows testing both installation methods:
+			// - OLM bundle: Set BUNDLE_IMG=<bundle-image-url> to test operator-sdk run bundle installation
+			// - Traditional: Leave BUNDLE_IMG unset to use make deploy with custom operator image
+			bundleImg := os.Getenv("BUNDLE_IMG")
+			if bundleImg != "" {
+				By("installing using OLM bundle: " + bundleImg)
+
+				// Get the proper operator-sdk executable path (following Makefile logic)
+				operatorSDKPath, err := getOperatorSDKPath()
+				if err != nil {
+					ExpectWithOffset(1, err).NotTo(HaveOccurred(), "operator-sdk is required when BUNDLE_IMG is set")
+				}
+
+				// Check if operator-sdk is available and working
+				cmd = exec.Command(operatorSDKPath, "version")
+				_, err = utils.Run(cmd)
+				if err != nil {
+					ExpectWithOffset(1, err).NotTo(HaveOccurred(), "operator-sdk is required when BUNDLE_IMG is set")
+				}
+
+				// Install OLM if not already present (skip on OpenShift as it has OLM built-in)
+				if !isOpenShift() {
+					By("installing OLM")
+					cmd = exec.Command(operatorSDKPath, "olm", "install")
+					_, err = utils.Run(cmd)
+					if err != nil {
+						By("OLM may already be installed, continuing...")
+					}
+				} else {
+					By("detected OpenShift - skipping OLM installation (already built-in)")
+				}
+
+				// Run bundle installation
+				By("deploying operator via OLM bundle")
+				cmd = exec.Command(operatorSDKPath, "run", "bundle", bundleImg, "--namespace", namespace)
+				outputMake, err = utils.Run(cmd)
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			} else {
+				By("installing using traditional deployment method")
+
+				cmd = exec.Command("kind", "get", "clusters")
+				_, err = utils.Run(cmd)
+				if err == nil {
+					By("building the manager (Operator) image")
+					cmd = exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", operatorImage))
+					_, err = utils.Run(cmd)
+					ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+					By("loading the the manager(Operator) image on Kind")
+					err = utils.LoadImageToKindClusterWithName(operatorImage)
+					ExpectWithOffset(1, err).NotTo(HaveOccurred())
+				}
+
+				By("installing CRDs")
+				cmd = exec.Command("make", "install")
 				_, err = utils.Run(cmd)
 				ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-				By("loading the the manager(Operator) image on Kind")
-				err = utils.LoadImageToKindClusterWithName(operatorImage)
+				By("deploying the controller-manager")
+				cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", operatorImage))
+				outputMake, err = utils.Run(cmd)
 				ExpectWithOffset(1, err).NotTo(HaveOccurred())
 			}
-
-			By("installing CRDs")
-			cmd = exec.Command("make", "install")
-			_, err = utils.Run(cmd)
-			ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-			By("deploying the controller-manager")
-			cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", operatorImage))
-			outputMake, err := utils.Run(cmd)
-			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 			By("validating that manager Pod/container(s) are not restricted")
 			ExpectWithOffset(1, outputMake).NotTo(ContainSubstring("Warning: would violate PodSecurity"))
@@ -238,6 +317,21 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
+	Context("Falcon Node Sensor - GKE Autopilot", func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconnodesensor-gke-autopilot.yaml"
+		It("should deploy successfully", func() {
+			updateManifestApiCreds(manifest)
+			nodeConfig.manageCrdInstance(crApply, manifest)
+			nodeConfig.validateCrStatus()
+			nodeConfig.validateInitContainerReadOnlyRootFilesystem()
+		})
+		It("should cleanup successfully", func() {
+			nodeConfig.manageCrdInstance(crDelete, manifest)
+			nodeConfig.validateRunningStatus(shouldBeTerminated)
+			nodeConfig.waitForNamespaceDeletion()
+		})
+	})
+
 	Context("Falcon Node Sensor with Tolerations", func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconnodesensor_with_tolerations.yaml"
 		It("should deploy successfully with tolerations", func() {
@@ -270,6 +364,38 @@ var _ = Describe("falcon", Ordered, func() {
 			kacConfig.validateRunningStatus(shouldBeRunning)
 			kacConfig.validateCrStatus()
 		})
+	})
+
+	Context("Falcon Admission Controller", func() {
+		It("should manage falcon-kac-meta configMap changes successfully", func() {
+			manifest := "./config/samples/falcon_v1alpha1_falconadmission_custom_clustername.yaml"
+			updateManifestApiCreds(manifest)
+
+			By("update with a clustom clusterName")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "apply", "-f", filepath.Join(projectDir, manifest), "-n", namespace)
+				_, err := utils.Run(cmd)
+				return err
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validate the cluster name in the falcon-kac-meta configMap has updated")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "get", "configmap", "falcon-kac-meta",
+					"-n", kacConfig.namespace, "-o", "jsonpath='{.data.ClusterName}'")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "test-cluster") {
+					return fmt.Errorf("falcon-admission pod configMap not updated: %s", output)
+				}
+				return nil
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			kacConfig.validateRunningStatus(shouldBeRunning)
+		})
+	})
+
+	Context("Falcon Admission Controller", func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
 		It("should cleanup successfully", func() {
 			kacConfig.manageCrdInstance(crDelete, manifest)
 			kacConfig.validateRunningStatus(shouldBeTerminated)
