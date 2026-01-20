@@ -180,6 +180,10 @@ type Exclusions struct {
 	// Configure a list of namespaces for Image Analyzer to ignore.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=2
 	Namespaces []string `json:"namespaces,omitempty"`
+
+	// Configure a list of image names for Image Analyzer to ignore.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Images List",order=3
+	ImageNames []string `json:"imageNames,omitempty"`
 }
 
 type RegistryConfig struct {

@@ -6766,6 +6766,12 @@ spec:
                       exclusions:
                         description: Exclusions for the Falcon Image Analyzer.
                         properties:
+                          imageNames:
+                            description: Configure a list of image names for Image
+                              Analyzer to ignore.
+                            items:
+                              type: string
+                            type: array
                           namespaces:
                             description: Configure a list of namespaces for Image
                               Analyzer to ignore.
@@ -8143,6 +8149,12 @@ spec:
                   exclusions:
                     description: Exclusions for the Falcon Image Analyzer.
                     properties:
+                      imageNames:
+                        description: Configure a list of image names for Image Analyzer
+                          to ignore.
+                        items:
+                          type: string
+                        type: array
                       namespaces:
                         description: Configure a list of namespaces for Image Analyzer
                           to ignore.

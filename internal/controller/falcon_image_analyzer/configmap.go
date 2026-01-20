@@ -106,6 +106,10 @@ func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name s
 		data["AGENT_REGISTRY_EXCLUSIONS"] = strings.Join(falconImageAnalyzer.Spec.ImageAnalyzerConfig.Exclusions.Registries, ",")
 	}
 
+	if len(falconImageAnalyzer.Spec.ImageAnalyzerConfig.Exclusions.ImageNames) > 0 {
+		data["AGENT_IMAGE_EXCLUSIONS"] = strings.Join(falconImageAnalyzer.Spec.ImageAnalyzerConfig.Exclusions.ImageNames, ",")
+	}
+
 	data["AGENT_DEBUG"] = strconv.FormatBool(falconImageAnalyzer.Spec.ImageAnalyzerConfig.EnableDebug)
 
 	// Registry auto-discovery configuration
