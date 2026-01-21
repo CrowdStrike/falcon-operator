@@ -60,14 +60,14 @@ spec:
 | installNamespace                    | (optional) Override the default namespace of falcon-system                                                                                                                                |
 | node.tolerations                    | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ for examples on configuring tolerations                                                      |
 | node.nodeAffinity                   | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity                                                          |
-| node.image                          | (optional) Location of the Falcon Sensor Image. Specify only when you mirror the original image to your own image repository                                                              |
+| node.image                          | (optional) Location of the Falcon Sensor Image. Use this field only when pulling from non-CrowdStrike registries (e.g., when you mirror the original image to your own image repository). For CrowdStrike registries, use `node.version` instead. |
 | node.imagePullPolicy                | (optional) Override the default Falcon Container image pull policy of Always                                                                                                              |
 | node.imagePullSecrets               | (optional) list of references to secrets to use for pulling image from image_override location.                                                                                           |
 | node.terminationGracePeriod         | (optional) Kills pod after a specified amount of time (in seconds). Default is 60 seconds.                                                                                                |
 | node.serviceAccount.annotations     | (optional) Annotations that should be added to the Service Account (e.g. for IAM role association)                                                                                        |
 | node.backend                        | (optional) Configure the backend mode for Falcon Sensor (allowed values: kernel, bpf)                                                                                                     |
 | node.disableCleanup                 | (optional) Cleans up `/opt/CrowdStrike` on the nodes by deleting the files and directory.                                                                                                 |
-| node.version                        | (optional) Enforce particular Falcon Sensor version to be installed (example: "6.35", "6.35.0-13207")                                                                                     |
+| node.version                        | (optional) Enforce particular Falcon Sensor version to be installed (example: "6.35", "6.35.0-13207"). Use this field when pulling from CrowdStrike registries (when using Falcon API credentials). For non-CrowdStrike registries, use `node.image` instead. |
 | node.gke.autopilot                  | (optional) Enable GKE Autopilot support for FalconNodeSensor.                                                                                                                             |
 | node.gke.deployAllowListVersion     | (optional) WorkloadAllowlist version for the sensor daemonset when using GKE AutoPilot. (example: "v1.0.3" for crowdstrike-falconsensor-deploy-allowlist-v1.0.3)  |
 | node.gke.cleanupAllowListVersion    | (optional) WorkloadAllowlist version for the cleanup daemonset when using GKE AutoPilot (example: "v1.0.2" for crowdstrike-falconsensor-cleanup-allowlist-v1.0.2)  |
@@ -186,7 +186,12 @@ kubectl delete falconnodesensors --all
 
 ### Sensor upgrades
 
-To upgrade the sensor version, simply add and/or update the `version` field in the FalconNodeSensor resource and apply the change. Alternatively if the `image` field was used instead of using the Falcon API credentials, add and/or update the `image` field in the FalconNodeSensor resource and apply the change. The operator will detect the change and perform the upgrade by restarting the daemonset pods one by one.
+To upgrade the sensor version:
+
+- **For CrowdStrike registries** (when using Falcon API credentials): Add and/or update the `version` field in the FalconNodeSensor resource and apply the change.
+- **For non-CrowdStrike registries**: Add and/or update the `image` field in the FalconNodeSensor resource and apply the change.
+
+The operator will detect the change and perform the upgrade by restarting the daemonset pods one by one.
 
 ### Troubleshooting
 
