@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.24.7
 	github.com/cert-manager/cert-manager v1.12.14
 	github.com/containers/image/v5 v5.31.1
-	github.com/crowdstrike/gofalcon v0.18.0
+	github.com/crowdstrike/gofalcon v0.19.0
 	github.com/go-logr/logr v1.4.2
 	github.com/go-openapi/swag v0.23.0
 	github.com/google/go-cmp v0.6.0
@@ -17,7 +17,7 @@ require (
 	github.com/onsi/gomega v1.33.1
 	github.com/openshift/api v0.0.0-20220630121623-32f1d77b9f50
 	github.com/operator-framework/operator-lib v0.11.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
 	golang.org/x/mod v0.17.0
 	k8s.io/api v0.31.0
@@ -27,6 +27,7 @@ require (
 )
 
 require (
+	cyphar.com/go-pathrs v0.2.1 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
@@ -79,7 +80,7 @@ require (
 	github.com/containers/ocicrypt v1.1.10 // indirect
 	github.com/containers/storage v1.54.0 // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20231217050601-ba74d44ecf5f // indirect
-	github.com/cyphar/filepath-securejoin v0.2.5 // indirect
+	github.com/cyphar/filepath-securejoin v0.6.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
@@ -142,7 +143,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/opencontainers/runtime-spec v1.2.0 // indirect
-	github.com/opencontainers/selinux v1.11.0 // indirect
+	github.com/opencontainers/selinux v1.13.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f // indirect
 	github.com/pkg/errors v0.9.1 // indirect
