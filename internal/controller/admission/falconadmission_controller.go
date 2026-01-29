@@ -565,24 +565,6 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		return err
 	}
 
-	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
-		for i, container := range existingDeployment.Spec.Template.Spec.Containers {
-			newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
-			updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
-			if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
-				existingDeployment.Spec.Template.Spec.Containers[i].Env = newContainerEnv
-				updated = true
-			}
-			if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
-				existingDeployment.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
-				updated = true
-			}
-			if updated {
-				log.Info("Updating FalconAdmission Deployment Proxy Settings")
-			}
-		}
-	}
-
 	if !reflect.DeepEqual(dep.Spec.Template.Spec.ImagePullSecrets, existingDeployment.Spec.Template.Spec.ImagePullSecrets) {
 		existingDeployment.Spec.Template.Spec.ImagePullSecrets = dep.Spec.Template.Spec.ImagePullSecrets
 		updated = true
@@ -649,6 +631,24 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 			if !reflect.DeepEqual(containers.Env, existingDeployment.Spec.Template.Spec.Containers[i].Env) {
 				existingDeployment.Spec.Template.Spec.Containers[i].Env = containers.Env
 				updated = true
+			}
+		}
+	}
+
+	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
+		for i, container := range existingDeployment.Spec.Template.Spec.Containers {
+			newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
+			updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
+			if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
+				existingDeployment.Spec.Template.Spec.Containers[i].Env = newContainerEnv
+				updated = true
+			}
+			if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
+				existingDeployment.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
+				updated = true
+			}
+			if updated {
+				log.Info("Updating FalconAdmission Deployment Proxy Settings")
 			}
 		}
 	}

@@ -134,11 +134,11 @@ func CRLabels(instanceName string, instanceKey string, component string) map[str
 
 func AppendUniqueEnvVars(envVars ...[]corev1.EnvVar) []corev1.EnvVar {
 	base := []corev1.EnvVar{}
-	for _, envVars := range envVars {
-		if envVars == nil {
+	for _, envVarSlice := range envVars {
+		if envVarSlice == nil {
 			continue
 		}
-		for _, envVar := range envVars {
+		for _, envVar := range envVarSlice {
 			if !containsEnvVar(base, envVar) {
 				base = append(base, envVar)
 			}

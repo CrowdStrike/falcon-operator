@@ -702,122 +702,104 @@ func updateDaemonSetPriorityClass(ds, origDS *appsv1.DaemonSet, logger logr.Logg
 }
 
 // reconcileDaemonSetContainers handles all init-container and container updates
-func reconcileDaemonSetContainers(ds, origDS *appsv1.DaemonSet, origImg string, logger logr.Logger) bool {
+func reconcileDaemonSetContainers(updatedDS, origDS *appsv1.DaemonSet, origImg string, logger logr.Logger) bool {
 	updated := false
 
-	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
-		for i, container := range origDS.Spec.Template.Spec.Containers {
-			origDS.Spec.Template.Spec.Containers[i].Env = append(container.Env, proxy.ReadProxyVarsFromEnv()...)
-		}
-	}
+	origInitContainer := origDS.Spec.Template.Spec.InitContainers[0]
+	updatedInitContainer := &updatedDS.Spec.Template.Spec.InitContainers[0]
+	origContainer := origDS.Spec.Template.Spec.Containers[0]
+	updatedContainer := &updatedDS.Spec.Template.Spec.Containers[0]
 
-	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
-		for i, container := range ds.Spec.Template.Spec.Containers {
-			newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
-			updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
-			if !equality.Semantic.DeepEqual(ds.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
-				ds.Spec.Template.Spec.Containers[i].Env = newContainerEnv
-				updated = true
-			}
-			if !equality.Semantic.DeepEqual(ds.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
-				ds.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
-				updated = true
-			}
-			if updated {
-				logger.Info("Updating FalconNodeSensor DaemonSet Proxy Settings", "container", i)
-			}
-		}
-	}
-
-	// Reconcile each init container
-	if len(origDS.Spec.Template.Spec.InitContainers) != len(ds.Spec.Template.Spec.InitContainers) {
-		ds.Spec.Template.Spec.InitContainers = origDS.Spec.Template.Spec.InitContainers
+	// Check for sensor image updates
+	if updatedInitContainer.Image != origImg {
+		updatedInitContainer.Image = origImg
 		updated = true
-		logger.Info("Updating FalconNodeSensor DaemonSet InitContainer count")
-	} else {
-		for i, origInitContainer := range origDS.Spec.Template.Spec.InitContainers {
-			initContainer := &ds.Spec.Template.Spec.InitContainers[i]
+		logger.Info("Updating FalconNodeSensor DaemonSet InitContainer image", "Original Image", origImg, "Current Image", updatedInitContainer.Image)
+	}
 
-			if initContainer.Image != origImg {
-				initContainer.Image = origImg
-				updated = true
-				logger.Info("Updating FalconNodeSensor DaemonSet InitContainer image", "container", i, "Original Image", origImg, "Current Image", initContainer.Image)
-			}
+	if updatedContainer.Image != origImg {
+		updatedContainer.Image = origImg
+		updated = true
+		logger.Info("Updating FalconNodeSensor DaemonSet image", "Original Image", origImg, "Current Image", updatedContainer.Image)
+	}
 
-			if !equality.Semantic.DeepEqual(initContainer.Args, origInitContainer.Args) {
-				initContainer.Args = origInitContainer.Args
-				updated = true
-				logger.Info("Updating FalconNodeSensor DaemonSet init args", "container", i)
-			}
+	// Check for volume mount updates
+	if !equality.Semantic.DeepEqual(updatedInitContainer.VolumeMounts, origInitContainer.VolumeMounts) {
+		updatedInitContainer.VolumeMounts = origInitContainer.VolumeMounts
+		updated = true
+		logger.Info("Updating FalconNodeSensor DaemonSet InitContainer volumeMounts")
+	}
 
-			if !equality.Semantic.DeepEqual(initContainer.Env, origInitContainer.Env) {
-				initContainer.Env = origInitContainer.Env
-				updated = true
-				logger.Info("Updating FalconNodeSensor DaemonSet InitContainer env", "container", i)
-			}
+	if !equality.Semantic.DeepEqual(updatedContainer.VolumeMounts, origContainer.VolumeMounts) {
+		updatedContainer.VolumeMounts = origContainer.VolumeMounts
+		updated = true
+		logger.Info("Updating FalconNodeSensor DaemonSet Container volumeMounts")
+	}
 
-			if !equality.Semantic.DeepEqual(initContainer.Resources, origInitContainer.Resources) {
-				initContainer.Resources = origInitContainer.Resources
-				updated = true
-				logger.Info("Updating FalconNodeSensor DaemonSet InitContainer resources", "container", i)
-			}
+	// Check for resource updates
+	if !equality.Semantic.DeepEqual(updatedInitContainer.Resources, origInitContainer.Resources) {
+		updatedInitContainer.Resources = origInitContainer.Resources
+		updated = true
+		logger.Info("Updating FalconNodeSensor DaemonSet InitContainer resources")
+	}
 
-			if initContainer.SecurityContext != nil && origInitContainer.SecurityContext != nil {
-				if !equality.Semantic.DeepEqual(initContainer.SecurityContext.Capabilities, origInitContainer.SecurityContext.Capabilities) {
-					initContainer.SecurityContext.Capabilities = origInitContainer.SecurityContext.Capabilities
-					updated = true
-					logger.Info("Updating FalconNodeSensor DaemonSet InitContainer capabilities", "container", i)
-				}
-			}
+	if !equality.Semantic.DeepEqual(updatedContainer.Resources, origContainer.Resources) {
+		updatedContainer.Resources = origContainer.Resources
+		updated = true
+		logger.Info("Updating FalconNodeSensor DaemonSet resources")
+	}
 
-			if !equality.Semantic.DeepEqual(initContainer.VolumeMounts, origInitContainer.VolumeMounts) {
-				initContainer.VolumeMounts = origInitContainer.VolumeMounts
-				updated = true
-				logger.Info("Updating FalconNodeSensor DaemonSet InitContainer volumeMounts", "container", i)
-			}
+	// Check for security context updates
+	if updatedInitContainer.SecurityContext != nil && origInitContainer.SecurityContext != nil {
+		if !equality.Semantic.DeepEqual(updatedInitContainer.SecurityContext.Capabilities, origInitContainer.SecurityContext.Capabilities) {
+			updatedInitContainer.SecurityContext.Capabilities = origInitContainer.SecurityContext.Capabilities
+			updated = true
+			logger.Info("Updating FalconNodeSensor DaemonSet InitContainer capabilities")
 		}
 	}
 
-	// Reconcile each main container
-	if len(origDS.Spec.Template.Spec.Containers) != len(ds.Spec.Template.Spec.Containers) {
-		ds.Spec.Template.Spec.Containers = origDS.Spec.Template.Spec.Containers
+	if updatedContainer.SecurityContext != nil && origContainer.SecurityContext != nil {
+		if !equality.Semantic.DeepEqual(updatedContainer.SecurityContext.Capabilities, origContainer.SecurityContext.Capabilities) {
+			updatedContainer.SecurityContext.Capabilities = origContainer.SecurityContext.Capabilities
+			updated = true
+			logger.Info("Updating FalconNodeSensor DaemonSet Container capabilities")
+		}
+	}
+
+	// Check for init container args updates
+	if !equality.Semantic.DeepEqual(updatedInitContainer.Args, origInitContainer.Args) {
+		updatedInitContainer.Args = origInitContainer.Args
 		updated = true
-		logger.Info("Updating FalconNodeSensor DaemonSet Container count")
-	} else {
-		for i, origContainer := range origDS.Spec.Template.Spec.Containers {
-			container := &ds.Spec.Template.Spec.Containers[i]
+		logger.Info("Updating FalconNodeSensor DaemonSet init args")
+	}
 
-			if container.Image != origImg {
-				container.Image = origImg
-				updated = true
-				logger.Info("Updating FalconNodeSensor DaemonSet image", "container", i, "Original Image", origImg, "Current Image", container.Image)
-			}
+	// Check for env updates
+	if !equality.Semantic.DeepEqual(updatedInitContainer.Env, origInitContainer.Env) {
+		updatedInitContainer.Env = origInitContainer.Env
+		updated = true
+		logger.Info("Updating FalconNodeSensor DaemonSet InitContainer env")
+	}
 
-			if !equality.Semantic.DeepEqual(container.Env, origContainer.Env) {
-				container.Env = origContainer.Env
-				updated = true
-				logger.Info("Updating FalconNodeSensor DaemonSet Container env", "container", i)
-			}
+	if !equality.Semantic.DeepEqual(updatedContainer.Env, origContainer.Env) {
+		updatedContainer.Env = origContainer.Env
+		updated = true
+		logger.Info("Updating FalconNodeSensor DaemonSet Container env")
+	}
 
-			if !equality.Semantic.DeepEqual(container.Resources, origContainer.Resources) {
-				container.Resources = origContainer.Resources
-				updated = true
-				logger.Info("Updating FalconNodeSensor DaemonSet resources", "container", i)
-			}
-
-			if container.SecurityContext != nil && origContainer.SecurityContext != nil {
-				if !equality.Semantic.DeepEqual(container.SecurityContext.Capabilities, origContainer.SecurityContext.Capabilities) {
-					container.SecurityContext.Capabilities = origContainer.SecurityContext.Capabilities
-					updated = true
-					logger.Info("Updating FalconNodeSensor DaemonSet Container capabilities", "container", i)
-				}
-			}
-
-			if !equality.Semantic.DeepEqual(container.VolumeMounts, origContainer.VolumeMounts) {
-				container.VolumeMounts = origContainer.VolumeMounts
-				updated = true
-				logger.Info("Updating FalconNodeSensor DaemonSet Container volumeMounts", "container", i)
-			}
+	// Check for proxy updates
+	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
+		newContainerEnv := common.AppendUniqueEnvVars(updatedContainer.Env, proxy.ReadProxyVarsFromEnv())
+		updatedContainerEnv := common.UpdateEnvVars(updatedContainer.Env, proxy.ReadProxyVarsFromEnv())
+		if !equality.Semantic.DeepEqual(updatedContainer.Env, newContainerEnv) {
+			updatedContainer.Env = newContainerEnv
+			updated = true
+		}
+		if !equality.Semantic.DeepEqual(updatedContainer.Env, updatedContainerEnv) {
+			updatedContainer.Env = updatedContainerEnv
+			updated = true
+		}
+		if updated {
+			logger.Info("Updating FalconNodeSensor DaemonSet Proxy Settings")
 		}
 	}
 
