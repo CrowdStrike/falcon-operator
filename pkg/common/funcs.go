@@ -170,6 +170,43 @@ func UpdateEnvVars(envVars []corev1.EnvVar, updateEnvVars []corev1.EnvVar) []cor
 	return envVars
 }
 
+// MergeEnvVars merges specific env vars from env B into env A
+func MergeEnvVars(envA, envB []corev1.EnvVar, envVarsToMerge []string) []corev1.EnvVar {
+	if envVarsToMerge == nil || len(envVarsToMerge) == 0 {
+		return envA
+	}
+
+	envVarsToMergeMap := make(map[string]bool)
+	for _, envVarName := range envVarsToMerge {
+		envVarsToMergeMap[envVarName] = true
+	}
+
+	envBMap := make(map[string]corev1.EnvVar)
+	for _, env := range envB {
+		envBMap[env.Name] = env
+	}
+
+	// Copy envA
+	result := make([]corev1.EnvVar, 0, len(envA)+len(envVarsToMerge))
+	for _, envAVar := range envA {
+		if envVarsToMergeMap[envAVar.Name] {
+			// skip envs to merge
+			continue
+		}
+
+		result = append(result, envAVar)
+	}
+
+	// merge env vars from env B
+	for _, envName := range envVarsToMerge {
+		if envBVar, exists := envBMap[envName]; exists {
+			result = append(result, envBVar)
+		}
+	}
+
+	return result
+}
+
 func ImageVersion(image string) *string {
 	switch {
 	case strings.Contains(image, ":"):

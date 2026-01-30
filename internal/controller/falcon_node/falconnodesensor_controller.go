@@ -332,6 +332,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 		// Objects to check for updates to re-spin pods
 		containerUpdates := reconcileDaemonSetContainers(dsUpdate, dsTarget, image, logger)
+		containerEnvUpdates := reconcileDaemonSetContainerEnvs(dsUpdate, dsTarget, logger)
 		affUpdate := updateDaemonSetAffinity(dsUpdate, nodesensor, logger)
 		volumeUpdates := updateDaemonSetVolumes(dsUpdate, dsTarget, logger)
 		pc := updateDaemonSetPriorityClass(dsUpdate, dsTarget, logger)
@@ -342,7 +343,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 
 		// Update the daemonset and re-spin pods with changes
-		if containerUpdates || tolsUpdate || affUpdate ||
+		if containerUpdates || containerEnvUpdates || tolsUpdate || affUpdate ||
 			volumeUpdates || pc || pullSecretUpdate || updated {
 			err = r.Update(ctx, dsUpdate)
 			if err != nil {
@@ -705,7 +706,8 @@ func updateDaemonSetPriorityClass(ds, origDS *appsv1.DaemonSet, logger logr.Logg
 	return priorityClassUpdates
 }
 
-// reconcileDaemonSetContainers handles all init-container and container updates
+// reconcileDaemonSetContainers handles all init-container and container updates except container envs.
+// Container envs are a special case that is handled separately.
 func reconcileDaemonSetContainers(updatedDS, origDS *appsv1.DaemonSet, origImg string, logger logr.Logger) bool {
 	updated := false
 
@@ -777,32 +779,51 @@ func reconcileDaemonSetContainers(updatedDS, origDS *appsv1.DaemonSet, origImg s
 		logger.Info("Updating FalconNodeSensor DaemonSet init args")
 	}
 
-	// Check for env updates
+	return updated
+}
+
+// reconcileDaemonSetContainerEnvs handles container env changes while properly handling proxies.
+// This should happen in 3 steps to avoid unintended reconciles.
+//  1. Merge existing proxy env vars into new main container env.
+//  2. Compare new container env with proxy to existing container env.
+//  3. Read proxy from cluster env and compare with existing for any changes.
+func reconcileDaemonSetContainerEnvs(updatedDS, origDS *appsv1.DaemonSet, logger logr.Logger) bool {
+	updated := false
+
+	origInitContainer := origDS.Spec.Template.Spec.InitContainers[0]
+	updatedInitContainer := &updatedDS.Spec.Template.Spec.InitContainers[0]
+	origContainer := origDS.Spec.Template.Spec.Containers[0]
+	updatedContainer := &updatedDS.Spec.Template.Spec.Containers[0]
+
+	// First check for container env updates without reading proxy vars from env
 	if !equality.Semantic.DeepEqual(updatedInitContainer.Env, origInitContainer.Env) {
 		updatedInitContainer.Env = origInitContainer.Env
 		updated = true
 		logger.Info("Updating FalconNodeSensor DaemonSet InitContainer env")
 	}
 
-	if !equality.Semantic.DeepEqual(updatedContainer.Env, origContainer.Env) {
-		updatedContainer.Env = origContainer.Env
+	origContainerEnvWithExistingProxy := common.MergeEnvVars(origContainer.Env, updatedContainer.Env, proxy.ProxyEnvNames)
+	if !equality.Semantic.DeepEqual(updatedContainer.Env, origContainerEnvWithExistingProxy) {
+		updatedContainer.Env = origContainerEnvWithExistingProxy
 		updated = true
 		logger.Info("Updating FalconNodeSensor DaemonSet Container env")
 	}
 
-	// Check for proxy updates
+	// Second check for proxy updates read from environment variables
+	proxyUpdated := false
 	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
 		newContainerEnv := common.AppendUniqueEnvVars(updatedContainer.Env, proxy.ReadProxyVarsFromEnv())
 		updatedContainerEnv := common.UpdateEnvVars(updatedContainer.Env, proxy.ReadProxyVarsFromEnv())
 		if !equality.Semantic.DeepEqual(updatedContainer.Env, newContainerEnv) {
 			updatedContainer.Env = newContainerEnv
-			updated = true
+			proxyUpdated = true
 		}
 		if !equality.Semantic.DeepEqual(updatedContainer.Env, updatedContainerEnv) {
 			updatedContainer.Env = updatedContainerEnv
-			updated = true
+			proxyUpdated = true
 		}
-		if updated {
+		if proxyUpdated {
+			updated = true
 			logger.Info("Updating FalconNodeSensor DaemonSet Proxy Settings")
 		}
 	}
