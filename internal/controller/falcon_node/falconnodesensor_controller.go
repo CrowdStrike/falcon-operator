@@ -143,6 +143,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			"FalconNodeSensor progressing",
 			ctx, req.NamespacedName, nodesensor, logger)
 		if err != nil {
+			logger.Error(err, "condition update failure, requeue for reconciliation")
 			return ctrl.Result{Requeue: true}, err
 		}
 	}
@@ -168,6 +169,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 	if created {
+		logger.Info("namespace created, requeue for reconciliation")
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -183,6 +185,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 	if created {
+		logger.Info("service account and role binding created, requeue for reconciliation")
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -243,7 +246,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 
 		// this just got created, so re-queue.
-		logger.Info("Configmap was just created. Re-queuing")
+		logger.Info("configmap created, requeue for reconciliation")
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -393,6 +396,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		"FalconNodeSensor installation completed",
 		ctx, req.NamespacedName, nodesensor, logger)
 	if err != nil {
+		logger.Error(err, "condition update failure, requeue for reconciliation")
 		return ctrl.Result{Requeue: true}, err
 	}
 

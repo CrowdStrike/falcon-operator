@@ -340,7 +340,8 @@ func TestDaemonset(t *testing.T) {
 									Name: "POD_NODE_NAME",
 									ValueFrom: &corev1.EnvVarSource{
 										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "spec.nodeName",
+											APIVersion: "v1",
+											FieldPath:  "spec.nodeName",
 										},
 									},
 								},
@@ -364,7 +365,8 @@ func TestDaemonset(t *testing.T) {
 									Name: "POD_NODE_NAME",
 									ValueFrom: &corev1.EnvVarSource{
 										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "spec.nodeName",
+											APIVersion: "v1",
+											FieldPath:  "spec.nodeName",
 										},
 									},
 								},
