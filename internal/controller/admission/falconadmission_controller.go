@@ -594,60 +594,65 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		existingDeployment.Spec.Template.Spec.Containers = dep.Spec.Template.Spec.Containers
 		updated = true
 	} else {
-		for i, containers := range dep.Spec.Template.Spec.Containers {
-			if containers.Name == "falcon-client" || containers.Name == "falcon-watcher" {
-				if !reflect.DeepEqual(containers.Ports, existingDeployment.Spec.Template.Spec.Containers[i].Ports) {
-					existingDeployment.Spec.Template.Spec.Containers[i].Ports = containers.Ports
+		for i, container := range dep.Spec.Template.Spec.Containers {
+			existingContainer := &existingDeployment.Spec.Template.Spec.Containers[i]
+
+			if container.Name == "falcon-client" || container.Name == "falcon-watcher" {
+				if !reflect.DeepEqual(container.Ports, existingContainer.Ports) {
+					existingContainer.Ports = container.Ports
 					updated = true
 				}
 			}
 
-			if !reflect.DeepEqual(containers.Image, existingDeployment.Spec.Template.Spec.Containers[i].Image) {
-				for i := range existingDeployment.Spec.Template.Spec.Containers {
-					existingDeployment.Spec.Template.Spec.Containers[i].Image = containers.Image
-				}
+			if !reflect.DeepEqual(container.Image, existingContainer.Image) {
+				existingContainer.Image = container.Image
 				updated = true
 			}
 
-			if !reflect.DeepEqual(containers.ImagePullPolicy, existingDeployment.Spec.Template.Spec.Containers[i].ImagePullPolicy) {
-				existingDeployment.Spec.Template.Spec.Containers[i].ImagePullPolicy = containers.ImagePullPolicy
+			if !reflect.DeepEqual(container.ImagePullPolicy, existingContainer.ImagePullPolicy) {
+				existingContainer.ImagePullPolicy = container.ImagePullPolicy
 				updated = true
 			}
 
-			if !reflect.DeepEqual(containers.Resources, existingDeployment.Spec.Template.Spec.Containers[i].Resources) {
-				existingDeployment.Spec.Template.Spec.Containers[i].Resources = containers.Resources
+			if !reflect.DeepEqual(container.Resources, existingContainer.Resources) {
+				existingContainer.Resources = container.Resources
 				updated = true
 			}
 
-			if !reflect.DeepEqual(containers.LivenessProbe.ProbeHandler.HTTPGet.Port, existingDeployment.Spec.Template.Spec.Containers[i].LivenessProbe.ProbeHandler.HTTPGet.Port) {
-				existingDeployment.Spec.Template.Spec.Containers[i].LivenessProbe.ProbeHandler.HTTPGet.Port = containers.LivenessProbe.ProbeHandler.HTTPGet.Port
+			if !reflect.DeepEqual(container.LivenessProbe.ProbeHandler.HTTPGet.Port, existingContainer.LivenessProbe.ProbeHandler.HTTPGet.Port) {
+				existingContainer.LivenessProbe.ProbeHandler.HTTPGet.Port = container.LivenessProbe.ProbeHandler.HTTPGet.Port
 				updated = true
 			}
 
-			if !reflect.DeepEqual(containers.StartupProbe.ProbeHandler.HTTPGet.Port, existingDeployment.Spec.Template.Spec.Containers[i].StartupProbe.ProbeHandler.HTTPGet.Port) {
-				existingDeployment.Spec.Template.Spec.Containers[i].StartupProbe.ProbeHandler.HTTPGet.Port = containers.StartupProbe.ProbeHandler.HTTPGet.Port
+			if !reflect.DeepEqual(container.StartupProbe.ProbeHandler.HTTPGet.Port, existingContainer.StartupProbe.ProbeHandler.HTTPGet.Port) {
+				existingContainer.StartupProbe.ProbeHandler.HTTPGet.Port = container.StartupProbe.ProbeHandler.HTTPGet.Port
 				updated = true
 			}
-			if !reflect.DeepEqual(containers.Env, existingDeployment.Spec.Template.Spec.Containers[i].Env) {
-				existingDeployment.Spec.Template.Spec.Containers[i].Env = containers.Env
+
+			// Merge existing proxy env vars with spec container env to preserve existing proxy envs
+			specContainerEnvWithExistingProxy := common.MergeEnvVars(container.Env, existingContainer.Env, proxy.ProxyEnvNames)
+			if !reflect.DeepEqual(specContainerEnvWithExistingProxy, existingContainer.Env) {
+				existingContainer.Env = container.Env
 				updated = true
 			}
 		}
 	}
 
 	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
+		proxyUpdated := false
 		for i, container := range existingDeployment.Spec.Template.Spec.Containers {
 			newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
 			updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
 			if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
 				existingDeployment.Spec.Template.Spec.Containers[i].Env = newContainerEnv
-				updated = true
+				proxyUpdated = true
 			}
 			if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
 				existingDeployment.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
-				updated = true
+				proxyUpdated = true
 			}
-			if updated {
+			if proxyUpdated {
+				updated = true
 				log.Info("Updating FalconAdmission Deployment Proxy Settings")
 			}
 		}
