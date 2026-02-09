@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/operator-framework/operator-lib/proxy"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
@@ -130,6 +131,15 @@ func CRLabels(instanceName string, instanceKey string, component string) map[str
 		FalconPartOfKey:       FalconPartOfValue,
 		FalconCreatedKey:      FalconCreatedValue,
 	}
+}
+
+func ProxyEnvNamesWithLowerCase() []string {
+	envs := make([]string, 0, 6)
+	for _, s := range proxy.ProxyEnvNames {
+		envs = append(envs, s, strings.ToLower(s))
+	}
+
+	return envs
 }
 
 func AppendUniqueEnvVars(envVars ...[]corev1.EnvVar) []corev1.EnvVar {

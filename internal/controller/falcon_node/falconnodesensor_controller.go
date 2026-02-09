@@ -782,11 +782,11 @@ func reconcileDaemonSetContainers(existingDS, specDS *appsv1.DaemonSet, origImg 
 	return updated
 }
 
-// reconcileDaemonSetContainerEnvs handles container env changes while properly handling proxies.
+// reconcileDaemonSetContainerEnvs handles container env changes while properly handling proxy envs.
 // This should happen in 3 steps to avoid unintended reconciles.
 //  1. Merge existing proxy env vars into spec container env.
 //  2. Compare spec container env with proxy to existing container env.
-//  3. Read proxy vars from existing pod env and compare with existing container env for any changes.
+//  3. Read proxy env vars from existing pod and compare with existing container env for any changes.
 func reconcileDaemonSetContainerEnvs(existingDS, specDS *appsv1.DaemonSet, logger logr.Logger) bool {
 	updated := false
 
@@ -795,21 +795,21 @@ func reconcileDaemonSetContainerEnvs(existingDS, specDS *appsv1.DaemonSet, logge
 	specContainer := specDS.Spec.Template.Spec.Containers[0]
 	existingContainer := &existingDS.Spec.Template.Spec.Containers[0]
 
-	// First check for container env updates without reading proxy vars from env
 	if !equality.Semantic.DeepEqual(existingInitContainer.Env, specInitContainer.Env) {
 		existingInitContainer.Env = specInitContainer.Env
 		updated = true
 		logger.Info("Updating FalconNodeSensor DaemonSet InitContainer env")
 	}
 
-	specContainerEnvWithExistingProxy := common.MergeEnvVars(specContainer.Env, existingContainer.Env, proxy.ProxyEnvNames)
+	// Merge existing proxy env vars with spec container env to preserve existing proxy envs
+	specContainerEnvWithExistingProxy := common.MergeEnvVars(specContainer.Env, existingContainer.Env, common.ProxyEnvNamesWithLowerCase())
 	if !equality.Semantic.DeepEqual(existingContainer.Env, specContainerEnvWithExistingProxy) {
 		existingContainer.Env = specContainerEnvWithExistingProxy
 		updated = true
 		logger.Info("Updating FalconNodeSensor DaemonSet Container env")
 	}
 
-	// Second check for proxy updates read from environment variables
+	// proxy.ReadProxyVarsFromEnv() also includes lowercase versions of the proxy envs
 	proxyUpdated := false
 	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
 		for i, container := range existingDS.Spec.Template.Spec.Containers {
