@@ -288,7 +288,8 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 									Name: "POD_NODE_NAME",
 									ValueFrom: &corev1.EnvVarSource{
 										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "spec.nodeName",
+											APIVersion: "v1",
+											FieldPath:  "spec.nodeName",
 										},
 									},
 								},
@@ -308,6 +309,17 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 							Name:            "falcon-node-sensor",
 							Image:           image,
 							ImagePullPolicy: node.Spec.Node.ImagePullPolicy,
+							Env: []corev1.EnvVar{
+								{
+									Name: "POD_NODE_NAME",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											APIVersion: "v1",
+											FieldPath:  "spec.nodeName",
+										},
+									},
+								},
+							},
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
