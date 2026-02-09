@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/operator-framework/operator-lib/proxy"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
@@ -132,13 +133,22 @@ func CRLabels(instanceName string, instanceKey string, component string) map[str
 	}
 }
 
+func ProxyEnvNamesWithLowerCase() []string {
+	envs := make([]string, 0, 6)
+	for _, s := range proxy.ProxyEnvNames {
+		envs = append(envs, s, strings.ToLower(s))
+	}
+
+	return envs
+}
+
 func AppendUniqueEnvVars(envVars ...[]corev1.EnvVar) []corev1.EnvVar {
 	base := []corev1.EnvVar{}
-	for _, envVars := range envVars {
-		if envVars == nil {
+	for _, envVarSlice := range envVars {
+		if envVarSlice == nil {
 			continue
 		}
-		for _, envVar := range envVars {
+		for _, envVar := range envVarSlice {
 			if !containsEnvVar(base, envVar) {
 				base = append(base, envVar)
 			}
@@ -168,6 +178,43 @@ func UpdateEnvVars(envVars []corev1.EnvVar, updateEnvVars []corev1.EnvVar) []cor
 	}
 
 	return envVars
+}
+
+// MergeEnvVars merges specific env vars from env B into env A
+func MergeEnvVars(envA, envB []corev1.EnvVar, envVarsToMerge []string) []corev1.EnvVar {
+	if envVarsToMerge == nil || len(envVarsToMerge) == 0 {
+		return envA
+	}
+
+	envVarsToMergeMap := make(map[string]bool)
+	for _, envVarName := range envVarsToMerge {
+		envVarsToMergeMap[envVarName] = true
+	}
+
+	envBMap := make(map[string]corev1.EnvVar)
+	for _, env := range envB {
+		envBMap[env.Name] = env
+	}
+
+	// Copy envA
+	result := make([]corev1.EnvVar, 0, len(envA)+len(envVarsToMerge))
+	for _, envAVar := range envA {
+		if envVarsToMergeMap[envAVar.Name] {
+			// skip envs to merge
+			continue
+		}
+
+		result = append(result, envAVar)
+	}
+
+	// merge env vars from env B
+	for _, envName := range envVarsToMerge {
+		if envBVar, exists := envBMap[envName]; exists {
+			result = append(result, envBVar)
+		}
+	}
+
+	return result
 }
 
 func ImageVersion(image string) *string {
