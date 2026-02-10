@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/containers/image/v5/docker"
-	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/types"
+	"go.podman.io/image/v5/docker"
+	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/image/v5/types"
 
 	internalErrors "github.com/crowdstrike/falcon-operator/internal/errors"
 	"github.com/crowdstrike/falcon-operator/pkg/falcon_api"

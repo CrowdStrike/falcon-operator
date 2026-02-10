@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/image/v5/types"
+	"go.podman.io/image/v5/types"
 	corev1 "k8s.io/api/core/v1"
 )
 
