@@ -42,6 +42,13 @@ To effectively deploy and use the Falcon sensor in a Kubernetes environment, the
 4. As soon as the sensor version is changed in Git, a CI/CD pipeline should update the FalconNodeSensor and/or FalconContainer Kind(s) which will then cause the operator to deploy the updated versions to your Kubernetes environments. This is the proper way to handle sensor updates in Kubernetes.
 5. Upgrades should usually happen in a rolling update manner to ensure the Kubernetes cluster and deployed resources stay accessible and operational.
 
+> [!NOTE]
+> DaemonSet deployments of sensor versions 7.33 and earlier of the Falcon sensor for Linux are blocked from updates and
+> uninstallation if their sensor update policy has the **Uninstall and maintenance protection** setting enabled. Before
+> upgrading or uninstalling these versions of the sensor, move the sensors to a new sensor update policy with this
+> policy setting turned off. For more info, see [Sensor update and uninstallation for DaemonSet sensor versions 7.33
+> and lower](https://falcon.crowdstrike.com/documentation/anchor/sc632f2e).
+
 ## FAQ - Frequently Asked Questions
 
 ### What network connections are required for the operator to work properly?

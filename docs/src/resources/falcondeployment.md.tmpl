@@ -216,6 +216,13 @@ To install Falcon Operator:
 
 **Note:** When deploying the Kubernetes Admission Controller, the Falcon Operator can trigger multiple restarts for the Falcon Admission Controller Pods when deploying alongside other resources. Falcon KAC is designed to ignore namespaces managed by CrowdStrike, so, as new resources are added, such as falconContainer or falconNodeSensor, the KAC pod will redeploy to ignore the new namespaces.
 
+> [!NOTE]
+> DaemonSet deployments of sensor versions 7.33 and earlier of the Falcon sensor for Linux are blocked from updates and
+> uninstallation if their sensor update policy has the **Uninstall and maintenance protection** setting enabled. Before
+> upgrading or uninstalling these versions of the sensor, move the sensors to a new sensor update policy with this
+> policy setting turned off. For more info, see [Sensor update and uninstallation for DaemonSet sensor versions 7.33
+> and lower](https://falcon.crowdstrike.com/documentation/anchor/sc632f2e).
+
 ### Cloud platform-specific deployments
 
 Some cloud platforms have additional configuration requirements. For details, see the appropriate deployment guide:
@@ -256,8 +263,22 @@ The Falcon Operator will automatically detect these changes and initiate the upg
 
 **Note**: This process works for all components that can be deployed with the Falcon Operator. The operator handles the implementation details of the upgrade based on your changes.
 
+> [!NOTE]
+> DaemonSet deployments of sensor versions 7.33 and earlier of the Falcon sensor for Linux are blocked from updates and
+> uninstallation if their sensor update policy has the **Uninstall and maintenance protection** setting enabled. Before
+> upgrading or uninstalling these versions of the sensor, move the sensors to a new sensor update policy with this
+> policy setting turned off. For more info, see [Sensor update and uninstallation for DaemonSet sensor versions 7.33
+> and lower](https://falcon.crowdstrike.com/documentation/anchor/sc632f2e).
+
 ## Uninstall all Falcon components
 
 To uninstall the Falcon Operator, remove the falcon-operator resource. The operator uninstalls the falcon-operator resource and any CRs deployed from the cluster.
 
 `kubectl delete falcondeployment --all`
+
+> [!NOTE]
+> DaemonSet deployments of sensor versions 7.33 and earlier of the Falcon sensor for Linux are blocked from updates and
+> uninstallation if their sensor update policy has the **Uninstall and maintenance protection** setting enabled. Before
+> upgrading or uninstalling these versions of the sensor, move the sensors to a new sensor update policy with this
+> policy setting turned off. For more info, see [Sensor update and uninstallation for DaemonSet sensor versions 7.33
+> and lower](https://falcon.crowdstrike.com/documentation/anchor/sc632f2e).
