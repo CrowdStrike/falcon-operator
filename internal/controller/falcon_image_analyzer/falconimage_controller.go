@@ -202,7 +202,7 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 				return ctrl.Result{}, nil
 			}
 			if err != nil {
-				log.Error(err, "Failed to verify CrowdStrike Image  Image Registry access")
+				log.Error(err, "Failed to verify CrowdStrike Image Registry access")
 				time.Sleep(time.Second * 5)
 				return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 			}
