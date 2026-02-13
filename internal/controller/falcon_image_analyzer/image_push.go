@@ -49,7 +49,7 @@ func (r *FalconImageAnalyzerReconciler) PushImage(ctx context.Context, log logr.
 	image := image.NewImageRefresher(ctx, log, falconApiConfig, pushAuth, falconImageAnalyzer.Spec.Registry.TLS.InsecureSkipVerify)
 	version := falconImageAnalyzer.Spec.Version
 
-	tag, err := image.Refresh(registryUri, falcon.RegionedImageSensor, version)
+	tag, err := image.Refresh(registryUri, falcon.ImageSensor, version)
 	if err != nil {
 		return fmt.Errorf("Cannot push Falcon Image Analyzer Image: %v", err)
 	}
@@ -139,7 +139,7 @@ func (r *FalconImageAnalyzerReconciler) registryUri(ctx context.Context, falconI
 			return "", err
 		}
 
-		return falcon.FalconContainerSensorImageURI(cloud, falcon.RegionedImageSensor), nil
+		return falcon.FalconContainerSensorImageURI(cloud, falcon.ImageSensor), nil
 	default:
 		return "", fmt.Errorf("Unrecognized registry type: %s", falconImageAnalyzer.Spec.Registry.Type)
 	}
@@ -163,6 +163,16 @@ func (r *FalconImageAnalyzerReconciler) imageUri(ctx context.Context, falconImag
 	imageTag, err := r.setImageTag(ctx, falconImageAnalyzer)
 	if err != nil {
 		return "", fmt.Errorf("failed to set Falcon Image Analyzer Image version: %v", err)
+	}
+
+	if falconImageAnalyzer.Spec.Registry.Type == falconv1alpha1.RegistryTypeCrowdStrike {
+		if !falcon_registry.IsMinimumUnifiedSensorVersion(imageTag, falcon.ImageSensor) {
+			cloud, err := falconImageAnalyzer.Spec.FalconAPI.FalconCloudWithSecret(ctx, r.Reader, falconImageAnalyzer.Spec.FalconSecret)
+			if err != nil {
+				return "", err
+			}
+			registryUri = falcon.FalconContainerSensorImageURI(cloud, falcon.RegionedImageSensor)
+		}
 	}
 
 	return fmt.Sprintf("%s:%s", registryUri, imageTag), nil
@@ -209,7 +219,7 @@ func (r *FalconImageAnalyzerReconciler) setImageTag(ctx context.Context, falconI
 		return "", err
 	}
 
-	tag, err := registry.LastContainerTag(ctx, falcon.RegionedImageSensor, falconImageAnalyzer.Spec.Version)
+	tag, err := registry.LastContainerTag(ctx, falcon.ImageSensor, falconImageAnalyzer.Spec.Version)
 	if err == nil {
 		falconImageAnalyzer.Status.Sensor = common.ImageVersion(tag)
 	}
