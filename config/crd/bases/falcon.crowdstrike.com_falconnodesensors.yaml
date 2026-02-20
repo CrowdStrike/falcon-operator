@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.20.1
   name: falconnodesensors.falcon.crowdstrike.com
 spec:
   group: falcon.crowdstrike.com
@@ -583,9 +583,10 @@ spec:
                         operator:
                           description: |-
                             Operator represents a key's relationship to the value.
-                            Valid operators are Exists and Equal. Defaults to Equal.
+                            Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
                             Exists is equivalent to wildcard for value, so that a pod can
                             tolerate all taints of a particular category.
+                            Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).
                           type: string
                         tolerationSeconds:
                           description: |-
@@ -629,7 +630,7 @@ spec:
                               pod is available (Ready for at least minReadySeconds) the old DaemonSet pod
                               on that node is marked deleted. If the old pod becomes unavailable for any
                               reason (Ready transitions to false, is evicted, or is drained) an updated
-                              pod is immediatedly created on that node without considering surge limits.
+                              pod is immediately created on that node without considering surge limits.
                               Allowing surge implies the possibility that the resources consumed by the
                               daemonset on any given node can double if the readiness check fails, and
                               so resource intensive daemonsets should take into account that they may
