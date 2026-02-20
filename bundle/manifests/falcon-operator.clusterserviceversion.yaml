@@ -423,6 +423,10 @@ spec:
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: admissionConfig.nodeAffinity
+      - description: Determines if the admission controller watches for configMap
+          events
+        displayName: Enable ConfigMap Event Watcher
+        path: admissionConfig.configMapWatcherEnabled
       - description: Namespace where Falcon Image Analyzer is installed. KAC needs
           to know this to discover and communicate with IAR.
         displayName: Falcon Image Analyzer Namespace
@@ -1058,6 +1062,9 @@ spec:
       - description: Additional configuration for Falcon Image Analyzer deployment.
         displayName: Falcon Image Analyzer Configuration
         path: falconImageAnalyzer.imageAnalyzerConfig
+      - description: Configure a list of image names for Image Analyzer to ignore.
+        displayName: Ignore Images List
+        path: falconImageAnalyzer.imageAnalyzerConfig.exclusions.imageNames
       - description: Certificate validity duration in number of days.
         displayName: Falcon Image Analyzer TLS Certificate Expiration (days)
         path: falconImageAnalyzer.imageAnalyzerConfig.iarAgentService.certExpiration
@@ -1482,6 +1489,10 @@ spec:
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: falconAdmission.admissionConfig.nodeAffinity
+      - description: Determines if the admission controller watches for configMap
+          events
+        displayName: Enable ConfigMap Event Watcher
+        path: falconAdmission.admissionConfig.configMapWatcherEnabled
       - description: Namespace where Falcon Image Analyzer is installed. KAC needs
           to know this to discover and communicate with IAR.
         displayName: Falcon Image Analyzer Namespace
@@ -1661,6 +1672,9 @@ spec:
       - description: Additional configuration for Falcon Image Analyzer deployment.
         displayName: Falcon Image Analyzer Configuration
         path: imageAnalyzerConfig
+      - description: Configure a list of image names for Image Analyzer to ignore.
+        displayName: Ignore Images List
+        path: imageAnalyzerConfig.exclusions.imageNames
       - description: Certificate validity duration in number of days.
         displayName: Falcon Image Analyzer TLS Certificate Expiration (days)
         path: imageAnalyzerConfig.iarAgentService.certExpiration
@@ -2087,6 +2101,14 @@ spec:
           - update
           - watch
         - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
           - apps
           resources:
           - daemonsets
@@ -2177,6 +2199,16 @@ spec:
           - patch
           - update
         - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - gatewayclasses
+          - gateways
+          - httproutes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
           - image.openshift.io
           resources:
           - imagestreams
@@ -2186,6 +2218,23 @@ spec:
           - get
           - list
           - update
+          - watch
+        - apiGroups:
+          - networking.istio.io
+          resources:
+          - virtualservices
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses
+          - networkpolicies
+          verbs:
+          - get
+          - list
           - watch
         - apiGroups:
           - rbac.authorization.k8s.io
