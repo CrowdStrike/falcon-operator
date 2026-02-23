@@ -23,8 +23,11 @@ const (
 	admissionControllerRoleBindingName = "falcon-admission-controller-role-binding"
 )
 
-func (r *FalconAdmissionReconciler) reconcileServiceAccount(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
-	update := false
+// reconcileServiceAccount only returns true when a service account update requires a deployment restart.
+// Only updates to image pull secrets should trigger a deployment restart.
+func (r *FalconAdmissionReconciler) reconcileServiceAccount(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) (bool, error) {
+	serviceAccountUpdated := false
+	imagePullSecretsUpdated := false
 	existingServiceAccount := &corev1.ServiceAccount{}
 
 	imagePullSecrets := []corev1.LocalObjectReference{{Name: common.FalconPullSecretName}}
@@ -44,33 +47,58 @@ func (r *FalconAdmissionReconciler) reconcileServiceAccount(ctx context.Context,
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconAdmission, &falconAdmission.Status, serviceAccount)
 		if err != nil {
-			return err
+			return false, err
 		}
 
-		return nil
+		return serviceAccountUpdated, nil
 	} else if err != nil {
 		log.Error(err, "Failed to get FalconAdmission ServiceAccount")
-		return err
+		return serviceAccountUpdated, err
 	}
 
-	if !reflect.DeepEqual(serviceAccount.ObjectMeta.Annotations, existingServiceAccount.ObjectMeta.Annotations) {
-		existingServiceAccount.ObjectMeta.Annotations = serviceAccount.ObjectMeta.Annotations
-		update = true
-	}
-	if !reflect.DeepEqual(serviceAccount.ObjectMeta.Labels, existingServiceAccount.ObjectMeta.Labels) {
-		existingServiceAccount.ObjectMeta.Labels = serviceAccount.ObjectMeta.Labels
-		update = true
-	}
+	// Set GVK on existingServiceAccount since it's not populated when retrieved from the API server
+	existingServiceAccount.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ServiceAccount"))
 
-	if update {
-		err = k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingServiceAccount)
-		if err != nil {
-			return err
+	// Check if any annotations from serviceAccount need to be added to existingServiceAccount
+	if serviceAccount.ObjectMeta.Annotations != nil {
+		if existingServiceAccount.ObjectMeta.Annotations == nil {
+			existingServiceAccount.ObjectMeta.Annotations = make(map[string]string)
+		}
+		for key, value := range serviceAccount.ObjectMeta.Annotations {
+			if existingValue, exists := existingServiceAccount.ObjectMeta.Annotations[key]; !exists || existingValue != value {
+				existingServiceAccount.ObjectMeta.Annotations[key] = value
+				serviceAccountUpdated = true
+			}
 		}
 	}
 
-	return nil
+	// Check if any labels from serviceAccount need to be added to existingServiceAccount
+	if serviceAccount.ObjectMeta.Labels != nil {
+		if existingServiceAccount.ObjectMeta.Labels == nil {
+			existingServiceAccount.ObjectMeta.Labels = make(map[string]string)
+		}
+		for key, value := range serviceAccount.ObjectMeta.Labels {
+			if existingValue, exists := existingServiceAccount.ObjectMeta.Labels[key]; !exists || existingValue != value {
+				existingServiceAccount.ObjectMeta.Labels[key] = value
+				serviceAccountUpdated = true
+			}
+		}
+	}
 
+	if !reflect.DeepEqual(serviceAccount.ImagePullSecrets, existingServiceAccount.ImagePullSecrets) {
+		existingServiceAccount.ImagePullSecrets = serviceAccount.ImagePullSecrets
+		imagePullSecretsUpdated = true
+	}
+
+	if serviceAccountUpdated || imagePullSecretsUpdated {
+		err = k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingServiceAccount)
+		if err != nil {
+			return serviceAccountUpdated, err
+		}
+	}
+
+	// Only trigger a pod restart if imagePullSecrets are updated
+	return imagePullSecretsUpdated, nil
 }
 
 func (r *FalconAdmissionReconciler) reconcileClusterRoleBinding(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
