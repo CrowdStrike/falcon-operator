@@ -213,7 +213,7 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 	}
 
-	serviceAccountUpdated, err := r.reconcileServiceAccount(ctx, req, log, falconImageAnalyzer)
+	serviceAccountUpdateRequiresRestart, err := r.reconcileServiceAccount(ctx, req, log, falconImageAnalyzer)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
