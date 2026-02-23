@@ -23,6 +23,8 @@ const (
 	admissionControllerRoleBindingName = "falcon-admission-controller-role-binding"
 )
 
+// reconcileServiceAccount only returns true when a service account update requires a deployment restart.
+// Only updates to image pull secrets should trigger a deployment restart.
 func (r *FalconAdmissionReconciler) reconcileServiceAccount(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) (bool, error) {
 	serviceAccountUpdated := false
 	imagePullSecretsUpdated := false

@@ -21,6 +21,8 @@ const (
 	imageClusterRoleBindingName = "falcon-operator-image-controller-rolebinding"
 )
 
+// reconcileServiceAccount only returns true when a service account update requires a deployment restart.
+// Only updates to image pull secrets should trigger a deployment restart.
 func (r *FalconImageAnalyzerReconciler) reconcileServiceAccount(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) (bool, error) {
 	serviceAccountUpdated := false
 	imagePullSecretsUpdated := false

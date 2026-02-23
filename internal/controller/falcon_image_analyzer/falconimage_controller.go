@@ -247,7 +247,7 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 
-	if configUpdated || serviceAccountUpdated {
+	if configUpdated || serviceAccountUpdateRequiresRestart {
 		err = r.imageAnalyzerDeploymentUpdate(ctx, req, log, falconImageAnalyzer)
 		if err != nil {
 			return ctrl.Result{}, err
