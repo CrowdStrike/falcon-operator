@@ -225,7 +225,7 @@ func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
-	serviceAccountUpdated, err := r.reconcileServiceAccount(ctx, req, log, falconAdmission)
+	serviceAccountUpdateRequiresRestart, err := r.reconcileServiceAccount(ctx, req, log, falconAdmission)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
