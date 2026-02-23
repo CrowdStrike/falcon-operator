@@ -21,8 +21,11 @@ const (
 	imageClusterRoleBindingName = "falcon-operator-image-controller-rolebinding"
 )
 
-func (r *FalconImageAnalyzerReconciler) reconcileServiceAccount(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) error {
-	update := false
+// reconcileServiceAccount only returns true when a service account update requires a deployment restart.
+// Only updates to image pull secrets should trigger a deployment restart.
+func (r *FalconImageAnalyzerReconciler) reconcileServiceAccount(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) (bool, error) {
+	serviceAccountUpdated := false
+	imagePullSecretsUpdated := false
 	existingServiceAccount := &corev1.ServiceAccount{}
 
 	imagePullSecrets := []corev1.LocalObjectReference{{Name: common.FalconPullSecretName}}
@@ -42,14 +45,17 @@ func (r *FalconImageAnalyzerReconciler) reconcileServiceAccount(ctx context.Cont
 	if err != nil && apierrors.IsNotFound(err) {
 		err = k8sutils.Create(r.Client, r.Scheme, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, serviceAccount)
 		if err != nil {
-			return err
+			return serviceAccountUpdated, err
 		}
 
-		return nil
+		return serviceAccountUpdated, nil
 	} else if err != nil {
 		log.Error(err, "Failed to get FalconImageAnalyzer ServiceAccount")
-		return err
+		return serviceAccountUpdated, err
 	}
+
+	// Set GVK on existingServiceAccount since it's not populated when retrieved from the API server
+	existingServiceAccount.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ServiceAccount"))
 
 	// Check if any annotations from serviceAccount need to be added to existingServiceAccount
 	if serviceAccount.ObjectMeta.Annotations != nil {
@@ -59,7 +65,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileServiceAccount(ctx context.Cont
 		for key, value := range serviceAccount.ObjectMeta.Annotations {
 			if existingValue, exists := existingServiceAccount.ObjectMeta.Annotations[key]; !exists || existingValue != value {
 				existingServiceAccount.ObjectMeta.Annotations[key] = value
-				update = true
+				serviceAccountUpdated = true
 			}
 		}
 	}
@@ -72,20 +78,24 @@ func (r *FalconImageAnalyzerReconciler) reconcileServiceAccount(ctx context.Cont
 		for key, value := range serviceAccount.ObjectMeta.Labels {
 			if existingValue, exists := existingServiceAccount.ObjectMeta.Labels[key]; !exists || existingValue != value {
 				existingServiceAccount.ObjectMeta.Labels[key] = value
-				update = true
+				serviceAccountUpdated = true
 			}
 		}
 	}
 
-	if update {
+	if !reflect.DeepEqual(serviceAccount.ImagePullSecrets, existingServiceAccount.ImagePullSecrets) {
+		existingServiceAccount.ImagePullSecrets = serviceAccount.ImagePullSecrets
+		imagePullSecretsUpdated = true
+	}
+
+	if serviceAccountUpdated || imagePullSecretsUpdated {
 		err = k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, existingServiceAccount)
 		if err != nil {
-			return err
+			return serviceAccountUpdated, err
 		}
 	}
 
-	return nil
-
+	return imagePullSecretsUpdated, nil
 }
 
 func (r *FalconImageAnalyzerReconciler) reconcileClusterRoleBinding(ctx context.Context, req ctrl.Request, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) error {

@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -70,8 +71,9 @@ var _ = Describe("FalconImageAnalyzer controller", func() {
 
 			// Delete cluster level resources
 			clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: imageClusterRoleBindingName}, clusterRoleBinding)).To(Succeed())
-			Expect(k8sClient.Delete(ctx, clusterRoleBinding)).To(Succeed())
+			if err := k8sClient.Get(ctx, types.NamespacedName{Name: imageClusterRoleBindingName}, clusterRoleBinding); err == nil {
+				Expect(k8sClient.Delete(ctx, clusterRoleBinding)).To(Succeed())
+			}
 
 			// Delete FalconImageAnalyzer custom resource
 			falconImageAnalyzerCR := &falconv1alpha1.FalconImageAnalyzer{}
@@ -291,6 +293,485 @@ var _ = Describe("FalconImageAnalyzer controller", func() {
 			By("Cleaning up the test specific resources")
 			err = k8sClient.Delete(ctx, testSecret)
 			Expect(err).To(Not(HaveOccurred()))
+		})
+
+		// Testing reconcileServiceAccount return value
+		It("should return false when creating a new service account", func() {
+			log := zap.New(zap.UseDevMode(true))
+
+			By("Creating the custom resource for the Kind FalconImageAnalyzer")
+			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "falcon.crowdstrike.com/v1alpha1",
+					Kind:       "FalconImageAnalyzer",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ImageAnalyzerName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconImageAnalyzerSpec{
+					InstallNamespace: imageAnalyzerNamespacedName.Namespace,
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						ClientId:     "test-client-id",
+						ClientSecret: "test-client-secret",
+						CloudRegion:  "us-1",
+					},
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					Image: imageAnalyzerImage,
+				},
+			}
+			err := k8sClient.Create(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconImageAnalyzer{}
+				return k8sClient.Get(ctx, imageAnalyzerNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Creating the reconciler")
+			falconImageAnalyzerReconciler := &FalconImageAnalyzerReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			By("Calling reconcileServiceAccount when no service account exists")
+			updated, err := falconImageAnalyzerReconciler.reconcileServiceAccount(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			}, log, falconImageAnalyzer)
+
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(updated).To(BeFalse(), "reconcileServiceAccount should return false when creating a new service account")
+
+			By("Verifying the service account was created")
+			Eventually(func() error {
+				found := &corev1.ServiceAccount{}
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      common.ImageServiceAccountName,
+					Namespace: testNamespace.Name,
+				}, found)
+			}, 5*time.Second, time.Second).Should(Succeed())
+		})
+
+		It("should return false when only annotations are updated", func() {
+			log := zap.New(zap.UseDevMode(true))
+
+			By("Creating the custom resource for the Kind FalconImageAnalyzer")
+			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "falcon.crowdstrike.com/v1alpha1",
+					Kind:       "FalconImageAnalyzer",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ImageAnalyzerName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconImageAnalyzerSpec{
+					InstallNamespace: imageAnalyzerNamespacedName.Namespace,
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						ClientId:     "test-client-id",
+						ClientSecret: "test-client-secret",
+						CloudRegion:  "us-1",
+					},
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					Image: imageAnalyzerImage,
+				},
+			}
+			err := k8sClient.Create(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconImageAnalyzer{}
+				return k8sClient.Get(ctx, imageAnalyzerNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Creating the reconciler")
+			falconImageAnalyzerReconciler := &FalconImageAnalyzerReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			By("Creating initial service account")
+			updated, err := falconImageAnalyzerReconciler.reconcileServiceAccount(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			}, log, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(updated).To(BeFalse())
+
+			By("Updating annotations in FalconImageAnalyzer spec")
+			falconImageAnalyzer.Spec.ImageAnalyzerConfig.ServiceAccount.Annotations = map[string]string{
+				"new-annotation": "new-value",
+			}
+
+			By("Calling reconcileServiceAccount with updated annotations")
+			updated, err = falconImageAnalyzerReconciler.reconcileServiceAccount(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			}, log, falconImageAnalyzer)
+
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(updated).To(BeFalse(), "reconcileServiceAccount should return false when only annotations are updated")
+
+			By("Verifying annotations were updated")
+			Eventually(func() map[string]string {
+				found := &corev1.ServiceAccount{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      common.ImageServiceAccountName,
+					Namespace: testNamespace.Name,
+				}, found)
+				return found.ObjectMeta.Annotations
+			}, 5*time.Second, time.Second).Should(HaveKey("new-annotation"))
+		})
+
+		It("should return true when imagePullSecrets are updated", func() {
+			log := zap.New(zap.UseDevMode(true))
+
+			By("Creating the custom resource for the Kind FalconImageAnalyzer")
+			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "falcon.crowdstrike.com/v1alpha1",
+					Kind:       "FalconImageAnalyzer",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ImageAnalyzerName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconImageAnalyzerSpec{
+					InstallNamespace: imageAnalyzerNamespacedName.Namespace,
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						ClientId:     "test-client-id",
+						ClientSecret: "test-client-secret",
+						CloudRegion:  "us-1",
+					},
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					Image: imageAnalyzerImage,
+				},
+			}
+			err := k8sClient.Create(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconImageAnalyzer{}
+				return k8sClient.Get(ctx, imageAnalyzerNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Creating the reconciler")
+			falconImageAnalyzerReconciler := &FalconImageAnalyzerReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			By("Creating initial service account with default imagePullSecrets")
+			updated, err := falconImageAnalyzerReconciler.reconcileServiceAccount(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			}, log, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(updated).To(BeFalse())
+
+			By("Verifying initial imagePullSecrets")
+			Eventually(func() []corev1.LocalObjectReference {
+				found := &corev1.ServiceAccount{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      common.ImageServiceAccountName,
+					Namespace: testNamespace.Name,
+				}, found)
+				return found.ImagePullSecrets
+			}, 5*time.Second, time.Second).Should(Equal([]corev1.LocalObjectReference{
+				{Name: common.FalconPullSecretName},
+			}))
+
+			By("Adding a new imagePullSecret to FalconImageAnalyzer spec")
+			falconImageAnalyzer.Spec.ImageAnalyzerConfig.ImagePullSecrets = []corev1.LocalObjectReference{
+				{Name: "additional-secret"},
+			}
+
+			By("Calling reconcileServiceAccount with updated imagePullSecrets")
+			updated, err = falconImageAnalyzerReconciler.reconcileServiceAccount(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			}, log, falconImageAnalyzer)
+
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(updated).To(BeTrue(), "reconcileServiceAccount should return true when imagePullSecrets are updated")
+
+			By("Verifying imagePullSecrets were updated")
+			Eventually(func() []corev1.LocalObjectReference {
+				found := &corev1.ServiceAccount{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      common.ImageServiceAccountName,
+					Namespace: testNamespace.Name,
+				}, found)
+				return found.ImagePullSecrets
+			}, 5*time.Second, time.Second).Should(Equal([]corev1.LocalObjectReference{
+				{Name: common.FalconPullSecretName},
+				{Name: "additional-secret"},
+			}))
+		})
+
+		It("should return false when no changes are made to service account", func() {
+			log := zap.New(zap.UseDevMode(true))
+
+			By("Creating the custom resource for the Kind FalconImageAnalyzer")
+			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "falcon.crowdstrike.com/v1alpha1",
+					Kind:       "FalconImageAnalyzer",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ImageAnalyzerName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconImageAnalyzerSpec{
+					InstallNamespace: imageAnalyzerNamespacedName.Namespace,
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						ClientId:     "test-client-id",
+						ClientSecret: "test-client-secret",
+						CloudRegion:  "us-1",
+					},
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					Image: imageAnalyzerImage,
+				},
+			}
+			err := k8sClient.Create(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconImageAnalyzer{}
+				return k8sClient.Get(ctx, imageAnalyzerNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Creating the reconciler")
+			falconImageAnalyzerReconciler := &FalconImageAnalyzerReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			By("Creating initial service account")
+			updated, err := falconImageAnalyzerReconciler.reconcileServiceAccount(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			}, log, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(updated).To(BeFalse())
+
+			By("Calling reconcileServiceAccount again without any changes")
+			updated, err = falconImageAnalyzerReconciler.reconcileServiceAccount(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			}, log, falconImageAnalyzer)
+
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(updated).To(BeFalse(), "reconcileServiceAccount should return false when no changes are made")
+		})
+
+		It("should return true when imagePullSecrets are removed", func() {
+			log := zap.New(zap.UseDevMode(true))
+
+			By("Creating the custom resource for the Kind FalconImageAnalyzer with extra imagePullSecret")
+			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "falcon.crowdstrike.com/v1alpha1",
+					Kind:       "FalconImageAnalyzer",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ImageAnalyzerName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconImageAnalyzerSpec{
+					InstallNamespace: imageAnalyzerNamespacedName.Namespace,
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						ClientId:     "test-client-id",
+						ClientSecret: "test-client-secret",
+						CloudRegion:  "us-1",
+					},
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					Image: imageAnalyzerImage,
+					ImageAnalyzerConfig: falconv1alpha1.FalconImageAnalyzerConfigSpec{
+						ImagePullSecrets: []corev1.LocalObjectReference{
+							{Name: "extra-secret"},
+						},
+					},
+				},
+			}
+			err := k8sClient.Create(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconImageAnalyzer{}
+				return k8sClient.Get(ctx, imageAnalyzerNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Creating the reconciler")
+			falconImageAnalyzerReconciler := &FalconImageAnalyzerReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			By("Creating initial service account with multiple imagePullSecrets")
+			updated, err := falconImageAnalyzerReconciler.reconcileServiceAccount(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			}, log, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(updated).To(BeFalse())
+
+			By("Verifying initial imagePullSecrets include extra secret")
+			Eventually(func() int {
+				found := &corev1.ServiceAccount{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      common.ImageServiceAccountName,
+					Namespace: testNamespace.Name,
+				}, found)
+				return len(found.ImagePullSecrets)
+			}, 5*time.Second, time.Second).Should(Equal(2))
+
+			By("Removing extra imagePullSecret from FalconImageAnalyzer spec")
+			falconImageAnalyzer.Spec.ImageAnalyzerConfig.ImagePullSecrets = []corev1.LocalObjectReference{}
+
+			By("Calling reconcileServiceAccount with removed imagePullSecret")
+			updated, err = falconImageAnalyzerReconciler.reconcileServiceAccount(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			}, log, falconImageAnalyzer)
+
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(updated).To(BeTrue(), "reconcileServiceAccount should return true when imagePullSecrets are removed")
+
+			By("Verifying imagePullSecrets were reduced to default only")
+			Eventually(func() []corev1.LocalObjectReference {
+				found := &corev1.ServiceAccount{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      common.ImageServiceAccountName,
+					Namespace: testNamespace.Name,
+				}, found)
+				return found.ImagePullSecrets
+			}, 5*time.Second, time.Second).Should(Equal([]corev1.LocalObjectReference{
+				{Name: common.FalconPullSecretName},
+			}))
+		})
+
+		It("should not trigger reconciliation loop when external annotations are added", func() {
+			log := zap.New(zap.UseDevMode(true))
+
+			By("Creating the custom resource for the Kind FalconImageAnalyzer")
+			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "falcon.crowdstrike.com/v1alpha1",
+					Kind:       "FalconImageAnalyzer",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ImageAnalyzerName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconImageAnalyzerSpec{
+					InstallNamespace: imageAnalyzerNamespacedName.Namespace,
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						ClientId:     "test-client-id",
+						ClientSecret: "test-client-secret",
+						CloudRegion:  "us-1",
+					},
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					Image: imageAnalyzerImage,
+					ImageAnalyzerConfig: falconv1alpha1.FalconImageAnalyzerConfigSpec{
+						ServiceAccount: falconv1alpha1.FalconImageAnalyzerServiceAccount{
+							Annotations: map[string]string{
+								"operator-managed-annotation": "value1",
+							},
+						},
+					},
+				},
+			}
+			err := k8sClient.Create(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconImageAnalyzer{}
+				return k8sClient.Get(ctx, imageAnalyzerNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Creating the reconciler")
+			falconImageAnalyzerReconciler := &FalconImageAnalyzerReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			By("Creating initial service account with operator-managed annotations")
+			updated, err := falconImageAnalyzerReconciler.reconcileServiceAccount(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			}, log, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(updated).To(BeFalse())
+
+			By("Verifying service account was created with operator-managed annotation")
+			Eventually(func() map[string]string {
+				found := &corev1.ServiceAccount{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      common.ImageServiceAccountName,
+					Namespace: testNamespace.Name,
+				}, found)
+				return found.Annotations
+			}, 5*time.Second, time.Second).Should(HaveKeyWithValue("operator-managed-annotation", "value1"))
+
+			By("Simulating external system (like OpenShift) adding annotations to the service account")
+			serviceAccount := &corev1.ServiceAccount{}
+			err = k8sClient.Get(ctx, types.NamespacedName{
+				Name:      common.ImageServiceAccountName,
+				Namespace: testNamespace.Name,
+			}, serviceAccount)
+			Expect(err).To(Not(HaveOccurred()))
+
+			serviceAccount.Annotations["openshift.io/sa.scc.mcs"] = "s0:c27,c4"
+			serviceAccount.Annotations["openshift.io/sa.scc.supplemental-groups"] = "1000710000/10000"
+			serviceAccount.Annotations["openshift.io/sa.scc.uid-range"] = "1000710000/10000"
+			err = k8sClient.Update(ctx, serviceAccount)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying external annotations were added")
+			Eventually(func() bool {
+				found := &corev1.ServiceAccount{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      common.ImageServiceAccountName,
+					Namespace: testNamespace.Name,
+				}, found)
+				return len(found.Annotations) == 4 // 1 operator-managed + 3 openshift
+			}, 5*time.Second, time.Second).Should(BeTrue())
+
+			By("Calling reconcileServiceAccount again - should not trigger update for external annotations")
+			updated, err = falconImageAnalyzerReconciler.reconcileServiceAccount(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			}, log, falconImageAnalyzer)
+
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(updated).To(BeFalse(), "reconcileServiceAccount should return false when only external annotations exist")
+
+			By("Verifying external annotations are preserved after reconciliation")
+			serviceAccount = &corev1.ServiceAccount{}
+			err = k8sClient.Get(ctx, types.NamespacedName{
+				Name:      common.ImageServiceAccountName,
+				Namespace: testNamespace.Name,
+			}, serviceAccount)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("openshift.io/sa.scc.mcs", "s0:c27,c4"))
+			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("openshift.io/sa.scc.supplemental-groups", "1000710000/10000"))
+			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("openshift.io/sa.scc.uid-range", "1000710000/10000"))
+			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("operator-managed-annotation", "value1"))
 		})
 	})
 })
