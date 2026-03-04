@@ -918,6 +918,9 @@ spec:
       - description: Additional configuration for Falcon Image Analyzer deployment.
         displayName: Falcon Image Analyzer Configuration
         path: falconImageAnalyzer.imageAnalyzerConfig
+      - description: Configure a list of image names for Image Analyzer to ignore.
+        displayName: Ignore Images List
+        path: falconImageAnalyzer.imageAnalyzerConfig.exclusions.imageNames
       - description: Certificate validity duration in number of days.
         displayName: Falcon Image Analyzer TLS Certificate Expiration (days)
         path: falconImageAnalyzer.imageAnalyzerConfig.iarAgentService.certExpiration
@@ -1525,6 +1528,9 @@ spec:
       - description: Additional configuration for Falcon Image Analyzer deployment.
         displayName: Falcon Image Analyzer Configuration
         path: imageAnalyzerConfig
+      - description: Configure a list of image names for Image Analyzer to ignore.
+        displayName: Ignore Images List
+        path: imageAnalyzerConfig.exclusions.imageNames
       - description: Certificate validity duration in number of days.
         displayName: Falcon Image Analyzer TLS Certificate Expiration (days)
         path: imageAnalyzerConfig.iarAgentService.certExpiration

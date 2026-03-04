@@ -27,7 +27,7 @@ func (reg *FalconRegistry) LastContainerTag(ctx context.Context, sensorType falc
 
 	regionedFilter := func(tag string) bool {
 		tagContains := ".container"
-		if sensorType == falcon.ImageSensor || sensorType == falcon.KacSensor {
+		if sensorType == falcon.RegionedImageSensor || sensorType == falcon.KacSensor {
 			tagContains = ""
 		}
 
