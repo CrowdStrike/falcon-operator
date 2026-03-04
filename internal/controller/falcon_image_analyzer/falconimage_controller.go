@@ -202,7 +202,7 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 				return ctrl.Result{}, nil
 			}
 			if err != nil {
-				log.Error(err, "Failed to verify CrowdStrike Image  Image Registry access")
+				log.Error(err, "Failed to verify CrowdStrike Image Registry access")
 				time.Sleep(time.Second * 5)
 				return ctrl.Result{RequeueAfter: 5 * time.Second}, err
 			}
@@ -213,7 +213,8 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 	}
 
-	if err := r.reconcileServiceAccount(ctx, req, log, falconImageAnalyzer); err != nil {
+	serviceAccountUpdateRequiresRestart, err := r.reconcileServiceAccount(ctx, req, log, falconImageAnalyzer)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -246,7 +247,7 @@ func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 
-	if configUpdated {
+	if configUpdated || serviceAccountUpdateRequiresRestart {
 		err = r.imageAnalyzerDeploymentUpdate(ctx, req, log, falconImageAnalyzer)
 		if err != nil {
 			return ctrl.Result{}, err

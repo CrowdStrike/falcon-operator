@@ -165,6 +165,16 @@ func (r *FalconImageAnalyzerReconciler) imageUri(ctx context.Context, falconImag
 		return "", fmt.Errorf("failed to set Falcon Image Analyzer Image version: %v", err)
 	}
 
+	if falconImageAnalyzer.Spec.Registry.Type == falconv1alpha1.RegistryTypeCrowdStrike {
+		if !falcon_registry.IsMinimumUnifiedSensorVersion(imageTag, falcon.ImageSensor) {
+			cloud, err := falconImageAnalyzer.Spec.FalconAPI.FalconCloudWithSecret(ctx, r.Reader, falconImageAnalyzer.Spec.FalconSecret)
+			if err != nil {
+				return "", err
+			}
+			registryUri = falcon.FalconContainerSensorImageURI(cloud, falcon.RegionedImageSensor)
+		}
+	}
+
 	return fmt.Sprintf("%s:%s", registryUri, imageTag), nil
 }
 

@@ -127,6 +127,10 @@ type FalconNodeSensorConfig struct {
 	// For more information, please see https://github.com/CrowdStrike/falcon-operator/blob/main/docs/ADVANCED.md.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DaemonSet Advanced Settings"
 	Advanced FalconAdvanced `json:"advanced,omitempty"`
+
+	// When running on an unmanaged K8S cluster, set a cluster name. When running on managed, K8S cluster name is resolved cloud-side
+	// +kubebuilder:validation:Pattern="^[0-9a-zA-Z]{1}[0-9a-zA-Z_-]{1,99}$"
+	ClusterName *string `json:"clusterName,omitempty"`
 }
 
 type PriorityClassConfig struct {
