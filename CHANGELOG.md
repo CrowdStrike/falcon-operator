@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-03-10
+
+### Changed
+
+- chore: Bump selinux to v1.13.2-0.20251121143522-a8faa24d6a33 (#787)
+- fix: Ensure IAR and KAC ImagePullSecrets are updated during reconciles (#780)
+- fix(falcon-kac): Ensure GVK is present in schema during kac deployment reconciles
+- chore: Update envtest environment to kubernetes api version 1.30.3
+- feat(falcon-iar): Add unified IAR sensor support
+- chore: Remove unused operator-deployment.yml workflow
+- docs: add note about sensor uninstall and maintenance protection (#774)
+- chore: Upgrade to go1.25
+- chore: Update to images to UBI9
+- feat(falcon-node-sensor): add POD_NODE_NAME container env (#746)
+- add FALCON_CLUSTER_NAME env var for unmanages k8s clusters (#741)
+- chore(deps): bump github.com/opencontainers/selinux
+
 ## [1.11.0] - 2026-01-26
 
 ### Changed
