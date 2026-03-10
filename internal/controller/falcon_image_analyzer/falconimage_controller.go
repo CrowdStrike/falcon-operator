@@ -346,6 +346,11 @@ func (r *FalconImageAnalyzerReconciler) reconcileImageAnalyzerDeployment(ctx con
 		updated = true
 	}
 
+	if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Tolerations, dep.Spec.Template.Spec.Tolerations) {
+		existingDeployment.Spec.Template.Spec.Tolerations = dep.Spec.Template.Spec.Tolerations
+		updated = true
+	}
+
 	if updated {
 		if err := k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, existingDeployment); err != nil {
 			return err
