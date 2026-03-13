@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"reflect"
+	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
@@ -85,8 +86,28 @@ func (r *FalconAdmissionReconciler) reconcileServiceAccount(ctx context.Context,
 		}
 	}
 
-	if !reflect.DeepEqual(serviceAccount.ImagePullSecrets, existingServiceAccount.ImagePullSecrets) {
-		existingServiceAccount.ImagePullSecrets = serviceAccount.ImagePullSecrets
+	// Preserve OpenShift-managed dockercfg secrets
+	if r.OpenShift {
+		for _, existingSecret := range existingServiceAccount.ImagePullSecrets {
+			// OpenShift automatically creates secrets with pattern: <serviceaccount-name>-dockercfg-<random>
+			if strings.Contains(existingSecret.Name, "-dockercfg-") {
+				// Check if this secret is not already in our desired list
+				found := false
+				for _, s := range imagePullSecrets {
+					if s.Name == existingSecret.Name {
+						found = true
+						break
+					}
+				}
+				if !found {
+					imagePullSecrets = append(imagePullSecrets, existingSecret)
+				}
+			}
+		}
+	}
+
+	if !reflect.DeepEqual(imagePullSecrets, existingServiceAccount.ImagePullSecrets) {
+		existingServiceAccount.ImagePullSecrets = imagePullSecrets
 		imagePullSecretsUpdated = true
 	}
 
