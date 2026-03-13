@@ -35,7 +35,7 @@ func (r *FalconImageAnalyzerReconciler) PushImage(ctx context.Context, log logr.
 		return nil
 	}
 
-	pushAuth, err := r.pushAuth(ctx, falconImageAnalyzer)
+	pushAuth, err := r.pushAuth(ctx, log, falconImageAnalyzer)
 	if err != nil {
 		return err
 	}
@@ -217,8 +217,8 @@ func (r *FalconImageAnalyzerReconciler) setImageTag(ctx context.Context, falconI
 	return tag, err
 }
 
-func (r *FalconImageAnalyzerReconciler) pushAuth(ctx context.Context, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) (auth.Credentials, error) {
-	return pushtoken.GetCredentials(ctx, falconImageAnalyzer.Spec.Registry.Type,
+func (r *FalconImageAnalyzerReconciler) pushAuth(ctx context.Context, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) (auth.Credentials, error) {
+	return pushtoken.GetCredentials(ctx, log, falconImageAnalyzer.Spec.Registry.Type,
 		k8s_utils.QuerySecretsInNamespace(r.Client, r.imageNamespace(falconImageAnalyzer)),
 	)
 }

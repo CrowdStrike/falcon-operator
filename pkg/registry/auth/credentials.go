@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/containers/image/v5/types"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -40,24 +41,42 @@ func newCreds(secret corev1.Secret) Credentials {
 	return nil
 }
 
-func GetPushCredentials(secrets []corev1.Secret) Credentials {
-	for _, secret := range secrets {
+func GetPushCredentials(log logr.Logger, secrets []corev1.Secret) Credentials {
+	log.Info("Searching for suitable push credentials", "totalSecrets", len(secrets))
+
+	for i, secret := range secrets {
+		log.V(1).Info("Evaluating secret", "index", i, "name", secret.Name, "type", secret.Type)
+
 		if secret.Data == nil {
+			log.V(1).Info("Skipping secret: no data", "name", secret.Name)
 			continue
 		}
 		if secret.Type != "kubernetes.io/dockercfg" && secret.Type != "kubernetes.io/dockerconfigjson" {
+			log.V(1).Info("Skipping secret: wrong type", "name", secret.Name, "type", secret.Type)
 			continue
 		}
 
-		if (secret.ObjectMeta.Annotations == nil || secret.ObjectMeta.Annotations["kubernetes.io/service-account.name"] != "builder") && secret.Name != "builder" {
+		hasBuilderAnnotation := secret.ObjectMeta.Annotations != nil && secret.ObjectMeta.Annotations["kubernetes.io/service-account.name"] == "builder"
+		isNamedBuilder := secret.Name == "builder"
+
+		if !hasBuilderAnnotation && !isNamedBuilder {
+			log.V(1).Info("Skipping secret: not named 'builder' and missing builder annotation",
+				"name", secret.Name,
+				"hasBuilderAnnotation", hasBuilderAnnotation,
+			)
 			continue
 		}
 
+		log.Info("Found potential builder secret", "name", secret.Name, "type", secret.Type)
 		creds := newCreds(secret)
 		if creds != nil {
+			log.Info("Successfully created credentials from secret", "secretName", secret.Name)
 			return creds
 		}
+		log.Info("Failed to create credentials from secret (missing .dockercfg or .dockerconfigjson key)", "secretName", secret.Name)
 	}
+
+	log.Info("No suitable push credentials found after checking all secrets")
 	return nil
 }
 
