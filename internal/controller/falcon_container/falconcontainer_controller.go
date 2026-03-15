@@ -186,12 +186,12 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	} else {
 		switch falconContainer.Spec.Registry.Type {
 		case falconv1alpha1.RegistryTypeECR:
-			if _, err := aws.UpsertECRRepo(ctx, "falcon-container"); err != nil {
-				err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile ECR repository: %v", err))
-				if err != nil {
-					return ctrl.Result{}, err
+			if _, ecrErr := aws.UpsertECRRepo(ctx, "falcon-container"); ecrErr != nil {
+				statusErr := r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile ECR repository: %v", ecrErr))
+				if statusErr != nil {
+					return ctrl.Result{}, statusErr
 				}
-				return ctrl.Result{}, fmt.Errorf("failed to reconcile ECR repository: %v", err)
+				return ctrl.Result{}, fmt.Errorf("failed to reconcile ECR repository: %v", ecrErr)
 			}
 		case falconv1alpha1.RegistryTypeOpenshift:
 			stream, err := r.reconcileImageStream(ctx, log, falconContainer)
