@@ -408,7 +408,6 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 	labels := common.CRLabels("deployment", name, component)
 	registryCAConfigMapName := ""
 	registryCABundleConfigMapName := name + "-registry-certs"
-	portWatcherHealthCheck := int32(4080)
 
 	if falconAdmission.Spec.AdmissionConfig.ResourcesClient != nil {
 		resourcesClient = falconAdmission.Spec.AdmissionConfig.ResourcesClient
@@ -675,8 +674,8 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 			},
 			Ports: []corev1.ContainerPort{
 				{
-					ContainerPort: portWatcherHealthCheck,
-					Name:          common.FalconServiceHTTPSName,
+					ContainerPort: common.FalconAdmissionWatcherPort,
+					Name:          common.FalconAdmissionWatcherPortName,
 					Protocol:      corev1.ProtocolTCP,
 				},
 			},
@@ -687,7 +686,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 						Path: common.FalconAdmissionClientStartupProbePath,
 						Port: intstr.IntOrString{
 							Type:   intstr.Int,
-							IntVal: portWatcherHealthCheck,
+							IntVal: common.FalconAdmissionWatcherPort,
 						},
 						Scheme: corev1.URISchemeHTTP,
 					},
@@ -704,7 +703,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 						Path: common.FalconAdmissionClientLivenessProbePath,
 						Port: intstr.IntOrString{
 							Type:   intstr.Int,
-							IntVal: portWatcherHealthCheck,
+							IntVal: common.FalconAdmissionWatcherPort,
 						},
 						Scheme: corev1.URISchemeHTTP,
 					},
