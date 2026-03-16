@@ -351,7 +351,6 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 	sizeLimitTmp := resource.MustParse("256Mi")
 	sizeLimitPrivate := resource.MustParse("4Ki")
 	sizeLimitWatcher := resource.MustParse("64Mi")
-	portWatcherHealthCheck := int32(4080)
 	labels := common.CRLabels("deployment", name, component)
 
 	if falconAdmission.Spec.AdmissionConfig.ResourcesClient != nil {
@@ -601,8 +600,8 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 			},
 			Ports: []corev1.ContainerPort{
 				{
-					ContainerPort: portWatcherHealthCheck,
-					Name:          common.FalconServiceHTTPSName,
+					ContainerPort: common.FalconAdmissionWatcherPort,
+					Name:          common.FalconAdmissionWatcherPortName,
 					Protocol:      corev1.ProtocolTCP,
 				},
 			},
@@ -626,7 +625,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 						Path: common.FalconAdmissionClientStartupProbePath,
 						Port: intstr.IntOrString{
 							Type:   intstr.Int,
-							IntVal: portWatcherHealthCheck,
+							IntVal: common.FalconAdmissionWatcherPort,
 						},
 						Scheme: corev1.URISchemeHTTP,
 					},
@@ -643,7 +642,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 						Path: common.FalconAdmissionClientLivenessProbePath,
 						Port: intstr.IntOrString{
 							Type:   intstr.Int,
-							IntVal: portWatcherHealthCheck,
+							IntVal: common.FalconAdmissionWatcherPort,
 						},
 						Scheme: corev1.URISchemeHTTP,
 					},
