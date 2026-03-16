@@ -38,8 +38,9 @@ import (
 // FalconImageAnalyzerReconciler reconciles a FalconImageAnalyzer object
 type FalconImageAnalyzerReconciler struct {
 	client.Client
-	Reader client.Reader
-	Scheme *runtime.Scheme
+	Reader    client.Reader
+	Scheme    *runtime.Scheme
+	OpenShift bool
 }
 
 // SetupWithManager sets up the controller with the Manager.

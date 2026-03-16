@@ -289,9 +289,10 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&imageanalyzercontroller.FalconImageAnalyzerReconciler{
-		Client: mgr.GetClient(),
-		Reader: mgr.GetAPIReader(),
-		Scheme: mgr.GetScheme(),
+		Client:    mgr.GetClient(),
+		Reader:    mgr.GetAPIReader(),
+		Scheme:    mgr.GetScheme(),
+		OpenShift: openShift,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconImageAnalyzer")
 		os.Exit(1)
