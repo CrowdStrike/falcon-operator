@@ -2,6 +2,7 @@ package assets
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -370,7 +371,10 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 			Name:            "falcon-client",
 			Image:           imageUri,
 			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
-			Args:            []string{"client"},
+			Args: []string{
+				"client",
+				fmt.Sprintf("-port=%d", *falconAdmission.Spec.AdmissionConfig.ContainerPort),
+			},
 			SecurityContext: &corev1.SecurityContext{
 				ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
 				AllowPrivilegeEscalation: &allowPrivilegeEscalation,
