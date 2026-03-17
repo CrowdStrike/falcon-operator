@@ -545,7 +545,6 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 
 	existingDeployment := &appsv1.Deployment{}
 	dep := assets.AdmissionDeployment(falconAdmission.Name, falconAdmission.Spec.InstallNamespace, common.FalconAdmissionController, imageUri, falconAdmission, log)
-	updated := false
 
 	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
 		for i, container := range dep.Spec.Template.Spec.Containers {
@@ -566,104 +565,120 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		return err
 	}
 
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.ImagePullSecrets, existingDeployment.Spec.Template.Spec.ImagePullSecrets) {
-		existingDeployment.Spec.Template.Spec.ImagePullSecrets = dep.Spec.Template.Spec.ImagePullSecrets
-		updated = true
-	}
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		// Re-fetch the latest version of the deployment to avoid conflicts
+		err := common.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: falconAdmission.Name, Namespace: falconAdmission.Spec.InstallNamespace}, existingDeployment)
+		if err != nil {
+			return err
+		}
 
-	if !reflect.DeepEqual(existingDeployment.Spec.Strategy.RollingUpdate, dep.Spec.Strategy.RollingUpdate) {
-		existingDeployment.Spec.Strategy.RollingUpdate = dep.Spec.Strategy.RollingUpdate
-		updated = true
-	}
+		updated := false
 
-	if !reflect.DeepEqual(dep.Spec.Replicas, existingDeployment.Spec.Replicas) {
-		existingDeployment.Spec.Replicas = dep.Spec.Replicas
-		updated = true
-	}
+		if !reflect.DeepEqual(dep.Spec.Template.Spec.ImagePullSecrets, existingDeployment.Spec.Template.Spec.ImagePullSecrets) {
+			existingDeployment.Spec.Template.Spec.ImagePullSecrets = dep.Spec.Template.Spec.ImagePullSecrets
+			updated = true
+		}
 
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.TopologySpreadConstraints, existingDeployment.Spec.Template.Spec.TopologySpreadConstraints) {
-		existingDeployment.Spec.Template.Spec.TopologySpreadConstraints = dep.Spec.Template.Spec.TopologySpreadConstraints
-		updated = true
-	}
+		if !reflect.DeepEqual(existingDeployment.Spec.Strategy.RollingUpdate, dep.Spec.Strategy.RollingUpdate) {
+			existingDeployment.Spec.Strategy.RollingUpdate = dep.Spec.Strategy.RollingUpdate
+			updated = true
+		}
 
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.Affinity.NodeAffinity, existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity) {
-		existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity = dep.Spec.Template.Spec.Affinity.NodeAffinity
-		updated = true
-	}
+		if !reflect.DeepEqual(dep.Spec.Replicas, existingDeployment.Spec.Replicas) {
+			existingDeployment.Spec.Replicas = dep.Spec.Replicas
+			updated = true
+		}
 
-	if len(dep.Spec.Template.Spec.Containers) != len(existingDeployment.Spec.Template.Spec.Containers) {
-		existingDeployment.Spec.Template.Spec.Containers = dep.Spec.Template.Spec.Containers
-		updated = true
-	} else {
-		for i, container := range dep.Spec.Template.Spec.Containers {
-			existingContainer := &existingDeployment.Spec.Template.Spec.Containers[i]
+		if !reflect.DeepEqual(dep.Spec.Template.Spec.TopologySpreadConstraints, existingDeployment.Spec.Template.Spec.TopologySpreadConstraints) {
+			existingDeployment.Spec.Template.Spec.TopologySpreadConstraints = dep.Spec.Template.Spec.TopologySpreadConstraints
+			updated = true
+		}
 
-			if container.Name == "falcon-client" || container.Name == "falcon-watcher" {
-				if !reflect.DeepEqual(container.Ports, existingContainer.Ports) {
-					existingContainer.Ports = container.Ports
+		if !reflect.DeepEqual(dep.Spec.Template.Spec.Affinity.NodeAffinity, existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity) {
+			existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity = dep.Spec.Template.Spec.Affinity.NodeAffinity
+			updated = true
+		}
+
+		if len(dep.Spec.Template.Spec.Containers) != len(existingDeployment.Spec.Template.Spec.Containers) {
+			existingDeployment.Spec.Template.Spec.Containers = dep.Spec.Template.Spec.Containers
+			updated = true
+		} else {
+			for i, container := range dep.Spec.Template.Spec.Containers {
+				existingContainer := &existingDeployment.Spec.Template.Spec.Containers[i]
+
+				if container.Name == "falcon-client" || container.Name == "falcon-watcher" {
+					if !reflect.DeepEqual(container.Ports, existingContainer.Ports) {
+						existingContainer.Ports = container.Ports
+						updated = true
+					}
+				}
+
+				if !reflect.DeepEqual(container.Image, existingContainer.Image) {
+					existingContainer.Image = container.Image
+					updated = true
+				}
+
+				if !reflect.DeepEqual(container.ImagePullPolicy, existingContainer.ImagePullPolicy) {
+					existingContainer.ImagePullPolicy = container.ImagePullPolicy
+					updated = true
+				}
+
+				if !reflect.DeepEqual(container.Resources, existingContainer.Resources) {
+					existingContainer.Resources = container.Resources
+					updated = true
+				}
+
+				if !reflect.DeepEqual(container.LivenessProbe.ProbeHandler.HTTPGet.Port, existingContainer.LivenessProbe.ProbeHandler.HTTPGet.Port) {
+					existingContainer.LivenessProbe.ProbeHandler.HTTPGet.Port = container.LivenessProbe.ProbeHandler.HTTPGet.Port
+					updated = true
+				}
+
+				if !reflect.DeepEqual(container.StartupProbe.ProbeHandler.HTTPGet.Port, existingContainer.StartupProbe.ProbeHandler.HTTPGet.Port) {
+					existingContainer.StartupProbe.ProbeHandler.HTTPGet.Port = container.StartupProbe.ProbeHandler.HTTPGet.Port
+					updated = true
+				}
+
+				// Merge existing proxy env vars with spec container env to preserve existing proxy envs
+				specContainerEnvWithExistingProxy := common.MergeEnvVars(container.Env, existingContainer.Env, common.ProxyEnvNamesWithLowerCase())
+				if !reflect.DeepEqual(specContainerEnvWithExistingProxy, existingContainer.Env) {
+					existingContainer.Env = container.Env
 					updated = true
 				}
 			}
+		}
 
-			if !reflect.DeepEqual(container.Image, existingContainer.Image) {
-				existingContainer.Image = container.Image
-				updated = true
-			}
-
-			if !reflect.DeepEqual(container.ImagePullPolicy, existingContainer.ImagePullPolicy) {
-				existingContainer.ImagePullPolicy = container.ImagePullPolicy
-				updated = true
-			}
-
-			if !reflect.DeepEqual(container.Resources, existingContainer.Resources) {
-				existingContainer.Resources = container.Resources
-				updated = true
-			}
-
-			if !reflect.DeepEqual(container.LivenessProbe.ProbeHandler.HTTPGet.Port, existingContainer.LivenessProbe.ProbeHandler.HTTPGet.Port) {
-				existingContainer.LivenessProbe.ProbeHandler.HTTPGet.Port = container.LivenessProbe.ProbeHandler.HTTPGet.Port
-				updated = true
-			}
-
-			if !reflect.DeepEqual(container.StartupProbe.ProbeHandler.HTTPGet.Port, existingContainer.StartupProbe.ProbeHandler.HTTPGet.Port) {
-				existingContainer.StartupProbe.ProbeHandler.HTTPGet.Port = container.StartupProbe.ProbeHandler.HTTPGet.Port
-				updated = true
-			}
-
-			// Merge existing proxy env vars with spec container env to preserve existing proxy envs
-			specContainerEnvWithExistingProxy := common.MergeEnvVars(container.Env, existingContainer.Env, common.ProxyEnvNamesWithLowerCase())
-			if !reflect.DeepEqual(specContainerEnvWithExistingProxy, existingContainer.Env) {
-				existingContainer.Env = container.Env
-				updated = true
+		if len(proxy.ReadProxyVarsFromEnv()) > 0 {
+			proxyUpdated := false
+			for i, container := range existingDeployment.Spec.Template.Spec.Containers {
+				newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
+				updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
+				if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
+					existingDeployment.Spec.Template.Spec.Containers[i].Env = newContainerEnv
+					proxyUpdated = true
+				}
+				if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
+					existingDeployment.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
+					proxyUpdated = true
+				}
+				if proxyUpdated {
+					updated = true
+					log.Info("Updating FalconAdmission Deployment Proxy Settings")
+				}
 			}
 		}
-	}
 
-	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
-		proxyUpdated := false
-		for i, container := range existingDeployment.Spec.Template.Spec.Containers {
-			newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
-			updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
-			if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
-				existingDeployment.Spec.Template.Spec.Containers[i].Env = newContainerEnv
-				proxyUpdated = true
-			}
-			if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
-				existingDeployment.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
-				proxyUpdated = true
-			}
-			if proxyUpdated {
-				updated = true
-				log.Info("Updating FalconAdmission Deployment Proxy Settings")
+		if updated {
+			existingDeployment.SetGroupVersionKind(appsv1.SchemeGroupVersion.WithKind("Deployment"))
+			if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingDeployment); err != nil {
+				return err
 			}
 		}
-	}
 
-	if updated {
-		existingDeployment.SetGroupVersionKind(appsv1.SchemeGroupVersion.WithKind("Deployment"))
-		if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingDeployment); err != nil {
-			return err
-		}
+		return nil
+	})
+	if err != nil {
+		log.Error(err, "Failed to update FalconAdmission Deployment after retries")
+		return err
 	}
 
 	return nil
