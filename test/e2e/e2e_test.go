@@ -476,11 +476,6 @@ var _ = Describe("falcon", Ordered, func() {
 
 	Context("Falcon Admission Controller", func() {
 		It("should manage falcon-kac-meta configMap changes successfully", func() {
-			if isOpenShift() {
-				By("skipping configMap update test on OpenShift")
-				Skip("Test skipped on OpenShift")
-			}
-
 			manifest := "./config/samples/falcon_v1alpha1_falconadmission_custom_clustername.yaml"
 			updateManifestApiCreds(manifest)
 
