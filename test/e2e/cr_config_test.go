@@ -71,16 +71,62 @@ var (
 func (cr crConfig) validateCrStatus() {
 	By("validating that the status of the custom resource created is updated or not")
 	getStatus := func() error {
+		// Check Success condition
 		cmd := exec.Command("kubectl", "get", strings.ToLower(cr.kind),
-			cr.metadataName, "-A", "-o", "jsonpath={.status.conditions}",
+			cr.metadataName, "-o", "jsonpath={.status.conditions[?(@.type==\"Success\")].status}",
 			"-n", cr.namespace,
 		)
 		status, err := utils.Run(cmd)
-		fmt.Println(string(status))
+		fmt.Println("Success:", string(status))
 		ExpectWithOffset(2, err).NotTo(HaveOccurred())
-		if !strings.Contains(string(status), "Success") {
-			return fmt.Errorf("status condition with type Success should be set")
+		if string(status) != "True" {
+			return fmt.Errorf("Success condition status should be True, got: %s", status)
 		}
+
+		// Check resource-specific condition (DaemonSetReady or DeploymentReady)
+		var conditionType string
+		if cr.kind == "FalconNodeSensor" {
+			conditionType = "DaemonSetReady"
+		} else {
+			conditionType = "DeploymentReady"
+		}
+
+		cmd = exec.Command("kubectl", "get", strings.ToLower(cr.kind),
+			cr.metadataName, "-o", fmt.Sprintf("jsonpath={.status.conditions[?(@.type==\"%s\")].status}", conditionType),
+			"-n", cr.namespace,
+		)
+		status, err = utils.Run(cmd)
+		fmt.Printf("%s: %s\n", conditionType, string(status))
+		ExpectWithOffset(2, err).NotTo(HaveOccurred())
+		if string(status) != "True" {
+			return fmt.Errorf("%s condition status should be True, got: %s", conditionType, status)
+		}
+
+		// For DaemonSets with init containers, verify primary container is running
+		if cr.kind == "FalconNodeSensor" {
+			componentLabel := fmt.Sprintf("crowdstrike.com/component=%s", cr.componentName)
+			cmd = exec.Command("kubectl", "get", "pods", "-n", cr.namespace,
+				"-l", componentLabel,
+				"-o", "jsonpath={.items[*].status.initContainerStatuses[*].state.terminated.reason}",
+			)
+			initStatus, err := utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if !strings.Contains(string(initStatus), "Completed") {
+				return fmt.Errorf("init container should be Completed, got: %s", initStatus)
+			}
+
+			cmd = exec.Command("kubectl", "get", "pods", "-n", cr.namespace,
+				"-l", componentLabel,
+				"-o", "jsonpath={.items[*].status.containerStatuses[?(@.name!=\"\")].ready}",
+			)
+			containerReady, err := utils.Run(cmd)
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if !strings.Contains(string(containerReady), "true") {
+				return fmt.Errorf("primary container should be ready, got: %s", containerReady)
+			}
+			fmt.Println("Primary container: ready")
+		}
+
 		return nil
 	}
 	Eventually(getStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
@@ -95,16 +141,11 @@ func (cr crConfig) deleteNamespace() {
 
 func (cr crConfig) waitForNamespaceDeletion() {
 	By(fmt.Sprintf("waiting for %s namespace to be fully deleted", cr.namespace))
-	getNamespaceStatus := func() error {
-		cmd := exec.Command("kubectl", "get", "namespace")
-		status, err := utils.Run(cmd)
-		ExpectWithOffset(3, err).NotTo(HaveOccurred())
-		if strings.Contains(string(status), cr.namespace) {
-			return fmt.Errorf("%s namespace still exists", cr.namespace)
-		}
-		return nil
-	}
-	EventuallyWithOffset(2, getNamespaceStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
+	cmd := exec.Command("kubectl", "wait", "--for=delete",
+		fmt.Sprintf("namespace/%s", cr.namespace),
+		"--timeout=300s")
+	_, err := utils.Run(cmd)
+	ExpectWithOffset(2, err).NotTo(HaveOccurred())
 }
 
 func (cr crConfig) validateRunningStatus(running bool) {

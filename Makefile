@@ -123,10 +123,24 @@ vet: ## Run go vet against code.
 test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /test/) -coverprofile cover.out
 
+##@ Testing
+
 # Utilize Kind or modify the e2e tests to load the image locally, enabling compatibility with other vendors.
-.PHONY: test-e2e  # Run the e2e tests against a Kind k8s instance that is spun up.
-test-e2e: operator-sdk
-	go test ./test/e2e/ -v -ginkgo.v -timeout 30m
+# Environment Variables (optional):
+#   USE_EXISTING_OPERATOR - Set to 'true' to skip operator installation and use existing deployment (default: false)
+#   OPERATOR_NAMESPACE - The namespace where the operator is deployed (default: falcon-system, only used with USE_EXISTING_OPERATOR)
+#   BUNDLE_IMG - Use OLM bundle installation instead of traditional deployment
+#   OPERATOR_IMAGE - Custom operator image to use (default: example.com/falcon-operator:v0.0.1)
+#   FALCON_CLIENT_ID - CrowdStrike Falcon API Client ID
+#   FALCON_CLIENT_SECRET - CrowdStrike Falcon API Client Secret
+USE_EXISTING_OPERATOR ?= false
+.PHONY: test-e2e
+test-e2e: operator-sdk ## Run e2e tests against a Kind k8s instance or existing operator installation
+	@if [ "$(USE_EXISTING_OPERATOR)" = "true" ]; then \
+		USE_EXISTING_OPERATOR=true OPERATOR_NAMESPACE=$(or $(OPERATOR_NAMESPACE),falcon-system) go test ./test/e2e/ -v -ginkgo.v -timeout 30m; \
+	else \
+		go test ./test/e2e/ -v -ginkgo.v -timeout 30m; \
+	fi
 
 GOLANGCI_LINT = $(shell pwd)/bin/golangci-lint
 GOLANGCI_LINT_VERSION ?= v1.54.2
