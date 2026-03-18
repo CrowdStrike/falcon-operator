@@ -1,0 +1,37 @@
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconNodeSensor
+metadata:
+  labels:
+    crowdstrike.com/component: sample
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: falcon-node-sensor
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: falconnodesensor
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
+  name: falcon-node-sensor
+spec:
+  falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
+    cloud_region: autodiscover
+  node:
+    # Custom tolerations for the node sensor DaemonSet
+    tolerations:
+      # Tolerate control-plane nodes
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+      # Tolerate master nodes
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+      # Tolerate infra nodes
+      - key: "node-role.kubernetes.io/infra"
+        operator: "Exists"
+        effect: "NoSchedule"
+      # Custom toleration for dedicated security nodes
+      - key: "dedicated"
+        operator: "Equal"
+        value: "security"
+        effect: "NoSchedule"
