@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"go.podman.io/image/v5/types"
 	corev1 "k8s.io/api/core/v1"
@@ -49,7 +50,14 @@ func GetPushCredentials(secrets []corev1.Secret) Credentials {
 			continue
 		}
 
-		if (secret.ObjectMeta.Annotations == nil || secret.ObjectMeta.Annotations["kubernetes.io/service-account.name"] != "builder") && secret.Name != "builder" {
+		// Check if secret is associated with builder service account via annotations or name
+		hasBuilderAnnotation := secret.ObjectMeta.Annotations != nil && (
+			secret.ObjectMeta.Annotations["openshift.io/internal-registry-auth-token.service-account"] == "builder" ||
+			secret.ObjectMeta.Annotations["kubernetes.io/service-account.name"] == "builder")
+
+		hasBuilderName := secret.Name == "builder" || strings.HasPrefix(secret.Name, "builder-dockercfg-")
+
+		if !hasBuilderAnnotation && !hasBuilderName {
 			continue
 		}
 
