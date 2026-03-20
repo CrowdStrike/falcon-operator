@@ -575,31 +575,37 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		updated := false
 
 		if !reflect.DeepEqual(dep.Spec.Template.Spec.ImagePullSecrets, existingDeployment.Spec.Template.Spec.ImagePullSecrets) {
+			log.Info("Updating FalconAdmission Deployment: ImagePullSecrets changed")
 			existingDeployment.Spec.Template.Spec.ImagePullSecrets = dep.Spec.Template.Spec.ImagePullSecrets
 			updated = true
 		}
 
 		if !reflect.DeepEqual(existingDeployment.Spec.Strategy.RollingUpdate, dep.Spec.Strategy.RollingUpdate) {
+			log.Info("Updating FalconAdmission Deployment: RollingUpdate strategy changed")
 			existingDeployment.Spec.Strategy.RollingUpdate = dep.Spec.Strategy.RollingUpdate
 			updated = true
 		}
 
 		if !reflect.DeepEqual(dep.Spec.Replicas, existingDeployment.Spec.Replicas) {
+			log.Info("Updating FalconAdmission Deployment: Replicas changed", "old", existingDeployment.Spec.Replicas, "new", dep.Spec.Replicas)
 			existingDeployment.Spec.Replicas = dep.Spec.Replicas
 			updated = true
 		}
 
 		if !reflect.DeepEqual(dep.Spec.Template.Spec.TopologySpreadConstraints, existingDeployment.Spec.Template.Spec.TopologySpreadConstraints) {
+			log.Info("Updating FalconAdmission Deployment: TopologySpreadConstraints changed")
 			existingDeployment.Spec.Template.Spec.TopologySpreadConstraints = dep.Spec.Template.Spec.TopologySpreadConstraints
 			updated = true
 		}
 
 		if !reflect.DeepEqual(dep.Spec.Template.Spec.Affinity.NodeAffinity, existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity) {
+			log.Info("Updating FalconAdmission Deployment: NodeAffinity changed")
 			existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity = dep.Spec.Template.Spec.Affinity.NodeAffinity
 			updated = true
 		}
 
 		if len(dep.Spec.Template.Spec.Containers) != len(existingDeployment.Spec.Template.Spec.Containers) {
+			log.Info("Updating FalconAdmission Deployment: Container count changed", "old", len(existingDeployment.Spec.Template.Spec.Containers), "new", len(dep.Spec.Template.Spec.Containers))
 			existingDeployment.Spec.Template.Spec.Containers = dep.Spec.Template.Spec.Containers
 			updated = true
 		} else {
@@ -608,32 +614,38 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 
 				if container.Name == "falcon-client" || container.Name == "falcon-watcher" {
 					if !reflect.DeepEqual(container.Ports, existingContainer.Ports) {
+						log.Info("Updating FalconAdmission Deployment: Container ports changed", "container", container.Name)
 						existingContainer.Ports = container.Ports
 						updated = true
 					}
 				}
 
 				if !reflect.DeepEqual(container.Image, existingContainer.Image) {
+					log.Info("Updating FalconAdmission Deployment: Container image changed", "container", container.Name, "old", existingContainer.Image, "new", container.Image)
 					existingContainer.Image = container.Image
 					updated = true
 				}
 
 				if !reflect.DeepEqual(container.ImagePullPolicy, existingContainer.ImagePullPolicy) {
+					log.Info("Updating FalconAdmission Deployment: Container ImagePullPolicy changed", "container", container.Name)
 					existingContainer.ImagePullPolicy = container.ImagePullPolicy
 					updated = true
 				}
 
 				if !reflect.DeepEqual(container.Resources, existingContainer.Resources) {
+					log.Info("Updating FalconAdmission Deployment: Container resources changed", "container", container.Name)
 					existingContainer.Resources = container.Resources
 					updated = true
 				}
 
 				if !reflect.DeepEqual(container.LivenessProbe.ProbeHandler.HTTPGet.Port, existingContainer.LivenessProbe.ProbeHandler.HTTPGet.Port) {
+					log.Info("Updating FalconAdmission Deployment: Container LivenessProbe port changed", "container", container.Name)
 					existingContainer.LivenessProbe.ProbeHandler.HTTPGet.Port = container.LivenessProbe.ProbeHandler.HTTPGet.Port
 					updated = true
 				}
 
 				if !reflect.DeepEqual(container.StartupProbe.ProbeHandler.HTTPGet.Port, existingContainer.StartupProbe.ProbeHandler.HTTPGet.Port) {
+					log.Info("Updating FalconAdmission Deployment: Container StartupProbe port changed", "container", container.Name)
 					existingContainer.StartupProbe.ProbeHandler.HTTPGet.Port = container.StartupProbe.ProbeHandler.HTTPGet.Port
 					updated = true
 				}
@@ -641,6 +653,7 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 				// Merge existing proxy env vars with spec container env to preserve existing proxy envs
 				specContainerEnvWithExistingProxy := common.MergeEnvVars(container.Env, existingContainer.Env, common.ProxyEnvNamesWithLowerCase())
 				if !reflect.DeepEqual(specContainerEnvWithExistingProxy, existingContainer.Env) {
+					log.Info("Updating FalconAdmission Deployment: Container environment variables changed", "container", container.Name)
 					existingContainer.Env = container.Env
 					updated = true
 				}
