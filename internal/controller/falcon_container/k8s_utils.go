@@ -3,7 +3,7 @@ package falcon
 import (
 	"context"
 	"fmt"
-	"strings"
+	"reflect"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/go-logr/logr"
@@ -14,6 +14,14 @@ import (
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+func conditionTypeFor(obj client.Object) string {
+	kind := obj.GetObjectKind().GroupVersionKind().Kind
+	if kind == "" {
+		kind = reflect.TypeOf(obj).Elem().Name()
+	}
+	return kind + "Ready"
+}
 
 func (r *FalconContainerReconciler) Create(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer, obj runtime.Object) error {
 	switch t := obj.(type) {
@@ -33,7 +41,7 @@ func (r *FalconContainerReconciler) Create(ctx context.Context, log logr.Logger,
 
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
-				Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
+				Type:    conditionTypeFor(t),
 				Status:  metav1.ConditionTrue,
 				Reason:  "Created",
 				Message: fmt.Sprintf("Successfully created %s %s in %s", gvk.Kind, name, namespace),
@@ -65,7 +73,7 @@ func (r *FalconContainerReconciler) Update(ctx context.Context, log logr.Logger,
 
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
-				Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
+				Type:    conditionTypeFor(t),
 				Status:  metav1.ConditionTrue,
 				Reason:  "Updated",
 				Message: fmt.Sprintf("Successfully updated %s %s in %s", gvk.Kind, name, namespace),
@@ -97,7 +105,7 @@ func (r *FalconContainerReconciler) Delete(ctx context.Context, log logr.Logger,
 
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
-				Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
+				Type:    conditionTypeFor(t),
 				Status:  metav1.ConditionFalse,
 				Reason:  "Deleted",
 				Message: fmt.Sprintf("Successfully deleted %s %s in %s", gvk.Kind, name, namespace),

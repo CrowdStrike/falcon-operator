@@ -121,6 +121,45 @@ func addFalconSecretToManifest(manifest string) {
 	}
 }
 
+func updateManifestWithAITapToken(manifest string) {
+	aidrToken := os.Getenv("FALCON_AIDR_TOKEN")
+	if aidrToken == "" {
+		aidrToken = "test-aidr-token-placeholder"
+		By("FALCON_AIDR_TOKEN not set, using placeholder token for testing")
+	}
+
+	By("updating manifest with AITap AI-DR token")
+	err := utils.ReplaceInFile(filepath.Join(projectDir, manifest),
+		"aidrCollectorApiToken: PLEASE_FILL_IN_AIDR_TOKEN", fmt.Sprintf("aidrCollectorApiToken: %s", aidrToken))
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+}
+
+func validateAITapSecrets() {
+	By("validating AITap AI-DR secret exists in falcon-system namespace")
+	cmd := exec.Command("kubectl", "get", "secret", "falcon-container-sensor-aitap-falcon-aitap-aidr-secret", "-n", "falcon-system")
+	output, err := utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, string(output)).To(ContainSubstring("falcon-container-sensor-aitap-falcon-aitap-aidr-secret"))
+
+	By("validating AITap AI-DR secret contains .collector-aidr-token key")
+	cmd = exec.Command("kubectl", "get", "secret", "falcon-container-sensor-aitap-falcon-aitap-aidr-secret", "-n", "falcon-system", "-o", "jsonpath={.data.\\.collector-aidr-token}")
+	output, err = utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, len(output)).To(BeNumerically(">", 0))
+
+	By("validating AITap AI-DR secret exists in default namespace")
+	cmd = exec.Command("kubectl", "get", "secret", "falcon-container-sensor-aitap-falcon-aitap-aidr-secret", "-n", "default")
+	output, err = utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, string(output)).To(ContainSubstring("falcon-container-sensor-aitap-falcon-aitap-aidr-secret"))
+
+	By("validating ConfigMap contains AITap environment variables")
+	cmd = exec.Command("kubectl", "get", "configmap", "falcon-sidecar-injector-config", "-n", "falcon-system", "-o", "jsonpath={.data.FALCON_AITAP_AIDR_SECRET_NAME}")
+	output, err = utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, string(output)).To(Equal("falcon-container-sensor-aitap-falcon-aitap-aidr-secret"))
+}
+
 func (c crConfig) validateInitContainerReadOnlyRootFilesystem() {
 	By("validating that the init container has readOnlyRootFilesystem set to true")
 	cmd := exec.Command("kubectl", "get", "daemonset", "falcon-node-sensor", "-n", c.namespace, "-o", "jsonpath={.spec.template.spec.initContainers[0].securityContext.readOnlyRootFilesystem}")

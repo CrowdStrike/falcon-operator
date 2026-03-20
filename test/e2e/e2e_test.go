@@ -543,6 +543,25 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
+	Context("Falcon Sidecar Sensor with AITap", func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconcontainer-with-aitap.yaml"
+		It("should deploy successfully", func() {
+			updateManifestApiCreds(manifest)
+			// Add AITap AI-DR token to the manifest
+			updateManifestWithAITapToken(manifest)
+			sidecarConfig.manageCrdInstance(crApply, manifest)
+			sidecarConfig.validateRunningStatus(shouldBeRunning)
+			sidecarConfig.validateCrStatus()
+			// Validate AITap secret creation
+			validateAITapSecrets()
+		})
+		It("should cleanup successfully", func() {
+			sidecarConfig.manageCrdInstance(crDelete, manifest)
+			sidecarConfig.validateRunningStatus(shouldBeTerminated)
+			sidecarConfig.waitForNamespaceDeletion()
+		})
+	})
+
 	Context("Falcon Deployment Controller with Container Sensor", func() {
 		manifest := "./config/samples/falcon_v1alpha1_falcondeployment-container-sensor.yaml"
 		It("should deploy successfully", func() {
