@@ -653,7 +653,33 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 				// Merge existing proxy env vars with spec container env to preserve existing proxy envs
 				specContainerEnvWithExistingProxy := common.MergeEnvVars(container.Env, existingContainer.Env, common.ProxyEnvNamesWithLowerCase())
 				if !reflect.DeepEqual(specContainerEnvWithExistingProxy, existingContainer.Env) {
-					log.Info("Updating FalconAdmission Deployment: Container environment variables changed", "container", container.Name)
+					// Build a map of existing env vars for comparison
+					existingEnvMap := make(map[string]string)
+					for _, env := range existingContainer.Env {
+						existingEnvMap[env.Name] = env.Value
+					}
+
+					newEnvMap := make(map[string]string)
+					for _, env := range container.Env {
+						newEnvMap[env.Name] = env.Value
+					}
+
+					// Log added/modified env vars
+					for name, newVal := range newEnvMap {
+						if oldVal, exists := existingEnvMap[name]; !exists {
+							log.Info("Updating FalconAdmission Deployment: Environment variable added", "container", container.Name, "envVar", name)
+						} else if oldVal != newVal {
+							log.Info("Updating FalconAdmission Deployment: Environment variable modified", "container", container.Name, "envVar", name)
+						}
+					}
+
+					// Log removed env vars
+					for name := range existingEnvMap {
+						if _, exists := newEnvMap[name]; !exists {
+							log.Info("Updating FalconAdmission Deployment: Environment variable removed", "container", container.Name, "envVar", name)
+						}
+					}
+
 					existingContainer.Env = container.Env
 					updated = true
 				}
