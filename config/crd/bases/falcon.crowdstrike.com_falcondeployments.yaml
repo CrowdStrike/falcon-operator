@@ -1081,6 +1081,41 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      aitap:
+                        description: AITap configures AI Detection and Response (AI-DR)
+                          functionality
+                        properties:
+                          aidrCollectorApiToken:
+                            description: AI-DR Collector API token for the Application
+                              Collector
+                            type: string
+                          aidrCollectorBaseApiUrl:
+                            description: AI-DR Collector Base API URL for the Application
+                              Collector (optional)
+                            type: string
+                          aidrSecretName:
+                            description: |-
+                              AI-DR Kubernetes secret name override. If not specified, the secret name will be automatically determined
+                              based on GKE Autopilot detection or release name
+                            type: string
+                          allNamespaces:
+                            default: false
+                            description: Create the AI-DR secret in all Namespaces
+                              instead of using specific namespaces list
+                            type: boolean
+                          namespaces:
+                            description: |-
+                              Configure the list of namespaces that should have access to the AI-DR credentials.
+                              This is a comma-separated list. For example: "ns1,ns2,ns3"
+                            type: string
+                          useExternalSecret:
+                            default: false
+                            description: |-
+                              Use an externally managed AI-DR secret instead of having the operator create and manage it.
+                              When true, the operator assumes a secret with the configured name already exists in target
+                              namespaces and will not create or manage secrets.
+                            type: boolean
+                        type: object
                       alternateMountPath:
                         default: false
                         type: boolean
@@ -1091,6 +1126,12 @@ spec:
                         type: boolean
                       disableDefaultPodInjection:
                         default: false
+                        type: boolean
+                      gkeAutopilot:
+                        default: false
+                        description: |-
+                          GKE Autopilot mode. When enabled, uses fixed secret name "falcon-node-sensor-aitap-aidr-secret"
+                          required by GKE Autopilot WorkloadAllowlists
                         type: boolean
                       imagePullPolicy:
                         default: Always

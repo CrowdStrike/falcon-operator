@@ -254,6 +254,14 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
+	if _, err = r.reconcileAITapSecrets(ctx, log, falconContainer); err != nil {
+		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile AITap AI-DR Secrets: %v", err))
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, fmt.Errorf("failed to reconcile AITap AI-DR Secrets: %v", err)
+	}
+
 	if _, err := r.reconcileServiceAccount(ctx, log, falconContainer); err != nil {
 		err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to reconcile Service Account: %v", err))
 		if err != nil {
