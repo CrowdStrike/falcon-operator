@@ -279,23 +279,31 @@ func init() {
 	SchemeBuilder.Register(&FalconAdmission{}, &FalconAdmissionList{})
 }
 
-func (watcher FalconAdmissionConfigSpec) DeployWatcherContainer() bool {
+func (watcher *FalconAdmissionConfigSpec) DeployWatcherContainer() bool {
 	if watcher.DeployWatcher == nil {
 		return DeployWatcherDefault
 	}
 
-	return *watcher.DeployWatcher
+	if watcher.GetWatcherEnabled() {
+		return *watcher.DeployWatcher
+	}
+
+	return false
 }
 
-func (watcher FalconAdmissionConfigSpec) GetSnapshotsEnabled() bool {
+func (watcher *FalconAdmissionConfigSpec) GetSnapshotsEnabled() bool {
 	if watcher.SnapshotsEnabled == nil {
 		return SnapshotsEnabledDefault
 	}
 
-	return *watcher.SnapshotsEnabled
+	if watcher.GetWatcherEnabled() {
+		return *watcher.SnapshotsEnabled
+	}
+
+	return false
 }
 
-func (watcher FalconAdmissionConfigSpec) GetSnapshotsInterval() time.Duration {
+func (watcher *FalconAdmissionConfigSpec) GetSnapshotsInterval() time.Duration {
 	if watcher.SnapshotsInterval == nil {
 		return SnapshotsIntervalDefault * time.Hour
 	}
@@ -303,7 +311,7 @@ func (watcher FalconAdmissionConfigSpec) GetSnapshotsInterval() time.Duration {
 	return watcher.SnapshotsInterval.Duration
 }
 
-func (watcher FalconAdmissionConfigSpec) GetWatcherEnabled() bool {
+func (watcher *FalconAdmissionConfigSpec) GetWatcherEnabled() bool {
 	if watcher.WatcherEnabled == nil {
 		return WatcherEnabledDefault
 	}
@@ -324,7 +332,11 @@ func (ac *FalconAdmissionConfigSpec) GetConfigMapWatcherEnabled() bool {
 		return ConfigMapWatcherEnabledDefault
 	}
 
-	return *ac.ConfigMapWatcherEnabled
+	if ac.GetWatcherEnabled() {
+		return *ac.ConfigMapWatcherEnabled
+	}
+
+	return false
 }
 
 func (ac *FalconAdmission) GetFalconSecretSpec() FalconSecret {
