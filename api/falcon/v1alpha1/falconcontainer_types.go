@@ -124,6 +124,16 @@ type FalconContainerInjectorSpec struct {
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Alternate Mount Path", order=14
 	AlternateMountPath bool `json:"alternateMountPath,omitempty"`
+
+	// AITap configures AI Detection and Response (AI-DR) functionality
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="AITap AI-DR Configuration", order=15
+	AITap AITapSpec `json:"aitap,omitempty"`
+
+	// GKE Autopilot mode. When enabled, uses fixed secret name "falcon-node-sensor-aitap-aidr-secret"
+	// required by GKE Autopilot WorkloadAllowlists
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable GKE Autopilot Mode",order=6,xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+	GKEAutopilot bool `json:"gkeAutopilot,omitempty"`
 }
 
 type FalconContainerServiceAccount struct {
@@ -137,6 +147,40 @@ type FalconContainerInjectorTLS struct {
 	// +kubebuilder:validation:Pattern="^[0-9]{1-4}$"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Injector TLS Validity Length (days)",order=1
 	Validity *int `json:"validity,omitempty"`
+}
+
+// AITapSpec defines the AI Detection and Response configuration
+// +k8s:openapi-gen=true
+type AITapSpec struct {
+	// AI-DR Collector API token for the Application Collector
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="AI-DR Collector API Token",order=1
+	AidrCollectorApiToken string `json:"aidrCollectorApiToken,omitempty"`
+
+	// AI-DR Collector Base API URL for the Application Collector (optional)
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="AI-DR Collector Base API URL",order=2
+	AidrCollectorBaseApiUrl string `json:"aidrCollectorBaseApiUrl,omitempty"`
+
+	// Configure the list of namespaces that should have access to the AI-DR credentials.
+	// This is a comma-separated list. For example: "ns1,ns2,ns3"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="AITap Namespaces (comma-separated)",order=3
+	Namespaces string `json:"namespaces,omitempty"`
+
+	// Create the AI-DR secret in all Namespaces instead of using specific namespaces list
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable AITap in All Namespaces",order=4,xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+	AllNamespaces bool `json:"allNamespaces,omitempty"`
+
+	// AI-DR Kubernetes secret name override. If not specified, the secret name will be automatically determined
+	// based on GKE Autopilot detection or release name
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Custom AITap AI-DR Secret Name",order=5
+	AidrSecretName string `json:"aidrSecretName,omitempty"`
+
+	// Use an externally managed AI-DR secret instead of having the operator create and manage it.
+	// When true, the operator assumes a secret with the configured name already exists in target
+	// namespaces and will not create or manage secrets.
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Use External Secret",order=6,xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+	UseExternalSecret bool `json:"useExternalSecret,omitempty"`
 }
 
 // FalconContainerStatus defines the observed state of FalconContainer

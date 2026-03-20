@@ -64,8 +64,12 @@ func (r *FalconContainerReconciler) Update(ctx context.Context, log logr.Logger,
 		}
 
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			conditionType := "ObjectReady"
+			if gvk.Kind != "" {
+				conditionType = fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:])
+			}
 			meta.SetStatusCondition(&falconContainer.Status.Conditions, metav1.Condition{
-				Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
+				Type:    conditionType,
 				Status:  metav1.ConditionTrue,
 				Reason:  "Updated",
 				Message: fmt.Sprintf("Successfully updated %s %s in %s", gvk.Kind, name, namespace),

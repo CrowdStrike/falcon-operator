@@ -68,4 +68,8 @@ const (
 	GKEAutoPilotAllowListLabelKey       = "cloud.google.com/matching-allowlist"
 	GKEAutoPilotDeployDSAllowlistPrefix = "crowdstrike-falconsensor-deploy-allowlist"
 	GKEAutoPilotCleanupAllowlistPrefix  = "crowdstrike-falconsensor-cleanup-allowlist"
+
+	// AITap AI-DR secret names
+	FalconAITapAidrSecretName       = "falcon-aitap-aidr-secret"
+	GKEAutoPilotAITapAidrSecretName = "falcon-node-sensor-aitap-aidr-secret"
 )

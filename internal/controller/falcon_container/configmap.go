@@ -121,5 +121,26 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.L
 		}
 	}
 
+	// Configure AITap environment variables if token is provided OR if using external secret
+	// (external secret management still requires injector configuration)
+	if falconContainer.Spec.Injector.AITap.AidrCollectorApiToken != "" ||
+		(falconContainer.Spec.Injector.AITap.UseExternalSecret &&
+			falconContainer.Spec.Injector.AITap.AidrSecretName != "") {
+		secretName := r.getAITapSecretName(falconContainer)
+		data["FALCON_AITAP_AIDR_SECRET_NAME"] = secretName
+
+		if falconContainer.Spec.Injector.AITap.AidrCollectorBaseApiUrl != "" {
+			data["FALCON_AITAP_AIDR_COLLECTOR_BASE_API_URL"] = falconContainer.Spec.Injector.AITap.AidrCollectorBaseApiUrl
+		}
+
+		if falconContainer.Spec.Injector.AITap.AllNamespaces {
+			data["FALCON_AITAP_ALL_NAMESPACES"] = "true"
+		}
+
+		if falconContainer.Spec.Injector.AITap.Namespaces != "" {
+			data["FALCON_AITAP_NAMESPACES"] = falconContainer.Spec.Injector.AITap.Namespaces
+		}
+	}
+
 	return assets.SensorConfigMap(injectorConfigMapName, falconContainer.Spec.InstallNamespace, common.FalconSidecarSensor, data), nil
 }
