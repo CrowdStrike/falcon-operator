@@ -148,7 +148,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2026-03-20T15:56:37Z"
+    createdAt: "2026-03-20T16:59:20Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -165,7 +165,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
-  name: falcon-operator.v1.5.0
+  name: falcon-operator.v1.12.0-lumos-aitap
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -2416,7 +2416,7 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: OPERATOR_NAME
                   value: falcon-operator
-                image: controller:latest
+                image: quay.io/crowdstrike/falcon-operator:lumos-aitap
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -2515,4 +2515,4 @@ spec:
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
-  version: 1.5.0
+  version: 1.12.0-lumos-aitap
