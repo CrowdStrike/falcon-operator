@@ -559,10 +559,19 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 			return err
 		}
 
+		log.Info("Deployment created, allowing Kubernetes to settle before updates")
 		return nil
 	} else if err != nil {
 		log.Error(err, "Failed to get FalconAdmission Deployment")
 		return err
+	}
+
+	// Skip update logic if deployment was just created (within last 5 seconds)
+	// This prevents conflicts from rapid reconciliations triggered by creation events
+	if time.Since(existingDeployment.CreationTimestamp.Time) < 5*time.Second {
+		log.Info("Deployment recently created, skipping update check to avoid conflicts",
+			"age", time.Since(existingDeployment.CreationTimestamp.Time).String())
+		return nil
 	}
 
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
