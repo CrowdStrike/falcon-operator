@@ -140,8 +140,8 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 				}
 
 				// Verify secret contains correct token
-				if tokenValue, ok := secret.Data["collector-aidr-token"]; !ok {
-					return fmt.Errorf("secret missing collector-aidr-token key")
+				if tokenValue, ok := secret.Data[".collector-aidr-token"]; !ok {
+					return fmt.Errorf("secret missing .collector-aidr-token key")
 				} else if string(tokenValue) != aidrToken {
 					return fmt.Errorf("secret token mismatch: got %s, want %s", string(tokenValue), aidrToken)
 				}

@@ -99,7 +99,7 @@ func (r *FalconContainerReconciler) getAITapSecretName(falconContainer *falconv1
 
 func (r *FalconContainerReconciler) reconcileAITapSecret(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer, namespace string, secretName string) (*corev1.Secret, error) {
 	secretData := map[string][]byte{
-		"collector-aidr-token": []byte(falconContainer.Spec.Injector.AITap.AidrCollectorApiToken),
+		".collector-aidr-token": []byte(falconContainer.Spec.Injector.AITap.AidrCollectorApiToken),
 	}
 
 	secret := assets.Secret(secretName, namespace, common.FalconSidecarSensor, secretData, corev1.SecretTypeOpaque)

@@ -141,8 +141,8 @@ func validateAITapSecrets() {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	ExpectWithOffset(1, string(output)).To(ContainSubstring("falcon-container-sensor-aitap-falcon-aitap-aidr-secret"))
 
-	By("validating AITap AI-DR secret contains collector-aidr-token key")
-	cmd = exec.Command("kubectl", "get", "secret", "falcon-container-sensor-aitap-falcon-aitap-aidr-secret", "-n", "falcon-system", "-o", "jsonpath={.data.collector-aidr-token}")
+	By("validating AITap AI-DR secret contains .collector-aidr-token key")
+	cmd = exec.Command("kubectl", "get", "secret", "falcon-container-sensor-aitap-falcon-aitap-aidr-secret", "-n", "falcon-system", "-o", "jsonpath={.data.\\.collector-aidr-token}")
 	output, err = utils.Run(cmd)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	ExpectWithOffset(1, len(output)).To(BeNumerically(">", 0))
