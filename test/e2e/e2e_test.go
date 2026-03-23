@@ -19,9 +19,25 @@ import (
 	"github.com/crowdstrike/falcon-operator/test/utils"
 )
 
+// Environment Variables:
+//   USE_EXISTING_OPERATOR - Set to "true" to run tests against an existing operator installation
+//                           without installing OLM, building images, installing CRDs,
+//                           or deploying the operator. When set, the tests will use
+//                           the operator deployment already present in the cluster.
+//   OPERATOR_NAMESPACE    - Override the namespace where the operator is deployed.
+//                           Defaults to "falcon-operator" when USE_EXISTING_OPERATOR=true,
+//                           otherwise defaults to "falcon-operator-system".
+//   BUNDLE_IMG            - (Optional) Use OLM bundle installation method instead of
+//                           traditional make deploy. Only used when USE_EXISTING_OPERATOR
+//                           is not set.
+//   OPERATOR_IMAGE        - (Optional) Custom operator image to use. Only used when
+//                           USE_EXISTING_OPERATOR is not set and BUNDLE_IMG is not set.
+//
+// Example usage with existing operator installation:
+//   USE_EXISTING_OPERATOR=true OPERATOR_NAMESPACE=falcon-operator go test ./test/e2e/...
+
 // constant parts of the file
 const (
-	namespace              = "falcon-operator-system"
 	defaultTimeout         = 3 * time.Minute
 	defaultPollPeriod      = 5 * time.Second
 	metricsServiceName     = "falcon-operator-controller-manager-metrics-service"
@@ -34,8 +50,43 @@ const (
 	shouldBeTerminated     = false
 )
 
+var (
+	namespace       string
+	skipMetricsTest bool
+)
+
 var _ = Describe("falcon", Ordered, func() {
 	BeforeAll(func() {
+		skipMetricsTest = false
+
+		// Determine if we're using an existing operator installation
+		useExistingOperator := os.Getenv("USE_EXISTING_OPERATOR") == "true"
+
+		// Set namespace based on environment or default
+		if ns := os.Getenv("OPERATOR_NAMESPACE"); ns != "" {
+			namespace = ns
+		} else if useExistingOperator {
+			namespace = "falcon-operator"
+		} else {
+			namespace = "falcon-operator-system"
+		}
+
+		if useExistingOperator {
+			By("using existing operator installation in namespace: " + namespace)
+			// Skip namespace creation for existing operator installations
+
+			// Check if metrics service exists in the cluster
+			cmd := exec.Command("kubectl", "get", "service", metricsServiceName, "-n", namespace)
+			_, err := utils.Run(cmd)
+			if err != nil {
+				// Metrics service doesn't exist, skip metrics test
+				skipMetricsTest = true
+				By("metrics service not found in existing operator installation - skipping metrics test")
+			}
+
+			return
+		}
+
 		// The namespace can be created when we run make install
 		// However, in this test we want to ensure that the solution
 		// can run in a ns labeled as privileged. Therefore, we are
@@ -55,6 +106,54 @@ var _ = Describe("falcon", Ordered, func() {
 	})
 
 	AfterAll(func() {
+		useExistingOperator := os.Getenv("USE_EXISTING_OPERATOR") == "true"
+
+		// Clean up CRD instances for all cluster types (existing operator or not)
+		By("cleaning up CRD instances")
+
+		// Delete FalconDeployment instances (which may include multiple sensors)
+		By("deleting FalconDeployment instances")
+		cmd := exec.Command("kubectl", "delete", "falcondeployment", "--all", "-A", "--timeout=60s", "--ignore-not-found=true")
+		_, _ = utils.Run(cmd)
+
+		// Delete individual CRD instances
+		By("deleting FalconNodeSensor instances")
+		cmd = exec.Command("kubectl", "delete", "falconnodesensor", "--all", "-A", "--timeout=60s", "--ignore-not-found=true")
+		_, _ = utils.Run(cmd)
+
+		By("deleting FalconAdmission instances")
+		cmd = exec.Command("kubectl", "delete", "falconadmission", "--all", "-A", "--timeout=60s", "--ignore-not-found=true")
+		_, _ = utils.Run(cmd)
+
+		By("deleting FalconContainer instances")
+		cmd = exec.Command("kubectl", "delete", "falconcontainer", "--all", "-A", "--timeout=60s", "--ignore-not-found=true")
+		_, _ = utils.Run(cmd)
+
+		By("deleting FalconImageAnalyzer instances")
+		cmd = exec.Command("kubectl", "delete", "falconimageanalyzer", "--all", "-A", "--timeout=60s", "--ignore-not-found=true")
+		_, _ = utils.Run(cmd)
+
+		// Clean up test-created namespaces
+		By("cleaning up test namespaces")
+		testNamespaces := []string{
+			nodeConfig.namespace,  // falcon-system
+			kacConfig.namespace,   // falcon-kac
+			iarConfig.namespace,   // falcon-iar
+			falconSecretNamespace, // falcon-secrets
+		}
+
+		for _, ns := range testNamespaces {
+			By("deleting namespace: " + ns)
+			cmd = exec.Command("kubectl", "delete", "ns", ns, "--timeout=300s", "--ignore-not-found=true")
+			_, _ = utils.Run(cmd)
+		}
+
+		if useExistingOperator {
+			By("skipping operator cleanup for existing operator installation")
+			return
+		}
+
+		// For non-existing operator installations, also clean up the operator
 		// Check if BUNDLE_IMG was used for installation and clean up accordingly
 		bundleImg := os.Getenv("BUNDLE_IMG")
 		if bundleImg != "" {
@@ -84,17 +183,16 @@ var _ = Describe("falcon", Ordered, func() {
 		}
 
 		By("removing manager namespace")
-		cmd := exec.Command("kubectl", "delete", "ns", namespace)
+		cmd = exec.Command("kubectl", "delete", "ns", namespace, "--timeout=300s")
 		_, _ = utils.Run(cmd)
-		cmd = exec.Command("kubectl", "delete", "ns", falconSecretNamespace)
-		_, _ = utils.Run(cmd)
+
 		By("removing metrics cluster role binding")
-		cmd = exec.Command("kubectl", "delete", "clusterrolebinding", metricsRoleBindingName)
+		cmd = exec.Command("kubectl", "delete", "clusterrolebinding", metricsRoleBindingName, "--ignore-not-found=true")
 		_, _ = utils.Run(cmd)
 
 		// Only run make install for traditional deployment cleanup
 		if bundleImg == "" {
-			cmd = exec.Command("make", "install")
+			cmd = exec.Command("make", "uninstall")
 			_, _ = utils.Run(cmd)
 		}
 	})
@@ -104,88 +202,94 @@ var _ = Describe("falcon", Ordered, func() {
 		It("should run successfully", func() {
 
 			var err error
+			useExistingOperator := os.Getenv("USE_EXISTING_OPERATOR") == "true"
 
-			// operatorImage stores the name of the image used in the example
-			var operatorImage = "example.com/falcon-operator:v0.0.1"
-			if image, ok := os.LookupEnv("OPERATOR_IMAGE"); ok {
-				operatorImage = image
-			}
-
-			var outputMake []byte
-			var cmd *exec.Cmd
-
-			// Conditional installation: Use OLM bundle if BUNDLE_IMG is set, otherwise use traditional deployment
-			// This allows testing both installation methods:
-			// - OLM bundle: Set BUNDLE_IMG=<bundle-image-url> to test operator-sdk run bundle installation
-			// - Traditional: Leave BUNDLE_IMG unset to use make deploy with custom operator image
-			bundleImg := os.Getenv("BUNDLE_IMG")
-			if bundleImg != "" {
-				By("installing using OLM bundle: " + bundleImg)
-
-				// Get the proper operator-sdk executable path (following Makefile logic)
-				operatorSDKPath, err := getOperatorSDKPath()
-				if err != nil {
-					ExpectWithOffset(1, err).NotTo(HaveOccurred(), "operator-sdk is required when BUNDLE_IMG is set")
+			// Skip installation if using existing operator
+			if useExistingOperator {
+				By("skipping operator installation - using existing operator deployment")
+			} else {
+				// operatorImage stores the name of the image used in the example
+				var operatorImage = "example.com/falcon-operator:v0.0.1"
+				if image, ok := os.LookupEnv("OPERATOR_IMAGE"); ok {
+					operatorImage = image
 				}
 
-				// Check if operator-sdk is available and working
-				cmd = exec.Command(operatorSDKPath, "version")
-				_, err = utils.Run(cmd)
-				if err != nil {
-					ExpectWithOffset(1, err).NotTo(HaveOccurred(), "operator-sdk is required when BUNDLE_IMG is set")
-				}
+				var outputMake []byte
+				var cmd *exec.Cmd
 
-				// Install OLM if not already present (skip on OpenShift as it has OLM built-in)
-				if !isOpenShift() {
-					By("installing OLM")
-					cmd = exec.Command(operatorSDKPath, "olm", "install")
+				// Conditional installation: Use OLM bundle if BUNDLE_IMG is set, otherwise use traditional deployment
+				// This allows testing both installation methods:
+				// - OLM bundle: Set BUNDLE_IMG=<bundle-image-url> to test operator-sdk run bundle installation
+				// - Traditional: Leave BUNDLE_IMG unset to use make deploy with custom operator image
+				bundleImg := os.Getenv("BUNDLE_IMG")
+				if bundleImg != "" {
+					By("installing using OLM bundle: " + bundleImg)
+
+					// Get the proper operator-sdk executable path (following Makefile logic)
+					operatorSDKPath, err := getOperatorSDKPath()
+					if err != nil {
+						ExpectWithOffset(1, err).NotTo(HaveOccurred(), "operator-sdk is required when BUNDLE_IMG is set")
+					}
+
+					// Check if operator-sdk is available and working
+					cmd = exec.Command(operatorSDKPath, "version")
 					_, err = utils.Run(cmd)
 					if err != nil {
-						By("OLM may already be installed, continuing...")
+						ExpectWithOffset(1, err).NotTo(HaveOccurred(), "operator-sdk is required when BUNDLE_IMG is set")
 					}
+
+					// Install OLM if not already present (skip on OpenShift as it has OLM built-in)
+					if !isOpenShift() {
+						By("installing OLM")
+						cmd = exec.Command(operatorSDKPath, "olm", "install")
+						_, err = utils.Run(cmd)
+						if err != nil {
+							By("OLM may already be installed, continuing...")
+						}
+					} else {
+						By("detected OpenShift - skipping OLM installation (already built-in)")
+					}
+
+					// Run bundle installation
+					By("deploying operator via OLM bundle")
+					cmd = exec.Command(operatorSDKPath, "run", "bundle", bundleImg, "--namespace", namespace)
+					outputMake, err = utils.Run(cmd)
+					ExpectWithOffset(1, err).NotTo(HaveOccurred())
 				} else {
-					By("detected OpenShift - skipping OLM installation (already built-in)")
-				}
+					By("installing using traditional deployment method")
 
-				// Run bundle installation
-				By("deploying operator via OLM bundle")
-				cmd = exec.Command(operatorSDKPath, "run", "bundle", bundleImg, "--namespace", namespace)
-				outputMake, err = utils.Run(cmd)
-				ExpectWithOffset(1, err).NotTo(HaveOccurred())
-			} else {
-				By("installing using traditional deployment method")
+					cmd = exec.Command("kind", "get", "clusters")
+					_, err = utils.Run(cmd)
+					if err == nil {
+						By("building the manager (Operator) image")
+						cmd = exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", operatorImage))
+						_, err = utils.Run(cmd)
+						ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-				cmd = exec.Command("kind", "get", "clusters")
-				_, err = utils.Run(cmd)
-				if err == nil {
-					By("building the manager (Operator) image")
-					cmd = exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", operatorImage))
+						By("loading the the manager(Operator) image on Kind")
+						err = utils.LoadImageToKindClusterWithName(operatorImage)
+						ExpectWithOffset(1, err).NotTo(HaveOccurred())
+					}
+
+					By("installing CRDs")
+					cmd = exec.Command("make", "install")
 					_, err = utils.Run(cmd)
 					ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-					By("loading the the manager(Operator) image on Kind")
-					err = utils.LoadImageToKindClusterWithName(operatorImage)
+					By("deploying the controller-manager")
+					cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", operatorImage))
+					outputMake, err = utils.Run(cmd)
 					ExpectWithOffset(1, err).NotTo(HaveOccurred())
 				}
 
-				By("installing CRDs")
-				cmd = exec.Command("make", "install")
-				_, err = utils.Run(cmd)
-				ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-				By("deploying the controller-manager")
-				cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", operatorImage))
-				outputMake, err = utils.Run(cmd)
-				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+				By("validating that manager Pod/container(s) are not restricted")
+				ExpectWithOffset(1, outputMake).NotTo(ContainSubstring("Warning: would violate PodSecurity"))
 			}
-
-			By("validating that manager Pod/container(s) are not restricted")
-			ExpectWithOffset(1, outputMake).NotTo(ContainSubstring("Warning: would violate PodSecurity"))
 
 			By("validating that the controller-manager pod is running as expected")
 			verifyControllerUp := func() error {
 				// Get pod name
-				cmd = exec.Command("kubectl", "get",
+				cmd := exec.Command("kubectl", "get",
 					"pods", "-l", "control-plane=controller-manager",
 					"-o", "go-template={{ range .items }}{{ if not .metadata.deletionTimestamp }}{{ .metadata.name }}"+
 						"{{ \"\\n\" }}{{ end }}{{ end }}",
@@ -216,17 +320,34 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 
 		It("should ensure the metrics endpoint is serving metrics", func() {
-			By("creating a ClusterRoleBinding for the service account to allow access to metrics")
-			cmd := exec.Command("kubectl", "create", "clusterrolebinding", metricsRoleBindingName,
-				fmt.Sprintf("--clusterrole=%s", metricsReaderRoleName),
-				fmt.Sprintf("--serviceaccount=%s:%s", namespace, serviceAccountName),
-			)
-			_, err := utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred(), "Failed to create ClusterRoleBinding")
+			if skipMetricsTest {
+				By("skipping metrics test - metrics service not available in non-OLM installation by default")
+				Skip("Metrics test skipped due to missing metrics service")
+			}
+
+			// Skip ClusterRoleBinding creation on OpenShift as it may already exist or have different permissions
+			if !isOpenShift() {
+				By("creating a ClusterRoleBinding for the service account to allow access to metrics")
+				cmd := exec.Command("kubectl", "create", "clusterrolebinding", metricsRoleBindingName,
+					fmt.Sprintf("--clusterrole=%s", metricsReaderRoleName),
+					fmt.Sprintf("--serviceaccount=%s:%s", namespace, serviceAccountName),
+				)
+				_, err := utils.Run(cmd)
+				Expect(err).NotTo(HaveOccurred(), "Failed to create ClusterRoleBinding")
+
+				// Ensure cleanup of ClusterRoleBinding even if test fails
+				DeferCleanup(func() {
+					By("cleaning up test ClusterRoleBinding")
+					cmd := exec.Command("kubectl", "delete", "clusterrolebinding", metricsRoleBindingName, "--ignore-not-found=true")
+					_, _ = utils.Run(cmd)
+				})
+			} else {
+				By("skipping ClusterRoleBinding creation on OpenShift - using existing permissions")
+			}
 
 			By("validating that the metrics service is available")
-			cmd = exec.Command("kubectl", "get", "service", metricsServiceName, "-n", namespace)
-			_, err = utils.Run(cmd)
+			cmd := exec.Command("kubectl", "get", "service", metricsServiceName, "-n", namespace)
+			_, err := utils.Run(cmd)
 			Expect(err).NotTo(HaveOccurred(), "Metrics service should exist")
 
 			By("getting the service account token")
@@ -253,12 +374,14 @@ var _ = Describe("falcon", Ordered, func() {
 			}
 			EventuallyWithOffset(1, verifyMetricsServerStarted, defaultTimeout, defaultPollPeriod).Should(Succeed())
 
-			By("creating the curl-metrics pod to access the metrics endpoint")
-			cmd = exec.Command("kubectl", "run", "curl-metrics", "--restart=Never",
-				"--namespace", namespace,
-				"--image=curlimages/curl:latest",
-				"--overrides",
-				fmt.Sprintf(`{
+			// Skip curl-metrics pod on OpenShift due to security restrictions
+			if !isOpenShift() {
+				By("creating the curl-metrics pod to access the metrics endpoint")
+				cmd = exec.Command("kubectl", "run", "curl-metrics", "--restart=Never",
+					"--namespace", namespace,
+					"--image=curlimages/curl:latest",
+					"--overrides",
+					fmt.Sprintf(`{
 					"spec": {
 						"containers": [{
 							"name": "curl",
@@ -280,26 +403,35 @@ var _ = Describe("falcon", Ordered, func() {
 						"serviceAccount": "%s"
 					}
 				}`, token, metricsServiceName, namespace, serviceAccountName))
-			_, err = utils.Run(cmd)
-			Expect(err).NotTo(HaveOccurred(), "Failed to create curl-metrics pod")
+				_, err = utils.Run(cmd)
+				Expect(err).NotTo(HaveOccurred(), "Failed to create curl-metrics pod")
 
-			By("waiting for the curl-metrics pod to complete.")
-			verifyCurlUp := func(g Gomega) {
-				cmd := exec.Command("kubectl", "get", "pods", "curl-metrics",
-					"-o", "jsonpath={.status.phase}",
-					"-n", namespace)
-				output, err := utils.Run(cmd)
-				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(output).To(ContainSubstring("Succeeded"), "curl pod in wrong status")
+				// Ensure cleanup of curl-metrics pod
+				DeferCleanup(func() {
+					By("cleaning up curl-metrics pod")
+					cmd := exec.Command("kubectl", "delete", "pod", "curl-metrics", "-n", namespace, "--ignore-not-found=true")
+					_, _ = utils.Run(cmd)
+				})
+
+				By("waiting for the curl-metrics pod to complete.")
+				verifyCurlUp := func(g Gomega) {
+					cmd := exec.Command("kubectl", "get", "pods", "curl-metrics",
+						"-o", "jsonpath={.status.phase}",
+						"-n", namespace)
+					output, err := utils.Run(cmd)
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(output).To(ContainSubstring("Succeeded"), "curl pod in wrong status")
+				}
+				EventuallyWithOffset(1, verifyCurlUp, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+				By("getting the metrics by checking curl-metrics logs")
+				metricsOutput := getMetricsOutput()
+				Expect(metricsOutput).To(ContainSubstring(
+					"controller_runtime_reconcile_total",
+				))
+			} else {
+				By("skipping curl-metrics pod on OpenShift - metrics endpoint verified via logs")
 			}
-			// Eventually(verifyCurlUp, 5*time.Minute).Should(Succeed())
-			EventuallyWithOffset(1, verifyCurlUp, defaultTimeout, defaultPollPeriod).Should(Succeed())
-
-			By("getting the metrics by checking curl-metrics logs")
-			metricsOutput := getMetricsOutput()
-			Expect(metricsOutput).To(ContainSubstring(
-				"controller_runtime_reconcile_total",
-			))
 		})
 	})
 
