@@ -113,6 +113,98 @@ Thanks for contributing!
 
 The coding style suggested by the Go community is used in operator-sdk. See the [style doc][golang-style-doc] for details.
 
+### Logging Guidelines
+
+The Falcon Operator uses structured logging via the `logr.Logger` interface from controller-runtime. When adding logging to the code, follow these guidelines to ensure appropriate log levels:
+
+#### Log Levels
+
+- **`log.Error(err, "message")`** - Use for errors that require attention
+  - Failed operations that impact functionality
+  - Unexpected errors that should be investigated
+  - Resource creation/update/delete failures
+  - API call failures
+
+  ```go
+  if err != nil {
+      log.Error(err, "Failed to update FalconAdmission Deployment")
+      return ctrl.Result{}, err
+  }
+  ```
+
+- **`log.Info("message")`** - Use for high-level operational information (default level)
+  - Major lifecycle events (starting/stopping components)
+  - Resource creation/deletion
+  - Significant state changes
+  - Important operational decisions
+
+  ```go
+  log.Info("Deployment created, allowing Kubernetes to settle before updates")
+  log.Info("Rolling FalconAdmission Deployment due to configuration change")
+  ```
+
+- **`log.V(1).Info("message")`** - Use for detailed debug information (debug level)
+  - Detailed reconciliation operations
+  - Configuration change details (what changed specifically)
+  - Deployment field updates
+  - Environment variable changes
+
+  ```go
+  log.V(1).Info("Updating FalconAdmission Deployment: Container image changed",
+      "container", container.Name, "old", existingImage, "new", newImage)
+  log.V(1).Info("Updating FalconAdmission Deployment: Replicas changed",
+      "old", oldReplicas, "new", newReplicas)
+  ```
+
+- **`log.V(2).Info("message")`** - Use for very verbose trace-level information (trace level)
+  - Low-level function entry/exit points
+  - Detailed object inspection and comparison results
+  - Internal state transitions during reconciliation
+  - Fine-grained field-by-field comparisons
+  - Use sparingly - only when debugging complex issues that require understanding the exact execution flow
+
+  ```go
+  log.V(2).Info("Comparing deployment specs",
+      "existingReplicas", *existing.Spec.Replicas,
+      "desiredReplicas", *desired.Spec.Replicas,
+      "needsUpdate", needsUpdate)
+  log.V(2).Info("Entering reconcile loop", "resource", resource.Name)
+  ```
+
+#### Best Practices
+
+1. **Include context with structured fields** - Always add relevant key-value pairs to help with troubleshooting:
+   ```go
+   log.Info("Service updated", "namespace", namespace, "name", serviceName)
+   log.V(1).Info("Environment variable modified", "container", "falcon-kac", "envVar", "HTTP_PROXY")
+   ```
+
+2. **Use debug level for detailed operations** - Anything that happens frequently during reconciliation or provides implementation details should use `log.V(1).Info()`:
+   - Individual field comparisons and updates
+   - Detailed state changes
+   - Intermediate reconciliation steps
+
+3. **Use trace level for very verbose debugging** - Reserve `log.V(2).Info()` for extremely detailed logging that would be too noisy for regular debugging:
+   - Function entry/exit points
+   - Low-level object comparisons
+   - Internal state machine transitions
+   - Use only when investigating complex issues that require understanding the exact code execution path
+
+4. **Don't log secrets or sensitive data** - Never log:
+   - API keys, tokens, or credentials
+   - CID values
+   - Certificate contents
+   - Secret data
+
+5. **Be concise but descriptive** - Log messages should be:
+   - Clear about what happened
+   - Include enough context to troubleshoot
+   - Not overly verbose
+
+#### Enabling Debug Logs
+
+Users can enable debug logging by setting `--zap-log-level=debug` for level 1 (debug) or use numeric values like `--zap-log-level=2` for trace-level logging. See the [Troubleshooting section](../install_guide.md#adjusting-log-verbosity) in the Install Guide for details.
+
 ### Format of the commit message
 
 We follow a rough convention for commit messages that is designed to answer two

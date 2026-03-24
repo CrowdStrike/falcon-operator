@@ -30,6 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"go.uber.org/zap/zapcore"
+
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	arv1 "k8s.io/api/admissionregistration/v1"
@@ -152,8 +154,23 @@ func main() {
 	}
 
 	opts := zap.Options{
-		Development: true,
+		Development: false,
 	}
+
+	opts.Encoder = zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
+		TimeKey:        "ts",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      zapcore.OmitKey,
+		FunctionKey:    zapcore.OmitKey,
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	})
 
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()

@@ -30,7 +30,7 @@ Falcon Operator and Sensor management and upgrades are best handled by using Git
 
 ### Operator Upgrades
 
-[See the individual deployment guides for commands on how to upgrade the operator](#kubernetes-distribution-installation-and-deployment). 
+[See the individual deployment guides for commands on how to upgrade the operator](#kubernetes-distribution-installation-and-deployment).
 
 ### Sensor Upgrades
 
@@ -65,6 +65,71 @@ To review the logs of Falcon Operator:
 
 ```shell
 kubectl -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
+```
+
+#### Adjusting Log Verbosity
+
+By default, the operator logs at **info** level, showing high-level operational messages. For troubleshooting or debugging, you can increase log verbosity to see more detailed information.
+
+**Available log levels:**
+- **info** (default) - Shows high-level operational messages
+- **debug** or **1** - Shows detailed debug messages including configuration changes and deployment reconciliation details
+- **2** - Shows very verbose trace-level messages including function entry/exit and low-level object comparisons (use for deep debugging only)
+- **error** - Shows only error messages
+
+**To enable debug logging:**
+
+For **non-OLM installations**, edit the `deploy/falcon-operator.yaml` file:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        args:
+          - --leader-elect
+          - --zap-log-level=debug  # Use 'debug' or '1' for debug level, or '2' for trace level
+```
+
+For **OLM installations**, edit the ClusterServiceVersion file:
+
+```yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+spec:
+  install:
+    spec:
+      deployments:
+      - name: falcon-operator-controller-manager
+        spec:
+          template:
+            spec:
+              containers:
+              - name: manager
+                args:
+                  - --leader-elect
+                  - --zap-log-level=debug  # Use 'debug' or '1' for debug level, or '2' for trace level
+```
+
+For **OpenShift installations**, use the `ARGS` environment variable in the Subscription:
+
+```yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+spec:
+  config:
+    env:
+    - name: ARGS
+      value: "--zap-log-level=debug"  # Use 'debug' or '1' for debug level, or '2' for trace level
+```
+
+After changing the log level, the operator pod will need to be restarted for the changes to take effect:
+
+```shell
+kubectl rollout restart deploy/falcon-operator-controller-manager -n falcon-operator
 ```
 
 ### Operator Issues
