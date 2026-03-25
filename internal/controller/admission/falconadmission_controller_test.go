@@ -838,5 +838,119 @@ var _ = Describe("FalconAdmission controller", func() {
 			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("openshift.io/sa.scc.uid-range", "1000710000/10000"))
 			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("operator-managed-annotation", "value1"))
 		})
+
+		// Test environment variable comparison logic in deployment reconciliation
+		It("should detect environment variable changes during deployment reconciliation", func() {
+			By("Creating the custom resource for the Kind FalconAdmission")
+			err := k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Creating the reconciler")
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			By("Running initial reconciliation to create deployment")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying deployment was created")
+			var deployment *appsv1.Deployment
+			Eventually(func() error {
+				deployment = &appsv1.Deployment{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Manually modifying deployment environment variables to simulate drift")
+			Eventually(func() error {
+				deployment = &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+				if err != nil {
+					return err
+				}
+
+				// Find the falcon-kac container and modify its env vars
+				for i, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "falcon-kac" {
+						// Add new env vars to simulate changes that reconciliation should detect
+						deployment.Spec.Template.Spec.Containers[i].Env = append(container.Env,
+							corev1.EnvVar{Name: "MANUALLY_ADDED_VAR", Value: "should_be_detected"},
+							corev1.EnvVar{Name: "TEST_VAR", Value: "test_value"},
+						)
+						// Modify an existing env var if present
+						for j, env := range deployment.Spec.Template.Spec.Containers[i].Env {
+							if env.Name == "FALCONCTL_OPT_CID" {
+								deployment.Spec.Template.Spec.Containers[i].Env[j].Value = "modified_cid_value"
+								break
+							}
+						}
+						break
+					}
+				}
+				return k8sClient.Update(ctx, deployment)
+			}, 10*time.Second, time.Second).Should(Succeed())
+
+			By("Verifying manually added env vars are present")
+			Eventually(func() bool {
+				deployment = &appsv1.Deployment{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+				for _, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "falcon-kac" {
+						envMap := make(map[string]string)
+						for _, env := range container.Env {
+							envMap[env.Name] = env.Value
+						}
+						_, hasManualVar := envMap["MANUALLY_ADDED_VAR"]
+						_, hasTestVar := envMap["TEST_VAR"]
+						return hasManualVar && hasTestVar
+					}
+				}
+				return false
+			}, 5*time.Second, time.Second).Should(BeTrue())
+
+			By("Waiting for deployment to be older than 5 seconds to allow reconcile updates")
+			time.Sleep(6 * time.Second)
+
+			By("Running reconciliation after manual env var changes")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying deployment env vars were corrected by reconciliation")
+			// The reconciliation should detect the drift and correct it
+			Eventually(func() bool {
+				deployment = &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+				if err != nil {
+					return false
+				}
+				for _, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "falcon-kac" {
+						envMap := make(map[string]string)
+						for _, env := range container.Env {
+							envMap[env.Name] = env.Value
+						}
+						// Manual vars should be removed by reconciliation
+						_, hasManualVar := envMap["MANUALLY_ADDED_VAR"]
+						_, hasTestVar := envMap["TEST_VAR"]
+
+						// Manual vars should no longer exist after reconciliation corrects the drift
+						return !hasManualVar && !hasTestVar
+					}
+				}
+				return false
+			}, 20*time.Second, 2*time.Second).Should(BeTrue())
+		})
 	})
 })
