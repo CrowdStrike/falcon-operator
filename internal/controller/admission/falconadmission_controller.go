@@ -698,28 +698,17 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		}
 
 		if len(proxy.ReadProxyVarsFromEnv()) > 0 {
-			proxyUpdated := false
 			for i, container := range existingDeployment.Spec.Template.Spec.Containers {
 				oldEnv := container.Env
-				newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
-				updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
-				if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
-					existingDeployment.Spec.Template.Spec.Containers[i].Env = newContainerEnv
-					log.V(1).Info("Updating FalconAdmission Deployment Proxy Settings: appending proxy vars",
+				envAfterAppend := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
+				finalEnv := common.UpdateEnvVars(envAfterAppend, proxy.ReadProxyVarsFromEnv())
+
+				if !equality.Semantic.DeepEqual(oldEnv, finalEnv) {
+					existingDeployment.Spec.Template.Spec.Containers[i].Env = finalEnv
+					log.V(1).Info("Updating FalconAdmission Deployment Proxy Settings",
 						"container", existingDeployment.Spec.Template.Spec.Containers[i].Name,
 						"old", oldEnv,
-						"new", newContainerEnv)
-					proxyUpdated = true
-				}
-				if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
-					existingDeployment.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
-					log.V(1).Info("Updating FalconAdmission Deployment Proxy Settings: updating proxy vars",
-						"container", existingDeployment.Spec.Template.Spec.Containers[i].Name,
-						"old", oldEnv,
-						"new", updatedContainerEnv)
-					proxyUpdated = true
-				}
-				if proxyUpdated {
+						"new", finalEnv)
 					updated = true
 					log.Info("Updating FalconAdmission Deployment Proxy Settings")
 				}
