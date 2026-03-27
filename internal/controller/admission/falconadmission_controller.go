@@ -584,13 +584,17 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		updated := false
 
 		if !reflect.DeepEqual(dep.Spec.Template.Spec.ImagePullSecrets, existingDeployment.Spec.Template.Spec.ImagePullSecrets) {
-			log.V(1).Info("Updating FalconAdmission Deployment: ImagePullSecrets changed")
+			log.V(1).Info("Updating FalconAdmission Deployment: ImagePullSecrets changed",
+				"old", existingDeployment.Spec.Template.Spec.ImagePullSecrets,
+				"new", dep.Spec.Template.Spec.ImagePullSecrets)
 			existingDeployment.Spec.Template.Spec.ImagePullSecrets = dep.Spec.Template.Spec.ImagePullSecrets
 			updated = true
 		}
 
 		if !reflect.DeepEqual(existingDeployment.Spec.Strategy.RollingUpdate, dep.Spec.Strategy.RollingUpdate) {
-			log.V(1).Info("Updating FalconAdmission Deployment: RollingUpdate strategy changed")
+			log.V(1).Info("Updating FalconAdmission Deployment: RollingUpdate strategy changed",
+				"old", existingDeployment.Spec.Strategy.RollingUpdate,
+				"new", dep.Spec.Strategy.RollingUpdate)
 			existingDeployment.Spec.Strategy.RollingUpdate = dep.Spec.Strategy.RollingUpdate
 			updated = true
 		}
@@ -602,13 +606,17 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		}
 
 		if !reflect.DeepEqual(dep.Spec.Template.Spec.TopologySpreadConstraints, existingDeployment.Spec.Template.Spec.TopologySpreadConstraints) {
-			log.V(1).Info("Updating FalconAdmission Deployment: TopologySpreadConstraints changed")
+			log.V(1).Info("Updating FalconAdmission Deployment: TopologySpreadConstraints changed",
+				"old", existingDeployment.Spec.Template.Spec.TopologySpreadConstraints,
+				"new", dep.Spec.Template.Spec.TopologySpreadConstraints)
 			existingDeployment.Spec.Template.Spec.TopologySpreadConstraints = dep.Spec.Template.Spec.TopologySpreadConstraints
 			updated = true
 		}
 
 		if !reflect.DeepEqual(dep.Spec.Template.Spec.Affinity.NodeAffinity, existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity) {
-			log.V(1).Info("Updating FalconAdmission Deployment: NodeAffinity changed")
+			log.V(1).Info("Updating FalconAdmission Deployment: NodeAffinity changed",
+				"old", existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity,
+				"new", dep.Spec.Template.Spec.Affinity.NodeAffinity)
 			existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity = dep.Spec.Template.Spec.Affinity.NodeAffinity
 			updated = true
 		}
@@ -623,7 +631,10 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 
 				if container.Name == "falcon-client" || container.Name == "falcon-watcher" {
 					if !reflect.DeepEqual(container.Ports, existingContainer.Ports) {
-						log.V(1).Info("Updating FalconAdmission Deployment: Container ports changed", "container", container.Name)
+						log.V(1).Info("Updating FalconAdmission Deployment: Container ports changed",
+							"container", container.Name,
+							"old", existingContainer.Ports,
+							"new", container.Ports)
 						existingContainer.Ports = container.Ports
 						updated = true
 					}
@@ -636,25 +647,37 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 				}
 
 				if !reflect.DeepEqual(container.ImagePullPolicy, existingContainer.ImagePullPolicy) {
-					log.V(1).Info("Updating FalconAdmission Deployment: Container ImagePullPolicy changed", "container", container.Name)
+					log.V(1).Info("Updating FalconAdmission Deployment: Container ImagePullPolicy changed",
+						"container", container.Name,
+						"old", existingContainer.ImagePullPolicy,
+						"new", container.ImagePullPolicy)
 					existingContainer.ImagePullPolicy = container.ImagePullPolicy
 					updated = true
 				}
 
 				if !reflect.DeepEqual(container.Resources, existingContainer.Resources) {
-					log.V(1).Info("Updating FalconAdmission Deployment: Container resources changed", "container", container.Name)
+					log.V(1).Info("Updating FalconAdmission Deployment: Container resources changed",
+						"container", container.Name,
+						"old", existingContainer.Resources,
+						"new", container.Resources)
 					existingContainer.Resources = container.Resources
 					updated = true
 				}
 
 				if !reflect.DeepEqual(container.LivenessProbe.ProbeHandler.HTTPGet.Port, existingContainer.LivenessProbe.ProbeHandler.HTTPGet.Port) {
-					log.V(1).Info("Updating FalconAdmission Deployment: Container LivenessProbe port changed", "container", container.Name)
+					log.V(1).Info("Updating FalconAdmission Deployment: Container LivenessProbe port changed",
+						"container", container.Name,
+						"old", existingContainer.LivenessProbe.ProbeHandler.HTTPGet.Port,
+						"new", container.LivenessProbe.ProbeHandler.HTTPGet.Port)
 					existingContainer.LivenessProbe.ProbeHandler.HTTPGet.Port = container.LivenessProbe.ProbeHandler.HTTPGet.Port
 					updated = true
 				}
 
 				if !reflect.DeepEqual(container.StartupProbe.ProbeHandler.HTTPGet.Port, existingContainer.StartupProbe.ProbeHandler.HTTPGet.Port) {
-					log.V(1).Info("Updating FalconAdmission Deployment: Container StartupProbe port changed", "container", container.Name)
+					log.V(1).Info("Updating FalconAdmission Deployment: Container StartupProbe port changed",
+						"container", container.Name,
+						"old", existingContainer.StartupProbe.ProbeHandler.HTTPGet.Port,
+						"new", container.StartupProbe.ProbeHandler.HTTPGet.Port)
 					existingContainer.StartupProbe.ProbeHandler.HTTPGet.Port = container.StartupProbe.ProbeHandler.HTTPGet.Port
 					updated = true
 				}
@@ -662,34 +685,13 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 				// Merge existing proxy env vars with spec container env to preserve existing proxy envs
 				specContainerEnvWithExistingProxy := common.MergeEnvVars(container.Env, existingContainer.Env, common.ProxyEnvNamesWithLowerCase())
 				if !reflect.DeepEqual(specContainerEnvWithExistingProxy, existingContainer.Env) {
-					// Build a map of existing env vars for comparison
-					existingEnvMap := make(map[string]string)
-					for _, env := range existingContainer.Env {
-						existingEnvMap[env.Name] = env.Value
-					}
-
-					newEnvMap := make(map[string]string)
-					for _, env := range container.Env {
-						newEnvMap[env.Name] = env.Value
-					}
-
-					// Log added/modified env vars
-					for name, newVal := range newEnvMap {
-						if oldVal, exists := existingEnvMap[name]; !exists {
-							log.V(1).Info("Updating FalconAdmission Deployment: Environment variable added", "container", container.Name, "envVar", name)
-						} else if oldVal != newVal {
-							log.V(1).Info("Updating FalconAdmission Deployment: Environment variable modified", "container", container.Name, "envVar", name)
-						}
-					}
-
-					// Log removed env vars
-					for name := range existingEnvMap {
-						if _, exists := newEnvMap[name]; !exists {
-							log.V(1).Info("Updating FalconAdmission Deployment: Environment variable removed", "container", container.Name, "envVar", name)
-						}
-					}
-
-					existingContainer.Env = container.Env
+					log.V(1).Info(
+						"Updating FalconAdmission Deployment: Environment variables changed",
+						"container", container.Name,
+						"oldEnv", existingContainer.Env,
+						"newEnv", specContainerEnvWithExistingProxy,
+					)
+					existingContainer.Env = specContainerEnvWithExistingProxy
 					updated = true
 				}
 			}
@@ -698,14 +700,23 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 		if len(proxy.ReadProxyVarsFromEnv()) > 0 {
 			proxyUpdated := false
 			for i, container := range existingDeployment.Spec.Template.Spec.Containers {
+				oldEnv := container.Env
 				newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
 				updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
 				if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
 					existingDeployment.Spec.Template.Spec.Containers[i].Env = newContainerEnv
+					log.V(1).Info("Updating FalconAdmission Deployment Proxy Settings: appending proxy vars",
+						"container", existingDeployment.Spec.Template.Spec.Containers[i].Name,
+						"old", oldEnv,
+						"new", newContainerEnv)
 					proxyUpdated = true
 				}
 				if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
 					existingDeployment.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
+					log.V(1).Info("Updating FalconAdmission Deployment Proxy Settings: updating proxy vars",
+						"container", existingDeployment.Spec.Template.Spec.Containers[i].Name,
+						"old", oldEnv,
+						"new", updatedContainerEnv)
 					proxyUpdated = true
 				}
 				if proxyUpdated {
