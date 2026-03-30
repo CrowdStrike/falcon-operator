@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/version"
 	ktest "k8s.io/client-go/testing"
 )
@@ -116,5 +117,293 @@ func TestMakeSensorEnvMap(t *testing.T) {
 
 	if got := MakeSensorEnvMap(falconSensor.FalconSensor); !reflect.DeepEqual(got, sensorConfig) {
 		t.Errorf("MakeSensorEnvMap() = %v, want %v", got, sensorConfig)
+	}
+}
+
+func TestAppendUniqueEnvVars(t *testing.T) {
+	tests := []struct {
+		name     string
+		envVars  [][]corev1.EnvVar
+		expected []corev1.EnvVar
+	}{
+		{
+			name: "append to empty list",
+			envVars: [][]corev1.EnvVar{
+				{},
+				{
+					{Name: "VAR1", Value: "value1"},
+					{Name: "VAR2", Value: "value2"},
+				},
+			},
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+				{Name: "VAR2", Value: "value2"},
+			},
+		},
+		{
+			name: "append with no duplicates",
+			envVars: [][]corev1.EnvVar{
+				{
+					{Name: "VAR1", Value: "value1"},
+				},
+				{
+					{Name: "VAR2", Value: "value2"},
+					{Name: "VAR3", Value: "value3"},
+				},
+			},
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+				{Name: "VAR2", Value: "value2"},
+				{Name: "VAR3", Value: "value3"},
+			},
+		},
+		{
+			name: "append with duplicates (should skip duplicates)",
+			envVars: [][]corev1.EnvVar{
+				{
+					{Name: "VAR1", Value: "value1"},
+					{Name: "VAR2", Value: "value2"},
+				},
+				{
+					{Name: "VAR2", Value: "different_value"},
+					{Name: "VAR3", Value: "value3"},
+				},
+			},
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+				{Name: "VAR2", Value: "value2"},
+				{Name: "VAR3", Value: "value3"},
+			},
+		},
+		{
+			name: "append nil slice",
+			envVars: [][]corev1.EnvVar{
+				{
+					{Name: "VAR1", Value: "value1"},
+				},
+				nil,
+				{
+					{Name: "VAR2", Value: "value2"},
+				},
+			},
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+				{Name: "VAR2", Value: "value2"},
+			},
+		},
+		{
+			name: "append multiple lists",
+			envVars: [][]corev1.EnvVar{
+				{
+					{Name: "VAR1", Value: "value1"},
+				},
+				{
+					{Name: "VAR2", Value: "value2"},
+				},
+				{
+					{Name: "VAR3", Value: "value3"},
+				},
+			},
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+				{Name: "VAR2", Value: "value2"},
+				{Name: "VAR3", Value: "value3"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := AppendUniqueEnvVars(tt.envVars...)
+			if !reflect.DeepEqual(got, tt.expected) {
+				t.Errorf("AppendUniqueEnvVars() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestUpdateEnvVars(t *testing.T) {
+	tests := []struct {
+		name          string
+		envVars       []corev1.EnvVar
+		updateEnvVars []corev1.EnvVar
+		expected      []corev1.EnvVar
+	}{
+		{
+			name: "update existing var",
+			envVars: []corev1.EnvVar{
+				{Name: "VAR1", Value: "old_value"},
+				{Name: "VAR2", Value: "value2"},
+			},
+			updateEnvVars: []corev1.EnvVar{
+				{Name: "VAR1", Value: "new_value"},
+			},
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "new_value"},
+				{Name: "VAR2", Value: "value2"},
+			},
+		},
+		{
+			name: "update multiple vars",
+			envVars: []corev1.EnvVar{
+				{Name: "VAR1", Value: "old_value1"},
+				{Name: "VAR2", Value: "old_value2"},
+				{Name: "VAR3", Value: "value3"},
+			},
+			updateEnvVars: []corev1.EnvVar{
+				{Name: "VAR1", Value: "new_value1"},
+				{Name: "VAR2", Value: "new_value2"},
+			},
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "new_value1"},
+				{Name: "VAR2", Value: "new_value2"},
+				{Name: "VAR3", Value: "value3"},
+			},
+		},
+		{
+			name: "update non-existent var (should not add)",
+			envVars: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+			updateEnvVars: []corev1.EnvVar{
+				{Name: "VAR2", Value: "value2"},
+			},
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+		},
+		{
+			name: "update with same value (no change)",
+			envVars: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+			updateEnvVars: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+		},
+		{
+			name:    "update empty list",
+			envVars: []corev1.EnvVar{},
+			updateEnvVars: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+			expected: []corev1.EnvVar{},
+		},
+		{
+			name: "empty update list",
+			envVars: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+			updateEnvVars: []corev1.EnvVar{},
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := UpdateEnvVars(tt.envVars, tt.updateEnvVars)
+			if !reflect.DeepEqual(got, tt.expected) {
+				t.Errorf("UpdateEnvVars() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestMergeEnvVars(t *testing.T) {
+	tests := []struct {
+		name           string
+		envA           []corev1.EnvVar
+		envB           []corev1.EnvVar
+		envVarsToMerge []string
+		expected       []corev1.EnvVar
+	}{
+		{
+			name: "merge proxy vars from B to A",
+			envA: []corev1.EnvVar{
+				{Name: "APP_MODE", Value: "production"},
+				{Name: "HTTP_PROXY", Value: "old-proxy:8080"},
+				{Name: "DATABASE", Value: "postgres"},
+			},
+			envB: []corev1.EnvVar{
+				{Name: "HTTP_PROXY", Value: "new-proxy:9090"},
+				{Name: "HTTPS_PROXY", Value: "new-proxy:9443"},
+			},
+			envVarsToMerge: []string{"HTTP_PROXY", "HTTPS_PROXY"},
+			expected: []corev1.EnvVar{
+				{Name: "APP_MODE", Value: "production"},
+				{Name: "DATABASE", Value: "postgres"},
+				{Name: "HTTP_PROXY", Value: "new-proxy:9090"},
+				{Name: "HTTPS_PROXY", Value: "new-proxy:9443"},
+			},
+		},
+		{
+			name: "merge non-existent var from B (should skip)",
+			envA: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+			envB: []corev1.EnvVar{
+				{Name: "VAR2", Value: "value2"},
+			},
+			envVarsToMerge: []string{"VAR3"},
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+		},
+		{
+			name: "empty merge list returns envA unchanged",
+			envA: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+			envB: []corev1.EnvVar{
+				{Name: "VAR2", Value: "value2"},
+			},
+			envVarsToMerge: []string{},
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+		},
+		{
+			name: "nil merge list returns envA unchanged",
+			envA: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+			envB: []corev1.EnvVar{
+				{Name: "VAR2", Value: "value2"},
+			},
+			envVarsToMerge: nil,
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "value1"},
+			},
+		},
+		{
+			name: "merge all vars",
+			envA: []corev1.EnvVar{
+				{Name: "VAR1", Value: "old1"},
+				{Name: "VAR2", Value: "old2"},
+			},
+			envB: []corev1.EnvVar{
+				{Name: "VAR1", Value: "new1"},
+				{Name: "VAR2", Value: "new2"},
+			},
+			envVarsToMerge: []string{"VAR1", "VAR2"},
+			expected: []corev1.EnvVar{
+				{Name: "VAR1", Value: "new1"},
+				{Name: "VAR2", Value: "new2"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := MergeEnvVars(tt.envA, tt.envB, tt.envVarsToMerge)
+			if !reflect.DeepEqual(got, tt.expected) {
+				t.Errorf("MergeEnvVars() = %v, want %v", got, tt.expected)
+			}
+		})
 	}
 }
