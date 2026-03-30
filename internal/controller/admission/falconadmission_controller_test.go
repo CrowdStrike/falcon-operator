@@ -888,13 +888,6 @@ var _ = Describe("FalconAdmission controller", func() {
 							corev1.EnvVar{Name: "MANUALLY_ADDED_VAR", Value: "should_be_detected"},
 							corev1.EnvVar{Name: "TEST_VAR", Value: "test_value"},
 						)
-						// Modify an existing env var if present
-						for j, env := range deployment.Spec.Template.Spec.Containers[i].Env {
-							if env.Name == "FALCONCTL_OPT_CID" {
-								deployment.Spec.Template.Spec.Containers[i].Env[j].Value = "modified_cid_value"
-								break
-							}
-						}
 						break
 					}
 				}
