@@ -50,6 +50,7 @@ func (r *FalconAdmissionReconciler) reconcileGenericConfigMap(name string, genFu
 		return false, err
 	}
 
+	// TODO: Remove this check once we confirm SetGroupVersionKind before update is sufficient
 	if !isOwnedByKacController(existingCM) {
 		existingCM.TypeMeta = metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
@@ -59,6 +60,7 @@ func (r *FalconAdmissionReconciler) reconcileGenericConfigMap(name string, genFu
 
 	if !reflect.DeepEqual(cm.Data, existingCM.Data) {
 		existingCM.Data = cm.Data
+		existingCM.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ConfigMap"))
 		if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingCM); err != nil {
 			return false, err
 		}
@@ -125,12 +127,9 @@ func (r *FalconAdmissionReconciler) removeClusterNameConfigMapData(ctx context.C
 	}
 
 	if !isOwnedByKacController(existingCM) {
-		existingCM.TypeMeta = metav1.TypeMeta{
-			APIVersion: corev1.SchemeGroupVersion.String(),
-			Kind:       "ConfigMap",
-		}
 		if _, exists := existingCM.Data["ClusterName"]; exists {
 			delete(existingCM.Data, "ClusterName")
+			existingCM.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ConfigMap"))
 			if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingCM); err != nil {
 				return false, err
 			}
