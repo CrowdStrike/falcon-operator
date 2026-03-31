@@ -358,5 +358,124 @@ var _ = Describe("FalconNodeSensor controller", func() {
 			err = k8sClient.Delete(ctx, testSecret)
 			Expect(err).To(Not(HaveOccurred()))
 		})
+
+		It("should add annotations to service account when configured", func() {
+			By("Creating the FalconNodeSensor CR with service account annotations")
+			falconNode := &falconv1alpha1.FalconNodeSensor{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      NodeSensorName,
+					Namespace: sensorNamespacedName.Namespace,
+				},
+				Spec: falconv1alpha1.FalconNodeSensorSpec{
+					Falcon: falconv1alpha1.FalconUnified{
+						FalconSensor: falconv1alpha1.FalconSensor{
+							CID: &falconCID,
+						},
+					},
+					Node: falconv1alpha1.FalconNodeSensorConfig{
+						Image: "example.com/image:test",
+						ServiceAccount: falconv1alpha1.FalconNodeServiceAccount{
+							Annotations: map[string]string{
+								"test-annotation": "test-value",
+								"another-key":     "another-value",
+							},
+						},
+					},
+					InstallNamespace: sensorNamespacedName.Namespace,
+				},
+			}
+
+			err := k8sClient.Create(ctx, falconNode)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				falconNode := &falconv1alpha1.FalconNodeSensor{}
+				return k8sClient.Get(ctx, sensorNamespacedName, falconNode)
+			}, 6*time.Second, time.Second).Should(Succeed())
+
+			By("Reconciling the custom resource")
+			tracker, cancel := sensorversion.NewTestTracker()
+			defer cancel()
+
+			reconciler := &FalconNodeSensorReconciler{
+				Client:  k8sClient,
+				Reader:  k8sReader,
+				Scheme:  k8sClient.Scheme(),
+				tracker: tracker,
+			}
+
+			// FalconNodeSensor needs to reconcile multiple times
+			for range 5 {
+				_, err = reconciler.Reconcile(ctx, reconcile.Request{
+					NamespacedName: sensorNamespacedName,
+				})
+				Expect(err).To(Not(HaveOccurred()))
+			}
+
+			By("Verifying service account was created with annotations")
+			serviceAccountNN := types.NamespacedName{
+				Name:      common.NodeServiceAccountName,
+				Namespace: sensorNamespacedName.Namespace,
+			}
+			Eventually(func() map[string]string {
+				sa := &corev1.ServiceAccount{}
+				err := k8sClient.Get(ctx, serviceAccountNN, sa)
+				if err != nil {
+					return nil
+				}
+				return sa.Annotations
+			}, time.Minute, time.Second).Should(And(
+				HaveKeyWithValue("test-annotation", "test-value"),
+				HaveKeyWithValue("another-key", "another-value"),
+			))
+
+			By("Adding external annotations directly to the service account")
+			sa := &corev1.ServiceAccount{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, serviceAccountNN, sa)
+			}, time.Minute, time.Second).Should(Succeed())
+
+			if sa.Annotations == nil {
+				sa.Annotations = make(map[string]string)
+			}
+			sa.Annotations["external-system/annotation"] = "external-value"
+			Expect(k8sClient.Update(ctx, sa)).To(Succeed())
+
+			By("Updating operator-managed annotations in FalconNodeSensor spec")
+			Eventually(func() error {
+				fn := &falconv1alpha1.FalconNodeSensor{}
+				err := k8sClient.Get(ctx, sensorNamespacedName, fn)
+				if err != nil {
+					return err
+				}
+				fn.Spec.Node.ServiceAccount.Annotations = map[string]string{
+					"test-annotation": "updated-value",
+					"new-key":         "new-value",
+				}
+				return k8sClient.Update(ctx, fn)
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Reconciling again to apply the annotation changes")
+			_, err = reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: sensorNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying operator annotations are updated")
+			Eventually(func() map[string]string {
+				updated := &corev1.ServiceAccount{}
+				_ = k8sClient.Get(ctx, serviceAccountNN, updated)
+				return updated.Annotations
+			}, time.Minute, time.Second).Should(And(
+				HaveKeyWithValue("test-annotation", "updated-value"),
+				HaveKeyWithValue("new-key", "new-value"),
+			))
+
+			By("Verifying external annotation is still present")
+			finalSA := &corev1.ServiceAccount{}
+			Expect(k8sClient.Get(ctx, serviceAccountNN, finalSA)).To(Succeed())
+			Expect(finalSA.Annotations).To(HaveKeyWithValue("external-system/annotation", "external-value"))
+		})
 	})
 })
