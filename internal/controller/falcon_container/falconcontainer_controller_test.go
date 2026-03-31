@@ -3,6 +3,7 @@ package falcon
 import (
 	"context"
 	"fmt"
+	"maps"
 	"time"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -423,6 +424,187 @@ var _ = Describe("FalconContainer controller", func() {
 			By("Cleaning up the test specific resources")
 			err = k8sClient.Delete(ctx, testSecret)
 			Expect(err).To(Not(HaveOccurred()))
+		})
+
+		It("should preserve external annotations on service account when reconciling", func() {
+			By("Creating the FalconContainer CR")
+			falconContainer := &falconv1alpha1.FalconContainer{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      SidecarSensorName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconContainerSpec{
+					InstallNamespace: testNamespace.Name,
+					Falcon: falconv1alpha1.FalconSensor{
+						CID: &falconCID,
+					},
+					Image: &containerImage,
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					Injector: falconv1alpha1.FalconContainerInjectorSpec{
+						ImagePullSecretName: common.FalconPullSecretName,
+						ServiceAccount: falconv1alpha1.FalconContainerServiceAccount{
+							Annotations: map[string]string{
+								"operator-managed": "true",
+							},
+						},
+					},
+				},
+			}
+			err := k8sClient.Create(ctx, falconContainer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			tracker, cancel := sensorversion.NewTestTracker()
+			defer cancel()
+
+			reconciler := &FalconContainerReconciler{
+				Client:  k8sClient,
+				Reader:  k8sReader,
+				Scheme:  k8sClient.Scheme(),
+				tracker: tracker,
+			}
+
+			By("Reconciling to create service account")
+			_, err = reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: containerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Waiting for service account to be created")
+			serviceAccountNN := types.NamespacedName{
+				Name:      common.SidecarServiceAccountName,
+				Namespace: testNamespace.Name,
+			}
+			Eventually(func() error {
+				sa := &corev1.ServiceAccount{}
+				return k8sClient.Get(ctx, serviceAccountNN, sa)
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Adding external annotations directly to the service account")
+			sa := &corev1.ServiceAccount{}
+			Expect(k8sClient.Get(ctx, serviceAccountNN, sa)).To(Succeed())
+			if sa.Annotations == nil {
+				sa.Annotations = make(map[string]string)
+			}
+			sa.Annotations["external-system/annotation"] = "external-value"
+			sa.Annotations["service-mesh/injected"] = "true"
+			Expect(k8sClient.Update(ctx, sa)).To(Succeed())
+
+			By("Updating operator-managed annotations in FalconContainer spec")
+			Eventually(func() error {
+				fc := &falconv1alpha1.FalconContainer{}
+				err := k8sClient.Get(ctx, containerNamespacedName, fc)
+				if err != nil {
+					return err
+				}
+				fc.Spec.Injector.ServiceAccount.Annotations = map[string]string{
+					"operator-managed": "updated",
+					"new-annotation":   "new-value",
+				}
+				return k8sClient.Update(ctx, fc)
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Reconciling again to apply the changes")
+			_, err = reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: containerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying both operator and external annotations are preserved")
+			Eventually(func() map[string]string {
+				updated := &corev1.ServiceAccount{}
+				_ = k8sClient.Get(ctx, serviceAccountNN, updated)
+				return updated.Annotations
+			}, time.Minute, time.Second).Should(And(
+				HaveKeyWithValue("operator-managed", "updated"),
+				HaveKeyWithValue("new-annotation", "new-value"),
+				HaveKeyWithValue("external-system/annotation", "external-value"),
+				HaveKeyWithValue("service-mesh/injected", "true"),
+			))
+		})
+
+		It("should preserve external labels on service account when reconciling", func() {
+			By("Creating the FalconContainer CR")
+			falconContainer := &falconv1alpha1.FalconContainer{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      SidecarSensorName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconContainerSpec{
+					InstallNamespace: testNamespace.Name,
+					Falcon: falconv1alpha1.FalconSensor{
+						CID: &falconCID,
+					},
+					Image: &containerImage,
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					Injector: falconv1alpha1.FalconContainerInjectorSpec{
+						ImagePullSecretName: common.FalconPullSecretName,
+					},
+				},
+			}
+			err := k8sClient.Create(ctx, falconContainer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			tracker, cancel := sensorversion.NewTestTracker()
+			defer cancel()
+
+			reconciler := &FalconContainerReconciler{
+				Client:  k8sClient,
+				Reader:  k8sReader,
+				Scheme:  k8sClient.Scheme(),
+				tracker: tracker,
+			}
+
+			By("Reconciling to create service account")
+			_, err = reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: containerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Waiting for service account to be created")
+			serviceAccountNN := types.NamespacedName{
+				Name:      common.SidecarServiceAccountName,
+				Namespace: testNamespace.Name,
+			}
+			Eventually(func() error {
+				sa := &corev1.ServiceAccount{}
+				return k8sClient.Get(ctx, serviceAccountNN, sa)
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Adding external labels directly to the service account")
+			sa := &corev1.ServiceAccount{}
+			Expect(k8sClient.Get(ctx, serviceAccountNN, sa)).To(Succeed())
+			originalLabels := make(map[string]string)
+			maps.Copy(originalLabels, sa.Labels)
+			sa.Labels["external-system/label"] = "external-value"
+			sa.Labels["openshift.io/managed"] = "true"
+			Expect(k8sClient.Update(ctx, sa)).To(Succeed())
+
+			By("Reconciling again")
+			_, err = reconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: containerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying both operator and external labels are preserved")
+			Eventually(func() map[string]string {
+				updated := &corev1.ServiceAccount{}
+				_ = k8sClient.Get(ctx, serviceAccountNN, updated)
+				return updated.Labels
+			}, time.Minute, time.Second).Should(And(
+				HaveKeyWithValue("external-system/label", "external-value"),
+				HaveKeyWithValue("openshift.io/managed", "true"),
+			))
+
+			By("Verifying operator labels are still present")
+			updated := &corev1.ServiceAccount{}
+			Expect(k8sClient.Get(ctx, serviceAccountNN, updated)).To(Succeed())
+			for k, v := range originalLabels {
+				Expect(updated.Labels).To(HaveKeyWithValue(k, v))
+			}
 		})
 	})
 })
