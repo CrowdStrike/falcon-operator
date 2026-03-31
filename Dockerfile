@@ -6,6 +6,9 @@ ARG VERSION
 ARG GOPROXY
 ENV GOPROXY=${GOPROXY}
 
+# Switch to root to ensure write permissions for build stage
+USER root
+
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
