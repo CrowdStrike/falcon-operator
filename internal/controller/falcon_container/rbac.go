@@ -37,19 +37,51 @@ func (r *FalconContainerReconciler) reconcileServiceAccount(ctx context.Context,
 		}
 		return &corev1.ServiceAccount{}, fmt.Errorf("unable to query existing service account %s: %v", common.SidecarServiceAccountName, err)
 	}
-	if !reflect.DeepEqual(serviceAccount.ObjectMeta.Annotations, existingServiceAccount.ObjectMeta.Annotations) {
-		existingServiceAccount.ObjectMeta.Annotations = serviceAccount.ObjectMeta.Annotations
-		update = true
+
+	existingServiceAccount.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ServiceAccount"))
+
+	// Check if any annotations from serviceAccount need to be added to existingServiceAccount
+	// This preserves annotations added by external systems (e.g., service mesh, monitoring)
+	if serviceAccount.ObjectMeta.Annotations != nil {
+		if existingServiceAccount.ObjectMeta.Annotations == nil {
+			existingServiceAccount.ObjectMeta.Annotations = make(map[string]string)
+		}
+		for key, value := range serviceAccount.ObjectMeta.Annotations {
+			if existingValue, exists := existingServiceAccount.ObjectMeta.Annotations[key]; !exists || existingValue != value {
+				log.V(1).Info("Updating service account annotation",
+					"serviceAccount", common.SidecarServiceAccountName,
+					"key", key,
+					"oldValue", existingValue,
+					"newValue", value)
+				existingServiceAccount.ObjectMeta.Annotations[key] = value
+				update = true
+			}
+		}
 	}
-	if !reflect.DeepEqual(serviceAccount.ObjectMeta.Labels, existingServiceAccount.ObjectMeta.Labels) {
-		existingServiceAccount.ObjectMeta.Labels = serviceAccount.ObjectMeta.Labels
-		update = true
+
+	// Check if any labels from serviceAccount need to be added to existingServiceAccount
+	// This preserves labels added by external systems (e.g., OpenShift, Kubernetes operators)
+	if serviceAccount.ObjectMeta.Labels != nil {
+		if existingServiceAccount.ObjectMeta.Labels == nil {
+			existingServiceAccount.ObjectMeta.Labels = make(map[string]string)
+		}
+		for key, value := range serviceAccount.ObjectMeta.Labels {
+			if existingValue, exists := existingServiceAccount.ObjectMeta.Labels[key]; !exists || existingValue != value {
+				log.V(1).Info("Updating service account label",
+					"serviceAccount", common.SidecarServiceAccountName,
+					"key", key,
+					"oldValue", existingValue,
+					"newValue", value)
+				existingServiceAccount.ObjectMeta.Labels[key] = value
+				update = true
+			}
+		}
 	}
+
 	if update {
 		return existingServiceAccount, r.Update(ctx, log, falconContainer, existingServiceAccount)
 	}
 	return existingServiceAccount, nil
-
 }
 
 func (r *FalconContainerReconciler) reconcileClusterRoleBinding(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*rbacv1.ClusterRoleBinding, error) {
