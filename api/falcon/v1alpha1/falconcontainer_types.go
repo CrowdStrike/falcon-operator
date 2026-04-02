@@ -175,12 +175,12 @@ type AITapSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Custom AITap AI-DR Secret Name",order=5
 	AidrSecretName string `json:"aidrSecretName,omitempty"`
 
-	// Use an externally managed AI-DR secret instead of having the operator create and manage it.
+	// Use an existing AI-DR secret instead of having the operator create and manage it.
 	// When true, the operator assumes a secret with the configured name already exists in target
 	// namespaces and will not create or manage secrets.
 	// +kubebuilder:default=false
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Use External Secret",order=6,xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
-	UseExternalSecret bool `json:"useExternalSecret,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Use Existing Secret",order=6,xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+	UseExistingSecret bool `json:"useExistingSecret,omitempty"`
 }
 
 // FalconContainerStatus defines the observed state of FalconContainer

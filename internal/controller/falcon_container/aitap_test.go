@@ -101,8 +101,9 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 					},
 					Injector: falconv1alpha1.FalconContainerInjectorSpec{
 						AITap: falconv1alpha1.AITapSpec{
-							AidrCollectorApiToken: aidrToken,
-							Namespaces:            "app1,app2",
+							AidrCollectorApiToken:   aidrToken,
+							AidrCollectorBaseApiUrl: "https://api.example.com",
+							Namespaces:              "app1,app2",
 						},
 					},
 				},
@@ -127,27 +128,17 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 			})
 			Expect(err).To(Not(HaveOccurred()))
 
-			By("Verifying AITap secret exists in install namespace")
-			secretName := fmt.Sprintf("%s-falcon-aitap-aidr-secret", SidecarSensorName)
-			Eventually(func() error {
+			secretName := "falcon-aitap-aidr-secret"
+
+			By("Verifying AITap secret does NOT exist in install namespace")
+			Consistently(func() bool {
 				secret := &corev1.Secret{}
 				err := k8sClient.Get(ctx, types.NamespacedName{
 					Name:      secretName,
 					Namespace: testNamespace.Name,
 				}, secret)
-				if err != nil {
-					return err
-				}
-
-				// Verify secret contains correct token
-				if tokenValue, ok := secret.Data[".collector-aidr-token"]; !ok {
-					return fmt.Errorf("secret missing .collector-aidr-token key")
-				} else if string(tokenValue) != aidrToken {
-					return fmt.Errorf("secret token mismatch: got %s, want %s", string(tokenValue), aidrToken)
-				}
-
-				return nil
-			}, 10*time.Second, time.Second).Should(Succeed())
+				return errors.IsNotFound(err)
+			}, 3*time.Second, time.Second).Should(BeTrue(), "Secret should not be created in install namespace")
 
 			By("Verifying AITap secret exists in app1 namespace")
 			Eventually(func() error {
@@ -230,7 +221,7 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 				}
 
 				// Verify AITap environment variables
-				secretName := fmt.Sprintf("%s-falcon-aitap-aidr-secret", SidecarSensorName)
+				secretName := "falcon-aitap-aidr-secret"
 				if configMap.Data["FALCON_AITAP_AIDR_SECRET_NAME"] != secretName {
 					return fmt.Errorf("expected FALCON_AITAP_AIDR_SECRET_NAME=%s, got %s",
 						secretName, configMap.Data["FALCON_AITAP_AIDR_SECRET_NAME"])
@@ -250,7 +241,7 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 			}, 10*time.Second, time.Second).Should(Succeed())
 		})
 
-		It("should skip AITap secret creation when UseExternalSecret is enabled", func() {
+		It("should skip AITap secret creation when UseExistingSecret is enabled", func() {
 			ctx := context.Background()
 			testLog := logr.Discard()
 			falconContainer := &falconv1alpha1.FalconContainer{
@@ -262,10 +253,11 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 					InstallNamespace: testNamespace.Name,
 					Injector: falconv1alpha1.FalconContainerInjectorSpec{
 						AITap: falconv1alpha1.AITapSpec{
-							AidrCollectorApiToken: "test-token-disabled",
-							AidrSecretName:        "externally-managed-secret",
-							Namespaces:            "app1,app2",
-							UseExternalSecret:     true,
+							AidrCollectorApiToken:   "test-token-disabled",
+							AidrSecretName:          "externally-managed-secret",
+							AidrCollectorBaseApiUrl: "https://api.example.com",
+							Namespaces:              "app1,app2",
+							UseExistingSecret:       true,
 						},
 					},
 				},
@@ -284,7 +276,7 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 			// Reconcile AITap secrets
 			secretList, err := falconContainerReconciler.reconcileAITapSecrets(ctx, testLog, falconContainer)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(secretList.Items).To(BeEmpty(), "No secrets should be created when UseExternalSecret is true")
+			Expect(secretList.Items).To(BeEmpty(), "No secrets should be created when UseExistingSecret is true")
 
 			// Verify no secrets were created in any namespace
 			secret := &corev1.Secret{}
@@ -295,7 +287,7 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 			Expect(errors.IsNotFound(err)).To(BeTrue(), "Secret should not exist in install namespace")
 		})
 
-		It("should configure AITap environment variables in ConfigMap when UseExternalSecret is enabled", func() {
+		It("should configure AITap environment variables in ConfigMap when UseExistingSecret is enabled", func() {
 			ctx := context.Background()
 			testLog := logr.Discard()
 			listenPort := int32(4433)
@@ -319,7 +311,7 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 							AidrSecretName:          "my-external-secret",
 							AidrCollectorBaseApiUrl: "https://api.example.com",
 							Namespaces:              "ns1,ns2,ns3",
-							UseExternalSecret:       true,
+							UseExistingSecret:       true,
 						},
 					},
 				},
@@ -342,6 +334,116 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 			Expect(configMap.Data).To(HaveKeyWithValue("FALCON_AITAP_AIDR_SECRET_NAME", "my-external-secret"))
 			Expect(configMap.Data).To(HaveKeyWithValue("FALCON_AITAP_AIDR_COLLECTOR_BASE_API_URL", "https://api.example.com"))
 			Expect(configMap.Data).To(HaveKeyWithValue("FALCON_AITAP_NAMESPACES", "ns1,ns2,ns3"))
+		})
+
+		It("should return validation errors for invalid AITap configs", func() {
+			cases := []struct {
+				name        string
+				aitap       falconv1alpha1.AITapSpec
+				expectedMsg string
+			}{
+				{
+					name: "namespaces and allNamespaces both set",
+					aitap: falconv1alpha1.AITapSpec{
+						AidrCollectorApiToken:   "token",
+						AidrCollectorBaseApiUrl: "https://api.example.com",
+						Namespaces:              "app1",
+						AllNamespaces:           true,
+					},
+					expectedMsg: "'namespaces' and 'allNamespaces' cannot both be set",
+				},
+				{
+					name: "aidrCollectorBaseApiUrl missing with namespaces set",
+					aitap: falconv1alpha1.AITapSpec{
+						AidrCollectorApiToken: "token",
+						Namespaces:            "app1",
+					},
+					expectedMsg: "'aidrCollectorBaseApiUrl' is required",
+				},
+				{
+					name: "aidrCollectorApiToken missing and useExistingSecret false",
+					aitap: falconv1alpha1.AITapSpec{
+						AidrCollectorBaseApiUrl: "https://api.example.com",
+						Namespaces:              "app1",
+					},
+					expectedMsg: "'aidrCollectorApiToken' is required",
+				},
+				{
+					name: "useExistingSecret true but aidrSecretName empty",
+					aitap: falconv1alpha1.AITapSpec{
+						AidrCollectorBaseApiUrl: "https://api.example.com",
+						Namespaces:              "app1",
+						UseExistingSecret:       true,
+					},
+					expectedMsg: "'aidrSecretName' is required when 'useExistingSecret' is true",
+				},
+			}
+
+			tracker, cancel := sensorversion.NewTestTracker()
+			defer cancel()
+			r := &FalconContainerReconciler{
+				Client:  k8sClient,
+				Reader:  k8sReader,
+				Scheme:  k8sClient.Scheme(),
+				tracker: tracker,
+			}
+
+			for _, tc := range cases {
+				falconContainer := &falconv1alpha1.FalconContainer{
+					Spec: falconv1alpha1.FalconContainerSpec{
+						InstallNamespace: testNamespace.Name,
+						Injector: falconv1alpha1.FalconContainerInjectorSpec{
+							AITap: tc.aitap,
+						},
+					},
+				}
+				_, err := r.reconcileAITapSecrets(context.Background(), logr.Discard(), falconContainer)
+				Expect(err).To(HaveOccurred(), tc.name)
+				Expect(err.Error()).To(ContainSubstring(tc.expectedMsg), tc.name)
+			}
+		})
+
+		It("should exclude install namespace and reserved namespaces from allNamespaces propagation", func() {
+			ctx := context.Background()
+
+			for _, name := range []string{"falcon-kac", "falcon-iar", "app1", "openshift-monitoring"} {
+				ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}}
+				_ = k8sClient.Create(ctx, &ns)
+				nsCopy := ns
+				defer k8sClient.Delete(ctx, &nsCopy) //nolint:errcheck
+			}
+
+			falconContainer := &falconv1alpha1.FalconContainer{
+				Spec: falconv1alpha1.FalconContainerSpec{
+					InstallNamespace: testNamespace.Name,
+					Injector: falconv1alpha1.FalconContainerInjectorSpec{
+						AITap: falconv1alpha1.AITapSpec{
+							AidrCollectorApiToken:   aidrToken,
+							AidrCollectorBaseApiUrl: "https://api.example.com",
+							AllNamespaces:           true,
+						},
+					},
+				},
+			}
+
+			tracker, cancel := sensorversion.NewTestTracker()
+			defer cancel()
+
+			r := &FalconContainerReconciler{
+				Client:  k8sClient,
+				Reader:  k8sReader,
+				Scheme:  k8sClient.Scheme(),
+				tracker: tracker,
+			}
+
+			namespaces, err := r.getAITapTargetNamespaces(ctx, logr.Discard(), falconContainer)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(namespaces).NotTo(ContainElement(testNamespace.Name))
+			Expect(namespaces).NotTo(ContainElement("falcon-system"))
+			Expect(namespaces).NotTo(ContainElement("falcon-kac"))
+			Expect(namespaces).NotTo(ContainElement("falcon-iar"))
+			Expect(namespaces).NotTo(ContainElement("openshift-monitoring"))
+			Expect(namespaces).To(ContainElement("app1"))
 		})
 	})
 })

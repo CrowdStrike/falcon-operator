@@ -120,6 +120,95 @@ kubectl create secret generic falcon-secrets -n $FALCON_SECRET_NAMESPACE \
 --from-literal=falcon-provisioning-token=$FALCON_PROVISIONING_TOKEN
 ```
 
+### AITap Configuration
+AITap (AI-Driven Runtime Protection) requires configuration of the AI-DR Collector credentials for the Application Collector. The following parameters control how AI-DR secrets are managed and distributed across namespaces:
+
+#### Basic AITap Configuration
+To enable AITap, you must provide both the API token and base URL:
+
+```yaml
+injector:
+  aitap:
+    aidrCollectorApiToken: "<your-api-token>"
+    aidrCollectorBaseApiUrl: "https://api.example.com"
+    namespaces: "app1,app2,app3"  # Explicit namespace list
+```
+
+> [!NOTE]
+> The `aidrCollectorBaseApiUrl` and `aidrCollectorApiToken` are both required when using the `namespaces`
+> or `allNamespaces` options. When `useExistingSecret` is `true`, only `aidrCollectorBaseApiUrl` is required.
+> The existing secret is required to already contain the AIDR collector API token with the `.collector-aidr-token`
+> secret key.
+
+#### Enabling AI Tap Per Namespace or Per Pod
+AI Tap can be enabled in specific namespaces (recommended), in all namespaces, or for specific pods.
+You can control this behavior with the following options.
+
+**Option 1: Explicit Namespace List** (recommended for production)
+To enable AI Tap for specific namespaces only, use the `namespaces: "namespace-1,namespace-2"` option.
+
+```yaml
+injector:
+  aitap:
+    namespaces: "namespace-1,namespace-2,namespace-3"  # Comma-separated list
+    aidrCollectorApiToken: "<your-api-token>"
+    aidrCollectorBaseApiUrl: "https://api.example.com"
+```
+
+**Option 2: Specific Pods**
+
+If you prefer to have granular control of AI Tap, you can enable AI Tap for specific pods only.
+To enable AI Tap for specific pods, you must annotate the pod with `sensor.falcon-system.crowdstrike.com/enable-aitap-events: "true"`.
+You must also set `useExistingSecret: true` and `aidrSecretName: <your-aidr-secret-name>`,
+and ensure an existing AIDR secret is present in each applicable namespace.
+
+```yaml
+injector:
+  aitap:
+    useExistingSecret: true
+    aidrSecretName: "<your-aidr-secret-name>"
+    aidrCollectorBaseApiUrl: "https://api.example.com"
+```
+
+With `useExistingSecret: true`:
+- Falcon sensor does not enable AI Tap for any namespaces by default.
+- The operator does NOT create AI-DR secrets in any namespace.
+- You must ensure secrets with the `aidrSecretName` exist in target namespaces.
+
+**Option 3: Combination of Namespaces and Pods**
+
+You can use a combination of `namespaces` and the `sensor.falcon-system.crowdstrike.com/enable-aitap-events: "true"` pod annotation to enabled AI Tap for specific namespaces, and individual pods not included in the list of namespaces.
+
+```yaml
+injector:
+  aitap:
+    namespaces: "namespace-1,namespace-2" # namespace-3 has a 1 pod with `enable-aitap-events` annotation
+    aidrSecretName: "<your-aidr-secret-name>"
+    aidrCollectorApiToken: "<your-api-token>"
+    aidrCollectorBaseApiUrl: "https://api.example.com"
+```
+
+You must manage your own AI-DR secret with the same name as `aidrSecretName` in any namespace not included in the list of `namespaces`, which in this example would be 'namespace-3'.
+
+**Option 4: All Namespaces with Filtering**
+To enable AI Tap for all namespaces, use the `allNamespaces: true` option.
+
+```yaml
+injector:
+  aitap:
+    allNamespaces: true
+    aidrCollectorApiToken: "<your-api-token>"
+    aidrCollectorBaseApiUrl: "https://api.example.com"
+```
+
+AI Tap will be enabled in:
+- All other namespaces **except** reserved system namespaces
+
+The following namespaces are automatically excluded:
+- `kube-system`, `kube-public`, `kube-node-lease`
+- `falcon-system`
+- The deployment namespace
+
 #### Advanced Settings
 The following settings provide an alternative means to select which version of Falcon sensor is deployed. Their use is not recommended. Instead, an explicit SHA256 hash should be configured using the `image` property above.
 

@@ -121,10 +121,9 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.L
 		}
 	}
 
-	// Configure AITap environment variables if token is provided OR if using external secret
-	// (external secret management still requires injector configuration)
+	// Configure AITap environment variables if token is provided or if using an existing secret
 	if falconContainer.Spec.Injector.AITap.AidrCollectorApiToken != "" ||
-		(falconContainer.Spec.Injector.AITap.UseExternalSecret &&
+		(falconContainer.Spec.Injector.AITap.UseExistingSecret &&
 			falconContainer.Spec.Injector.AITap.AidrSecretName != "") {
 		secretName := r.getAITapSecretName(falconContainer)
 		data["FALCON_AITAP_AIDR_SECRET_NAME"] = secretName

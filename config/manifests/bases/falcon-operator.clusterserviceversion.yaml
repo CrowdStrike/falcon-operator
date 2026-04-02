@@ -450,11 +450,11 @@ spec:
         displayName: Sensor Grouping Tags
         path: falcon.tags
       - description: |-
-          Use an externally managed AI-DR secret instead of having the operator create and manage it.
+          Use an existing AI-DR secret instead of having the operator create and manage it.
           When true, the operator assumes a secret with the configured name already exists in target
           namespaces and will not create or manage secrets.
-        displayName: Use External Secret
-        path: injector.aitap.useExternalSecret
+        displayName: Use Existing Secret
+        path: injector.aitap.useExistingSecret
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: |-
@@ -1197,11 +1197,11 @@ spec:
         displayName: Sensor Grouping Tags
         path: falconContainerSensor.falcon.tags
       - description: |-
-          Use an externally managed AI-DR secret instead of having the operator create and manage it.
+          Use an existing AI-DR secret instead of having the operator create and manage it.
           When true, the operator assumes a secret with the configured name already exists in target
           namespaces and will not create or manage secrets.
-        displayName: Use External Secret
-        path: falconContainerSensor.injector.aitap.useExternalSecret
+        displayName: Use Existing Secret
+        path: falconContainerSensor.injector.aitap.useExistingSecret
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: |-

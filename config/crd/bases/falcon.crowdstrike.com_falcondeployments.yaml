@@ -1108,10 +1108,10 @@ spec:
                               Configure the list of namespaces that should have access to the AI-DR credentials.
                               This is a comma-separated list. For example: "ns1,ns2,ns3"
                             type: string
-                          useExternalSecret:
+                          useExistingSecret:
                             default: false
                             description: |-
-                              Use an externally managed AI-DR secret instead of having the operator create and manage it.
+                              Use an existing AI-DR secret instead of having the operator create and manage it.
                               When true, the operator assumes a secret with the configured name already exists in target
                               namespaces and will not create or manage secrets.
                             type: boolean
