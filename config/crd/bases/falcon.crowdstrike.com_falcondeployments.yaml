@@ -1127,12 +1127,6 @@ spec:
                       disableDefaultPodInjection:
                         default: false
                         type: boolean
-                      gkeAutopilot:
-                        default: false
-                        description: |-
-                          GKE Autopilot mode. When enabled, uses fixed secret name "falcon-node-sensor-aitap-aidr-secret"
-                          required by GKE Autopilot WorkloadAllowlists
-                        type: boolean
                       imagePullPolicy:
                         default: Always
                         description: PullPolicy describes a policy for if/when to

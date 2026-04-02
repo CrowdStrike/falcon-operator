@@ -128,12 +128,6 @@ type FalconContainerInjectorSpec struct {
 	// AITap configures AI Detection and Response (AI-DR) functionality
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="AITap AI-DR Configuration", order=15
 	AITap AITapSpec `json:"aitap,omitempty"`
-
-	// GKE Autopilot mode. When enabled, uses fixed secret name "falcon-node-sensor-aitap-aidr-secret"
-	// required by GKE Autopilot WorkloadAllowlists
-	// +kubebuilder:default=false
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable GKE Autopilot Mode",order=6,xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
-	GKEAutopilot bool `json:"gkeAutopilot,omitempty"`
 }
 
 type FalconContainerServiceAccount struct {

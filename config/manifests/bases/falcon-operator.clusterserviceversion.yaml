@@ -457,13 +457,6 @@ spec:
         path: injector.aitap.useExistingSecret
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: |-
-          GKE Autopilot mode. When enabled, uses fixed secret name "falcon-node-sensor-aitap-aidr-secret"
-          required by GKE Autopilot WorkloadAllowlists
-        displayName: Enable GKE Autopilot Mode
-        path: injector.gkeAutopilot
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - displayName: Falcon Container Shared Log Volume
         path: injector.logVolume
       - description: Set sensor trace level.
@@ -1202,13 +1195,6 @@ spec:
           namespaces and will not create or manage secrets.
         displayName: Use Existing Secret
         path: falconContainerSensor.injector.aitap.useExistingSecret
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: |-
-          GKE Autopilot mode. When enabled, uses fixed secret name "falcon-node-sensor-aitap-aidr-secret"
-          required by GKE Autopilot WorkloadAllowlists
-        displayName: Enable GKE Autopilot Mode
-        path: falconContainerSensor.injector.gkeAutopilot
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - displayName: Falcon Container Shared Log Volume

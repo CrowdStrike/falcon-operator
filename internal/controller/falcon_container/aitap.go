@@ -122,10 +122,6 @@ func (r *FalconContainerReconciler) getAITapSecretName(falconContainer *falconv1
 		return falconContainer.Spec.Injector.AITap.AidrSecretName
 	}
 
-	if falconContainer.Spec.Injector.GKEAutopilot {
-		return common.GKEAutoPilotAITapAidrSecretName
-	}
-
 	return common.FalconAITapAidrSecretName
 }
 
