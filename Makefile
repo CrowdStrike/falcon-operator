@@ -143,7 +143,7 @@ test-e2e: operator-sdk ## Run e2e tests against a Kind k8s instance or existing 
 	fi
 
 GOLANGCI_LINT = $(shell pwd)/bin/golangci-lint
-GOLANGCI_LINT_VERSION ?= v1.54.2
+GOLANGCI_LINT_VERSION ?= v2.0.2
 golangci-lint:
 	@[ -f $(GOLANGCI_LINT) ] || { \
 	set -e ;\
