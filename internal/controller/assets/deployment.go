@@ -1,6 +1,7 @@
 package assets
 
 import (
+	"fmt"
 	"reflect"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -408,7 +409,6 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 	labels := common.CRLabels("deployment", name, component)
 	registryCAConfigMapName := ""
 	registryCABundleConfigMapName := name + "-registry-certs"
-	portWatcherHealthCheck := int32(4080)
 
 	if falconAdmission.Spec.AdmissionConfig.ResourcesClient != nil {
 		resourcesClient = falconAdmission.Spec.AdmissionConfig.ResourcesClient
@@ -528,7 +528,10 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 			Name:            "falcon-client",
 			Image:           imageUri,
 			ImagePullPolicy: falconAdmission.Spec.AdmissionConfig.ImagePullPolicy,
-			Args:            []string{"client"},
+			Args: []string{
+				"client",
+				fmt.Sprintf("-port=%d", *falconAdmission.Spec.AdmissionConfig.ContainerPort),
+			},
 			SecurityContext: &corev1.SecurityContext{
 				ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
 				AllowPrivilegeEscalation: &allowPrivilegeEscalation,
@@ -675,8 +678,8 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 			},
 			Ports: []corev1.ContainerPort{
 				{
-					ContainerPort: portWatcherHealthCheck,
-					Name:          common.FalconServiceHTTPSName,
+					ContainerPort: common.FalconAdmissionWatcherPort,
+					Name:          common.FalconAdmissionWatcherPortName,
 					Protocol:      corev1.ProtocolTCP,
 				},
 			},
@@ -687,7 +690,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 						Path: common.FalconAdmissionClientStartupProbePath,
 						Port: intstr.IntOrString{
 							Type:   intstr.Int,
-							IntVal: portWatcherHealthCheck,
+							IntVal: common.FalconAdmissionWatcherPort,
 						},
 						Scheme: corev1.URISchemeHTTP,
 					},
@@ -704,7 +707,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 						Path: common.FalconAdmissionClientLivenessProbePath,
 						Port: intstr.IntOrString{
 							Type:   intstr.Int,
-							IntVal: portWatcherHealthCheck,
+							IntVal: common.FalconAdmissionWatcherPort,
 						},
 						Scheme: corev1.URISchemeHTTP,
 					},

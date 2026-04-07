@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -837,6 +838,293 @@ var _ = Describe("FalconAdmission controller", func() {
 			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("openshift.io/sa.scc.supplemental-groups", "1000710000/10000"))
 			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("openshift.io/sa.scc.uid-range", "1000710000/10000"))
 			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("operator-managed-annotation", "value1"))
+		})
+
+		// Test environment variable comparison logic in deployment reconciliation
+		It("should detect environment variable changes during deployment reconciliation", func() {
+			By("Creating the custom resource for the Kind FalconAdmission")
+			err := k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Creating the reconciler")
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			By("Running initial reconciliation to create deployment")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying deployment was created")
+			var deployment *appsv1.Deployment
+			Eventually(func() error {
+				deployment = &appsv1.Deployment{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Manually modifying deployment environment variables to simulate drift")
+			Eventually(func() error {
+				deployment = &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+				if err != nil {
+					return err
+				}
+
+				// Find the falcon-kac container and modify its env vars
+				for i, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "falcon-kac" {
+						// Add new env vars to simulate changes that reconciliation should detect
+						deployment.Spec.Template.Spec.Containers[i].Env = append(container.Env,
+							corev1.EnvVar{Name: "MANUALLY_ADDED_VAR", Value: "should_be_detected"},
+							corev1.EnvVar{Name: "TEST_VAR", Value: "test_value"},
+						)
+						break
+					}
+				}
+				return k8sClient.Update(ctx, deployment)
+			}, 10*time.Second, time.Second).Should(Succeed())
+
+			By("Verifying manually added env vars are present")
+			Eventually(func() bool {
+				deployment = &appsv1.Deployment{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+				for _, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "falcon-kac" {
+						envMap := make(map[string]string)
+						for _, env := range container.Env {
+							envMap[env.Name] = env.Value
+						}
+						_, hasManualVar := envMap["MANUALLY_ADDED_VAR"]
+						_, hasTestVar := envMap["TEST_VAR"]
+						return hasManualVar && hasTestVar
+					}
+				}
+				return false
+			}, 5*time.Second, time.Second).Should(BeTrue())
+
+			By("Waiting for deployment to be older than 5 seconds to allow reconcile updates")
+			time.Sleep(6 * time.Second)
+
+			By("Running reconciliation after manual env var changes")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying deployment env vars were corrected by reconciliation")
+			// The reconciliation should detect the drift and correct it
+			Eventually(func() bool {
+				deployment = &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+				if err != nil {
+					return false
+				}
+				for _, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "falcon-kac" {
+						envMap := make(map[string]string)
+						for _, env := range container.Env {
+							envMap[env.Name] = env.Value
+						}
+						// Manual vars should be removed by reconciliation
+						_, hasManualVar := envMap["MANUALLY_ADDED_VAR"]
+						_, hasTestVar := envMap["TEST_VAR"]
+
+						// Manual vars should no longer exist after reconciliation corrects the drift
+						return !hasManualVar && !hasTestVar
+					}
+				}
+				return false
+			}, 20*time.Second, 2*time.Second).Should(BeTrue())
+		})
+
+		// Test proxy environment variable handling (append and update)
+		It("should correctly append and update proxy environment variables", func() {
+			By("Creating the custom resource for the Kind FalconAdmission")
+			err := k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Creating the reconciler")
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			By("Running initial reconciliation to create deployment without proxy vars")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying deployment was created")
+			var deployment *appsv1.Deployment
+			Eventually(func() error {
+				deployment = &appsv1.Deployment{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Recording initial environment variables")
+			var initialEnvCount int
+			for _, container := range deployment.Spec.Template.Spec.Containers {
+				if container.Name == "falcon-kac" {
+					initialEnvCount = len(container.Env)
+					break
+				}
+			}
+
+			By("Waiting for deployment to be older than 5 seconds to allow reconcile updates")
+			time.Sleep(6 * time.Second)
+
+			By("Setting proxy environment variables")
+			originalHTTPProxy := os.Getenv("HTTP_PROXY")
+			originalHTTPSProxy := os.Getenv("HTTPS_PROXY")
+			originalNoProxy := os.Getenv("NO_PROXY")
+			defer func() {
+				// Restore original env vars
+				if originalHTTPProxy != "" {
+					os.Setenv("HTTP_PROXY", originalHTTPProxy)
+				} else {
+					os.Unsetenv("HTTP_PROXY")
+				}
+				if originalHTTPSProxy != "" {
+					os.Setenv("HTTPS_PROXY", originalHTTPSProxy)
+				} else {
+					os.Unsetenv("HTTPS_PROXY")
+				}
+				if originalNoProxy != "" {
+					os.Setenv("NO_PROXY", originalNoProxy)
+				} else {
+					os.Unsetenv("NO_PROXY")
+				}
+			}()
+
+			os.Setenv("HTTP_PROXY", "http://proxy.example.com:8080")
+			os.Setenv("HTTPS_PROXY", "https://proxy.example.com:8443")
+			os.Setenv("NO_PROXY", "localhost,127.0.0.1")
+
+			By("Running reconciliation after setting proxy environment variables")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying proxy environment variables were appended to deployment")
+			Eventually(func() bool {
+				deployment = &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+				if err != nil {
+					return false
+				}
+				for _, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "falcon-kac" {
+						envMap := make(map[string]string)
+						for _, env := range container.Env {
+							envMap[env.Name] = env.Value
+						}
+						// Check proxy vars were added
+						httpProxy, hasHTTP := envMap["HTTP_PROXY"]
+						httpsProxy, hasHTTPS := envMap["HTTPS_PROXY"]
+						noProxy, hasNoProxy := envMap["NO_PROXY"]
+
+						return hasHTTP && hasHTTPS && hasNoProxy &&
+							httpProxy == "http://proxy.example.com:8080" &&
+							httpsProxy == "https://proxy.example.com:8443" &&
+							noProxy == "localhost,127.0.0.1"
+					}
+				}
+				return false
+			}, 20*time.Second, 2*time.Second).Should(BeTrue())
+
+			By("Verifying no duplicate proxy variables were created")
+			deployment = &appsv1.Deployment{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+			Expect(err).To(Not(HaveOccurred()))
+			for _, container := range deployment.Spec.Template.Spec.Containers {
+				if container.Name == "falcon-kac" {
+					httpProxyCount := 0
+					for _, env := range container.Env {
+						if env.Name == "HTTP_PROXY" || env.Name == "http_proxy" {
+							httpProxyCount++
+						}
+					}
+					Expect(httpProxyCount).To(Equal(2), "Should have HTTP_PROXY and http_proxy (uppercase and lowercase)")
+				}
+			}
+
+			By("Waiting for deployment to be older than 5 seconds again")
+			time.Sleep(6 * time.Second)
+
+			By("Updating proxy environment variables with new values")
+			os.Setenv("HTTP_PROXY", "http://new-proxy.example.com:9090")
+			os.Setenv("HTTPS_PROXY", "https://new-proxy.example.com:9443")
+			os.Setenv("NO_PROXY", "localhost,127.0.0.1,.svc,.cluster.local")
+
+			By("Running reconciliation after updating proxy environment variables")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying proxy environment variables were updated (not duplicated)")
+			Eventually(func() bool {
+				deployment = &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+				if err != nil {
+					return false
+				}
+				for _, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "falcon-kac" {
+						envMap := make(map[string]string)
+						for _, env := range container.Env {
+							envMap[env.Name] = env.Value
+						}
+
+						// Verify updated values
+						httpProxy, hasHTTP := envMap["HTTP_PROXY"]
+						httpsProxy, hasHTTPS := envMap["HTTPS_PROXY"]
+						noProxy, hasNoProxy := envMap["NO_PROXY"]
+
+						if !hasHTTP || !hasHTTPS || !hasNoProxy {
+							return false
+						}
+
+						// Check values were updated, not appended as duplicates
+						return httpProxy == "http://new-proxy.example.com:9090" &&
+							httpsProxy == "https://new-proxy.example.com:9443" &&
+							noProxy == "localhost,127.0.0.1,.svc,.cluster.local"
+					}
+				}
+				return false
+			}, 20*time.Second, 2*time.Second).Should(BeTrue())
+
+			By("Verifying env var count didn't increase (update, not append)")
+			deployment = &appsv1.Deployment{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+			Expect(err).To(Not(HaveOccurred()))
+			for _, container := range deployment.Spec.Template.Spec.Containers {
+				if container.Name == "falcon-kac" {
+					currentEnvCount := len(container.Env)
+					expectedCount := initialEnvCount + 6
+					Expect(currentEnvCount).To(Equal(expectedCount), "Environment variable count should not increase after update")
+					break
+				}
+			}
 		})
 	})
 })
