@@ -103,7 +103,7 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 						AITap: falconv1alpha1.AITapSpec{
 							AidrCollectorApiToken:   aidrToken,
 							AidrCollectorBaseApiUrl: "https://api.example.com",
-							Namespaces:              "app1,app2",
+							Namespaces:              []string{"app1", "app2"},
 						},
 					},
 				},
@@ -183,7 +183,7 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 						AITap: falconv1alpha1.AITapSpec{
 							AidrCollectorApiToken:   aidrToken,
 							AidrCollectorBaseApiUrl: "https://custom-api.example.com",
-							Namespaces:              "app1,app2",
+							Namespaces:              []string{"app1", "app2"},
 						},
 					},
 				},
@@ -256,7 +256,7 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 							AidrCollectorApiToken:   "test-token-disabled",
 							AidrSecretName:          "externally-managed-secret",
 							AidrCollectorBaseApiUrl: "https://api.example.com",
-							Namespaces:              "app1,app2",
+							Namespaces:              []string{"app1", "app2"},
 							UseExistingSecret:       true,
 						},
 					},
@@ -310,7 +310,7 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 						AITap: falconv1alpha1.AITapSpec{
 							AidrSecretName:          "my-external-secret",
 							AidrCollectorBaseApiUrl: "https://api.example.com",
-							Namespaces:              "ns1,ns2,ns3",
+							Namespaces:              []string{"ns1", "ns2", "ns3"},
 							UseExistingSecret:       true,
 						},
 					},
@@ -347,7 +347,7 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 					aitap: falconv1alpha1.AITapSpec{
 						AidrCollectorApiToken:   "token",
 						AidrCollectorBaseApiUrl: "https://api.example.com",
-						Namespaces:              "app1",
+						Namespaces:              []string{"app1"},
 						AllNamespaces:           true,
 					},
 					expectedMsg: "'namespaces' and 'allNamespaces' cannot both be set",
@@ -356,7 +356,7 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 					name: "aidrCollectorBaseApiUrl missing with namespaces set",
 					aitap: falconv1alpha1.AITapSpec{
 						AidrCollectorApiToken: "token",
-						Namespaces:            "app1",
+						Namespaces:            []string{"app1"},
 					},
 					expectedMsg: "'aidrCollectorBaseApiUrl' is required",
 				},
@@ -364,7 +364,7 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 					name: "aidrCollectorApiToken missing and useExistingSecret false",
 					aitap: falconv1alpha1.AITapSpec{
 						AidrCollectorBaseApiUrl: "https://api.example.com",
-						Namespaces:              "app1",
+						Namespaces:              []string{"app1"},
 					},
 					expectedMsg: "'aidrCollectorApiToken' is required",
 				},
@@ -372,7 +372,7 @@ var _ = Describe("FalconContainer AITap reconciliation", func() {
 					name: "useExistingSecret true but aidrSecretName empty",
 					aitap: falconv1alpha1.AITapSpec{
 						AidrCollectorBaseApiUrl: "https://api.example.com",
-						Namespaces:              "app1",
+						Namespaces:              []string{"app1"},
 						UseExistingSecret:       true,
 					},
 					expectedMsg: "'aidrSecretName' is required when 'useExistingSecret' is true",

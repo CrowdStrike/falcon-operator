@@ -32,4 +32,6 @@ spec:
   injector:
     aitap:
       aidrCollectorApiToken: PLEASE_FILL_IN_AIDR_TOKEN
-      namespaces: "default,kube-public"
+      namespaces:
+        - default
+        - kube-public

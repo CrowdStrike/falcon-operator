@@ -26,28 +26,10 @@ var aitapExcludedNamespaces = []string{
 	"falcon-iar",
 }
 
-func validateAITapConfig(aitap falconv1alpha1.AITapSpec) error {
-	if aitap.Namespaces != "" && aitap.AllNamespaces {
-		return fmt.Errorf("AITap: 'namespaces' and 'allNamespaces' cannot both be set")
-	}
-	if aitap.Namespaces != "" || aitap.AllNamespaces {
-		if aitap.AidrCollectorBaseApiUrl == "" {
-			return fmt.Errorf("AITap: 'aidrCollectorBaseApiUrl' is required when 'namespaces' or 'allNamespaces' is set")
-		}
-		if !aitap.UseExistingSecret && aitap.AidrCollectorApiToken == "" {
-			return fmt.Errorf("AITap: 'aidrCollectorApiToken' is required when 'namespaces' or 'allNamespaces' is set and 'useExistingSecret' is false")
-		}
-	}
-	if aitap.UseExistingSecret && aitap.AidrSecretName == "" {
-		return fmt.Errorf("AITap: 'aidrSecretName' is required when 'useExistingSecret' is true")
-	}
-	return nil
-}
-
 func (r *FalconContainerReconciler) reconcileAITapSecrets(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer) (*corev1.SecretList, error) {
 	secretList := &corev1.SecretList{}
 
-	if err := validateAITapConfig(falconContainer.Spec.Injector.AITap); err != nil {
+	if err := falconContainer.Spec.Injector.AITap.Validate(); err != nil {
 		return secretList, err
 	}
 
@@ -66,7 +48,7 @@ func (r *FalconContainerReconciler) reconcileAITapSecrets(ctx context.Context, l
 		return secretList, fmt.Errorf("unable to determine target namespaces for AITap secrets: %v", err)
 	}
 
-	secretName := r.getAITapSecretName(falconContainer)
+	secretName := falconContainer.Spec.Injector.AITap.SecretName()
 
 	for _, ns := range targetNamespaces {
 		secret, err := r.reconcileAITapSecret(ctx, log, falconContainer, ns, secretName)
@@ -100,9 +82,9 @@ func (r *FalconContainerReconciler) getAITapTargetNamespaces(ctx context.Context
 		return targetNamespaces, nil
 	}
 
-	if falconContainer.Spec.Injector.AITap.Namespaces != "" {
+	if len(falconContainer.Spec.Injector.AITap.Namespaces) > 0 {
 		var targetNamespaces []string
-		for _, ns := range strings.Split(falconContainer.Spec.Injector.AITap.Namespaces, ",") {
+		for _, ns := range falconContainer.Spec.Injector.AITap.Namespaces {
 			ns = strings.TrimSpace(ns)
 			if ns == "" || slices.Contains(excludedNamespaces, ns) || strings.HasPrefix(ns, "openshift") {
 				continue
@@ -115,14 +97,6 @@ func (r *FalconContainerReconciler) getAITapTargetNamespaces(ctx context.Context
 	}
 
 	return nil, nil
-}
-
-func (r *FalconContainerReconciler) getAITapSecretName(falconContainer *falconv1alpha1.FalconContainer) string {
-	if falconContainer.Spec.Injector.AITap.AidrSecretName != "" {
-		return falconContainer.Spec.Injector.AITap.AidrSecretName
-	}
-
-	return common.FalconAITapAidrSecretName
 }
 
 func (r *FalconContainerReconciler) reconcileAITapSecret(ctx context.Context, log logr.Logger, falconContainer *falconv1alpha1.FalconContainer, namespace string, secretName string) (*corev1.Secret, error) {

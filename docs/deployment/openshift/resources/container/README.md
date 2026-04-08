@@ -131,7 +131,10 @@ injector:
   aitap:
     aidrCollectorApiToken: "<your-api-token>"
     aidrCollectorBaseApiUrl: "https://api.example.com"
-    namespaces: "app1,app2,app3"  # Explicit namespace list
+    namespaces:  # Explicit namespace list
+      - app1
+      - app2
+      - app3
 ```
 
 > [!NOTE]
@@ -145,12 +148,15 @@ AI Tap can be enabled in specific namespaces (recommended), in all namespaces, o
 You can control this behavior with the following options.
 
 **Option 1: Explicit Namespace List** (recommended for production)
-To enable AI Tap for specific namespaces only, use the `namespaces: "namespace-1,namespace-2"` option.
+To enable AI Tap for specific namespaces only, use the `namespaces` list.
 
 ```yaml
 injector:
   aitap:
-    namespaces: "namespace-1,namespace-2,namespace-3"  # Comma-separated list
+    namespaces:
+      - namespace-1
+      - namespace-2
+      - namespace-3
     aidrCollectorApiToken: "<your-api-token>"
     aidrCollectorBaseApiUrl: "https://api.example.com"
 ```
@@ -182,7 +188,9 @@ You can use a combination of `namespaces` and the `sensor.falcon-system.crowdstr
 ```yaml
 injector:
   aitap:
-    namespaces: "namespace-1,namespace-2" # namespace-3 has a 1 pod with `enable-aitap-events` annotation
+    namespaces: # namespace-3 has a pod with `enable-aitap-events` annotation
+      - namespace-1
+      - namespace-2
     aidrSecretName: "<your-aidr-secret-name>"
     aidrCollectorApiToken: "<your-api-token>"
     aidrCollectorBaseApiUrl: "https://api.example.com"

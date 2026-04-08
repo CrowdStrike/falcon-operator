@@ -125,7 +125,7 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.L
 	if falconContainer.Spec.Injector.AITap.AidrCollectorApiToken != "" ||
 		(falconContainer.Spec.Injector.AITap.UseExistingSecret &&
 			falconContainer.Spec.Injector.AITap.AidrSecretName != "") {
-		secretName := r.getAITapSecretName(falconContainer)
+		secretName := falconContainer.Spec.Injector.AITap.SecretName()
 		data["FALCON_AITAP_AIDR_SECRET_NAME"] = secretName
 
 		if falconContainer.Spec.Injector.AITap.AidrCollectorBaseApiUrl != "" {
@@ -136,8 +136,8 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.L
 			data["FALCON_AITAP_ALL_NAMESPACES"] = "true"
 		}
 
-		if falconContainer.Spec.Injector.AITap.Namespaces != "" {
-			data["FALCON_AITAP_NAMESPACES"] = falconContainer.Spec.Injector.AITap.Namespaces
+		if len(falconContainer.Spec.Injector.AITap.Namespaces) > 0 {
+			data["FALCON_AITAP_NAMESPACES"] = strings.Join(falconContainer.Spec.Injector.AITap.Namespaces, ",")
 		}
 	}
 

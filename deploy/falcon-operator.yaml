@@ -1157,6 +1157,7 @@ spec:
                       type: string
                     type: object
                   aitap:
+                    default: {}
                     description: AITap configures AI Detection and Response (AI-DR)
                       functionality
                     properties:
@@ -1169,9 +1170,8 @@ spec:
                           Collector (optional)
                         type: string
                       aidrSecretName:
-                        description: |-
-                          AI-DR Kubernetes secret name override. If not specified, the secret name will be automatically determined
-                          based on GKE Autopilot detection or release name
+                        description: AI-DR Kubernetes secret name override. If not
+                          specified, defaults to "falcon-aitap-aidr-secret"
                         type: string
                       allNamespaces:
                         default: false
@@ -1179,10 +1179,11 @@ spec:
                           of using specific namespaces list
                         type: boolean
                       namespaces:
-                        description: |-
-                          Configure the list of namespaces that should have access to the AI-DR credentials.
-                          This is a comma-separated list. For example: "ns1,ns2,ns3"
-                        type: string
+                        description: Configure the list of namespaces that should
+                          have access to the AI-DR credentials
+                        items:
+                          type: string
+                        type: array
                       useExistingSecret:
                         default: false
                         description: |-
@@ -4668,6 +4669,7 @@ spec:
                           type: string
                         type: object
                       aitap:
+                        default: {}
                         description: AITap configures AI Detection and Response (AI-DR)
                           functionality
                         properties:
@@ -4680,9 +4682,8 @@ spec:
                               Collector (optional)
                             type: string
                           aidrSecretName:
-                            description: |-
-                              AI-DR Kubernetes secret name override. If not specified, the secret name will be automatically determined
-                              based on GKE Autopilot detection or release name
+                            description: AI-DR Kubernetes secret name override. If
+                              not specified, defaults to "falcon-aitap-aidr-secret"
                             type: string
                           allNamespaces:
                             default: false
@@ -4690,10 +4691,11 @@ spec:
                               instead of using specific namespaces list
                             type: boolean
                           namespaces:
-                            description: |-
-                              Configure the list of namespaces that should have access to the AI-DR credentials.
-                              This is a comma-separated list. For example: "ns1,ns2,ns3"
-                            type: string
+                            description: Configure the list of namespaces that should
+                              have access to the AI-DR credentials
+                            items:
+                              type: string
+                            type: array
                           useExistingSecret:
                             default: false
                             description: |-

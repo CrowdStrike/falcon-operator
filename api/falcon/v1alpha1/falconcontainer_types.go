@@ -1,8 +1,16 @@
 package v1alpha1
 
 import (
+	"fmt"
+	"net/url"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	// AITap
+	defaultAidrSecretName = "falcon-aitap-aidr-secret"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -126,6 +134,7 @@ type FalconContainerInjectorSpec struct {
 	AlternateMountPath bool `json:"alternateMountPath,omitempty"`
 
 	// AITap configures AI Detection and Response (AI-DR) functionality
+	// +kubebuilder:default={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="AITap AI-DR Configuration", order=15
 	AITap AITapSpec `json:"aitap,omitempty"`
 }
@@ -154,18 +163,16 @@ type AITapSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="AI-DR Collector Base API URL",order=2
 	AidrCollectorBaseApiUrl string `json:"aidrCollectorBaseApiUrl,omitempty"`
 
-	// Configure the list of namespaces that should have access to the AI-DR credentials.
-	// This is a comma-separated list. For example: "ns1,ns2,ns3"
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="AITap Namespaces (comma-separated)",order=3
-	Namespaces string `json:"namespaces,omitempty"`
+	// Configure the list of namespaces that should have access to the AI-DR credentials
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="AITap Namespaces",order=3
+	Namespaces []string `json:"namespaces,omitempty"`
 
 	// Create the AI-DR secret in all Namespaces instead of using specific namespaces list
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable AITap in All Namespaces",order=4,xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	AllNamespaces bool `json:"allNamespaces,omitempty"`
 
-	// AI-DR Kubernetes secret name override. If not specified, the secret name will be automatically determined
-	// based on GKE Autopilot detection or release name
+	// AI-DR Kubernetes secret name override. If not specified, defaults to "falcon-aitap-aidr-secret"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Custom AITap AI-DR Secret Name",order=5
 	AidrSecretName string `json:"aidrSecretName,omitempty"`
 
@@ -175,6 +182,42 @@ type AITapSpec struct {
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Use Existing Secret",order=6,xDescriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	UseExistingSecret bool `json:"useExistingSecret,omitempty"`
+}
+
+// SecretName returns the AI-DR secret name to use, falling back to the default if not configured.
+func (a AITapSpec) SecretName() string {
+	if a.AidrSecretName != "" {
+		return a.AidrSecretName
+	}
+	return defaultAidrSecretName
+}
+
+// Validate checks AITapSpec for configuration errors.
+func (a AITapSpec) Validate() error {
+	if len(a.Namespaces) > 0 && a.AllNamespaces {
+		return fmt.Errorf("AITap: 'namespaces' and 'allNamespaces' cannot both be set")
+	}
+	if len(a.Namespaces) > 0 || a.AllNamespaces {
+		if a.AidrCollectorBaseApiUrl == "" {
+			return fmt.Errorf("AITap: 'aidrCollectorBaseApiUrl' is required when 'namespaces' or 'allNamespaces' is set")
+		}
+		if !a.UseExistingSecret && a.AidrCollectorApiToken == "" {
+			return fmt.Errorf("AITap: 'aidrCollectorApiToken' is required when 'namespaces' or 'allNamespaces' is set and 'useExistingSecret' is false")
+		}
+	}
+	if a.AidrCollectorBaseApiUrl != "" {
+		u, err := url.Parse(a.AidrCollectorBaseApiUrl)
+		if err != nil {
+			return fmt.Errorf("AITap: 'aidrCollectorBaseApiUrl' is not a valid URL: %v", err)
+		}
+		if u.Scheme != "https" && u.Scheme != "http" {
+			return fmt.Errorf("AITap: 'aidrCollectorBaseApiUrl' must use http or https scheme, got %q", u.Scheme)
+		}
+	}
+	if a.UseExistingSecret && a.AidrSecretName == "" {
+		return fmt.Errorf("AITap: 'aidrSecretName' is required when 'useExistingSecret' is true")
+	}
+	return nil
 }
 
 // FalconContainerStatus defines the observed state of FalconContainer

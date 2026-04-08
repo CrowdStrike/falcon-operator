@@ -527,10 +527,9 @@ spec:
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falcon_api.cloud_region
-      - description: |-
-          Configure the list of namespaces that should have access to the AI-DR credentials.
-          This is a comma-separated list. For example: "ns1,ns2,ns3"
-        displayName: AITap Namespaces (comma-separated)
+      - description: Configure the list of namespaces that should have access to the
+          AI-DR credentials
+        displayName: AITap Namespaces
         path: injector.aitap.namespaces
       - displayName: Falcon Container Injector TLS Configuration
         path: injector.tls
@@ -581,9 +580,8 @@ spec:
             falcon-client-secret
         displayName: Falcon Platform Secrets Configuration
         path: falconSecret
-      - description: |-
-          AI-DR Kubernetes secret name override. If not specified, the secret name will be automatically determined
-          based on GKE Autopilot detection or release name
+      - description: AI-DR Kubernetes secret name override. If not specified, defaults
+          to "falcon-aitap-aidr-secret"
         displayName: Custom AITap AI-DR Secret Name
         path: injector.aitap.aidrSecretName
       - displayName: Falcon Container Image Pull Secret Name
@@ -1075,10 +1073,9 @@ spec:
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falconContainerSensor.falcon_api.cloud_region
-      - description: |-
-          Configure the list of namespaces that should have access to the AI-DR credentials.
-          This is a comma-separated list. For example: "ns1,ns2,ns3"
-        displayName: AITap Namespaces (comma-separated)
+      - description: Configure the list of namespaces that should have access to the
+          AI-DR credentials
+        displayName: AITap Namespaces
         path: falconContainerSensor.injector.aitap.namespaces
       - displayName: Falcon Container Injector TLS Configuration
         path: falconContainerSensor.injector.tls
@@ -1278,9 +1275,8 @@ spec:
             falcon-client-secret
         displayName: Falcon Platform Secrets Configuration
         path: falconContainerSensor.falconSecret
-      - description: |-
-          AI-DR Kubernetes secret name override. If not specified, the secret name will be automatically determined
-          based on GKE Autopilot detection or release name
+      - description: AI-DR Kubernetes secret name override. If not specified, defaults
+          to "falcon-aitap-aidr-secret"
         displayName: Custom AITap AI-DR Secret Name
         path: falconContainerSensor.injector.aitap.aidrSecretName
       - displayName: Falcon Container Image Pull Secret Name
