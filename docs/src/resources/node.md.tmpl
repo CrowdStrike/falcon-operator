@@ -133,7 +133,12 @@ See `docs/ADVANCED.md` for more details.
 | Spec | Default Value | Description |
 | :- | :- | :- |
 | node.advanced.autoUpdate | `off` | Automatically updates a deployed Falcon sensor as new versions are released. This has no effect if a specific image or version has been requested. Valid settings are:<ul><li>`force` -- Reconciles the resource after every check for a new version</li><li>`normal` -- Reconciles the resource whenever a new version is detected</li><li>`off` -- No automatic updates</li></ul>
-| node.advanced.updatePolicy | _none_ | If set, applies the named Linux sensor update policy, configured in Falcon UI, to select which version of Falcon sensor to install. The policy must be enabled and must match the CPU architecture of the cluster (AMD64 or ARM64). |
+
+> [!WARNING]
+> Sensor update policy integration for Kubernetes runtime sensors is currently not supported for the
+> node DaemonSet sensor. Do not configure `node.advanced.updatePolicy` until this issue is resolved.
+> To prevent unintended sensor version changes in the meantime, pin the sensor to the current version
+> using `node.sensor.version`.
 
 > [!NOTE]
 > DaemonSet deployments of sensor versions 7.33 and earlier of the Falcon sensor for Linux are blocked from updates and
