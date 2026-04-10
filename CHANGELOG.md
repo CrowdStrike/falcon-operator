@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.1] - 2026-04-10
+
+### Changed
+
+- chore: Add test for falcon node sensor service account annotations
+- fix: Accommodate labels and annotations added by OpenShift to service accounts
+- chore: Update build user to accommodate Podman builds
+- fix(falcon-kac): Add retires to admission deployment (#797)
+- fix: Correct logging to ensure debug logs are not shown by default
+- chore: Update e2e tests to accommodate existing operator installations (#798)
+- fix(falcon-kac): Ensure falcon-client port supports custom configurations
+- fix: Remove KAC port conflicts and KAC/IAR service account secret conflicts
+
 ## [1.12.0] - 2026-03-10
 
 ### Changed
