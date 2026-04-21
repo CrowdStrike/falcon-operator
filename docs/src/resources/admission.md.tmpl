@@ -70,10 +70,10 @@ spec:
 | admissionConfig.failurePolicy             | (optional) Configure the failure policy of the Falcon Admission Controller                                                                                                                                              |
 | admissionConfig.disabledNamespaces.namespaces                | (optional) Configure the list of namespaces the Falcon Admission Controller validating webhook should ignore                                                                                         |
 | admissionConfig.deployWatcher             | (optional) Determines if the falcon-watcher container is added to the Falcon Admission Controller Pod                                                                                                                   |
-| admissionConfig.snapshotsEnabled          | (optional) Determines if snapshots of Kubernetes resources are periodically taken for cluster visibility.                                                                                                               |
+| admissionConfig.watcherEnabled            | (optional) Determines if Kubernetes resources are watched for cluster visibility. When `false`, `snapshotsEnabled` and `configMapWatcherEnabled` are also effectively disabled regardless of their individual values.   |
+| admissionConfig.snapshotsEnabled          | (optional) Determines if snapshots of Kubernetes resources are periodically taken for cluster visibility. Has no effect when `admissionConfig.watcherEnabled` is `false`.                                               |
 | admissionConfig.snapshotsInterval         | (optional) Time interval between two snapshots of Kubernetes resources in the cluster                                                                                                                                   |
-| admissionConfig.watcherEnabled            | (optional) Determines if Kubernetes resources are watched for cluster visibility                                                                                                                                        |
-| admissionConfig.configMapWatcherEnabled   | (optional) Determines if the watcher for ConfigMap events is enabled. The watcher redacts sensitive information using regex pattern matching for known sensitive patterns before sending events to the CrowdStrike cloud.       |
+| admissionConfig.configMapWatcherEnabled   | (optional) Determines if the watcher for ConfigMap events is enabled. The watcher redacts sensitive information using regex pattern matching for known sensitive patterns before sending events to the CrowdStrike cloud. Has no effect when `admissionConfig.watcherEnabled` is `false`. |
 | admissionConfig.replicas                  | (optional) Currently ignored and internally set to 1                                                                                                                                                                    |
 | admissionConfig.admissionControlEnabled   | (optional) Enable the Admission Controller. Available for KAC versions >= 7.26.                                                                                                                                         |
 | admissionConfig.resourcesClientNoWebhook  | (optional) Configure the default resources for the client container only when the admission webhoook is disabled. This will override any values set in admissionConfig.resourcesClient                                  |
@@ -90,6 +90,13 @@ spec:
 
 > [!NOTE]
 > `admissionConfig.resourcesClient`, `admissionConfig.resourcesWatcher`, and `admissionConfig.resource` should all be updated appropriately based on the Kubernetes API usage within your cluster.
+
+#### Watcher Dependency
+
+The `falcon-watcher` container is the infrastructure that performs cluster visibility work — resource snapshots and ConfigMap event watching. Because of this, the following dependency rules apply:
+
+- When `admissionConfig.deployWatcher` is `false`, the watcher container is not deployed and **`snapshotsEnabled` and `configMapWatcherEnabled` are ignored** — both features are effectively disabled regardless of their individual values.
+- When `admissionConfig.watcherEnabled` is `false`, the watcher is deployed but inactive, and the same applies: **`snapshotsEnabled` and `configMapWatcherEnabled` are ignored**.
 
 #### Falcon Sensor Settings
 | Spec                      | Description                                                                                                                                                                                        |

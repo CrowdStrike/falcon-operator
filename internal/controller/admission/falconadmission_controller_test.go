@@ -1126,5 +1126,104 @@ var _ = Describe("FalconAdmission controller", func() {
 				}
 			}
 		})
+
+		// Testing when WatcherEnabled is set to false
+		It("should disable all watcher components when watcherEnabled is false", func() {
+			watcherEnabled := false
+			falconAdmission.Spec.AdmissionConfig.WatcherEnabled = &watcherEnabled
+
+			By("Creating the custom resource for the Kind FalconAdmission with watcherEnabled set to false")
+			err := k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Reconciling the custom resource created")
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if ConfigMap was created with watcher components disabled")
+			var configMap *corev1.ConfigMap
+			Eventually(func() error {
+				configMap = &corev1.ConfigMap{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: configMapName, Namespace: namespaceName}, configMap)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Verifying that all watcher-related config values are set to false")
+			Expect(configMap.Data["__CS_WATCH_EVENTS_ENABLED"]).To(Equal("false"), "Watch events should be disabled")
+			Expect(configMap.Data["__CS_SNAPSHOTS_ENABLED"]).To(Equal("false"), "Snapshots should be disabled when watcher is disabled")
+			Expect(configMap.Data["__CS_VISIBILITY_CONFIGMAPS_ENABLED"]).To(Equal("false"), "ConfigMap watcher should be disabled when watcher is disabled")
+
+			By("Verifying that admission control is still enabled (independent of watcher)")
+			Expect(configMap.Data["__CS_ADMISSION_CONTROL_ENABLED"]).To(Equal("true"), "Admission control should still be enabled")
+
+			By("Verifying CID is set correctly")
+			Expect(configMap.Data["FALCONCTL_OPT_CID"]).To(Equal(falconCID))
+
+			By("Checking if Deployment was successfully created")
+			var deployment *appsv1.Deployment
+			Eventually(func() error {
+				deployment = &appsv1.Deployment{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Verifying deployment references the config map")
+			Expect(deployment).To(haveContainerNamed("falcon-kac"))
+			Expect(deployment).To(haveContainerWithConfigMapEnvFrom("falcon-kac", configMapName))
+		})
+
+		// Testing when WatcherEnabled is false but dependent watchers are explicitly set to true
+		It("should override dependent watcher settings when watcherEnabled is false", func() {
+			watcherEnabled := false
+			snapshotsEnabled := true
+			configMapWatcherEnabled := true
+			falconAdmission.Spec.AdmissionConfig.WatcherEnabled = &watcherEnabled
+			falconAdmission.Spec.AdmissionConfig.SnapshotsEnabled = &snapshotsEnabled
+			falconAdmission.Spec.AdmissionConfig.ConfigMapWatcherEnabled = &configMapWatcherEnabled
+
+			By("Creating the custom resource with watcherEnabled=false but snapshotsEnabled=true and configMapWatcherEnabled=true")
+			err := k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Reconciling the custom resource")
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if ConfigMap was created")
+			var configMap *corev1.ConfigMap
+			Eventually(func() error {
+				configMap = &corev1.ConfigMap{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: configMapName, Namespace: namespaceName}, configMap)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Verifying that all dependent watcher settings are overridden to false")
+			Expect(configMap.Data["__CS_WATCH_EVENTS_ENABLED"]).To(Equal("false"))
+			Expect(configMap.Data["__CS_SNAPSHOTS_ENABLED"]).To(Equal("false"), "SnapshotsEnabled should be false even when explicitly set to true, because watcherEnabled is false")
+			Expect(configMap.Data["__CS_VISIBILITY_CONFIGMAPS_ENABLED"]).To(Equal("false"), "ConfigMapWatcherEnabled should be false even when explicitly set to true, because watcherEnabled is false")
+		})
 	})
 })
