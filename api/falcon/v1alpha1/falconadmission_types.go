@@ -300,7 +300,7 @@ func (acs *FalconAdmissionConfigSpec) GetWatcherEnabled() bool {
 }
 
 func (acs *FalconAdmissionConfigSpec) GetSnapshotsEnabled() bool {
-	if !acs.GetWatcherEnabled() {
+	if acs.DeployWatcher != nil && !*acs.DeployWatcher {
 		return false
 	}
 
@@ -320,7 +320,7 @@ func (acs *FalconAdmissionConfigSpec) GetSnapshotsInterval() time.Duration {
 }
 
 func (acs *FalconAdmissionConfigSpec) GetConfigMapWatcherEnabled() bool {
-	if !acs.GetWatcherEnabled() {
+	if acs.DeployWatcher != nil && !*acs.DeployWatcher {
 		return false
 	}
 

@@ -23,22 +23,22 @@ func TestNewConfigMapVisibilityVars(t *testing.T) {
 		wantVisibilityConfigMapEnabled string
 	}{
 		{
-			name:                           "watcher disabled overrides all visibility vars to false",
+			name:                           "watcherEnabled=false only disables watch events, snapshots and configmap watcher are independent",
 			watcherEnabled:                 boolPtr(false),
 			snapshotsEnabled:               boolPtr(true),
 			configMapWatcherEnabled:        boolPtr(true),
-			wantSnapshotsEnabled:           "false",
+			wantSnapshotsEnabled:           "true",
 			wantWatchEventsEnabled:         "false",
-			wantVisibilityConfigMapEnabled: "false",
+			wantVisibilityConfigMapEnabled: "true",
 		},
 		{
-			name:                           "watcher disabled with defaults still results in false",
+			name:                           "watcherEnabled=false with other defaults leaves snapshots and configmap watcher at their defaults",
 			watcherEnabled:                 boolPtr(false),
 			snapshotsEnabled:               nil, // defaults to true
 			configMapWatcherEnabled:        nil, // defaults to true
-			wantSnapshotsEnabled:           "false",
+			wantSnapshotsEnabled:           "true",
 			wantWatchEventsEnabled:         "false",
-			wantVisibilityConfigMapEnabled: "false",
+			wantVisibilityConfigMapEnabled: "true",
 		},
 		{
 			name:                           "deploy watcher false disables all visibility vars regardless of watcherEnabled",
