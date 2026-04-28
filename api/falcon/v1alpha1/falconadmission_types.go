@@ -132,6 +132,11 @@ type FalconAdmissionConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deploy Watcher Container",order=13
 	DeployWatcher *bool `json:"deployWatcher,omitempty"`
 
+	// Determines if Kubernetes resources are watched for cluster visibility.
+	// +kubebuilder:default:=true
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Resource Watcher",order=14
+	WatcherEnabled *bool `json:"watcherEnabled,omitempty"`
+
 	// Determines if snapshots of Kubernetes resources are periodically taken for cluster visibility.
 	// +kubebuilder:default:=true
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Resource Snapshots",order=15
@@ -144,11 +149,6 @@ type FalconAdmissionConfigSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Time Interval Between Two Snapshots",order=16
 	SnapshotsInterval *metav1.Duration `json:"snapshotsInterval,omitempty"`
 
-	// Determines if Kubernetes resources are watched for cluster visibility.
-	// +kubebuilder:default:=true
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Resource Watcher",order=17
-	WatcherEnabled *bool `json:"watcherEnabled,omitempty"`
-
 	// Determines if the admission controller webhook is enabled
 	// +kubebuilder:default:=true
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Admission Controller",order=18
@@ -156,7 +156,7 @@ type FalconAdmissionConfigSpec struct {
 
 	// Determines if the admission controller watches for configMap events
 	// +kubebuilder:default:=true
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable ConfigMap Event Watcher",order=19
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable ConfigMap Event Watcher",order=17
 	ConfigMapWatcherEnabled *bool `json:"configMapWatcherEnabled,omitempty"`
 
 	// Namespace where Falcon Image Analyzer is installed. KAC needs to know this to discover and communicate with IAR.
@@ -189,7 +189,7 @@ type FalconAdmissionConfigSpec struct {
 	// +kubebuilder:default:={"limits":{"memory":"128Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}
 	ResourcesClientNoWebhook *corev1.ResourceRequirements `json:"resourcesClientNoWebhook,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Watcher Resources",order=14,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Watcher Resources",order=18,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	// +kubebuilder:default:={"limits":{"memory":"384Mi"},"requests":{"cpu":"250m","memory":"384Mi"}}
 	ResourcesWatcher *corev1.ResourceRequirements `json:"resourcesWatcher,omitempty"`
 
@@ -203,7 +203,7 @@ type FalconAdmissionConfigSpec struct {
 	DepUpdateStrategy FalconAdmissionUpdateStrategy `json:"updateStrategy,omitempty"`
 
 	// Specifies node affinity for scheduling the Admission Controller.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=18
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=19
 	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
 }
 
@@ -279,36 +279,56 @@ func init() {
 	SchemeBuilder.Register(&FalconAdmission{}, &FalconAdmissionList{})
 }
 
-func (watcher FalconAdmissionConfigSpec) DeployWatcherContainer() bool {
-	if watcher.DeployWatcher == nil {
+func (acs *FalconAdmissionConfigSpec) DeployWatcherContainer() bool {
+	if acs.DeployWatcher == nil {
 		return DeployWatcherDefault
 	}
 
-	return *watcher.DeployWatcher
+	return *acs.DeployWatcher
 }
 
-func (watcher FalconAdmissionConfigSpec) GetSnapshotsEnabled() bool {
-	if watcher.SnapshotsEnabled == nil {
-		return SnapshotsEnabledDefault
+func (acs *FalconAdmissionConfigSpec) GetWatcherEnabled() bool {
+	if acs.DeployWatcher != nil && !*acs.DeployWatcher {
+		return false
 	}
 
-	return *watcher.SnapshotsEnabled
-}
-
-func (watcher FalconAdmissionConfigSpec) GetSnapshotsInterval() time.Duration {
-	if watcher.SnapshotsInterval == nil {
-		return SnapshotsIntervalDefault * time.Hour
-	}
-
-	return watcher.SnapshotsInterval.Duration
-}
-
-func (watcher FalconAdmissionConfigSpec) GetWatcherEnabled() bool {
-	if watcher.WatcherEnabled == nil {
+	if acs.WatcherEnabled == nil {
 		return WatcherEnabledDefault
 	}
 
-	return *watcher.WatcherEnabled
+	return *acs.WatcherEnabled
+}
+
+func (acs *FalconAdmissionConfigSpec) GetSnapshotsEnabled() bool {
+	if acs.DeployWatcher != nil && !*acs.DeployWatcher {
+		return false
+	}
+
+	if acs.SnapshotsEnabled == nil {
+		return SnapshotsEnabledDefault
+	}
+
+	return *acs.SnapshotsEnabled
+}
+
+func (acs *FalconAdmissionConfigSpec) GetSnapshotsInterval() time.Duration {
+	if acs.SnapshotsInterval == nil {
+		return SnapshotsIntervalDefault * time.Hour
+	}
+
+	return acs.SnapshotsInterval.Duration
+}
+
+func (acs *FalconAdmissionConfigSpec) GetConfigMapWatcherEnabled() bool {
+	if acs.DeployWatcher != nil && !*acs.DeployWatcher {
+		return false
+	}
+
+	if acs.ConfigMapWatcherEnabled == nil {
+		return ConfigMapWatcherEnabledDefault
+	}
+
+	return *acs.ConfigMapWatcherEnabled
 }
 
 func (ac *FalconAdmission) GetAdmissionControlEnabled() bool {
@@ -317,14 +337,6 @@ func (ac *FalconAdmission) GetAdmissionControlEnabled() bool {
 	}
 
 	return *ac.Spec.AdmissionConfig.AdmissionControlEnabled
-}
-
-func (ac *FalconAdmissionConfigSpec) GetConfigMapWatcherEnabled() bool {
-	if ac.ConfigMapWatcherEnabled == nil {
-		return ConfigMapWatcherEnabledDefault
-	}
-
-	return *ac.ConfigMapWatcherEnabled
 }
 
 func (ac *FalconAdmission) GetFalconSecretSpec() FalconSecret {
