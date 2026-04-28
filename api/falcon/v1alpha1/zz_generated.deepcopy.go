@@ -343,6 +343,11 @@ func (in *FalconAdmissionConfigSpec) DeepCopyInto(out *FalconAdmissionConfigSpec
 		*out = new(bool)
 		**out = **in
 	}
+	if in.WatcherEnabled != nil {
+		in, out := &in.WatcherEnabled, &out.WatcherEnabled
+		*out = new(bool)
+		**out = **in
+	}
 	if in.SnapshotsEnabled != nil {
 		in, out := &in.SnapshotsEnabled, &out.SnapshotsEnabled
 		*out = new(bool)
@@ -351,11 +356,6 @@ func (in *FalconAdmissionConfigSpec) DeepCopyInto(out *FalconAdmissionConfigSpec
 	if in.SnapshotsInterval != nil {
 		in, out := &in.SnapshotsInterval, &out.SnapshotsInterval
 		*out = new(v1.Duration)
-		**out = **in
-	}
-	if in.WatcherEnabled != nil {
-		in, out := &in.WatcherEnabled, &out.WatcherEnabled
-		*out = new(bool)
 		**out = **in
 	}
 	if in.AdmissionControlEnabled != nil {
