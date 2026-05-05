@@ -121,5 +121,25 @@ func (r *FalconContainerReconciler) newConfigMap(ctx context.Context, log logr.L
 		}
 	}
 
+	// Configure AITap environment variables if token is provided or if using an existing secret
+	if falconContainer.Spec.Injector.AITap.AidrCollectorApiToken != "" ||
+		(falconContainer.Spec.Injector.AITap.UseExistingSecret &&
+			falconContainer.Spec.Injector.AITap.AidrSecretName != "") {
+		secretName := falconContainer.Spec.Injector.AITap.SecretName()
+		data["FALCON_AITAP_AIDR_SECRET_NAME"] = secretName
+
+		if falconContainer.Spec.Injector.AITap.AidrCollectorBaseApiUrl != "" {
+			data["FALCON_AITAP_AIDR_COLLECTOR_BASE_API_URL"] = falconContainer.Spec.Injector.AITap.AidrCollectorBaseApiUrl
+		}
+
+		if falconContainer.Spec.Injector.AITap.AllNamespaces {
+			data["FALCON_AITAP_ALL_NAMESPACES"] = "true"
+		}
+
+		if len(falconContainer.Spec.Injector.AITap.Namespaces) > 0 {
+			data["FALCON_AITAP_NAMESPACES"] = strings.Join(falconContainer.Spec.Injector.AITap.Namespaces, ",")
+		}
+	}
+
 	return assets.SensorConfigMap(injectorConfigMapName, falconContainer.Spec.InstallNamespace, common.FalconSidecarSensor, data), nil
 }
