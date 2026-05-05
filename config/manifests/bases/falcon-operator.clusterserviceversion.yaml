@@ -258,10 +258,9 @@ spec:
           Pod
         displayName: Deploy Watcher Container
         path: admissionConfig.deployWatcher
-      - displayName: Falcon Admission Controller Watcher Resources
-        path: admissionConfig.resourcesWatcher
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Determines if Kubernetes resources are watched for cluster visibility.
+        displayName: Enable Resource Watcher
+        path: admissionConfig.watcherEnabled
       - description: Determines if snapshots of Kubernetes resources are periodically
           taken for cluster visibility.
         displayName: Enable Resource Snapshots
@@ -270,12 +269,17 @@ spec:
           the cluster.
         displayName: Time Interval Between Two Snapshots
         path: admissionConfig.snapshotsInterval
-      - description: Determines if Kubernetes resources are watched for cluster visibility.
-        displayName: Enable Resource Watcher
-        path: admissionConfig.watcherEnabled
+      - description: Determines if the admission controller watches for configMap
+          events
+        displayName: Enable ConfigMap Event Watcher
+        path: admissionConfig.configMapWatcherEnabled
       - description: Determines if the admission controller webhook is enabled
         displayName: Enable Admission Controller
         path: admissionConfig.admissionControlEnabled
+      - displayName: Falcon Admission Controller Watcher Resources
+        path: admissionConfig.resourcesWatcher
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: admissionConfig.nodeAffinity
@@ -306,6 +310,9 @@ spec:
         path: falcon_api.client_id
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:password
+      - description: AI-DR Collector API token for the Application Collector
+        displayName: AI-DR Collector API Token
+        path: injector.aitap.aidrCollectorApiToken
       - description: Define annotations that will be passed down to injector service
           account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
         displayName: Service Account Configuration
@@ -351,6 +358,9 @@ spec:
         path: falcon_api.client_secret
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:password
+      - description: AI-DR Collector Base API URL for the Application Collector (optional)
+        displayName: AI-DR Collector Base API URL
+        path: injector.aitap.aidrCollectorBaseApiUrl
       - displayName: Falcon Container Injector Listen Port
         path: injector.listenPort
       - description: TLS configures TLS connection for push of Falcon Container image
@@ -373,6 +383,10 @@ spec:
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falcon_api.cloud_region
+      - description: Configure the list of namespaces that should have access to the
+          AI-DR credentials
+        displayName: AITap Namespaces
+        path: injector.aitap.namespaces
       - displayName: Falcon Container Injector TLS Configuration
         path: injector.tls
       - description: Registry configures container image registry to which the Falcon
@@ -400,6 +414,12 @@ spec:
           Injector
         displayName: Falcon Container Injector Configuration
         path: injector
+      - description: Create the AI-DR secret in all Namespaces instead of using specific
+          namespaces list
+        displayName: Enable AITap in All Namespaces
+        path: injector.aitap.allNamespaces
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - displayName: Falcon Container Image Pull Policy
         path: injector.imagePullPolicy
       - description: The application proxy port to use for Falcon sensor proxy configuration.
@@ -416,6 +436,10 @@ spec:
             falcon-client-secret
         displayName: Falcon Platform Secrets Configuration
         path: falconSecret
+      - description: AI-DR Kubernetes secret name override. If not specified, defaults
+          to "falcon-aitap-aidr-secret"
+        displayName: Custom AITap AI-DR Secret Name
+        path: injector.aitap.aidrSecretName
       - displayName: Falcon Container Image Pull Secret Name
         path: injector.imagePullSecret
       - description: 'Sensor grouping tags are optional, user-defined identifiers
@@ -423,6 +447,14 @@ spec:
           ''/'', ''-'', and ''_''.'
         displayName: Sensor Grouping Tags
         path: falcon.tags
+      - description: |-
+          Use an existing AI-DR secret instead of having the operator create and manage it.
+          When true, the operator assumes a secret with the configured name already exists in target
+          namespaces and will not create or manage secrets.
+        displayName: Use Existing Secret
+        path: injector.aitap.useExistingSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - displayName: Falcon Container Shared Log Volume
         path: injector.logVolume
       - description: Set sensor trace level.
@@ -455,6 +487,9 @@ spec:
         path: injector.replicas
       - displayName: Enable Alternate Mount Path
         path: injector.alternateMountPath
+      - description: AITap configures AI Detection and Response (AI-DR) functionality
+        displayName: AITap AI-DR Configuration
+        path: injector.aitap
       - description: |-
           Advanced configures various options that go against industry practices or are otherwise not recommended for use.
           Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
@@ -546,6 +581,9 @@ spec:
         path: falconContainerSensor.falcon_api.client_id
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:password
+      - description: AI-DR Collector API token for the Application Collector
+        displayName: AI-DR Collector API Token
+        path: falconContainerSensor.injector.aitap.aidrCollectorApiToken
       - description: Define annotations that will be passed down to injector service
           account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
         displayName: Service Account Configuration
@@ -749,6 +787,9 @@ spec:
         path: falconContainerSensor.falcon_api.client_secret
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:password
+      - description: AI-DR Collector Base API URL for the Application Collector (optional)
+        displayName: AI-DR Collector Base API URL
+        path: falconContainerSensor.injector.aitap.aidrCollectorBaseApiUrl
       - displayName: Falcon Container Injector Listen Port
         path: falconContainerSensor.injector.listenPort
       - description: TLS configures TLS connection for push of Falcon Container image
@@ -888,6 +929,10 @@ spec:
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falconContainerSensor.falcon_api.cloud_region
+      - description: Configure the list of namespaces that should have access to the
+          AI-DR credentials
+        displayName: AITap Namespaces
+        path: falconContainerSensor.injector.aitap.namespaces
       - displayName: Falcon Container Injector TLS Configuration
         path: falconContainerSensor.injector.tls
       - description: Registry configures container image registry to which the Falcon
@@ -914,6 +959,9 @@ spec:
       - description: Additional configuration for Falcon Image Analyzer deployment.
         displayName: Falcon Image Analyzer Configuration
         path: falconImageAnalyzer.imageAnalyzerConfig
+      - description: Configure a list of image names for Image Analyzer to ignore.
+        displayName: Ignore Images List
+        path: falconImageAnalyzer.imageAnalyzerConfig.exclusions.imageNames
       - description: Certificate validity duration in number of days.
         displayName: Falcon Image Analyzer TLS Certificate Expiration (days)
         path: falconImageAnalyzer.imageAnalyzerConfig.iarAgentService.certExpiration
@@ -1012,6 +1060,12 @@ spec:
           Injector
         displayName: Falcon Container Injector Configuration
         path: falconContainerSensor.injector
+      - description: Create the AI-DR secret in all Namespaces instead of using specific
+          namespaces list
+        displayName: Enable AITap in All Namespaces
+        path: falconContainerSensor.injector.aitap.allNamespaces
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - displayName: Falcon Container Image Pull Policy
         path: falconContainerSensor.injector.imagePullPolicy
       - description: Falcon Customer ID (CID) Override (optional, default is derived
@@ -1077,6 +1131,10 @@ spec:
             falcon-client-secret
         displayName: Falcon Platform Secrets Configuration
         path: falconContainerSensor.falconSecret
+      - description: AI-DR Kubernetes secret name override. If not specified, defaults
+          to "falcon-aitap-aidr-secret"
+        displayName: Custom AITap AI-DR Secret Name
+        path: falconContainerSensor.injector.aitap.aidrSecretName
       - displayName: Falcon Container Image Pull Secret Name
         path: falconContainerSensor.injector.imagePullSecret
       - description: |-
@@ -1127,6 +1185,14 @@ spec:
           ''/'', ''-'', and ''_''.'
         displayName: Sensor Grouping Tags
         path: falconContainerSensor.falcon.tags
+      - description: |-
+          Use an existing AI-DR secret instead of having the operator create and manage it.
+          When true, the operator assumes a secret with the configured name already exists in target
+          namespaces and will not create or manage secrets.
+        displayName: Use Existing Secret
+        path: falconContainerSensor.injector.aitap.useExistingSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - displayName: Falcon Container Shared Log Volume
         path: falconContainerSensor.injector.logVolume
       - description: Location of the Image Analyzer image. Use only in cases when
@@ -1307,10 +1373,9 @@ spec:
       - description: Enable debugging for the Falcon Image Analyzer.
         displayName: Falcon Image Analyzer Enable Debugging
         path: falconImageAnalyzer.imageAnalyzerConfig.debug
-      - displayName: Falcon Admission Controller Watcher Resources
-        path: falconAdmission.admissionConfig.resourcesWatcher
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Determines if Kubernetes resources are watched for cluster visibility.
+        displayName: Enable Resource Watcher
+        path: falconAdmission.admissionConfig.watcherEnabled
       - displayName: Enable Alternate Mount Path
         path: falconContainerSensor.injector.alternateMountPath
       - description: IAR Agent Service configuration for enabling communication between
@@ -1325,16 +1390,24 @@ spec:
           taken for cluster visibility.
         displayName: Enable Resource Snapshots
         path: falconAdmission.admissionConfig.snapshotsEnabled
+      - description: AITap configures AI Detection and Response (AI-DR) functionality
+        displayName: AITap AI-DR Configuration
+        path: falconContainerSensor.injector.aitap
       - description: Time interval between two snapshots of Kubernetes resources in
           the cluster.
         displayName: Time Interval Between Two Snapshots
         path: falconAdmission.admissionConfig.snapshotsInterval
-      - description: Determines if Kubernetes resources are watched for cluster visibility.
-        displayName: Enable Resource Watcher
-        path: falconAdmission.admissionConfig.watcherEnabled
+      - description: Determines if the admission controller watches for configMap
+          events
+        displayName: Enable ConfigMap Event Watcher
+        path: falconAdmission.admissionConfig.configMapWatcherEnabled
       - description: Determines if the admission controller webhook is enabled
         displayName: Enable Admission Controller
         path: falconAdmission.admissionConfig.admissionControlEnabled
+      - displayName: Falcon Admission Controller Watcher Resources
+        path: falconAdmission.admissionConfig.resourcesWatcher
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: falconAdmission.admissionConfig.nodeAffinity
@@ -1517,6 +1590,9 @@ spec:
       - description: Additional configuration for Falcon Image Analyzer deployment.
         displayName: Falcon Image Analyzer Configuration
         path: imageAnalyzerConfig
+      - description: Configure a list of image names for Image Analyzer to ignore.
+        displayName: Ignore Images List
+        path: imageAnalyzerConfig.exclusions.imageNames
       - description: Certificate validity duration in number of days.
         displayName: Falcon Image Analyzer TLS Certificate Expiration (days)
         path: imageAnalyzerConfig.iarAgentService.certExpiration
