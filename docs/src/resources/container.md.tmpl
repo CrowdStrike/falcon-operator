@@ -120,6 +120,159 @@ kubectl create secret generic falcon-secrets -n $FALCON_SECRET_NAMESPACE \
 --from-literal=falcon-provisioning-token=$FALCON_PROVISIONING_TOKEN
 ```
 
+#### AITap
+AITap requires configuration of the AI-DR Collector, and enabling AITap for namespaces and/or pods. The
+following guide explains the different options for enabling AITap for your AI workloads.
+
+> [!NOTE]
+> AITap is only active for pods where the Falcon Container sensor is injected. Namespaces or pods not configured
+> for container sensor injection will not have AITap enabled regardless of the AITap configuration.
+
+| Parameter                                | Description                                                                                                                                                 | Default                               |
+|:-----------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------------------|
+| `injector.aitap.namespaces`              | A list of namespaces where AITap should be enabled.                                                                                                         | None                                  |
+| `injector.aitap.allNamespaces`           | Enable AITap in all namespaces. Reserved system namespaces are automatically excluded.                                                                      | `false`                               |
+| `injector.aitap.aidrCollectorBaseApiUrl` | AI-DR Collector Base API URL for the Application Collector                                                                                                  | None       (Required to enable AITap) |
+| `injector.aitap.aidrCollectorApiToken`   | AI-DR Collector API token for the Application Collector                                                                                                     | None                                  |
+| `injector.aitap.aidrSecretName`          | Custom AI-DR Kubernetes secret name                                                                                                                         | `falcon-aitap-aidr-secret`            |
+| `injector.aitap.useExistingSecret`       | Use an existing AI-DR secret. When true, Operator does NOT create the AI-DR secret. When false (default), Operator propagates secrets to target namespaces. | `false`                               |
+
+##### Managing Your Own AI-DR Secret
+If you would like to manage your own AI-DR collector secret, you can use an existing secret with
+the `.collector-aidr-token` data key and your AI-DR collector token as the value.
+
+Example AI-DR secret:
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: <YOUR_AIDR_SECRET_NAME>
+  namespace: ai-services
+type: Opaque
+stringData:
+  .collector-aidr-token: "<YOUR_COLLECTOR_API_TOKEN>"
+```
+
+In your FalconContainer custom resource manifest, your `injector.aitap.aidrSecretName` must match the name of the secret you created.
+
+FalconContainer AITap Values:
+```yaml
+injector:
+  aitap:
+    useExistingSecret: true
+    aidrSecretName: <YOUR_AIDR_SECRET_NAME>
+    aidrCollectorBaseApiUrl: "<YOUR_COLLECTOR_API_BASE_URL>"
+```
+
+> [!NOTE]
+> When `useExistingSecret` is `true`, only `aidrCollectorBaseApiUrl` is required. When not managing your own secret,
+> `aidrCollectorBaseApiUrl` and `aidrCollectorApiToken` are both required.
+
+##### Enabling AITap
+AITap can be enabled for specific pods, specific namespaces, or in all namespaces.
+You can control this behavior with the following options.
+
+**Option 1: Specific Pods**
+
+If you prefer to have granular control of AITap, you can enable AITap for specific pods only.
+To enable AITap for specific pods, you must annotate the pod with `sensor.falcon-system.crowdstrike.com/enable-aitap-events: "true"`.
+You must also set `useExistingSecret: true` and `aidrSecretName: <YOUR_AIDR_SECRET_NAME>`,
+and create your own AI-DR secret in each applicable namespace.
+
+Deployment manifest example with annotations:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-application
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-application
+  template:
+    metadata:
+      labels:
+        app: my-application
+      annotations:
+        sensor.falcon-system.crowdstrike.com/enable-aitap-events: "true"
+```
+
+FalconContainer AITap Values:
+```yaml
+injector:
+  aitap:
+    useExistingSecret: true
+    aidrSecretName: "<YOUR_AIDR_SECRET_NAME>"
+    aidrCollectorBaseApiUrl: "<YOUR_COLLECTOR_API_BASE_URL>"
+```
+
+With `injector.aitap.allNamespaces: false` and `injector.aitap.namespaces` not configured:
+- Falcon Container sensor does not enable AITap for any namespaces by default.
+- Operator does NOT create AI-DR secrets in any namespace.
+- You must create your own AI-DR secret with the `aidrSecretName` in each target namespace.
+
+**Option 2: Specific Namespaces**
+To enable AITap for specific namespaces only, use the `injector.aitap.namespaces` option.
+
+```yaml
+injector:
+  aitap:
+    namespaces:
+      - namespace-1
+      - namespace-2
+      - namespace-3
+    aidrCollectorApiToken: "<YOUR_COLLECTOR_API_TOKEN>"
+    aidrCollectorBaseApiUrl: "<YOUR_COLLECTOR_API_BASE_URL>"
+```
+
+Once the FalconContainer custom resource is deployed, any new namespaces you want AITap enabled for must be added to
+the list of `injector.aitap.namespaces` and the changes applied to your custom resource.
+
+> [!NOTE]
+> Make sure all namespaces in `injector.aitap.namespaces` already exist at the time of your FalconContainer deployment.
+
+**Option 3: Combination of Namespaces and Pods**
+
+You can use a combination of `namespaces` and the `sensor.falcon-system.crowdstrike.com/enable-aitap-events: "true"` pod annotation to enabled AITap for specific namespaces, and individual pods not included in the list of namespaces.
+
+```yaml
+injector:
+  aitap:
+    namespaces: # namespace-3 has a pod with `enable-aitap-events` annotation
+      - namespace-1
+      - namespace-2
+    # the aidrSecretName must match the existing AI-DR secret in namespace-3.
+    aidrSecretName: "<YOUR_AIDR_SECRET_NAME>"
+    aidrCollectorApiToken: "<YOUR_COLLECTOR_API_TOKEN>"
+    aidrCollectorBaseApiUrl: "<YOUR_COLLECTOR_API_BASE_URL>"
+```
+
+You must manage your own AI-DR secret with the same name as `aidrSecretName` in any namespace not included in the list of `namespaces`, which in this example would be 'namespace-3'.
+
+**Option 4: Enable AITap for your entire cluster**
+To enable AITap for all namespaces, use the `allNamespaces: true` option.
+
+```yaml
+injector:
+  aitap:
+    allNamespaces: true
+    aidrCollectorApiToken: "<YOUR_COLLECTOR_API_TOKEN>"
+    aidrCollectorBaseApiUrl: "<YOUR_COLLECTOR_API_BASE_URL>"
+```
+
+AITap will be enabled in:
+- All other namespaces **except** reserved system namespaces
+
+The following namespaces are automatically excluded:
+- `kube-system`, `kube-public`, `kube-node-lease`
+- `falcon-system`, `falcon-kac`, `falcon-iar`
+- The deployment namespace
+
+Once the FalconContainer custom resource is deployed, AITap will not instantly be enabled for new namespaces
+created after the initial deployment.
+
 #### Advanced Settings
 The following settings provide an alternative means to select which version of Falcon sensor is deployed. Their use is not recommended. Instead, an explicit SHA256 hash should be configured using the `image` property above.
 
