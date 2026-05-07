@@ -283,10 +283,6 @@ spec:
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: admissionConfig.nodeAffinity
-      - description: Determines if the admission controller watches for configMap
-          events
-        displayName: Enable ConfigMap Event Watcher
-        path: admissionConfig.configMapWatcherEnabled
       - description: Namespace where Falcon Image Analyzer is installed. KAC needs
           to know this to discover and communicate with IAR.
         displayName: Falcon Image Analyzer Namespace
@@ -1415,10 +1411,6 @@ spec:
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: falconAdmission.admissionConfig.nodeAffinity
-      - description: Determines if the admission controller watches for configMap
-          events
-        displayName: Enable ConfigMap Event Watcher
-        path: falconAdmission.admissionConfig.configMapWatcherEnabled
       - description: Namespace where Falcon Image Analyzer is installed. KAC needs
           to know this to discover and communicate with IAR.
         displayName: Falcon Image Analyzer Namespace
