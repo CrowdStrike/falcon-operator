@@ -547,12 +547,11 @@ var _ = Describe("falcon", Ordered, func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconcontainer-with-aitap.yaml"
 		It("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
-			// Add AITap AI-DR token to the manifest
 			updateManifestWithAITapToken(manifest)
+			updateManifestWithAITapBaseURL(manifest)
 			sidecarConfig.manageCrdInstance(crApply, manifest)
 			sidecarConfig.validateRunningStatus(shouldBeRunning)
 			sidecarConfig.validateCrStatus()
-			// Validate AITap secret creation
 			validateAITapSecrets()
 		})
 		It("should cleanup successfully", func() {
