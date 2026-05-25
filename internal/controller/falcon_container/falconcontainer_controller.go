@@ -220,11 +220,12 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 		if r.imageMirroringEnabled(falconContainer) {
 			if err := r.PushImage(ctx, log, falconContainer); err != nil {
+				pushImageError := err
 				err = r.StatusUpdate(ctx, req, log, falconContainer, falconv1alpha1.ConditionFailed, metav1.ConditionFalse, "Reconciling", fmt.Sprintf("failed to refresh Falcon Container image: %v", err))
 				if err != nil {
 					return ctrl.Result{}, err
 				}
-				return ctrl.Result{}, fmt.Errorf("cannot refresh Falcon Container image: %v", err)
+				return ctrl.Result{}, fmt.Errorf("cannot refresh Falcon Container image: %v", pushImageError)
 			}
 		} else {
 			updated, err := r.verifyCrowdStrikeRegistry(ctx, log, falconContainer)
