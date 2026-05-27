@@ -10,6 +10,10 @@ import (
 	"sync"
 	"time"
 
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/test/utils"
+	corev1 "k8s.io/api/core/v1"
+
 	//nolint:golint
 	//nolint:revive
 	. "github.com/onsi/ginkgo/v2"
@@ -17,8 +21,6 @@ import (
 	//nolint:golint
 	//nolint:revive
 	. "github.com/onsi/gomega"
-
-	"github.com/crowdstrike/falcon-operator/test/utils"
 )
 
 // Environment Variables:
@@ -695,6 +697,191 @@ var _ = Describe("falcon", Ordered, func() {
 			kacConfig.waitForNamespaceDeletion()
 			iarConfig.waitForNamespaceDeletion()
 			secretConfig.waitForNamespaceDeletion()
+		})
+	})
+
+	Context("Falcon Image Analyzer Tolerations", func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconimageanalyzer.yaml"
+		It("should deploy with tolerations successfully", func() {
+			By("loading and modifying the FalconImageAnalyzer manifest")
+			var iar falconv1alpha1.FalconImageAnalyzer
+			err := loadManifest(manifest, &iar)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			// Add tolerations at the spec level
+			iar.Spec.Tolerations = []corev1.Toleration{
+				{
+					Key:               "node.kubernetes.io/not-ready",
+					Operator:          corev1.TolerationOpExists,
+					Effect:            corev1.TaintEffectNoExecute,
+					TolerationSeconds: func(i int64) *int64 { return &i }(300),
+				},
+			}
+
+			By("applying the modified manifest")
+			err = applyManifest(&iar, iarConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			iarConfig.validateRunningStatus(shouldBeRunning)
+			iarConfig.validateCrStatus()
+
+			By("validating the deployment has the expected tolerations")
+			validateTolerationsInDeployment := func() error {
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-image-analyzer",
+					"-n", iarConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node.kubernetes.io/not-ready')].effect}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "NoExecute") {
+					return fmt.Errorf("expected toleration not found in deployment: %s", output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateTolerationsInDeployment, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+
+		It("should update tolerations when spec changes", func() {
+			By("loading and modifying the FalconImageAnalyzer manifest with updated tolerations")
+			var iar falconv1alpha1.FalconImageAnalyzer
+			err := loadManifest(manifest, &iar)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			// Update tolerations
+			iar.Spec.Tolerations = []corev1.Toleration{
+				{
+					Key:      "node.kubernetes.io/disk-pressure",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+			}
+
+			By("applying the updated manifest")
+			err = applyManifest(&iar, iarConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating the deployment tolerations are updated")
+			validateUpdatedTolerations := func() error {
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-image-analyzer",
+					"-n", iarConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node.kubernetes.io/disk-pressure')].effect}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "NoSchedule") {
+					return fmt.Errorf("updated toleration not found in deployment: %s", output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateUpdatedTolerations, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+
+		It("should cleanup successfully", func() {
+			iarConfig.manageCrdInstance(crDelete, manifest)
+			iarConfig.validateRunningStatus(shouldBeTerminated)
+			iarConfig.waitForNamespaceDeletion()
+		})
+	})
+
+	Context("Falcon Admission Controller Tolerations", func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
+		It("should deploy with tolerations successfully", func() {
+			By("loading and modifying the FalconAdmission manifest")
+			var admission falconv1alpha1.FalconAdmission
+			err := loadManifest(manifest, &admission)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			// Add tolerations to AdmissionConfig
+			admission.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+				{
+					Key:      "node.kubernetes.io/memory-pressure",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+			}
+
+			By("applying the modified manifest")
+			err = applyManifest(&admission, kacConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			kacConfig.validateRunningStatus(shouldBeRunning)
+			kacConfig.validateCrStatus()
+
+			By("validating the deployment has the expected tolerations")
+			validateTolerationsInDeployment := func() error {
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-kac",
+					"-n", kacConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node.kubernetes.io/memory-pressure')].effect}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "NoSchedule") {
+					return fmt.Errorf("expected toleration not found in deployment: %s", output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateTolerationsInDeployment, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+
+		It("should preserve system-added tolerations", func() {
+			By("getting current tolerations")
+			cmd := exec.Command("kubectl", "get", "deployment", "falcon-kac",
+				"-n", kacConfig.namespace,
+				"-o", "jsonpath={.spec.template.spec.tolerations}")
+			currentTolerations, err := utils.Run(cmd)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("loading and modifying the FalconAdmission manifest with additional tolerations")
+			var admission falconv1alpha1.FalconAdmission
+			err = loadManifest(manifest, &admission)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			// Add multiple tolerations to AdmissionConfig
+			admission.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+				{
+					Key:      "node.kubernetes.io/memory-pressure",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+				{
+					Key:      "custom-taint",
+					Operator: corev1.TolerationOpEqual,
+					Value:    "true",
+					Effect:   corev1.TaintEffectNoExecute,
+				},
+			}
+
+			By("applying the updated manifest")
+			err = applyManifest(&admission, kacConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating both old and new tolerations are present")
+			validateBothTolerations := func() error {
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-kac",
+					"-n", kacConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations}")
+				updatedTolerations, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+
+				tolerationsStr := string(updatedTolerations)
+				if !strings.Contains(tolerationsStr, "node.kubernetes.io/memory-pressure") {
+					return fmt.Errorf("previous toleration not preserved: %s", tolerationsStr)
+				}
+				if !strings.Contains(tolerationsStr, "custom-taint") {
+					return fmt.Errorf("new toleration not found: %s", tolerationsStr)
+				}
+
+				// Verify we have at least the tolerations we specified
+				// (may have additional system-added ones)
+				if len(currentTolerations) > 0 && len(updatedTolerations) < len(currentTolerations) {
+					return fmt.Errorf("tolerations count decreased unexpectedly")
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateBothTolerations, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+
+		It("should cleanup successfully", func() {
+			kacConfig.manageCrdInstance(crDelete, manifest)
+			kacConfig.validateRunningStatus(shouldBeTerminated)
+			kacConfig.waitForNamespaceDeletion()
 		})
 	})
 })

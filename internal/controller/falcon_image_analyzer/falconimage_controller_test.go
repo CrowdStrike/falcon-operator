@@ -773,5 +773,256 @@ var _ = Describe("FalconImageAnalyzer controller", func() {
 			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("openshift.io/sa.scc.uid-range", "1000710000/10000"))
 			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("operator-managed-annotation", "value1"))
 		})
+
+		It("should apply tolerations from spec to deployment", func() {
+			By("Creating FalconImageAnalyzer with tolerations")
+			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ImageAnalyzerName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconImageAnalyzerSpec{
+					InstallNamespace: imageAnalyzerNamespacedName.Namespace,
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						CID:         &falconCID,
+						CloudRegion: "autodiscover",
+					},
+					Image: imageAnalyzerImage,
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					Tolerations: []corev1.Toleration{
+						{
+							Key:      "node.kubernetes.io/disk-pressure",
+							Operator: corev1.TolerationOpExists,
+							Effect:   corev1.TaintEffectNoSchedule,
+						},
+					},
+				},
+			}
+
+			err := k8sClient.Create(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling the custom resource")
+			falconImageAnalyzerReconciler := &FalconImageAnalyzerReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err = falconImageAnalyzerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying tolerations were applied to deployment")
+			Eventually(func() []corev1.Toleration {
+				deployment := &appsv1.Deployment{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      ImageAnalyzerName,
+					Namespace: imageAnalyzerNamespacedName.Namespace,
+				}, deployment)
+				return deployment.Spec.Template.Spec.Tolerations
+			}, 10*time.Second, time.Second).Should(ContainElement(corev1.Toleration{
+				Key:      "node.kubernetes.io/disk-pressure",
+				Operator: corev1.TolerationOpExists,
+				Effect:   corev1.TaintEffectNoSchedule,
+			}))
+		})
+
+		It("should preserve system-added tolerations while applying spec tolerations", func() {
+			By("Creating FalconImageAnalyzer with tolerations")
+			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ImageAnalyzerName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconImageAnalyzerSpec{
+					InstallNamespace: imageAnalyzerNamespacedName.Namespace,
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						CID:         &falconCID,
+						CloudRegion: "autodiscover",
+					},
+					Image: imageAnalyzerImage,
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					Tolerations: []corev1.Toleration{
+						{
+							Key:      "custom-taint",
+							Operator: corev1.TolerationOpEqual,
+							Value:    "custom-value",
+							Effect:   corev1.TaintEffectNoSchedule,
+						},
+					},
+				},
+			}
+
+			err := k8sClient.Create(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling to create initial deployment")
+			falconImageAnalyzerReconciler := &FalconImageAnalyzerReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err = falconImageAnalyzerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Simulating system adding tolerations (e.g., OpenShift)")
+			deployment := &appsv1.Deployment{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      ImageAnalyzerName,
+					Namespace: imageAnalyzerNamespacedName.Namespace,
+				}, deployment)
+			}, 10*time.Second, time.Second).Should(Succeed())
+
+			// Add system toleration
+			systemToleration := corev1.Toleration{
+				Key:      "node.kubernetes.io/not-ready",
+				Operator: corev1.TolerationOpExists,
+				Effect:   corev1.TaintEffectNoExecute,
+				TolerationSeconds: func() *int64 {
+					seconds := int64(300)
+					return &seconds
+				}(),
+			}
+			deployment.Spec.Template.Spec.Tolerations = append(
+				deployment.Spec.Template.Spec.Tolerations,
+				systemToleration,
+			)
+			err = k8sClient.Update(ctx, deployment)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling again to verify system tolerations are preserved")
+			_, err = falconImageAnalyzerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying both spec and system tolerations exist")
+			Eventually(func() []corev1.Toleration {
+				deployment := &appsv1.Deployment{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      ImageAnalyzerName,
+					Namespace: imageAnalyzerNamespacedName.Namespace,
+				}, deployment)
+				return deployment.Spec.Template.Spec.Tolerations
+			}, 10*time.Second, time.Second).Should(And(
+				ContainElement(corev1.Toleration{
+					Key:      "custom-taint",
+					Operator: corev1.TolerationOpEqual,
+					Value:    "custom-value",
+					Effect:   corev1.TaintEffectNoSchedule,
+				}),
+				ContainElement(systemToleration),
+			))
+		})
+
+		It("should update tolerations when spec changes", func() {
+			By("Creating FalconImageAnalyzer with initial tolerations")
+			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ImageAnalyzerName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconImageAnalyzerSpec{
+					InstallNamespace: imageAnalyzerNamespacedName.Namespace,
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						CID:         &falconCID,
+						CloudRegion: "autodiscover",
+					},
+					Image: imageAnalyzerImage,
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					Tolerations: []corev1.Toleration{
+						{
+							Key:      "initial-taint",
+							Operator: corev1.TolerationOpExists,
+							Effect:   corev1.TaintEffectNoSchedule,
+						},
+					},
+				},
+			}
+
+			err := k8sClient.Create(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling to create initial deployment")
+			falconImageAnalyzerReconciler := &FalconImageAnalyzerReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err = falconImageAnalyzerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying initial toleration")
+			Eventually(func() []corev1.Toleration {
+				deployment := &appsv1.Deployment{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      ImageAnalyzerName,
+					Namespace: imageAnalyzerNamespacedName.Namespace,
+				}, deployment)
+				return deployment.Spec.Template.Spec.Tolerations
+			}, 10*time.Second, time.Second).Should(ContainElement(corev1.Toleration{
+				Key:      "initial-taint",
+				Operator: corev1.TolerationOpExists,
+				Effect:   corev1.TaintEffectNoSchedule,
+			}))
+
+			By("Updating tolerations in spec")
+			err = k8sClient.Get(ctx, imageAnalyzerNamespacedName, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			falconImageAnalyzer.Spec.Tolerations = []corev1.Toleration{
+				{
+					Key:      "updated-taint",
+					Operator: corev1.TolerationOpEqual,
+					Value:    "updated-value",
+					Effect:   corev1.TaintEffectNoExecute,
+				},
+			}
+			err = k8sClient.Update(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling to apply updated tolerations")
+			_, err = falconImageAnalyzerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying both tolerations are present (old toleration preserved as it looks like system-added)")
+			Eventually(func() []corev1.Toleration {
+				deployment := &appsv1.Deployment{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      ImageAnalyzerName,
+					Namespace: imageAnalyzerNamespacedName.Namespace,
+				}, deployment)
+				return deployment.Spec.Template.Spec.Tolerations
+			}, 10*time.Second, time.Second).Should(And(
+				ContainElement(corev1.Toleration{
+					Key:      "updated-taint",
+					Operator: corev1.TolerationOpEqual,
+					Value:    "updated-value",
+					Effect:   corev1.TaintEffectNoExecute,
+				}),
+				ContainElement(corev1.Toleration{
+					Key:      "initial-taint",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				}),
+			))
+		})
 	})
 })

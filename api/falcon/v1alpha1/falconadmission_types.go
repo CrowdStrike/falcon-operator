@@ -205,6 +205,11 @@ type FalconAdmissionConfigSpec struct {
 	// Specifies node affinity for scheduling the Admission Controller.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=19
 	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
+
+	// Specifies tolerations for scheduling the Admission Controller.
+	// +kubebuilder:default:={}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=19
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
 type FalconAdmissionServiceAccount struct {

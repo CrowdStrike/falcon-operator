@@ -58,6 +58,11 @@ type FalconImageAnalyzerSpec struct {
 	// Specifies node affinity for scheduling the Sensor.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=8
 	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
+
+	// Specifies tolerations for scheduling the Sensor.
+	// +kubebuilder:default:={}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=9
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
 type FalconImageAnalyzerConfigSpec struct {
