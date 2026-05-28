@@ -258,20 +258,19 @@ $(ENVTEST): $(LOCALBIN)
 
 .PHONY: operator-sdk
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
-operator-sdk: ## Download operator-sdk locally if necessary.
-ifeq (,$(wildcard $(OPERATOR_SDK)))
-ifeq (, $(shell which operator-sdk 2>/dev/null))
-	@{ \
-	set -e ;\
-	mkdir -p $(dir $(OPERATOR_SDK)) ;\
-	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk_$${OS}_$${ARCH} ;\
-	chmod +x $(OPERATOR_SDK) ;\
-	}
-else
-OPERATOR_SDK = $(shell which operator-sdk)
-endif
-endif
+operator-sdk: $(LOCALBIN) ## Download operator-sdk locally if necessary. If wrong version is installed, it will be removed before downloading.
+	@if test -x $(OPERATOR_SDK) && ! $(OPERATOR_SDK) version | grep -q $(OPERATOR_SDK_VERSION); then \
+		echo "$(OPERATOR_SDK) version does not match expected $(OPERATOR_SDK_VERSION). Removing and reinstalling."; \
+		rm -rf $(OPERATOR_SDK); \
+	fi
+	@if ! test -s $(OPERATOR_SDK); then \
+		set -e ;\
+		mkdir -p $(LOCALBIN) ;\
+		OS=$$(go env GOOS) && ARCH=$$(go env GOARCH) && \
+		curl -sSLo $(OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk_$${OS}_$${ARCH} ;\
+		chmod +x $(OPERATOR_SDK) ;\
+	fi
+	@echo "Installed operator-sdk version: $$($(OPERATOR_SDK) version | awk -F'"' '{print $$2; exit}')"
 
 .PHONY: bundle
 bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
