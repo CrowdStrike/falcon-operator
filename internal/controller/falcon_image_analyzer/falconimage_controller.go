@@ -373,7 +373,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileImageAnalyzerDeployment(ctx con
 		for _, existingTol := range existingDeployment.Spec.Template.Spec.Tolerations {
 			found := false
 			for _, specTol := range dep.Spec.Template.Spec.Tolerations {
-				if reflect.DeepEqual(existingTol, specTol) {
+				if existingTol.Key == specTol.Key && existingTol.Effect == specTol.Effect {
 					found = true
 					break
 				}

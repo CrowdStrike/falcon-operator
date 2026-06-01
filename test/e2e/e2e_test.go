@@ -740,17 +740,49 @@ var _ = Describe("falcon", Ordered, func() {
 			EventuallyWithOffset(1, validateTolerationsInDeployment, defaultTimeout, defaultPollPeriod).Should(Succeed())
 		})
 
-		It("should update tolerations when spec changes", func() {
-			By("loading and modifying the FalconImageAnalyzer manifest with updated tolerations")
+		It("should replace toleration when Key+Effect match but Value/Operator differ", func() {
+			By("loading and modifying the FalconImageAnalyzer manifest with initial toleration")
 			var iar falconv1alpha1.FalconImageAnalyzer
 			err := loadManifest(manifest, &iar)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-			// Update tolerations
+			// Set initial toleration with Exists operator
 			iar.Spec.Tolerations = []corev1.Toleration{
 				{
-					Key:      "node.kubernetes.io/disk-pressure",
+					Key:      "app",
 					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+			}
+
+			By("applying the manifest with initial toleration")
+			err = applyManifest(&iar, iarConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating initial toleration with Exists operator")
+			validateInitialToleration := func() error {
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-image-analyzer",
+					"-n", iarConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='app')].operator}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "Exists") {
+					return fmt.Errorf("expected Exists operator not found: %s", output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateInitialToleration, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("updating toleration with same Key+Effect but different Operator and Value")
+			err = loadManifest(manifest, &iar)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			// Update to Equal operator with value for same Key+Effect
+			iar.Spec.Tolerations = []corev1.Toleration{
+				{
+					Key:      "app",
+					Operator: corev1.TolerationOpEqual,
+					Value:    "falcon",
 					Effect:   corev1.TaintEffectNoSchedule,
 				},
 			}
@@ -759,19 +791,92 @@ var _ = Describe("falcon", Ordered, func() {
 			err = applyManifest(&iar, iarConfig.namespace)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-			By("validating the deployment tolerations are updated")
-			validateUpdatedTolerations := func() error {
+			By("validating toleration was replaced with new Value and Operator")
+			validateReplacedToleration := func() error {
+				// Check for new operator
 				cmd := exec.Command("kubectl", "get", "deployment", "falcon-image-analyzer",
 					"-n", iarConfig.namespace,
-					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node.kubernetes.io/disk-pressure')].effect}")
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='app')].operator}")
 				output, err := utils.Run(cmd)
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				if !strings.Contains(string(output), "NoSchedule") {
-					return fmt.Errorf("updated toleration not found in deployment: %s", output)
+				if !strings.Contains(string(output), "Equal") {
+					return fmt.Errorf("expected Equal operator not found: %s", output)
+				}
+
+				// Check for new value
+				cmd = exec.Command("kubectl", "get", "deployment", "falcon-image-analyzer",
+					"-n", iarConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='app')].value}")
+				output, err = utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "falcon") {
+					return fmt.Errorf("expected value 'falcon' not found: %s", output)
+				}
+
+				// Verify only one toleration with key 'app' exists
+				cmd = exec.Command("kubectl", "get", "deployment", "falcon-image-analyzer",
+					"-n", iarConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='app')]}")
+				output, err = utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				// Should only have one match (not duplicate)
+				matches := strings.Count(string(output), `"key":"app"`)
+				if matches > 1 {
+					return fmt.Errorf("found %d tolerations with key 'app', expected 1: %s", matches, output)
 				}
 				return nil
 			}
-			EventuallyWithOffset(1, validateUpdatedTolerations, defaultTimeout, defaultPollPeriod).Should(Succeed())
+			EventuallyWithOffset(1, validateReplacedToleration, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+
+		It("should allow multiple tolerations with same Key but different Effect", func() {
+			By("loading and modifying the FalconImageAnalyzer manifest with multiple tolerations")
+			var iar falconv1alpha1.FalconImageAnalyzer
+			err := loadManifest(manifest, &iar)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			// Set multiple tolerations with same Key but different Effects
+			iar.Spec.Tolerations = []corev1.Toleration{
+				{
+					Key:      "node-role",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+				{
+					Key:      "node-role",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoExecute,
+				},
+			}
+
+			By("applying the manifest with multiple tolerations")
+			err = applyManifest(&iar, iarConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating both tolerations with same Key but different Effect exist")
+			validateBothEffects := func() error {
+				// Check for NoSchedule effect
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-image-analyzer",
+					"-n", iarConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node-role')][?(@.effect=='NoSchedule')]}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "NoSchedule") {
+					return fmt.Errorf("NoSchedule effect not found for key 'node-role': %s", output)
+				}
+
+				// Check for NoExecute effect
+				cmd = exec.Command("kubectl", "get", "deployment", "falcon-image-analyzer",
+					"-n", iarConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node-role')][?(@.effect=='NoExecute')]}")
+				output, err = utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "NoExecute") {
+					return fmt.Errorf("NoExecute effect not found for key 'node-role': %s", output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateBothEffects, defaultTimeout, defaultPollPeriod).Should(Succeed())
 		})
 
 		It("should cleanup successfully", func() {
@@ -876,6 +981,145 @@ var _ = Describe("falcon", Ordered, func() {
 				return nil
 			}
 			EventuallyWithOffset(1, validateBothTolerations, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+
+		It("should replace toleration when Key+Effect match but Value/Operator differ", func() {
+			By("loading and modifying the FalconAdmission manifest with initial toleration")
+			var admission falconv1alpha1.FalconAdmission
+			err := loadManifest(manifest, &admission)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			// Set initial toleration with Exists operator
+			admission.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+				{
+					Key:      "environment",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+			}
+
+			By("applying the manifest with initial toleration")
+			err = applyManifest(&admission, kacConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating initial toleration with Exists operator")
+			validateInitialToleration := func() error {
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-kac",
+					"-n", kacConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='environment')].operator}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "Exists") {
+					return fmt.Errorf("expected Exists operator not found: %s", output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateInitialToleration, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("updating toleration with same Key+Effect but different Operator and Value")
+			err = loadManifest(manifest, &admission)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			// Update to Equal operator with value for same Key+Effect
+			admission.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+				{
+					Key:      "environment",
+					Operator: corev1.TolerationOpEqual,
+					Value:    "production",
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+			}
+
+			By("applying the updated manifest")
+			err = applyManifest(&admission, kacConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating toleration was replaced with new Value and Operator")
+			validateReplacedToleration := func() error {
+				// Check for new operator
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-kac",
+					"-n", kacConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='environment')].operator}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "Equal") {
+					return fmt.Errorf("expected Equal operator not found: %s", output)
+				}
+
+				// Check for new value
+				cmd = exec.Command("kubectl", "get", "deployment", "falcon-kac",
+					"-n", kacConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='environment')].value}")
+				output, err = utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "production") {
+					return fmt.Errorf("expected value 'production' not found: %s", output)
+				}
+
+				// Verify only one toleration with key 'environment' exists
+				cmd = exec.Command("kubectl", "get", "deployment", "falcon-kac",
+					"-n", kacConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='environment')]}")
+				output, err = utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				// Should only have one match (not duplicate)
+				matches := strings.Count(string(output), `"key":"environment"`)
+				if matches > 1 {
+					return fmt.Errorf("found %d tolerations with key 'environment', expected 1: %s", matches, output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateReplacedToleration, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+
+		It("should allow multiple tolerations with same Key but different Effect", func() {
+			By("loading and modifying the FalconAdmission manifest with multiple tolerations")
+			var admission falconv1alpha1.FalconAdmission
+			err := loadManifest(manifest, &admission)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			// Set multiple tolerations with same Key but different Effects
+			admission.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+				{
+					Key:      "node-type",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+				{
+					Key:      "node-type",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoExecute,
+				},
+			}
+
+			By("applying the manifest with multiple tolerations")
+			err = applyManifest(&admission, kacConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating both tolerations with same Key but different Effect exist")
+			validateBothEffects := func() error {
+				// Check for NoSchedule effect
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-kac",
+					"-n", kacConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node-type')][?(@.effect=='NoSchedule')]}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "NoSchedule") {
+					return fmt.Errorf("NoSchedule effect not found for key 'node-type': %s", output)
+				}
+
+				// Check for NoExecute effect
+				cmd = exec.Command("kubectl", "get", "deployment", "falcon-kac",
+					"-n", kacConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node-type')][?(@.effect=='NoExecute')]}")
+				output, err = utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "NoExecute") {
+					return fmt.Errorf("NoExecute effect not found for key 'node-type': %s", output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateBothEffects, defaultTimeout, defaultPollPeriod).Should(Succeed())
 		})
 
 		It("should cleanup successfully", func() {

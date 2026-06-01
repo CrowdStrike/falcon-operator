@@ -1024,5 +1024,199 @@ var _ = Describe("FalconImageAnalyzer controller", func() {
 				}),
 			))
 		})
+
+		It("should replace toleration when spec has same Key+Effect but different Value/Operator", func() {
+			By("Creating FalconImageAnalyzer with Exists toleration")
+			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ImageAnalyzerName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconImageAnalyzerSpec{
+					InstallNamespace: imageAnalyzerNamespacedName.Namespace,
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						CID:         &falconCID,
+						CloudRegion: "autodiscover",
+					},
+					Image: imageAnalyzerImage,
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					Tolerations: []corev1.Toleration{
+						{
+							Key:      "app",
+							Operator: corev1.TolerationOpExists,
+							Effect:   corev1.TaintEffectNoSchedule,
+						},
+					},
+				},
+			}
+
+			err := k8sClient.Create(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling to create initial deployment")
+			falconImageAnalyzerReconciler := &FalconImageAnalyzerReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err = falconImageAnalyzerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying initial toleration with Exists operator")
+			Eventually(func() []corev1.Toleration {
+				deployment := &appsv1.Deployment{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      ImageAnalyzerName,
+					Namespace: imageAnalyzerNamespacedName.Namespace,
+				}, deployment)
+				return deployment.Spec.Template.Spec.Tolerations
+			}, 10*time.Second, time.Second).Should(ContainElement(corev1.Toleration{
+				Key:      "app",
+				Operator: corev1.TolerationOpExists,
+				Effect:   corev1.TaintEffectNoSchedule,
+			}))
+
+			By("Manually updating deployment to simulate existing toleration with different operator/value")
+			deployment := &appsv1.Deployment{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      ImageAnalyzerName,
+					Namespace: imageAnalyzerNamespacedName.Namespace,
+				}, deployment)
+			}, 10*time.Second, time.Second).Should(Succeed())
+
+			deployment.Spec.Template.Spec.Tolerations[0] = corev1.Toleration{
+				Key:      "app",
+				Operator: corev1.TolerationOpEqual,
+				Value:    "old-value",
+				Effect:   corev1.TaintEffectNoSchedule,
+			}
+			err = k8sClient.Update(ctx, deployment)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Updating spec with new value for same Key+Effect")
+			err = k8sClient.Get(ctx, imageAnalyzerNamespacedName, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			falconImageAnalyzer.Spec.Tolerations = []corev1.Toleration{
+				{
+					Key:      "app",
+					Operator: corev1.TolerationOpEqual,
+					Value:    "new-value",
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+			}
+			err = k8sClient.Update(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling to apply updated toleration")
+			_, err = falconImageAnalyzerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying spec toleration replaces existing one (only one toleration with new value)")
+			Eventually(func() bool {
+				deployment := &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      ImageAnalyzerName,
+					Namespace: imageAnalyzerNamespacedName.Namespace,
+				}, deployment)
+				if err != nil {
+					return false
+				}
+
+				if len(deployment.Spec.Template.Spec.Tolerations) != 1 {
+					return false
+				}
+
+				tol := deployment.Spec.Template.Spec.Tolerations[0]
+				return tol.Key == "app" &&
+					tol.Effect == corev1.TaintEffectNoSchedule &&
+					tol.Operator == corev1.TolerationOpEqual &&
+					tol.Value == "new-value"
+			}, 10*time.Second, time.Second).Should(BeTrue())
+		})
+
+		It("should allow multiple tolerations with same Key but different Effect", func() {
+			By("Creating FalconImageAnalyzer with multiple tolerations for same key")
+			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ImageAnalyzerName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconImageAnalyzerSpec{
+					InstallNamespace: imageAnalyzerNamespacedName.Namespace,
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						CID:         &falconCID,
+						CloudRegion: "autodiscover",
+					},
+					Image: imageAnalyzerImage,
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					Tolerations: []corev1.Toleration{
+						{
+							Key:      "node-role",
+							Operator: corev1.TolerationOpExists,
+							Effect:   corev1.TaintEffectNoSchedule,
+						},
+						{
+							Key:      "node-role",
+							Operator: corev1.TolerationOpExists,
+							Effect:   corev1.TaintEffectNoExecute,
+						},
+					},
+				},
+			}
+
+			err := k8sClient.Create(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling to create deployment")
+			falconImageAnalyzerReconciler := &FalconImageAnalyzerReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err = falconImageAnalyzerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying both tolerations with same Key but different Effect exist")
+			Eventually(func() bool {
+				deployment := &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      ImageAnalyzerName,
+					Namespace: imageAnalyzerNamespacedName.Namespace,
+				}, deployment)
+				if err != nil {
+					return false
+				}
+
+				if len(deployment.Spec.Template.Spec.Tolerations) != 2 {
+					return false
+				}
+
+				hasNoSchedule := false
+				hasNoExecute := false
+				for _, tol := range deployment.Spec.Template.Spec.Tolerations {
+					if tol.Key == "node-role" && tol.Effect == corev1.TaintEffectNoSchedule {
+						hasNoSchedule = true
+					}
+					if tol.Key == "node-role" && tol.Effect == corev1.TaintEffectNoExecute {
+						hasNoExecute = true
+					}
+				}
+				return hasNoSchedule && hasNoExecute
+			}, 10*time.Second, time.Second).Should(BeTrue())
+		})
 	})
 })

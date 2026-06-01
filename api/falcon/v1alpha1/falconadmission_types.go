@@ -208,7 +208,7 @@ type FalconAdmissionConfigSpec struct {
 
 	// Specifies tolerations for scheduling the Admission Controller.
 	// +kubebuilder:default:={}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=19
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=20
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 

@@ -3834,7 +3834,8 @@ spec:
                       It also should not be the same namespace where the Falcon Operator or the Falcon Sensor is installed.
                     type: string
                   nodeAffinity:
-                    description: Specifies node affinity for scheduling the Sensor.
+                    description: Specifies node affinity for scheduling the Falcon
+                      Image Analyzer Sensor.
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         description: |-
@@ -4072,7 +4073,8 @@ spec:
                     type: object
                   tolerations:
                     default: []
-                    description: Specifies tolerations for scheduling the Sensor.
+                    description: Specifies tolerations for scheduling the Falcon Image
+                      Analyzer Sensor.
                     items:
                       description: |-
                         The pod this Toleration is attached to tolerates any taint that matches
