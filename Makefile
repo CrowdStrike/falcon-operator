@@ -131,15 +131,30 @@ test: manifests generate fmt vet envtest ## Run tests.
 #   OPERATOR_NAMESPACE - The namespace where the operator is deployed (default: falcon-system, only used with USE_EXISTING_OPERATOR)
 #   BUNDLE_IMG - Use OLM bundle installation instead of traditional deployment
 #   OPERATOR_IMAGE - Custom operator image to use (default: example.com/falcon-operator:v0.0.1)
+#   GINKGO_LABEL_FILTER - Filter tests by label (e.g., "!FalconNodeSensor", "FalconAdmission || FalconContainer")
+#   GINKGO_FOCUS - Focus on tests matching this regular expression
+#   GINKGO_SKIP - Skip tests matching this regular expression
 #   FALCON_CLIENT_ID - CrowdStrike Falcon API Client ID
 #   FALCON_CLIENT_SECRET - CrowdStrike Falcon API Client Secret
 USE_EXISTING_OPERATOR ?= false
 .PHONY: test-e2e
 test-e2e: operator-sdk ## Run e2e tests against a Kind k8s instance or existing operator installation
-	@if [ "$(USE_EXISTING_OPERATOR)" = "true" ]; then \
-		USE_EXISTING_OPERATOR=true OPERATOR_NAMESPACE=$(or $(OPERATOR_NAMESPACE),falcon-system) go test ./test/e2e/ -v -ginkgo.v -timeout 30m; \
+	@set -e; \
+	GINKGO_ARGS="-v -ginkgo.v -timeout 30m"; \
+	if [ -n "$(GINKGO_LABEL_FILTER)" ]; then \
+		GINKGO_ARGS="$$GINKGO_ARGS -ginkgo.label-filter='$(GINKGO_LABEL_FILTER)'"; \
+	fi; \
+	if [ -n "$(GINKGO_FOCUS)" ]; then \
+		GINKGO_ARGS="$$GINKGO_ARGS -ginkgo.focus='$(GINKGO_FOCUS)'"; \
+	fi; \
+	if [ -n "$(GINKGO_SKIP)" ]; then \
+		GINKGO_ARGS="$$GINKGO_ARGS -ginkgo.skip='$(GINKGO_SKIP)'"; \
+	fi; \
+	if [ "$(USE_EXISTING_OPERATOR)" = "true" ]; then \
+		USE_EXISTING_OPERATOR=true OPERATOR_NAMESPACE=$(or $(OPERATOR_NAMESPACE),falcon-system) \
+		eval "go test ./test/e2e/ $$GINKGO_ARGS"; \
 	else \
-		go test ./test/e2e/ -v -ginkgo.v -timeout 30m; \
+		eval "go test ./test/e2e/ $$GINKGO_ARGS"; \
 	fi
 
 GOLANGCI_LINT = $(shell pwd)/bin/golangci-lint

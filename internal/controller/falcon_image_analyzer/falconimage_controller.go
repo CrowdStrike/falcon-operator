@@ -92,6 +92,7 @@ func (r *FalconImageAnalyzerReconciler) GetK8sReader() client.Reader {
 func (r *FalconImageAnalyzerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	updated := false
 	log := log.FromContext(ctx)
+	log.Info("reconciling FalconImageAnalyzer")
 
 	// Fetch the FalconImageAnalyzer instance
 	falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{}
