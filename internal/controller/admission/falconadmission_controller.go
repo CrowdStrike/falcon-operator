@@ -106,6 +106,7 @@ func (r *FalconAdmissionReconciler) GetK8sReader() client.Reader {
 func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	updated := false
 	log := log.FromContext(ctx)
+	log.Info("reconciling FalconAdmission")
 
 	// Fetch the FalconAdmission instance
 	falconAdmission := &falconv1alpha1.FalconAdmission{}
