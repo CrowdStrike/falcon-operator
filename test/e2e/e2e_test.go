@@ -890,7 +890,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 	Context("Falcon Admission Controller Tolerations", Label("FalconAdmission"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
-		It("should deploy with tolerations successfully", func() {
+		It("should deploy successfully", func() {
 			By("loading and modifying the FalconAdmission manifest")
 			var admission falconv1alpha1.FalconAdmission
 			err := loadManifest(manifest, &admission)
@@ -983,6 +983,11 @@ var _ = Describe("falcon", Ordered, func() {
 				return nil
 			}
 			EventuallyWithOffset(1, validateBothTolerations, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after toleration changes")
+				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration)
+			}
 		})
 
 		It("should replace toleration when Key+Effect match but Value/Operator differ", func() {
@@ -1003,6 +1008,11 @@ var _ = Describe("falcon", Ordered, func() {
 			By("applying the manifest with initial toleration")
 			err = applyManifest(&admission, kacConfig.namespace)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after initial tolerations")
+				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration)
+			}
 
 			By("validating initial toleration with Exists operator")
 			validateInitialToleration := func() error {
@@ -1035,6 +1045,11 @@ var _ = Describe("falcon", Ordered, func() {
 			By("applying the updated manifest")
 			err = applyManifest(&admission, kacConfig.namespace)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after updating tolerations")
+				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration)
+			}
 
 			By("validating toleration was replaced with new Value and Operator")
 			validateReplacedToleration := func() error {
@@ -1097,6 +1112,11 @@ var _ = Describe("falcon", Ordered, func() {
 			By("applying the manifest with multiple tolerations")
 			err = applyManifest(&admission, kacConfig.namespace)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after adding multiple tolerations")
+				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration)
+			}
 
 			By("validating both tolerations with same Key but different Effect exist")
 			validateBothEffects := func() error {

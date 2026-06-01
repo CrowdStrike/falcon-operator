@@ -691,7 +691,7 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 
 				// Merge existing proxy env vars with spec container env to preserve existing proxy envs
 				specContainerEnvWithExistingProxy := common.MergeEnvVars(container.Env, existingContainer.Env, common.ProxyEnvNamesWithLowerCase())
-				if !reflect.DeepEqual(specContainerEnvWithExistingProxy, existingContainer.Env) {
+				if !equality.Semantic.DeepEqual(specContainerEnvWithExistingProxy, existingContainer.Env) {
 					log.V(1).Info(
 						"Updating FalconAdmission Deployment: Environment variables changed",
 						"container", container.Name,
