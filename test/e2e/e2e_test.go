@@ -700,7 +700,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
-	Context("Falcon Image Analyzer Tolerations", func() {
+	Context("Falcon Image Analyzer Tolerations", Label("FalconImageAnalyzer"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconimageanalyzer.yaml"
 		It("should deploy with tolerations successfully", func() {
 			By("loading and modifying the FalconImageAnalyzer manifest")
@@ -855,24 +855,26 @@ var _ = Describe("falcon", Ordered, func() {
 
 			By("validating both tolerations with same Key but different Effect exist")
 			validateBothEffects := func() error {
-				// Check for NoSchedule effect
+				// Get all tolerations with key 'node-role'
 				cmd := exec.Command("kubectl", "get", "deployment", "falcon-image-analyzer",
 					"-n", iarConfig.namespace,
-					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node-role')][?(@.effect=='NoSchedule')]}")
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node-role')]}")
 				output, err := utils.Run(cmd)
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				if !strings.Contains(string(output), "NoSchedule") {
-					return fmt.Errorf("NoSchedule effect not found for key 'node-role': %s", output)
+
+				// Verify both effects are present
+				outputStr := string(output)
+				if !strings.Contains(outputStr, "NoSchedule") {
+					return fmt.Errorf("NoSchedule effect not found for key 'node-role': %s", outputStr)
+				}
+				if !strings.Contains(outputStr, "NoExecute") {
+					return fmt.Errorf("NoExecute effect not found for key 'node-role': %s", outputStr)
 				}
 
-				// Check for NoExecute effect
-				cmd = exec.Command("kubectl", "get", "deployment", "falcon-image-analyzer",
-					"-n", iarConfig.namespace,
-					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node-role')][?(@.effect=='NoExecute')]}")
-				output, err = utils.Run(cmd)
-				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				if !strings.Contains(string(output), "NoExecute") {
-					return fmt.Errorf("NoExecute effect not found for key 'node-role': %s", output)
+				// Verify we have exactly 2 tolerations with this key (one for each effect)
+				effectCount := strings.Count(outputStr, `"effect":`)
+				if effectCount != 2 {
+					return fmt.Errorf("expected 2 tolerations with key 'node-role', found %d: %s", effectCount, outputStr)
 				}
 				return nil
 			}
@@ -886,7 +888,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
-	Context("Falcon Admission Controller Tolerations", func() {
+	Context("Falcon Admission Controller Tolerations", Label("FalconAdmission"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
 		It("should deploy with tolerations successfully", func() {
 			By("loading and modifying the FalconAdmission manifest")
@@ -1098,24 +1100,26 @@ var _ = Describe("falcon", Ordered, func() {
 
 			By("validating both tolerations with same Key but different Effect exist")
 			validateBothEffects := func() error {
-				// Check for NoSchedule effect
+				// Get all tolerations with key 'node-type'
 				cmd := exec.Command("kubectl", "get", "deployment", "falcon-kac",
 					"-n", kacConfig.namespace,
-					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node-type')][?(@.effect=='NoSchedule')]}")
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node-type')]}")
 				output, err := utils.Run(cmd)
 				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				if !strings.Contains(string(output), "NoSchedule") {
-					return fmt.Errorf("NoSchedule effect not found for key 'node-type': %s", output)
+
+				// Verify both effects are present
+				outputStr := string(output)
+				if !strings.Contains(outputStr, "NoSchedule") {
+					return fmt.Errorf("NoSchedule effect not found for key 'node-type': %s", outputStr)
+				}
+				if !strings.Contains(outputStr, "NoExecute") {
+					return fmt.Errorf("NoExecute effect not found for key 'node-type': %s", outputStr)
 				}
 
-				// Check for NoExecute effect
-				cmd = exec.Command("kubectl", "get", "deployment", "falcon-kac",
-					"-n", kacConfig.namespace,
-					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node-type')][?(@.effect=='NoExecute')]}")
-				output, err = utils.Run(cmd)
-				ExpectWithOffset(2, err).NotTo(HaveOccurred())
-				if !strings.Contains(string(output), "NoExecute") {
-					return fmt.Errorf("NoExecute effect not found for key 'node-type': %s", output)
+				// Verify we have exactly 2 tolerations with this key (one for each effect)
+				effectCount := strings.Count(outputStr, `"effect":`)
+				if effectCount != 2 {
+					return fmt.Errorf("expected 2 tolerations with key 'node-type', found %d: %s", effectCount, outputStr)
 				}
 				return nil
 			}
