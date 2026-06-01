@@ -148,7 +148,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2026-05-28T19:37:16Z"
+    createdAt: "2026-06-01T20:55:16Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -2414,7 +2414,7 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: OPERATOR_NAME
                   value: falcon-operator
-                image: quay.io/crowdstrike/falcon-operator:1.6.0
+                image: quay.io/crowdstrike/falcon-operator:iar-kac-tolerations
                 livenessProbe:
                   httpGet:
                     path: /healthz
