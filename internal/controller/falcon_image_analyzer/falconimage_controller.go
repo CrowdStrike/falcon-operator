@@ -353,7 +353,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileImageAnalyzerDeployment(ctx con
 			updated = true
 		}
 
-		if !reflect.DeepEqual(existingDeployment.Spec.Strategy.RollingUpdate, dep.Spec.Strategy.RollingUpdate) {
+		if !equality.Semantic.DeepEqual(existingDeployment.Spec.Strategy.RollingUpdate, dep.Spec.Strategy.RollingUpdate) {
 			log.V(1).Info("Updating FalconImageAnalyzer Deployment: RollingUpdate strategy changed",
 				"old", existingDeployment.Spec.Strategy.RollingUpdate,
 				"new", dep.Spec.Strategy.RollingUpdate)
