@@ -90,7 +90,7 @@ type FalconImageAnalyzerConfigSpec struct {
 	PriorityClass FalconImageAnalyzerPriorityClass `json:"priorityClass,omitempty"`
 
 	// Type of Deployment update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
-	// +kubebuilder:default:={"rollingUpdate":{"maxUnavailable":0,"maxSurge":1}}
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=7
 	DepUpdateStrategy FalconImageAnalyzerUpdateStrategy `json:"updateStrategy,omitempty"`
 
@@ -147,6 +147,7 @@ type FalconImageAnalyzerServiceAccount struct {
 
 type FalconImageAnalyzerUpdateStrategy struct {
 	// RollingUpdate is used to specify the strategy used to roll out a deployment
+	// +kubebuilder:default:={"maxUnavailable":0,"maxSurge":1}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer deployment update configuration",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
 	RollingUpdate appsv1.RollingUpdateDeployment `json:"rollingUpdate,omitempty"`
 }
