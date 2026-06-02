@@ -28,6 +28,16 @@ spec:
     type: crowdstrike
 ```
 
+### Version Support Matrix
+
+| Operator Version | Sensor Version       | Notes                                                                                          |
+| ---------------- | -------------------- | ---------------------------------------------------------------------------------- |
+| v1.13.0          | >= 1.0.24            | —                                                                                  |
+| v1.12.1          | >= 1.0.24            | Added unified image support for IAR.                                               |
+| v1.11.0          | >= 1.0.21, <= 1.0.23 | —                                                                                  |
+| v1.10.0          | >= 1.0.21, <= 1.0.23 | —                                                                                  |
+| v1.9.0           | >= 1.0.21, <= 1.0.23 | Added Image Analyzer Agent service to allow Falcon KAC to request image scan data. |
+
 ### FalconImageAnalyzer Reference Manual
 
 #### Falcon API Settings
