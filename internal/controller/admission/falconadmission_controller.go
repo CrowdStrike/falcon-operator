@@ -737,7 +737,7 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 			}
 		}
 
-		if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.Tolerations, mergedTolerations) {
+		if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Tolerations, mergedTolerations) {
 			log.V(1).Info("Updating FalconAdmission Deployment: Tolerations changed",
 				"old", existingDeployment.Spec.Template.Spec.Tolerations,
 				"new", mergedTolerations)

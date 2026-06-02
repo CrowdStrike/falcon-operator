@@ -384,7 +384,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileImageAnalyzerDeployment(ctx con
 			}
 		}
 
-		if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.Tolerations, mergedTolerations) {
+		if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Tolerations, mergedTolerations) {
 			log.V(1).Info("Updating FalconImageAnalyzer Deployment: Tolerations changed",
 				"old", existingDeployment.Spec.Template.Spec.Tolerations,
 				"new", mergedTolerations)

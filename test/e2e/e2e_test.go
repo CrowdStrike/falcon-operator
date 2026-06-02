@@ -54,6 +54,7 @@ const (
 	defaultTimeout                  = 3 * time.Minute
 	defaultPollPeriod               = 5 * time.Second
 	reconcileLoopValidationDuration = 30 * time.Second
+	reconcileLoopThreshold          = 0
 	metricsServiceName              = "falcon-operator-controller-manager-metrics-service"
 	metricsRoleBindingName          = "falcon-operator-metrics-binding"
 	serviceAccountName              = "falcon-operator-controller-manager"
@@ -152,7 +153,7 @@ var _ = Describe("falcon", Ordered, func() {
 				go func(k string) {
 					defer wg.Done()
 					defer GinkgoRecover()
-					validateNoReconcileLoop(controllerPodName, namespace, k, reconcileLoopValidationDuration)
+					validateNoReconcileLoop(controllerPodName, namespace, k, reconcileLoopValidationDuration, reconcileLoopThreshold)
 				}(kind)
 			}
 			wg.Wait()
@@ -170,7 +171,7 @@ var _ = Describe("falcon", Ordered, func() {
 		}
 
 		if kind != "" {
-			validateNoReconcileLoop(controllerPodName, namespace, kind, reconcileLoopValidationDuration)
+			validateNoReconcileLoop(controllerPodName, namespace, kind, reconcileLoopValidationDuration, reconcileLoopThreshold)
 		}
 	})
 
@@ -266,7 +267,7 @@ var _ = Describe("falcon", Ordered, func() {
 		}
 	})
 
-	Context("Falcon Operator", Label("FalconNodeSensor", "FalconAdmission", "FalconContainer", "FalconDeployment"), func() {
+	Context("Falcon Operator", Label("FalconNodeSensor", "FalconAdmission", "FalconImageAnalyzer", "FalconContainer", "FalconDeployment"), func() {
 		It("should run successfully", func() {
 
 			var err error
@@ -738,6 +739,11 @@ var _ = Describe("falcon", Ordered, func() {
 				return nil
 			}
 			EventuallyWithOffset(1, validateTolerationsInDeployment, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after adding tolerations")
+				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration, reconcileLoopThreshold)
+			}
 		})
 
 		It("should replace toleration when Key+Effect match but Value/Operator differ", func() {
@@ -827,6 +833,11 @@ var _ = Describe("falcon", Ordered, func() {
 				return nil
 			}
 			EventuallyWithOffset(1, validateReplacedToleration, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after updating tolerations")
+				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration, reconcileLoopThreshold)
+			}
 		})
 
 		It("should allow multiple tolerations with same Key but different Effect", func() {
@@ -879,6 +890,11 @@ var _ = Describe("falcon", Ordered, func() {
 				return nil
 			}
 			EventuallyWithOffset(1, validateBothEffects, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after adding same Key but different Effect tolerations")
+				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration, reconcileLoopThreshold)
+			}
 		})
 
 		It("should cleanup successfully", func() {
@@ -986,7 +1002,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 			if reconcileLoopCheck {
 				By("validating no reconcile loop after toleration changes")
-				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration)
+				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration, 3)
 			}
 		})
 
@@ -1011,7 +1027,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 			if reconcileLoopCheck {
 				By("validating no reconcile loop after initial tolerations")
-				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration)
+				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration, 3)
 			}
 
 			By("validating initial toleration with Exists operator")
@@ -1048,7 +1064,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 			if reconcileLoopCheck {
 				By("validating no reconcile loop after updating tolerations")
-				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration)
+				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration, 3)
 			}
 
 			By("validating toleration was replaced with new Value and Operator")
@@ -1115,7 +1131,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 			if reconcileLoopCheck {
 				By("validating no reconcile loop after adding multiple tolerations")
-				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration)
+				validateNoReconcileLoop(controllerPodName, namespace, kacConfig.kind, reconcileLoopValidationDuration, 3)
 			}
 
 			By("validating both tolerations with same Key but different Effect exist")
