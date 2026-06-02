@@ -198,7 +198,7 @@ type FalconAdmissionConfigSpec struct {
 	ResourcesAC *corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// Type of Deployment update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
-	// +kubebuilder:default:={"rollingUpdate":{"maxUnavailable":0,"maxSurge":1}}
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=11
 	DepUpdateStrategy FalconAdmissionUpdateStrategy `json:"updateStrategy,omitempty"`
 
@@ -220,6 +220,7 @@ type FalconAdmissionServiceAccount struct {
 
 type FalconAdmissionUpdateStrategy struct {
 	// RollingUpdate is used to specify the strategy used to roll out a deployment
+	// +kubebuilder:default:={"maxUnavailable":0,"maxSurge":1}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller deployment update configuration",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
 	RollingUpdate appsv1.RollingUpdateDeployment `json:"rollingUpdate,omitempty"`
 }
