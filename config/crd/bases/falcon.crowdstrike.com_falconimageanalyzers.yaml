@@ -320,14 +320,14 @@ spec:
                     description: Set the falcon image analyzer volume size limit.
                     type: string
                   updateStrategy:
-                    default:
-                      rollingUpdate:
-                        maxSurge: 1
-                        maxUnavailable: 0
+                    default: {}
                     description: Type of Deployment update. Can be "RollingUpdate"
                       or "OnDelete". Default is RollingUpdate.
                     properties:
                       rollingUpdate:
+                        default:
+                          maxSurge: 1
+                          maxUnavailable: 0
                         description: RollingUpdate is used to specify the strategy
                           used to roll out a deployment
                         properties:
