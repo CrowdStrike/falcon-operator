@@ -33,14 +33,18 @@ spec:
 
 ### FalconAdmission Reference Manual
 
-#### Falcon Operator Support for Falcon Admission Controller
-| Falcon Operator Version      | Falcon Admission Controller Version       |
-|:-----------------------------|:------------------------------------------|
-| `<= 1.2.x`                   | `< 7.20.x`                                |
-| `>= 1.3.x`                   | `>= 7.20.x`                               |
+#### Version Support Matrix
 
-> [!IMPORTANT]
-> Falcon KAC will have multi-arch images starting with version `7.26.x`. Operator versions >= 1.3.x are still compatible with Falcon KAC v7.26+, but Falcon KAC can only be deployed to ARM64 clusters if using Operator versions 1.6.0+.
+| Operator Version | Sensor Version | Notes                                                                                                 |
+| ---------------- | -------------- | ----------------------------------------------------------------------------------------------------- |
+| v1.13.0          | >= 7.33        | —                                                                                                     |
+| v1.12.1          | >= 7.33        | —                                                                                                     |
+| v1.11.0          | >= 7.33        | —                                                                                                     |
+| v1.10.0          | >= 7.33        | Added KAC extended resource monitoring capabilities.<br/>Added unified falcon-kac image path support. |
+| v1.9.0           | <= 7.32        | Added `falconImageAnalyzerNamespace` param to support communication with Falcon Image Analyzer.       |
+
+> [!NOTE]
+> Falcon KAC multi-arch images are available starting with version `7.26.x`. Operator versions >= 1.3.x are compatible with Falcon KAC v7.26+, but Falcon KAC can only be deployed to ARM64 clusters if using Operator versions 1.6.0+.
 
 #### Falcon API Settings
 | Spec                     | Description                                                                                                                                                                                                                          |

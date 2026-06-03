@@ -7,6 +7,16 @@ Learn more at [product page](https://www.crowdstrike.com/cloud-security-products
 ## About FalconNodeSensor Custom Resource (CR)
 Falcon Operator introduces the FalconNodeSensor Custom Resource (CR) to the cluster. The resource is meant to install, configure, and uninstall the Falcon Linux Sensor on the cluster nodes. This resource deploys a kernel module to the Kubernetes nodes which runs as _privileged_.
 
+### Version Support Matrix
+
+| Operator Version | Sensor Version | Notes                                                                                |
+| ---------------- | -------------- | ------------------------------------------------------------------------------------ |
+| v1.13.0          | >= 7.35        | —                                                                                    |
+| v1.12.1          | >= 7.35        | Added Falcon Data Protection for Cloud support for self-managed Kubernetes clusters. |
+| v1.11.0          | >= 7.31        | —                                                                                    |
+| v1.10.0          | >= 7.31        | —                                                                                    |
+| v1.9.0           | >= 7.31        | Added unified falcon-sensor image path support (non-regionalized).                   |
+
 ### FalconNodeSensor CR Configuration using CrowdStrike API Keys
 
 > [!IMPORTANT]
