@@ -41,7 +41,7 @@ var (
 		kind:          "FalconImageAnalyzer",
 		namespace:     "falcon-iar",
 		metadataName:  "falcon-image-analyzer",
-		componentName: "admission_controller",
+		componentName: "falcon-imageanalyzer",
 	}
 	nodeConfig = crConfig{
 		kind:          "FalconNodeSensor",

@@ -340,6 +340,8 @@ func (r *FalconAdmissionReconciler) reconcileResourceQuota(ctx context.Context, 
 
 	podLimit := resource.MustParse(defaultPodLimit)
 	if existingRQ.Spec.Hard["pods"] != podLimit {
+		// Set GVK on rq since it's not populated when retrieved from the API server
+		rq.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ResourceQuota"))
 		err = k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, rq)
 		if err != nil {
 			return err
@@ -446,6 +448,8 @@ func (r *FalconAdmissionReconciler) reconcileService(ctx context.Context, req ct
 
 	if !reflect.DeepEqual(service.Spec.Ports, existingService.Spec.Ports) {
 		existingService.Spec.Ports = service.Spec.Ports
+		// Set GVK on existingService since it's not populated when retrieved from the API server
+		existingService.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Service"))
 		if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingService); err != nil {
 			return false, err
 		}
@@ -523,6 +527,8 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx cont
 
 	if updated {
 		existingWebhook.Webhooks = webhook.Webhooks
+		// Set GVK on existingWebhook since it's not populated when retrieved from the API server
+		existingWebhook.SetGroupVersionKind(arv1.SchemeGroupVersion.WithKind("ValidatingWebhookConfiguration"))
 		if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingWebhook); err != nil {
 			return false, err
 		}
@@ -592,7 +598,7 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 			updated = true
 		}
 
-		if !reflect.DeepEqual(existingDeployment.Spec.Strategy.RollingUpdate, dep.Spec.Strategy.RollingUpdate) {
+		if !equality.Semantic.DeepEqual(existingDeployment.Spec.Strategy.RollingUpdate, dep.Spec.Strategy.RollingUpdate) {
 			log.V(1).Info("Updating FalconAdmission Deployment: RollingUpdate strategy changed",
 				"old", existingDeployment.Spec.Strategy.RollingUpdate,
 				"new", dep.Spec.Strategy.RollingUpdate)
@@ -685,7 +691,7 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 
 				// Merge existing proxy env vars with spec container env to preserve existing proxy envs
 				specContainerEnvWithExistingProxy := common.MergeEnvVars(container.Env, existingContainer.Env, common.ProxyEnvNamesWithLowerCase())
-				if !reflect.DeepEqual(specContainerEnvWithExistingProxy, existingContainer.Env) {
+				if !equality.Semantic.DeepEqual(specContainerEnvWithExistingProxy, existingContainer.Env) {
 					log.V(1).Info(
 						"Updating FalconAdmission Deployment: Environment variables changed",
 						"container", container.Name,
@@ -714,6 +720,29 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 					log.Info("Updating FalconAdmission Deployment Proxy Settings")
 				}
 			}
+		}
+
+		mergedTolerations := dep.Spec.Template.Spec.Tolerations
+		for _, existingTol := range existingDeployment.Spec.Template.Spec.Tolerations {
+			found := false
+			for _, specTol := range dep.Spec.Template.Spec.Tolerations {
+				if existingTol.Key == specTol.Key && existingTol.Effect == specTol.Effect {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				mergedTolerations = append(mergedTolerations, existingTol)
+			}
+		}
+
+		if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Tolerations, mergedTolerations) {
+			log.V(1).Info("Updating FalconAdmission Deployment: Tolerations changed",
+				"old", existingDeployment.Spec.Template.Spec.Tolerations,
+				"new", mergedTolerations)
+			existingDeployment.Spec.Template.Spec.Tolerations = mergedTolerations
+			updated = true
 		}
 
 		if updated {
@@ -763,6 +792,8 @@ func (r *FalconAdmissionReconciler) reconcileRegistrySecret(ctx context.Context,
 	}
 
 	if !reflect.DeepEqual(secret.Data, existingSecret.Data) {
+		// Set GVK on existingSecret since it's not populated when retrieved from the API server
+		existingSecret.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Secret"))
 		err = k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingSecret)
 		if err != nil {
 			return err
@@ -793,6 +824,8 @@ func (r *FalconAdmissionReconciler) reconcileImageStream(ctx context.Context, re
 
 	if !reflect.DeepEqual(imageStream.Spec, existingImageStream.Spec) {
 		existingImageStream.Spec = imageStream.Spec
+		// Set GVK on existingImageStream since it's not populated when retrieved from the API server
+		existingImageStream.SetGroupVersionKind(imagev1.SchemeGroupVersion.WithKind("ImageStream"))
 		err = k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingImageStream)
 		if err != nil {
 			return existingImageStream, err
@@ -847,6 +880,8 @@ func (r *FalconAdmissionReconciler) admissionDeploymentUpdate(ctx context.Contex
 	}
 
 	log.Info("Rolling FalconAdmission Deployment due to non-deployment configuration change")
+	// Set GVK on existingDeployment since it's not populated when retrieved from the API server
+	existingDeployment.SetGroupVersionKind(appsv1.SchemeGroupVersion.WithKind("Deployment"))
 	if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingDeployment); err != nil {
 		return err
 	}

@@ -57,7 +57,6 @@ func (r *FalconAdmissionReconciler) reconcileServiceAccount(ctx context.Context,
 		return serviceAccountUpdated, err
 	}
 
-	// Set GVK on existingServiceAccount since it's not populated when retrieved from the API server
 	existingServiceAccount.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ServiceAccount"))
 
 	// Check if any annotations from serviceAccount need to be added to existingServiceAccount
@@ -159,6 +158,8 @@ func (r *FalconAdmissionReconciler) reconcileClusterRoleBinding(ctx context.Cont
 		// If RoleRef is the same but Subjects have changed, update the object and post to k8s api
 	} else if !reflect.DeepEqual(clusterRoleBinding.Subjects, existingClusterRoleBinding.Subjects) {
 		existingClusterRoleBinding.Subjects = clusterRoleBinding.Subjects
+		// Set GVK on existingClusterRoleBinding since it's not populated when retrieved from the API server
+		existingClusterRoleBinding.SetGroupVersionKind(rbacv1.SchemeGroupVersion.WithKind("ClusterRoleBinding"))
 		err = k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingClusterRoleBinding)
 		if err != nil {
 			return err
@@ -187,6 +188,8 @@ func (r *FalconAdmissionReconciler) reconcileRole(ctx context.Context, req ctrl.
 
 	if !reflect.DeepEqual(role.Rules, existingRole.Rules) {
 		existingRole.Rules = role.Rules
+		// Set GVK on existingRole since it's not populated when retrieved from the API server
+		existingRole.SetGroupVersionKind(rbacv1.SchemeGroupVersion.WithKind("Role"))
 		err = k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingRole)
 		if err != nil {
 			return err
@@ -229,6 +232,8 @@ func (r *FalconAdmissionReconciler) reconcileRoleBinding(ctx context.Context, re
 		// If RoleRef is the same but Subjects have changed, update the object and post to k8s api
 	} else if !reflect.DeepEqual(roleBinding.Subjects, existingRoleBinding.Subjects) {
 		existingRoleBinding.Subjects = roleBinding.Subjects
+		// Set GVK on existingRoleBinding since it's not populated when retrieved from the API server
+		existingRoleBinding.SetGroupVersionKind(rbacv1.SchemeGroupVersion.WithKind("RoleBinding"))
 		err = k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingRoleBinding)
 		if err != nil {
 			return err

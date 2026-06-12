@@ -300,58 +300,109 @@ func (r *FalconImageAnalyzerReconciler) reconcileImageAnalyzerDeployment(ctx con
 		return err
 	}
 
-	if len(proxy.ReadProxyVarsFromEnv()) > 0 {
-		for i, container := range existingDeployment.Spec.Template.Spec.Containers {
-			newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
-			updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
-			if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
-				existingDeployment.Spec.Template.Spec.Containers[i].Env = newContainerEnv
-				updated = true
-			}
-			if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
-				existingDeployment.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
-				updated = true
-			}
-			if updated {
-				log.Info("Updating FalconNodeSensor Deployment Proxy Settings")
+	existingDeployment.SetGroupVersionKind(appsv1.SchemeGroupVersion.WithKind("Deployment"))
+
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		if len(proxy.ReadProxyVarsFromEnv()) > 0 {
+			for i, container := range existingDeployment.Spec.Template.Spec.Containers {
+				newContainerEnv := common.AppendUniqueEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
+				updatedContainerEnv := common.UpdateEnvVars(container.Env, proxy.ReadProxyVarsFromEnv())
+				if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, newContainerEnv) {
+					existingDeployment.Spec.Template.Spec.Containers[i].Env = newContainerEnv
+					updated = true
+				}
+				if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Containers[i].Env, updatedContainerEnv) {
+					existingDeployment.Spec.Template.Spec.Containers[i].Env = updatedContainerEnv
+					updated = true
+				}
+				if updated {
+					log.Info("Updating FalconNodeSensor Deployment Proxy Settings")
+				}
 			}
 		}
-	}
 
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].Image, existingDeployment.Spec.Template.Spec.Containers[0].Image) {
-		existingDeployment.Spec.Template.Spec.Containers[0].Image = dep.Spec.Template.Spec.Containers[0].Image
-		updated = true
-	}
-
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].ImagePullPolicy, existingDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy) {
-		existingDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy = dep.Spec.Template.Spec.Containers[0].ImagePullPolicy
-		updated = true
-	}
-
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.ImagePullSecrets, existingDeployment.Spec.Template.Spec.ImagePullSecrets) {
-		existingDeployment.Spec.Template.Spec.ImagePullSecrets = dep.Spec.Template.Spec.ImagePullSecrets
-		updated = true
-	}
-
-	if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].Ports, existingDeployment.Spec.Template.Spec.Containers[0].Ports) {
-		existingDeployment.Spec.Template.Spec.Containers[0].Ports = dep.Spec.Template.Spec.Containers[0].Ports
-		updated = true
-	}
-
-	if !reflect.DeepEqual(existingDeployment.Spec.Strategy.RollingUpdate, dep.Spec.Strategy.RollingUpdate) {
-		existingDeployment.Spec.Strategy.RollingUpdate = dep.Spec.Strategy.RollingUpdate
-		updated = true
-	}
-
-	if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity, dep.Spec.Template.Spec.Affinity.NodeAffinity) {
-		existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity = dep.Spec.Template.Spec.Affinity.NodeAffinity
-		updated = true
-	}
-
-	if updated {
-		if err := k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, existingDeployment); err != nil {
-			return err
+		if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].Image, existingDeployment.Spec.Template.Spec.Containers[0].Image) {
+			log.V(1).Info("Updating FalconImageAnalyzer Deployment: Container Image changed",
+				"old", existingDeployment.Spec.Template.Spec.Containers[0].Image,
+				"new", dep.Spec.Template.Spec.Containers[0].Image)
+			existingDeployment.Spec.Template.Spec.Containers[0].Image = dep.Spec.Template.Spec.Containers[0].Image
+			updated = true
 		}
+
+		if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].ImagePullPolicy, existingDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy) {
+			log.V(1).Info("Updating FalconImageAnalyzer Deployment: Container ImagePullPolicy changed",
+				"old", existingDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy,
+				"new", dep.Spec.Template.Spec.Containers[0].ImagePullPolicy)
+			existingDeployment.Spec.Template.Spec.Containers[0].ImagePullPolicy = dep.Spec.Template.Spec.Containers[0].ImagePullPolicy
+			updated = true
+		}
+
+		if !reflect.DeepEqual(dep.Spec.Template.Spec.ImagePullSecrets, existingDeployment.Spec.Template.Spec.ImagePullSecrets) {
+			log.V(1).Info("Updating FalconImageAnalyzer Deployment: ImagePullSecrets changed",
+				"old", existingDeployment.Spec.Template.Spec.ImagePullSecrets,
+				"new", dep.Spec.Template.Spec.ImagePullSecrets)
+			existingDeployment.Spec.Template.Spec.ImagePullSecrets = dep.Spec.Template.Spec.ImagePullSecrets
+			updated = true
+		}
+
+		if !reflect.DeepEqual(dep.Spec.Template.Spec.Containers[0].Ports, existingDeployment.Spec.Template.Spec.Containers[0].Ports) {
+			log.V(1).Info("Updating FalconImageAnalyzer Deployment: Container Ports changed",
+				"old", existingDeployment.Spec.Template.Spec.Containers[0].Ports,
+				"new", dep.Spec.Template.Spec.Containers[0].Ports)
+			existingDeployment.Spec.Template.Spec.Containers[0].Ports = dep.Spec.Template.Spec.Containers[0].Ports
+			updated = true
+		}
+
+		if !equality.Semantic.DeepEqual(existingDeployment.Spec.Strategy.RollingUpdate, dep.Spec.Strategy.RollingUpdate) {
+			log.V(1).Info("Updating FalconImageAnalyzer Deployment: RollingUpdate strategy changed",
+				"old", existingDeployment.Spec.Strategy.RollingUpdate,
+				"new", dep.Spec.Strategy.RollingUpdate)
+			existingDeployment.Spec.Strategy.RollingUpdate = dep.Spec.Strategy.RollingUpdate
+			updated = true
+		}
+
+		if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity, dep.Spec.Template.Spec.Affinity.NodeAffinity) {
+			log.V(1).Info("Updating FalconImageAnalyzer Deployment: NodeAffinity changed",
+				"old", existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity,
+				"new", dep.Spec.Template.Spec.Affinity.NodeAffinity)
+			existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity = dep.Spec.Template.Spec.Affinity.NodeAffinity
+			updated = true
+		}
+
+		mergedTolerations := dep.Spec.Template.Spec.Tolerations
+		for _, existingTol := range existingDeployment.Spec.Template.Spec.Tolerations {
+			found := false
+			for _, specTol := range dep.Spec.Template.Spec.Tolerations {
+				if existingTol.Key == specTol.Key && existingTol.Effect == specTol.Effect {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				mergedTolerations = append(mergedTolerations, existingTol)
+			}
+		}
+
+		if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Tolerations, mergedTolerations) {
+			log.V(1).Info("Updating FalconImageAnalyzer Deployment: Tolerations changed",
+				"old", existingDeployment.Spec.Template.Spec.Tolerations,
+				"new", mergedTolerations)
+			existingDeployment.Spec.Template.Spec.Tolerations = mergedTolerations
+			updated = true
+		}
+
+		if updated {
+			if err := k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, existingDeployment); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Error(err, "Failed to update FalconImageAnalyzer Deployment after retries")
+		return err
 	}
 
 	return nil
@@ -519,6 +570,9 @@ func (r *FalconImageAnalyzerReconciler) reconcileIARAgentService(ctx context.Con
 		log.Error(err, "Failed to get FalconImageAnalyzer IAR Agent Service")
 		return err
 	}
+
+	// Set GVK on existingService since it's not populated when retrieved from the API server
+	existingService.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Service"))
 
 	if !reflect.DeepEqual(service.Spec, existingService.Spec) {
 		existingService.Spec = service.Spec

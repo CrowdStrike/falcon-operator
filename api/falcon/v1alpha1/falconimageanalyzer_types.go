@@ -1,8 +1,8 @@
 package v1alpha1
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -55,9 +55,14 @@ type FalconImageAnalyzerSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Version",order=7
 	Version *string `json:"version,omitempty"`
 
-	// Specifies node affinity for scheduling the Sensor.
+	// Specifies node affinity for scheduling the Falcon Image Analyzer Sensor.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=8
 	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
+
+	// Specifies tolerations for scheduling the Falcon Image Analyzer Sensor.
+	// +kubebuilder:default:={}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=9
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
 type FalconImageAnalyzerConfigSpec struct {
@@ -85,7 +90,7 @@ type FalconImageAnalyzerConfigSpec struct {
 	PriorityClass FalconImageAnalyzerPriorityClass `json:"priorityClass,omitempty"`
 
 	// Type of Deployment update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
-	// +kubebuilder:default:={"rollingUpdate":{"maxUnavailable":0,"maxSurge":1}}
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=7
 	DepUpdateStrategy FalconImageAnalyzerUpdateStrategy `json:"updateStrategy,omitempty"`
 
@@ -143,7 +148,21 @@ type FalconImageAnalyzerServiceAccount struct {
 type FalconImageAnalyzerUpdateStrategy struct {
 	// RollingUpdate is used to specify the strategy used to roll out a deployment
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer deployment update configuration",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
-	RollingUpdate appsv1.RollingUpdateDeployment `json:"rollingUpdate,omitempty"`
+	RollingUpdate FalconImageAnalyzerRollingUpdate `json:"rollingUpdate,omitempty"`
+}
+
+type FalconImageAnalyzerRollingUpdate struct {
+	// The maximum number of pods that can be unavailable during the update.
+	// Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
+	// +kubebuilder:default:=0
+	// +optional
+	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
+
+	// The maximum number of pods that can be scheduled above the desired number of pods.
+	// Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
+	// +kubebuilder:default:=1
+	// +optional
+	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 }
 
 type FalconImageAnalyzerAgentServiceSpec struct {
