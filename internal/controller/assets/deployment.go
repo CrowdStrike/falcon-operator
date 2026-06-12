@@ -835,6 +835,32 @@ func imageAnalyzerDepUpdateStrategy(imageAnalyzer *falconv1alpha1.FalconImageAna
 	}
 }
 
+// func imageAnalyzerDepUpdateStrategy(imageAnalyzer *falconv1alpha1.FalconImageAnalyzer) appsv1.DeploymentStrategy {
+// 	// Apply CRD defaults when user doesn't specify values
+// 	// This matches the kubebuilder:default:={"maxUnavailable":0,"maxSurge":1} in the API
+// 	defaultMaxSurge := intstr.FromInt(1)
+// 	defaultMaxUnavailable := intstr.FromInt(0)
+
+// 	rollingUpdateSettings := appsv1.RollingUpdateDeployment{
+// 		MaxSurge:       &defaultMaxSurge,
+// 		MaxUnavailable: &defaultMaxUnavailable,
+// 	}
+
+// 	// Override with user-specified values if present
+// 	if imageAnalyzer.Spec.ImageAnalyzerConfig.DepUpdateStrategy.RollingUpdate.MaxSurge != nil {
+// 		rollingUpdateSettings.MaxSurge = imageAnalyzer.Spec.ImageAnalyzerConfig.DepUpdateStrategy.RollingUpdate.MaxSurge
+// 	}
+
+// 	if imageAnalyzer.Spec.ImageAnalyzerConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable != nil {
+// 		rollingUpdateSettings.MaxUnavailable = imageAnalyzer.Spec.ImageAnalyzerConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable
+// 	}
+
+// 	return appsv1.DeploymentStrategy{
+// 		Type:          appsv1.RollingUpdateDeploymentStrategyType,
+// 		RollingUpdate: &rollingUpdateSettings,
+// 	}
+// }
+
 func admissionDepUpdateStrategy(admission *falconv1alpha1.FalconAdmission) appsv1.DeploymentStrategy {
 	rollingUpdateSettings := appsv1.RollingUpdateDeployment{}
 
@@ -851,6 +877,32 @@ func admissionDepUpdateStrategy(admission *falconv1alpha1.FalconAdmission) appsv
 		RollingUpdate: &rollingUpdateSettings,
 	}
 }
+
+// func admissionDepUpdateStrategy(admission *falconv1alpha1.FalconAdmission) appsv1.DeploymentStrategy {
+// 	// Apply CRD defaults when user doesn't specify values
+// 	// This matches the kubebuilder:default:={"maxUnavailable":0,"maxSurge":1} in the API
+// 	defaultMaxSurge := intstr.FromInt(1)
+// 	defaultMaxUnavailable := intstr.FromInt(0)
+
+// 	rollingUpdateSettings := appsv1.RollingUpdateDeployment{
+// 		MaxSurge:       &defaultMaxSurge,
+// 		MaxUnavailable: &defaultMaxUnavailable,
+// 	}
+
+// 	// Override with user-specified values if present
+// 	if admission.Spec.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxSurge != nil {
+// 		rollingUpdateSettings.MaxSurge = admission.Spec.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxSurge
+// 	}
+
+// 	if admission.Spec.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable != nil {
+// 		rollingUpdateSettings.MaxUnavailable = admission.Spec.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable
+// 	}
+
+// 	return appsv1.DeploymentStrategy{
+// 		Type:          appsv1.RollingUpdateDeploymentStrategyType,
+// 		RollingUpdate: &rollingUpdateSettings,
+// 	}
+// }
 
 func admissionDepWatcherEnvVars(admission *falconv1alpha1.FalconAdmission) []corev1.EnvVar {
 	envVars := []corev1.EnvVar{

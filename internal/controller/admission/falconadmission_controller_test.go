@@ -94,7 +94,7 @@ var _ = Describe("FalconAdmission controller", func() {
 					},
 					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
 						DepUpdateStrategy: falconv1alpha1.FalconAdmissionUpdateStrategy{
-							RollingUpdate: appsv1.RollingUpdateDeployment{
+							RollingUpdate: falconv1alpha1.FalconAdmissionRollingUpdate{
 								MaxUnavailable: &intstr.IntOrString{IntVal: 1},
 								MaxSurge:       &intstr.IntOrString{IntVal: 1},
 							},
