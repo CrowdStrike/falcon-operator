@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
 	"time"
-
-	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 
 	//nolint:golint
 	//nolint:revive
@@ -506,12 +503,16 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Node Sensor", Label("FalconNodeSensor"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconnodesensor.yaml"
 		It("should deploy successfully", func() {
-			updateManifestApiCreds(manifest)
-			nodeConfig.manageCrdInstance(crApply, manifest)
+			By("loading and applying the FalconNodeSensor manifest")
+			data, err := loadManifest(manifest)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			err = applyManifest(data, nodeConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
 			nodeConfig.validateCrStatus()
 		})
 		It("should cleanup successfully", func() {
-			nodeConfig.manageCrdInstance(crDelete, manifest)
+			nodeConfig.deleteCrdInstance(manifest)
 			nodeConfig.validateRunningStatus(shouldBeTerminated)
 			nodeConfig.waitForNamespaceDeletion()
 		})
@@ -520,13 +521,17 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Node Sensor - GKE Autopilot", Label("FalconNodeSensor"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconnodesensor-gke-autopilot.yaml"
 		It("should deploy successfully", func() {
-			updateManifestApiCreds(manifest)
-			nodeConfig.manageCrdInstance(crApply, manifest)
+			By("loading and applying the FalconNodeSensor GKE Autopilot manifest")
+			data, err := loadManifest(manifest)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			err = applyManifest(data, nodeConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
 			nodeConfig.validateCrStatus()
 			nodeConfig.validateInitContainerReadOnlyRootFilesystem()
 		})
 		It("should cleanup successfully", func() {
-			nodeConfig.manageCrdInstance(crDelete, manifest)
+			nodeConfig.deleteCrdInstance(manifest)
 			nodeConfig.validateRunningStatus(shouldBeTerminated)
 			nodeConfig.waitForNamespaceDeletion()
 		})
@@ -535,8 +540,12 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Admission Controller", Label("FalconAdmission"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
 		It("should deploy successfully", func() {
-			updateManifestApiCreds(manifest)
-			kacConfig.manageCrdInstance(crApply, manifest)
+			By("loading and applying the FalconAdmission manifest")
+			data, err := loadManifest(manifest)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			err = applyManifest(data, kacConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
 			kacConfig.validateRunningStatus(shouldBeRunning)
 			kacConfig.validateCrStatus()
 		})
@@ -545,13 +554,14 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Admission Controller", Label("FalconAdmission"), func() {
 		It("should manage falcon-kac-meta configMap changes successfully", func() {
 			manifest := "./config/samples/falcon_v1alpha1_falconadmission_custom_clustername.yaml"
-			updateManifestApiCreds(manifest)
 
-			By("update with a clustom clusterName")
+			By("loading the FalconAdmission custom clustername manifest")
+			data, err := loadManifest(manifest)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("update with a custom clusterName")
 			EventuallyWithOffset(1, func() error {
-				cmd := exec.Command("kubectl", "apply", "-f", filepath.Join(projectDir, manifest), "-n", namespace)
-				_, err := utils.Run(cmd)
-				return err
+				return applyManifest(data, kacConfig.namespace)
 			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
 
 			By("validate the cluster name in the falcon-kac-meta configMap has updated")
@@ -573,7 +583,7 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Admission Controller", Label("FalconAdmission"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
 		It("should cleanup successfully", func() {
-			kacConfig.manageCrdInstance(crDelete, manifest)
+			kacConfig.deleteCrdInstance(manifest)
 			kacConfig.validateRunningStatus(shouldBeTerminated)
 			kacConfig.waitForNamespaceDeletion()
 		})
@@ -582,13 +592,17 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Sidecar Sensor", Label("FalconContainer"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconcontainer.yaml"
 		It("should deploy successfully", func() {
-			updateManifestApiCreds(manifest)
-			sidecarConfig.manageCrdInstance(crApply, manifest)
+			By("loading and applying the FalconContainer manifest")
+			data, err := loadManifest(manifest)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			err = applyManifest(data, sidecarConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
 			sidecarConfig.validateRunningStatus(shouldBeRunning)
 			sidecarConfig.validateCrStatus()
 		})
 		It("should cleanup successfully", func() {
-			sidecarConfig.manageCrdInstance(crDelete, manifest)
+			sidecarConfig.deleteCrdInstance(manifest)
 			sidecarConfig.validateRunningStatus(shouldBeTerminated)
 			sidecarConfig.waitForNamespaceDeletion()
 		})
@@ -597,13 +611,22 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Sidecar Sensor with Falcon Secret", Label("FalconContainer"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconcontainer-with-falcon-secret.yaml"
 		It("should deploy successfully", func() {
-			addFalconSecretToManifest(manifest)
-			sidecarConfig.manageCrdInstance(crApply, manifest)
+			createFalconSecret()
+
+			By("loading and applying the FalconContainer with Falcon Secret manifest")
+			data, err := loadManifest(manifest, map[string]string{
+				"namespace: PLEASE_FILL_IN":  fmt.Sprintf("namespace: %s", falconSecretNamespace),
+				"secretName: PLEASE_FILL_IN": fmt.Sprintf("secretName: %s", falconSecretName),
+			})
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			err = applyManifest(data, sidecarConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
 			sidecarConfig.validateRunningStatus(shouldBeRunning)
 			sidecarConfig.validateCrStatus()
 		})
 		It("should cleanup successfully", func() {
-			sidecarConfig.manageCrdInstance(crDelete, manifest)
+			sidecarConfig.deleteCrdInstance(manifest)
 			sidecarConfig.validateRunningStatus(shouldBeTerminated)
 			secretConfig.deleteNamespace()
 			sidecarConfig.waitForNamespaceDeletion()
@@ -614,16 +637,23 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Sidecar Sensor with AITap", Label("FalconContainer"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconcontainer-with-aitap.yaml"
 		It("should deploy successfully", func() {
-			updateManifestApiCreds(manifest)
-			updateManifestWithAITapToken(manifest)
-			updateManifestWithAITapBaseURL(manifest)
-			sidecarConfig.manageCrdInstance(crApply, manifest)
+			aidrToken, aidrBaseURL := getAITapCredentials()
+
+			By("loading and applying the FalconContainer with AITap manifest")
+			data, err := loadManifest(manifest, map[string]string{
+				"aidrCollectorApiToken: PLEASE_FILL_IN":   fmt.Sprintf("aidrCollectorApiToken: %s", aidrToken),
+				"aidrCollectorBaseApiUrl: PLEASE_FILL_IN": fmt.Sprintf("aidrCollectorBaseApiUrl: %s", aidrBaseURL),
+			})
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			err = applyManifest(data, sidecarConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
 			sidecarConfig.validateRunningStatus(shouldBeRunning)
 			sidecarConfig.validateCrStatus()
 			validateAITapSecrets()
 		})
 		It("should cleanup successfully", func() {
-			sidecarConfig.manageCrdInstance(crDelete, manifest)
+			sidecarConfig.deleteCrdInstance(manifest)
 			sidecarConfig.validateRunningStatus(shouldBeTerminated)
 			sidecarConfig.waitForNamespaceDeletion()
 		})
@@ -632,8 +662,12 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Deployment Controller with Container Sensor", Label("FalconDeployment"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falcondeployment-container-sensor.yaml"
 		It("should deploy successfully", func() {
-			updateManifestApiCreds(manifest)
-			falconDeploymentConfig.manageCrdInstance(crApply, manifest)
+			By("loading and applying the FalconDeployment container sensor manifest")
+			data, err := loadManifest(manifest)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			err = applyManifest(data, "")
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
 			kacConfig.validateRunningStatus(shouldBeRunning)
 			kacConfig.validateCrStatus()
 			sidecarConfig.validateRunningStatus(shouldBeRunning)
@@ -642,7 +676,7 @@ var _ = Describe("falcon", Ordered, func() {
 			iarConfig.validateCrStatus()
 		})
 		It("should cleanup successfully", func() {
-			falconDeploymentConfig.manageCrdInstance(crDelete, manifest)
+			falconDeploymentConfig.deleteCrdInstance(manifest)
 			kacConfig.validateRunningStatus(shouldBeTerminated)
 			sidecarConfig.validateRunningStatus(shouldBeTerminated)
 			iarConfig.validateRunningStatus(shouldBeTerminated)
@@ -655,8 +689,12 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Deployment Controller with Node Sensor", Label("FalconDeployment"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falcondeployment-node-sensor.yaml"
 		It("should deploy successfully", func() {
-			updateManifestApiCreds(manifest)
-			falconDeploymentConfig.manageCrdInstance(crApply, manifest)
+			By("loading and applying the FalconDeployment node sensor manifest")
+			data, err := loadManifest(manifest)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			err = applyManifest(data, "")
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
 			kacConfig.validateRunningStatus(shouldBeRunning)
 			kacConfig.validateCrStatus()
 			nodeConfig.validateRunningStatus(shouldBeRunning)
@@ -665,7 +703,7 @@ var _ = Describe("falcon", Ordered, func() {
 			iarConfig.validateCrStatus()
 		})
 		It("should cleanup successfully", func() {
-			falconDeploymentConfig.manageCrdInstance(crDelete, manifest)
+			falconDeploymentConfig.deleteCrdInstance(manifest)
 			kacConfig.validateRunningStatus(shouldBeTerminated)
 			nodeConfig.validateRunningStatus(shouldBeTerminated)
 			iarConfig.validateRunningStatus(shouldBeTerminated)
@@ -678,8 +716,17 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Deployment Controller with Node Sensor and Falcon Secret", Label("FalconDeployment"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falcondeployment-node-sensor-with-falcon-secret.yaml"
 		It("should deploy successfully", func() {
-			addFalconSecretToManifest(manifest)
-			falconDeploymentConfig.manageCrdInstance(crApply, manifest)
+			createFalconSecret()
+
+			By("loading and applying the FalconDeployment node sensor with Falcon Secret manifest")
+			data, err := loadManifest(manifest, map[string]string{
+				"namespace: PLEASE_FILL_IN":  fmt.Sprintf("namespace: %s", falconSecretNamespace),
+				"secretName: PLEASE_FILL_IN": fmt.Sprintf("secretName: %s", falconSecretName),
+			})
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			err = applyManifest(data, "")
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
 			kacConfig.validateRunningStatus(shouldBeRunning)
 			kacConfig.validateCrStatus()
 			nodeConfig.validateRunningStatus(shouldBeRunning)
@@ -688,7 +735,7 @@ var _ = Describe("falcon", Ordered, func() {
 			iarConfig.validateCrStatus()
 		})
 		It("should cleanup successfully", func() {
-			falconDeploymentConfig.manageCrdInstance(crDelete, manifest)
+			falconDeploymentConfig.deleteCrdInstance(manifest)
 			kacConfig.validateRunningStatus(shouldBeTerminated)
 			nodeConfig.validateRunningStatus(shouldBeTerminated)
 			iarConfig.validateRunningStatus(shouldBeTerminated)
@@ -703,13 +750,10 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Image Analyzer", Label("FalconImageAnalyzer"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconimageanalyzer.yaml"
 		It("should deploy successfully", func() {
-			By("loading and modifying the FalconImageAnalyzer manifest")
-			var iar falconv1alpha1.FalconImageAnalyzer
-			err := loadManifest(manifest, &iar)
+			By("loading and applying the FalconImageAnalyzer manifest")
+			data, err := loadManifest(manifest)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-			By("applying the modified manifest")
-			err = applyManifest(&iar, iarConfig.namespace)
+			err = applyManifest(data, iarConfig.namespace)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 			iarConfig.validateRunningStatus(shouldBeRunning)
@@ -722,7 +766,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 
 		It("should cleanup successfully", func() {
-			iarConfig.manageCrdInstance(crDelete, manifest)
+			iarConfig.deleteCrdInstance(manifest)
 			iarConfig.validateRunningStatus(shouldBeTerminated)
 			iarConfig.waitForNamespaceDeletion()
 		})
