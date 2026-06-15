@@ -25,10 +25,6 @@ type crConfig struct {
 	metadataName  string // The name of the resource expected in metadata.name
 	componentName string // Component name in the metadata.labels
 }
-type crOperation struct {
-	command string
-	action  string
-}
 
 var (
 	kacConfig = crConfig{
@@ -64,8 +60,6 @@ var (
 		metadataName: "falcon-deployment",
 	}
 	projectDir, _ = utils.GetProjectDir()
-	crApply       = crOperation{command: "apply", action: "creating"}
-	crDelete      = crOperation{command: "delete", action: "deleting"}
 )
 
 func (cr crConfig) validateCrStatus() {
@@ -172,10 +166,10 @@ func (cr crConfig) validateRunningStatus(running bool) {
 	EventuallyWithOffset(1, getFalconNodeSensorPodStatus, defaultTimeout, defaultPollPeriod).Should(Succeed())
 }
 
-func (cr crConfig) manageCrdInstance(crCmd crOperation, manifest string) {
-	By(fmt.Sprintf("%s an instance of the %s Operand(CR)", crCmd.action, cr.kind))
+func (cr crConfig) deleteCrdInstance(manifest string) {
+	By(fmt.Sprintf("deleting an instance of the %s Operand(CR)", cr.kind))
 	EventuallyWithOffset(1, func() error {
-		cmd := exec.Command("kubectl", crCmd.command, "-f", filepath.Join(projectDir,
+		cmd := exec.Command("kubectl", "delete", "-f", filepath.Join(projectDir,
 			manifest), "-n", cr.namespace)
 		_, err := utils.Run(cmd)
 		return err

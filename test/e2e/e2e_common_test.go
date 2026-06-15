@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/test/utils"
 
 	//nolint:golint
@@ -18,7 +17,6 @@ import (
 	//nolint:golint
 	//nolint:revive
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/yaml"
 )
 
 type tokenRequest struct {
@@ -86,26 +84,12 @@ func getCredentials() (client_id string, client_secret string) {
 	return client_id, client_secret
 }
 
-func updateManifestApiCreds(manifest string) {
-	falconClientID, falconClientSecret := getCredentials()
-
-	if falconClientID != "" && falconClientSecret != "" {
-		err := utils.ReplaceInFile(
-			filepath.Join(projectDir, manifest),
-			"client_id: PLEASE_FILL_IN", fmt.Sprintf("client_id: %s", falconClientID))
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-		err = utils.ReplaceInFile(filepath.Join(projectDir, manifest),
-			"client_secret: PLEASE_FILL_IN", fmt.Sprintf("client_secret: %s", falconClientSecret))
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	}
-}
-
-func addFalconSecretToManifest(manifest string) {
+// createFalconSecret creates the falcon-secrets namespace and k8s secret with Falcon API credentials
+func createFalconSecret() {
 	falconClientID, falconClientSecret := getCredentials()
 
 	By("creating a k8s secret with Falcon API credentials")
 	if falconClientID != "" && falconClientSecret != "" {
-		// Create secret namespace and secret
 		createNamespaceCmd := exec.Command("kubectl", "create", "ns", falconSecretNamespace)
 		_, err := utils.Run(createNamespaceCmd)
 		ExpectWithOffset(2, err).NotTo(HaveOccurred())
@@ -115,40 +99,22 @@ func addFalconSecretToManifest(manifest string) {
 				falconSecretName, falconSecretNamespace))
 		_, err = utils.Run(createSecretCmd)
 		ExpectWithOffset(2, err).NotTo(HaveOccurred())
-
-		err = utils.ReplaceInFile(filepath.Join(projectDir, manifest),
-			"namespace: PLEASE_FILL_IN", fmt.Sprintf("namespace: %s", falconSecretNamespace))
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-		err = utils.ReplaceInFile(filepath.Join(projectDir, manifest),
-			"secretName: PLEASE_FILL_IN", fmt.Sprintf("secretName: %s", falconSecretName))
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	}
 }
 
-func updateManifestWithAITapToken(manifest string) {
-	aidrToken := os.Getenv("FALCON_AIDR_TOKEN")
+func getAITapCredentials() (aidrToken string, aidrBaseUrl string) {
+	aidrToken = os.Getenv("FALCON_AIDR_TOKEN")
 	if aidrToken == "" {
 		aidrToken = "test-aidr-token-placeholder"
 		By("FALCON_AIDR_TOKEN not set, using placeholder token for testing")
 	}
 
-	By("updating manifest with AITap AI-DR token")
-	err := utils.ReplaceInFile(filepath.Join(projectDir, manifest),
-		"aidrCollectorApiToken: PLEASE_FILL_IN", fmt.Sprintf("aidrCollectorApiToken: %s", aidrToken))
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-}
-
-func updateManifestWithAITapBaseURL(manifest string) {
-	aidrBaseUrl := os.Getenv("FALCON_AIDR_BASE_URL")
+	aidrBaseUrl = os.Getenv("FALCON_AIDR_BASE_URL")
 	if aidrBaseUrl == "" {
 		aidrBaseUrl = "https://test.aidr-base-url.com"
 		By("FALCON_AIDR_BASE_URL not set, using placeholder base URL for testing")
 	}
-
-	By("updating manifest with AITap AI-DR base URL")
-	err := utils.ReplaceInFile(filepath.Join(projectDir, manifest),
-		"aidrCollectorBaseApiUrl: PLEASE_FILL_IN", fmt.Sprintf("aidrCollectorBaseApiUrl: %s", aidrBaseUrl))
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	return aidrToken, aidrBaseUrl
 }
 
 func validateAITapSecrets() {
@@ -179,55 +145,39 @@ func (c crConfig) validateInitContainerReadOnlyRootFilesystem() {
 	ExpectWithOffset(1, string(output)).To(Equal("true"))
 }
 
-// loadManifest reads a manifest file, unmarshals it into the provided object, and updates credentials
-func loadManifest(manifest string, obj any) error {
-	manifestPath := filepath.Join(projectDir, manifest)
-	data, err := os.ReadFile(manifestPath)
+// loadManifest reads a manifest file, substitutes Falcon API credential placeholders
+// and any extra substitutions in the raw YAML, and returns the resulting bytes.
+func loadManifest(manifest string, extra ...map[string]string) ([]byte, error) {
+	data, err := os.ReadFile(filepath.Join(projectDir, manifest))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if err := yaml.Unmarshal(data, obj); err != nil {
-		return err
-	}
+	content := string(data)
 
 	falconClientID, falconClientSecret := getCredentials()
-	if falconClientID == "" || falconClientSecret == "" {
-		return nil
+	if falconClientID != "" && falconClientSecret != "" {
+		content = strings.ReplaceAll(content, "client_id: PLEASE_FILL_IN", fmt.Sprintf("client_id: %s", falconClientID))
+		content = strings.ReplaceAll(content, "client_secret: PLEASE_FILL_IN", fmt.Sprintf("client_secret: %s", falconClientSecret))
 	}
 
-	switch v := obj.(type) {
-	case *falconv1alpha1.FalconImageAnalyzer:
-		v.Spec.FalconAPI.ClientId = falconClientID
-		v.Spec.FalconAPI.ClientSecret = falconClientSecret
-	case *falconv1alpha1.FalconAdmission:
-		v.Spec.FalconAPI.ClientId = falconClientID
-		v.Spec.FalconAPI.ClientSecret = falconClientSecret
-	case *falconv1alpha1.FalconNodeSensor:
-		v.Spec.FalconAPI.ClientId = falconClientID
-		v.Spec.FalconAPI.ClientSecret = falconClientSecret
-	case *falconv1alpha1.FalconContainer:
-		v.Spec.FalconAPI.ClientId = falconClientID
-		v.Spec.FalconAPI.ClientSecret = falconClientSecret
-	case *falconv1alpha1.FalconDeployment:
-		v.Spec.FalconAPI.ClientId = falconClientID
-		v.Spec.FalconAPI.ClientSecret = falconClientSecret
+	for _, replacements := range extra {
+		for old, new := range replacements {
+			content = strings.ReplaceAll(content, old, new)
+		}
 	}
 
-	return nil
+	return []byte(content), nil
 }
 
-// applyManifest marshals the object to YAML and applies it via kubectl
-func applyManifest(obj any, namespace string) error {
-	// Marshal to YAML
-	data, err := yaml.Marshal(obj)
-	if err != nil {
-		return err
+// applyManifest applies raw YAML bytes via kubectl with an optional namespace.
+func applyManifest(data []byte, namespace string) error {
+	args := []string{"apply", "-f", "-"}
+	if namespace != "" {
+		args = append(args, "-n", namespace)
 	}
-
-	// Apply via kubectl
-	cmd := exec.Command("kubectl", "apply", "-f", "-", "-n", namespace)
+	cmd := exec.Command("kubectl", args...)
 	cmd.Stdin = strings.NewReader(string(data))
-	_, err = utils.Run(cmd)
+	_, err := utils.Run(cmd)
 	return err
 }
