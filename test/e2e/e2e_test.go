@@ -509,6 +509,7 @@ var _ = Describe("falcon", Ordered, func() {
 			updateManifestApiCreds(manifest)
 			nodeConfig.manageCrdInstance(crApply, manifest)
 			nodeConfig.validateCrStatus()
+			nodeConfig.validateDefaultValues()
 		})
 		It("should cleanup successfully", func() {
 			nodeConfig.manageCrdInstance(crDelete, manifest)
@@ -539,6 +540,7 @@ var _ = Describe("falcon", Ordered, func() {
 			kacConfig.manageCrdInstance(crApply, manifest)
 			kacConfig.validateRunningStatus(shouldBeRunning)
 			kacConfig.validateCrStatus()
+			kacConfig.validateDefaultValues()
 		})
 	})
 
@@ -586,6 +588,7 @@ var _ = Describe("falcon", Ordered, func() {
 			sidecarConfig.manageCrdInstance(crApply, manifest)
 			sidecarConfig.validateRunningStatus(shouldBeRunning)
 			sidecarConfig.validateCrStatus()
+			sidecarConfig.validateDefaultValues()
 		})
 		It("should cleanup successfully", func() {
 			sidecarConfig.manageCrdInstance(crDelete, manifest)
@@ -663,6 +666,7 @@ var _ = Describe("falcon", Ordered, func() {
 			nodeConfig.validateCrStatus()
 			iarConfig.validateRunningStatus(shouldBeRunning)
 			iarConfig.validateCrStatus()
+			iarConfig.validateDefaultValues()
 		})
 		It("should cleanup successfully", func() {
 			falconDeploymentConfig.manageCrdInstance(crDelete, manifest)
@@ -714,6 +718,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 			iarConfig.validateRunningStatus(shouldBeRunning)
 			iarConfig.validateCrStatus()
+			iarConfig.validateDefaultValues()
 
 			if reconcileLoopCheck {
 				By("validating no reconcile loop after IAR deployment")
