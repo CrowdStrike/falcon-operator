@@ -36,6 +36,9 @@ GOFLAGS ?= -a \
 # CONTAINER_TOOL defines the container tool to be used for building images.
 CONTAINER_TOOL ?= docker
 
+# GOPROXY defines the Go module proxy to use for downloading dependencies
+GOPROXY ?= https://proxy.golang.org,direct
+
 # CONTAINER_BUILD_ARGS defines additional build arguments to pass to the $CONTAINER_TOOL during build.
 CONTAINER_BUILD_ARGS ?= --build-arg VERSION=$(VERSION) --build-arg GOPROXY=$(GOPROXY)
 
@@ -170,7 +173,10 @@ USE_EXISTING_OPERATOR ?= false
 
 .PHONY: test-e2e
 test-e2e: operator-sdk ## Run e2e tests against a Kind k8s instance or existing operator installation
+	@echo "Downloading test dependencies with GOPROXY=$(GOPROXY)..."
+	@GOPROXY=$(GOPROXY) go mod download
 	@set -e; \
+	export GOPROXY=$(GOPROXY); \
 	GINKGO_ARGS="-v -ginkgo.v -timeout 30m"; \
 	if [ -n "$(GINKGO_LABEL_FILTER)" ]; then \
 		GINKGO_ARGS="$$GINKGO_ARGS -ginkgo.label-filter='$(GINKGO_LABEL_FILTER)'"; \
