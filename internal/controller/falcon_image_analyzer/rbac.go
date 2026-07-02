@@ -55,7 +55,6 @@ func (r *FalconImageAnalyzerReconciler) reconcileServiceAccount(ctx context.Cont
 		return serviceAccountUpdated, err
 	}
 
-	// Set GVK on existingServiceAccount since it's not populated when retrieved from the API server
 	existingServiceAccount.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ServiceAccount"))
 
 	// Check if any annotations from serviceAccount need to be added to existingServiceAccount

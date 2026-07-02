@@ -336,6 +336,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
+			Strategy: imageAnalyzerDepUpdateStrategy(falconImageAnalyzer),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
@@ -813,6 +814,23 @@ func admissionDepVolumeMounts(name string, registryCAConfigMapName string, conta
 	}
 
 	return volumeMounts
+}
+
+func imageAnalyzerDepUpdateStrategy(imageAnalyzer *falconv1alpha1.FalconImageAnalyzer) appsv1.DeploymentStrategy {
+	rollingUpdateSettings := appsv1.RollingUpdateDeployment{}
+
+	if imageAnalyzer.Spec.ImageAnalyzerConfig.DepUpdateStrategy.RollingUpdate.MaxSurge != nil {
+		rollingUpdateSettings.MaxSurge = imageAnalyzer.Spec.ImageAnalyzerConfig.DepUpdateStrategy.RollingUpdate.MaxSurge
+	}
+
+	if imageAnalyzer.Spec.ImageAnalyzerConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable != nil {
+		rollingUpdateSettings.MaxUnavailable = imageAnalyzer.Spec.ImageAnalyzerConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable
+	}
+
+	return appsv1.DeploymentStrategy{
+		Type:          appsv1.RollingUpdateDeploymentStrategyType,
+		RollingUpdate: &rollingUpdateSettings,
+	}
 }
 
 func admissionDepUpdateStrategy(admission *falconv1alpha1.FalconAdmission) appsv1.DeploymentStrategy {
