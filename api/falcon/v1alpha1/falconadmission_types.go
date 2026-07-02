@@ -4,9 +4,9 @@ import (
 	"time"
 
 	arv1 "k8s.io/api/admissionregistration/v1"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -198,7 +198,7 @@ type FalconAdmissionConfigSpec struct {
 	ResourcesAC *corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// Type of Deployment update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
-	// +kubebuilder:default:={"rollingUpdate":{"maxUnavailable":0,"maxSurge":1}}
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=11
 	DepUpdateStrategy FalconAdmissionUpdateStrategy `json:"updateStrategy,omitempty"`
 
@@ -215,8 +215,23 @@ type FalconAdmissionServiceAccount struct {
 
 type FalconAdmissionUpdateStrategy struct {
 	// RollingUpdate is used to specify the strategy used to roll out a deployment
+	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller deployment update configuration",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
-	RollingUpdate appsv1.RollingUpdateDeployment `json:"rollingUpdate,omitempty"`
+	RollingUpdate FalconAdmissionRollingUpdate `json:"rollingUpdate,omitempty"`
+}
+
+type FalconAdmissionRollingUpdate struct {
+	// The maximum number of pods that can be unavailable during the update.
+	// Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
+	// +kubebuilder:default:=0
+	// +optional
+	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
+
+	// The maximum number of pods that can be scheduled above the desired number of pods.
+	// Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
+	// +kubebuilder:default:=1
+	// +optional
+	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 }
 
 type FalconAdmissionTLS struct {
