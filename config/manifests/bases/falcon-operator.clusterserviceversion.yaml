@@ -287,6 +287,9 @@ spec:
           to know this to discover and communicate with IAR.
         displayName: Falcon Image Analyzer Namespace
         path: admissionConfig.falconImageAnalyzerNamespace
+      - description: Specifies tolerations for scheduling the Admission Controller.
+        displayName: Tolerations
+        path: admissionConfig.tolerations
       version: v1alpha1
     - description: FalconContainer is the Schema for the falconcontainers API
       displayName: Falcon Container
@@ -1285,7 +1288,8 @@ spec:
       - description: Set the falcon image analyzer volume size limit.
         displayName: Falcon Image Analyzer Volume Size Limit
         path: falconImageAnalyzer.imageAnalyzerConfig.sizeLimit
-      - description: Specifies node affinity for scheduling the Sensor.
+      - description: Specifies node affinity for scheduling the Falcon Image Analyzer
+          Sensor.
         displayName: Node Affinity
         path: falconImageAnalyzer.nodeAffinity
       - description: Utilize default or Pay-As-You-Go billing.
@@ -1314,6 +1318,10 @@ spec:
       - description: Set the falcon image analyzer volume mount path.
         displayName: Falcon Image Analyzer Volume Mount Path
         path: falconImageAnalyzer.imageAnalyzerConfig.mountPath
+      - description: Specifies tolerations for scheduling the Falcon Image Analyzer
+          Sensor.
+        displayName: Tolerations
+        path: falconImageAnalyzer.tolerations
       - description: Falcon Node Sensor Controller Configuration
         displayName: Falcon Node Sensor Configuration
         path: falconNodeSensor
@@ -1415,6 +1423,9 @@ spec:
           to know this to discover and communicate with IAR.
         displayName: Falcon Image Analyzer Namespace
         path: falconAdmission.admissionConfig.falconImageAnalyzerNamespace
+      - description: Specifies tolerations for scheduling the Admission Controller.
+        displayName: Tolerations
+        path: falconAdmission.admissionConfig.tolerations
       - description: |-
           Advanced configures various options that go against industry practices or are otherwise not recommended for use.
           Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
@@ -1658,12 +1669,17 @@ spec:
       - description: Set the falcon image analyzer volume size limit.
         displayName: Falcon Image Analyzer Volume Size Limit
         path: imageAnalyzerConfig.sizeLimit
-      - description: Specifies node affinity for scheduling the Sensor.
+      - description: Specifies node affinity for scheduling the Falcon Image Analyzer
+          Sensor.
         displayName: Node Affinity
         path: nodeAffinity
       - description: Set the falcon image analyzer volume mount path.
         displayName: Falcon Image Analyzer Volume Mount Path
         path: imageAnalyzerConfig.mountPath
+      - description: Specifies tolerations for scheduling the Falcon Image Analyzer
+          Sensor.
+        displayName: Tolerations
+        path: tolerations
       - description: Name of the Kubernetes Cluster.
         displayName: Falcon Image Analyzer Cluster Name
         path: imageAnalyzerConfig.clusterName

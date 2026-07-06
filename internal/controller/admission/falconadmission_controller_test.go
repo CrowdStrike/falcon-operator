@@ -1225,5 +1225,458 @@ var _ = Describe("FalconAdmission controller", func() {
 			Expect(configMap.Data["__CS_SNAPSHOTS_ENABLED"]).To(Equal("false"), "SnapshotsEnabled=false should be respected independently")
 			Expect(configMap.Data["__CS_VISIBILITY_CONFIGMAPS_ENABLED"]).To(Equal("false"), "ConfigMapWatcherEnabled=false should be respected independently")
 		})
+
+		It("should apply tolerations from spec to deployment", func() {
+			ctx := context.Background()
+
+			falconAdmission := &falconv1alpha1.FalconAdmission{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      controllerName,
+					Namespace: namespaceName,
+				},
+				Spec: falconv1alpha1.FalconAdmissionSpec{
+					Falcon: falconv1alpha1.FalconSensor{
+						CID: &falconCID,
+					},
+					InstallNamespace: namespaceName,
+					Image:            "crowdstrike/falcon-kac:test",
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+						Tolerations: []corev1.Toleration{
+							{
+								Key:      "disk-pressure",
+								Operator: corev1.TolerationOpExists,
+								Effect:   corev1.TaintEffectNoSchedule,
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, falconAdmission)).To(Succeed())
+
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err := falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			deployment := &appsv1.Deployment{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+			}, 5*time.Second, time.Second).Should(Succeed())
+
+			Expect(deployment.Spec.Template.Spec.Tolerations).To(HaveLen(1))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Key).To(Equal("disk-pressure"))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Operator).To(Equal(corev1.TolerationOpExists))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Effect).To(Equal(corev1.TaintEffectNoSchedule))
+		})
+
+		It("should preserve system-added tolerations while applying spec tolerations", func() {
+			ctx := context.Background()
+
+			falconAdmission := &falconv1alpha1.FalconAdmission{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      controllerName,
+					Namespace: namespaceName,
+				},
+				Spec: falconv1alpha1.FalconAdmissionSpec{
+					Falcon: falconv1alpha1.FalconSensor{
+						CID: &falconCID,
+					},
+					InstallNamespace: namespaceName,
+					Image:            "crowdstrike/falcon-kac:test",
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+						Tolerations: []corev1.Toleration{
+							{
+								Key:      "custom-taint",
+								Operator: corev1.TolerationOpExists,
+								Effect:   corev1.TaintEffectNoSchedule,
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, falconAdmission)).To(Succeed())
+
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err := falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying initial toleration is applied")
+			deployment := &appsv1.Deployment{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+			}, 5*time.Second, time.Second).Should(Succeed())
+
+			Expect(deployment.Spec.Template.Spec.Tolerations).To(HaveLen(1))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Key).To(Equal("custom-taint"))
+
+			By("Simulating a system like OpenShift adding a toleration")
+			deployment.Spec.Template.Spec.Tolerations = append(deployment.Spec.Template.Spec.Tolerations, corev1.Toleration{
+				Key:               "node.kubernetes.io/not-ready",
+				Operator:          corev1.TolerationOpExists,
+				Effect:            corev1.TaintEffectNoExecute,
+				TolerationSeconds: func() *int64 { i := int64(300); return &i }(),
+			})
+			Expect(k8sClient.Update(ctx, deployment)).To(Succeed())
+
+			By("Verifying system toleration was added")
+			Eventually(func() int {
+				dep := &appsv1.Deployment{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, dep)
+				return len(dep.Spec.Template.Spec.Tolerations)
+			}, 5*time.Second, time.Second).Should(Equal(2))
+
+			By("Reconciling again to ensure system toleration is preserved")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying both tolerations exist after reconciliation")
+			deployment = &appsv1.Deployment{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+				if err != nil {
+					return false
+				}
+				if len(deployment.Spec.Template.Spec.Tolerations) != 2 {
+					return false
+				}
+				hasCustom := false
+				hasSystem := false
+				for _, tol := range deployment.Spec.Template.Spec.Tolerations {
+					if tol.Key == "custom-taint" {
+						hasCustom = true
+					}
+					if tol.Key == "node.kubernetes.io/not-ready" {
+						hasSystem = true
+					}
+				}
+				return hasCustom && hasSystem
+			}, 5*time.Second, time.Second).Should(BeTrue())
+		})
+
+		It("should update tolerations when spec changes", func() {
+			ctx := context.Background()
+
+			falconAdmission := &falconv1alpha1.FalconAdmission{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      controllerName,
+					Namespace: namespaceName,
+				},
+				Spec: falconv1alpha1.FalconAdmissionSpec{
+					Falcon: falconv1alpha1.FalconSensor{
+						CID: &falconCID,
+					},
+					InstallNamespace: namespaceName,
+					Image:            "crowdstrike/falcon-kac:test",
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+						Tolerations: []corev1.Toleration{
+							{
+								Key:      "initial-taint",
+								Operator: corev1.TolerationOpExists,
+								Effect:   corev1.TaintEffectNoSchedule,
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, falconAdmission)).To(Succeed())
+
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err := falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying initial toleration is applied")
+			deployment := &appsv1.Deployment{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+			}, 5*time.Second, time.Second).Should(Succeed())
+
+			Expect(deployment.Spec.Template.Spec.Tolerations).To(HaveLen(1))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Key).To(Equal("initial-taint"))
+
+			By("Waiting for deployment to be older than 5 seconds to allow reconcile updates")
+			time.Sleep(6 * time.Second)
+
+			By("Updating FalconAdmission spec with new toleration")
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, admissionNamespacedName, falconAdmission); err != nil {
+					return err
+				}
+				falconAdmission.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+					{
+						Key:      "updated-taint",
+						Operator: corev1.TolerationOpExists,
+						Effect:   corev1.TaintEffectNoExecute,
+					},
+				}
+				return k8sClient.Update(ctx, falconAdmission)
+			}, 5*time.Second, time.Second).Should(Succeed())
+
+			By("Reconciling with updated spec")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying both old and new tolerations exist (merge preserves old as potential system toleration)")
+			deployment = &appsv1.Deployment{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+				if err != nil {
+					return false
+				}
+
+				if len(deployment.Spec.Template.Spec.Tolerations) < 1 {
+					return false
+				}
+
+				hasUpdated := false
+				for _, tol := range deployment.Spec.Template.Spec.Tolerations {
+					if tol.Key == "updated-taint" {
+						hasUpdated = true
+					}
+				}
+				return hasUpdated
+			}, 5*time.Second, time.Second).Should(BeTrue())
+		})
+
+		It("should replace toleration when spec has same Key+Effect but different Value/Operator", func() {
+			ctx := context.Background()
+
+			falconAdmission := &falconv1alpha1.FalconAdmission{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      controllerName,
+					Namespace: namespaceName,
+				},
+				Spec: falconv1alpha1.FalconAdmissionSpec{
+					Falcon: falconv1alpha1.FalconSensor{
+						CID: &falconCID,
+					},
+					InstallNamespace: namespaceName,
+					Image:            "crowdstrike/falcon-kac:test",
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+						Tolerations: []corev1.Toleration{
+							{
+								Key:      "app",
+								Operator: corev1.TolerationOpExists,
+								Effect:   corev1.TaintEffectNoSchedule,
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, falconAdmission)).To(Succeed())
+
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err := falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying initial toleration with Exists operator")
+			deployment := &appsv1.Deployment{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+			}, 5*time.Second, time.Second).Should(Succeed())
+
+			Expect(deployment.Spec.Template.Spec.Tolerations).To(HaveLen(1))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Key).To(Equal("app"))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Operator).To(Equal(corev1.TolerationOpExists))
+
+			By("Manually updating deployment to simulate existing toleration with different value")
+			deployment.Spec.Template.Spec.Tolerations[0] = corev1.Toleration{
+				Key:      "app",
+				Operator: corev1.TolerationOpEqual,
+				Value:    "old-value",
+				Effect:   corev1.TaintEffectNoSchedule,
+			}
+			Expect(k8sClient.Update(ctx, deployment)).To(Succeed())
+
+			By("Waiting for deployment to be older than 5 seconds to allow reconcile updates")
+			time.Sleep(6 * time.Second)
+
+			By("Updating spec with new value for same Key+Effect")
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, admissionNamespacedName, falconAdmission); err != nil {
+					return err
+				}
+				falconAdmission.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+					{
+						Key:      "app",
+						Operator: corev1.TolerationOpEqual,
+						Value:    "new-value",
+						Effect:   corev1.TaintEffectNoSchedule,
+					},
+				}
+				return k8sClient.Update(ctx, falconAdmission)
+			}, 5*time.Second, time.Second).Should(Succeed())
+
+			By("Reconciling to apply updated toleration")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying spec toleration replaces existing one (only one toleration with new value)")
+			deployment = &appsv1.Deployment{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+				if err != nil {
+					return false
+				}
+
+				if len(deployment.Spec.Template.Spec.Tolerations) != 1 {
+					return false
+				}
+
+				tol := deployment.Spec.Template.Spec.Tolerations[0]
+				return tol.Key == "app" &&
+					tol.Effect == corev1.TaintEffectNoSchedule &&
+					tol.Operator == corev1.TolerationOpEqual &&
+					tol.Value == "new-value"
+			}, 5*time.Second, time.Second).Should(BeTrue())
+		})
+
+		It("should allow multiple tolerations with same Key but different Effect", func() {
+			ctx := context.Background()
+
+			falconAdmission := &falconv1alpha1.FalconAdmission{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      controllerName,
+					Namespace: namespaceName,
+				},
+				Spec: falconv1alpha1.FalconAdmissionSpec{
+					Falcon: falconv1alpha1.FalconSensor{
+						CID: &falconCID,
+					},
+					InstallNamespace: namespaceName,
+					Image:            "crowdstrike/falcon-kac:test",
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+						Tolerations: []corev1.Toleration{
+							{
+								Key:      "node-role",
+								Operator: corev1.TolerationOpExists,
+								Effect:   corev1.TaintEffectNoSchedule,
+							},
+							{
+								Key:      "node-role",
+								Operator: corev1.TolerationOpExists,
+								Effect:   corev1.TaintEffectNoExecute,
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, falconAdmission)).To(Succeed())
+
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err := falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying both tolerations with same Key but different Effect exist")
+			deployment := &appsv1.Deployment{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+				if err != nil {
+					return false
+				}
+
+				if len(deployment.Spec.Template.Spec.Tolerations) != 2 {
+					return false
+				}
+
+				hasNoSchedule := false
+				hasNoExecute := false
+				for _, tol := range deployment.Spec.Template.Spec.Tolerations {
+					if tol.Key == "node-role" && tol.Effect == corev1.TaintEffectNoSchedule {
+						hasNoSchedule = true
+					}
+					if tol.Key == "node-role" && tol.Effect == corev1.TaintEffectNoExecute {
+						hasNoExecute = true
+					}
+				}
+				return hasNoSchedule && hasNoExecute
+			}, 5*time.Second, time.Second).Should(BeTrue())
+		})
 	})
 })
