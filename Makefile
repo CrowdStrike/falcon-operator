@@ -138,23 +138,23 @@ test: manifests generate fmt vet envtest ## Run tests.
 #   FALCON_CLIENT_SECRET - CrowdStrike Falcon API Client Secret
 USE_EXISTING_OPERATOR ?= false
 .PHONY: test-e2e
-test-e2e: operator-sdk ## Run e2e tests against a Kind k8s instance or existing operator installation
+test-e2e: ginkgo operator-sdk ## Run e2e tests against a Kind k8s instance or existing operator installation
 	@set -e; \
-	GINKGO_ARGS="-v -ginkgo.v -timeout 30m"; \
+	GINKGO_ARGS="-v --timeout=30m"; \
 	if [ -n "$(GINKGO_LABEL_FILTER)" ]; then \
-		GINKGO_ARGS="$$GINKGO_ARGS -ginkgo.label-filter='$(GINKGO_LABEL_FILTER)'"; \
+		GINKGO_ARGS="$$GINKGO_ARGS --label-filter='$(GINKGO_LABEL_FILTER)'"; \
 	fi; \
 	if [ -n "$(GINKGO_FOCUS)" ]; then \
-		GINKGO_ARGS="$$GINKGO_ARGS -ginkgo.focus='$(GINKGO_FOCUS)'"; \
+		GINKGO_ARGS="$$GINKGO_ARGS --focus='$(GINKGO_FOCUS)'"; \
 	fi; \
 	if [ -n "$(GINKGO_SKIP)" ]; then \
-		GINKGO_ARGS="$$GINKGO_ARGS -ginkgo.skip='$(GINKGO_SKIP)'"; \
+		GINKGO_ARGS="$$GINKGO_ARGS --skip='$(GINKGO_SKIP)'"; \
 	fi; \
 	if [ "$(USE_EXISTING_OPERATOR)" = "true" ]; then \
 		USE_EXISTING_OPERATOR=true OPERATOR_NAMESPACE=$(or $(OPERATOR_NAMESPACE),falcon-system) \
-		eval "go test ./test/e2e/ $$GINKGO_ARGS"; \
+		eval "$(GINKGO) $$GINKGO_ARGS ./test/e2e/"; \
 	else \
-		eval "go test ./test/e2e/ $$GINKGO_ARGS"; \
+		eval "$(GINKGO) $$GINKGO_ARGS ./test/e2e/"; \
 	fi
 
 GOLANGCI_LINT = $(shell pwd)/bin/golangci-lint
@@ -246,10 +246,12 @@ KUBECTL ?= kubectl
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+GINKGO ?= $(LOCALBIN)/ginkgo
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.6.0
 CONTROLLER_TOOLS_VERSION ?= v0.20.1
+GINKGO_VERSION ?= $(shell go list -m -f '{{.Version}}' github.com/onsi/ginkgo/v2)
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary. If wrong version is installed, it will be removed before downloading.
@@ -270,6 +272,11 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.23
+
+.PHONY: ginkgo
+ginkgo: $(GINKGO) ## Download ginkgo locally if necessary.
+$(GINKGO): $(LOCALBIN)
+	test -s $(LOCALBIN)/ginkgo || GOBIN=$(LOCALBIN) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
 
 .PHONY: operator-sdk
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
