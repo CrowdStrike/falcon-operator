@@ -2509,6 +2509,7 @@ spec:
   labels:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
+    operatorframework.io/arch.s390x: supported
     operatorframework.io/os.linux: supported
   links:
   - name: Falcon Operator
