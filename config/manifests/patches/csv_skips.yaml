@@ -1,0 +1,6 @@
+# Skip versions with known bugs; OLM will bypass these during channel upgrades.
+- op: add
+  path: /spec/skips
+  value:
+  - falcon-operator.v1.3.0
+  - falcon-operator.v1.12.0

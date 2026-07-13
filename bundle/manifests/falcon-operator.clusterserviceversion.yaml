@@ -2522,4 +2522,7 @@ spec:
   provider:
     name: CrowdStrike
     url: https://crowdStrike.com
+  skips:
+  - falcon-operator.v1.3.0
+  - falcon-operator.v1.12.0
   version: 1.13.0
