@@ -230,7 +230,7 @@ func (r *FalconAdmissionReconciler) setImageTag(ctx context.Context, falconAdmis
 
 func (r *FalconAdmissionReconciler) pushAuth(ctx context.Context, falconAdmission *falconv1alpha1.FalconAdmission) (auth.Credentials, error) {
 	return pushtoken.GetCredentials(ctx, falconAdmission.Spec.Registry.Type,
-		k8s_utils.QuerySecretsInNamespace(r.Client, r.imageNamespace(falconAdmission)),
+		k8s_utils.QuerySecretsInNamespace(r.Client, r.Reader, r.imageNamespace(falconAdmission)),
 	)
 }
 
