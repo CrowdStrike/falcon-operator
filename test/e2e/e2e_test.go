@@ -719,6 +719,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 			iarConfig.validateRunningStatus(shouldBeRunning)
 			iarConfig.validateCrStatus()
+			iarConfig.validateDefaultValues()
 
 			if reconcileLoopCheck {
 				By("validating no reconcile loop after IAR deployment")
