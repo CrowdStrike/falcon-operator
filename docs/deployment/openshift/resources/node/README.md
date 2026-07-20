@@ -75,14 +75,22 @@ spec:
 | node.imagePullSecrets               | (optional) list of references to secrets to use for pulling image from image_override location.                                                                                           |
 | node.terminationGracePeriod         | (optional) Kills pod after a specified amount of time (in seconds). Default is 60 seconds.                                                                                                |
 | node.serviceAccount.annotations     | (optional) Annotations that should be added to the Service Account (e.g. for IAM role association)                                                                                        |
-| node.backend                        | (optional) Configure the backend mode for Falcon Sensor (allowed values: kernel, bpf)                                                                                                     |
+| node.backend                        | **(Deprecated)** This field is ignored. The sensor uses eBPF by default, but falls back to kernel mode on unsupported kernel versions.                                                    |
 | node.disableCleanup                 | (optional) Cleans up `/opt/CrowdStrike` on the nodes by deleting the files and directory.                                                                                                 |
+| node.resources.limits.cpu           | (optional) CPU limit for the sensor DaemonSet. Minimum: `250m`.                                                                                                                           |
+| node.resources.limits.memory        | (optional) Memory limit for the sensor DaemonSet. Minimum: `500Mi`.                                                                                                                       |
+| node.resources.limits.ephemeral-storage | (optional) Ephemeral storage limit for the sensor DaemonSet.                                                                                                                          |
+| node.resources.requests.cpu         | (optional) CPU request for the sensor DaemonSet. Minimum: `250m`.                                                                                                                         |
+| node.resources.requests.memory      | (optional) Memory request for the sensor DaemonSet. Minimum: `500Mi`.                                                                                                                     |
+| node.resources.requests.ephemeral-storage | (optional) Ephemeral storage request for the sensor DaemonSet.                                                                                                                      |
 | node.clusterName                    | (optional) When running on an unmanaged K8S cluster, set a cluster name. When running on managed K8S (e.g. EKS, GKE, AKS), cluster name is resolved cloud-side                            |
 | node.version                        | (optional) Enforce particular Falcon Sensor version to be installed (example: "6.35", "6.35.0-13207"). Use this field when pulling from CrowdStrike registries (when using Falcon API credentials). For non-CrowdStrike registries, use `node.image` instead. |
 | node.gke.autopilot                  | (optional) Enable GKE Autopilot support for FalconNodeSensor.                                                                                                                             |
 | node.gke.deployAllowListVersion     | (optional) WorkloadAllowlist version for the sensor daemonset when using GKE AutoPilot. (example: "v1.0.3" for crowdstrike-falconsensor-deploy-allowlist-v1.0.3)  |
 | node.gke.cleanupAllowListVersion    | (optional) WorkloadAllowlist version for the cleanup daemonset when using GKE AutoPilot (example: "v1.0.2" for crowdstrike-falconsensor-cleanup-allowlist-v1.0.2)  |
 
+> [!NOTE]
+> **Resource limits and kernel mode:** Configuring resource limits (`node.resources.*`) is not recommended if the sensor is running in kernel mode. To check which mode the sensor is using, run `ps aux | grep falcon` on a node: `falcon-sensor` indicates kernel mode, `falcon-sensor-bpf` indicates eBPF mode.
 
 > [!IMPORTANT]
 > node.tolerations will be appended to the existing tolerations for the daemonset due to GKE Autopilot allowing users to manage Tolerations directly in the console. See documentation here: https://cloud.google.com/kubernetes-engine/docs/how-to/workload-separation. Removing Tolerations from an existing daemonset requires a redeploy of the FalconNodeSensor manifest.

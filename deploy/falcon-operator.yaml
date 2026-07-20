@@ -8152,7 +8152,8 @@ spec:
                       resources:
                         description: |-
                           Configure resource requests and limits for the DaemonSet Sensor.
-                          The kernel backend is deprecated; the sensor always runs as eBPF.
+                          The sensor uses eBPF by default, but falls back to kernel mode on unsupported kernel versions.
+                          Resource limits are not recommended when running in kernel mode.
                         properties:
                           limits:
                             description: Sets the resource limits for the DaemonSet
@@ -9682,7 +9683,8 @@ spec:
                   resources:
                     description: |-
                       Configure resource requests and limits for the DaemonSet Sensor.
-                      The kernel backend is deprecated; the sensor always runs as eBPF.
+                      The sensor uses eBPF by default, but falls back to kernel mode on unsupported kernel versions.
+                      Resource limits are not recommended when running in kernel mode.
                     properties:
                       limits:
                         description: Sets the resource limits for the DaemonSet Sensor.

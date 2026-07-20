@@ -101,7 +101,8 @@ type FalconNodeSensorConfig struct {
 	NodeCleanup *bool `json:"disableCleanup,omitempty"`
 
 	// Configure resource requests and limits for the DaemonSet Sensor.
-	// The kernel backend is deprecated; the sensor always runs as eBPF.
+	// The sensor uses eBPF by default, but falls back to kernel mode on unsupported kernel versions.
+	// Resource limits are not recommended when running in kernel mode.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon eBPF Sensor Resources",order=9
 	SensorResources Resources `json:"resources,omitempty"`
 
