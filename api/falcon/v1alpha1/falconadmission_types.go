@@ -190,7 +190,7 @@ type FalconAdmissionConfigSpec struct {
 	ResourcesClientNoWebhook *corev1.ResourceRequirements `json:"resourcesClientNoWebhook,omitempty"`
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Watcher Resources",order=18,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	// +kubebuilder:default:={"limits":{"memory":"384Mi"},"requests":{"cpu":"250m","memory":"384Mi"}}
+	// +kubebuilder:default:={"limits":{"memory":"512Mi"},"requests":{"cpu":"250m","memory":"512Mi"}}
 	ResourcesWatcher *corev1.ResourceRequirements `json:"resourcesWatcher,omitempty"`
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Resources",order=10,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}

@@ -537,10 +537,10 @@ spec:
                   resourcesWatcher:
                     default:
                       limits:
-                        memory: 384Mi
+                        memory: 512Mi
                       requests:
                         cpu: 250m
-                        memory: 384Mi
+                        memory: 512Mi
                     description: ResourceRequirements describes the compute resource
                       requirements.
                     properties:
