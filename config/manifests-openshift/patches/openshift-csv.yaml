@@ -1,0 +1,9 @@
+- op: add
+  path: /metadata/annotations/operators.openshift.io~1valid-subscription
+  value: Not required to use this operator
+- op: replace
+  path: /metadata/annotations/repository
+  value: registry.connect.redhat.com/crowdstrike/falcon-operator
+- op: replace
+  path: /metadata/annotations/support
+  value: CrowdStrike
