@@ -100,10 +100,13 @@ type FalconNodeSensorConfig struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=8
 	NodeCleanup *bool `json:"disableCleanup,omitempty"`
 
-	// Configure resource requests and limits for the DaemonSet Sensor. Only applies when using the eBPF backend.
+	// Configure resource requests and limits for the DaemonSet Sensor.
+	// The sensor uses eBPF by default, but falls back to kernel mode on unsupported kernel versions.
+	// Resource limits are not recommended when running in kernel mode.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon eBPF Sensor Resources",order=9
 	SensorResources Resources `json:"resources,omitempty"`
 
+	// Deprecated: This option is deprecated and will be ignored. It may be removed in a future sensor release.
 	// Sets the backend to be used by the DaemonSet Sensor.
 	// +kubebuilder:default=bpf
 	// +kubebuilder:validation:Enum=kernel;bpf
@@ -148,11 +151,11 @@ type PriorityClassConfig struct {
 }
 
 type Resources struct {
-	// Sets the resource limits for the DaemonSet Sensor. Only applies when using the eBPF backend.
+	// Sets the resource limits for the DaemonSet Sensor.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Limits ResourceList `json:"limits,omitempty"`
 
-	// Sets the resource requests for the DaemonSet Sensor. Only applies when using the eBPF backend.
+	// Sets the resource requests for the DaemonSet Sensor.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Requests ResourceList `json:"requests,omitempty"`
 }
@@ -170,6 +173,11 @@ type ResourceList struct {
 
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	EphemeralStorage string `json:"ephemeral-storage,omitempty"`
+}
+
+// IsConfigured returns true if any resource value has been set.
+func (r Resources) IsConfigured() bool {
+	return r.Limits != (ResourceList{}) || r.Requests != (ResourceList{})
 }
 
 type AutoPilot struct {

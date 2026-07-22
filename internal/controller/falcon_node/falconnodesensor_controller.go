@@ -118,6 +118,10 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	if nodesensor.Spec.Node.Backend != "" {
+		logger.V(1).Info("FalconNodeSensor backend field is deprecated and will be ignored; the backend is always bpf", "backend", nodesensor.Spec.Node.Backend)
+	}
+
 	validate, err := k8sutils.CheckRunningPodLabels(r.Reader, ctx, nodesensor.Spec.InstallNamespace, common.CRLabels("daemonset", nodesensor.Name, common.FalconKernelSensor))
 	if err != nil {
 		return ctrl.Result{}, err
