@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.5
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.24.7
 	github.com/cert-manager/cert-manager v1.12.14
-	github.com/crowdstrike/gofalcon v0.19.0
+	github.com/crowdstrike/gofalcon v0.21.1
 	github.com/go-logr/logr v1.4.3
 	github.com/go-openapi/swag v0.23.0
 	github.com/google/go-cmp v0.7.0
@@ -171,7 +171,7 @@ require (
 	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/vbatts/tar-split v0.12.2 // indirect
 	github.com/vbauerster/mpb/v8 v8.10.2 // indirect
-	go.mongodb.org/mongo-driver v1.14.0 // indirect
+	go.mongodb.org/mongo-driver v1.17.7 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
