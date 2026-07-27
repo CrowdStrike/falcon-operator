@@ -90,6 +90,7 @@ spec:
                     - autodiscover
                     - us-1
                     - us-2
+                    - us-3
                     - eu-1
                     - us-gov-1
                     - us-gov-2
@@ -860,6 +861,7 @@ spec:
                         - autodiscover
                         - us-1
                         - us-2
+                        - us-3
                         - eu-1
                         - us-gov-1
                         - us-gov-2
@@ -1062,6 +1064,7 @@ spec:
                         - autodiscover
                         - us-1
                         - us-2
+                        - us-3
                         - eu-1
                         - us-gov-1
                         - us-gov-2
@@ -3504,6 +3507,7 @@ spec:
                         - autodiscover
                         - us-1
                         - us-2
+                        - us-3
                         - eu-1
                         - us-gov-1
                         - us-gov-2
@@ -4118,6 +4122,7 @@ spec:
                         enum:
                         - us-1
                         - us-2
+                        - us-3
                         - eu-1
                         - us-gov-1
                         - us-gov-2
@@ -4172,6 +4177,7 @@ spec:
                         - autodiscover
                         - us-1
                         - us-2
+                        - us-3
                         - eu-1
                         - us-gov-1
                         - us-gov-2
