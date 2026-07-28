@@ -2,6 +2,7 @@ package assets
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -46,6 +47,8 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 	initContainers := []corev1.Container{}
 	var registryCAConfigMapName string = ""
 	labels := common.CRLabels("deployment", name, component)
+	podLabels := maps.Clone(labels)
+	maps.Copy(podLabels, common.OperatorMetaLabels())
 
 	if falconContainer.Spec.Injector.Resources != nil {
 		resources = falconContainer.Spec.Injector.Resources
@@ -160,7 +163,7 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
+					Labels: podLabels,
 					Annotations: map[string]string{
 						common.FalconContainerInjection: "disabled",
 					},
@@ -191,6 +194,7 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 							Image:           imageUri,
 							ImagePullPolicy: falconContainer.Spec.Injector.ImagePullPolicy,
 							Command:         common.FalconInjectorCommand,
+							Env:             common.OperatorMetaEnvVars(),
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -252,6 +256,8 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 // ImageAnalyzerDeployment returns a Deployment object for the CrowdStrike Falcon IAR Controller
 func ImageAnalyzerDeployment(name string, namespace string, component string, imageUri string, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) *appsv1.Deployment {
 	labels := common.CRLabels("deployment", name, component)
+	podLabels := maps.Clone(labels)
+	maps.Copy(podLabels, common.OperatorMetaLabels())
 	var replicaCount int32 = 1
 	hostPathFile := corev1.HostPathFile
 	var rootUid int64 = 0
@@ -339,7 +345,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 			Strategy: imageAnalyzerDepUpdateStrategy(falconImageAnalyzer),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
+					Labels: podLabels,
 					Annotations: map[string]string{
 						common.FalconContainerInjection: "disabled",
 					},
@@ -373,6 +379,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
+							Env: common.OperatorMetaEnvVars(),
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -409,6 +416,8 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 	sizeLimitPrivate := resource.MustParse("4Ki")
 	sizeLimitWatcher := resource.MustParse("64Mi")
 	labels := common.CRLabels("deployment", name, component)
+	podLabels := maps.Clone(labels)
+	maps.Copy(podLabels, common.OperatorMetaLabels())
 	registryCAConfigMapName := ""
 	registryCABundleConfigMapName := name + "-registry-certs"
 
@@ -524,6 +533,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 			Value: falconAdmission.Spec.AdmissionConfig.FalconImageAnalyzerNamespace,
 		})
 	}
+	falconClientEnv = common.AppendUniqueEnvVars(falconClientEnv, common.OperatorMetaEnvVars())
 
 	kacContainers := &[]corev1.Container{
 		{
@@ -607,6 +617,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 					},
 				},
 			},
+			Env: common.OperatorMetaEnvVars(),
 			EnvFrom: []corev1.EnvFromSource{
 				{
 					ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -742,7 +753,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 			Strategy: admissionDepUpdateStrategy(falconAdmission),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
+					Labels: podLabels,
 					Annotations: map[string]string{
 						common.FalconContainerInjection: "disabled",
 					},
@@ -883,7 +894,7 @@ func admissionDepWatcherEnvVars(admission *falconv1alpha1.FalconAdmission) []cor
 		},
 	}
 
-	return envVars
+	return common.AppendUniqueEnvVars(envVars, common.OperatorMetaEnvVars())
 }
 
 func getNodeAffinity(nodeAffinity *corev1.NodeAffinity) *corev1.Affinity {

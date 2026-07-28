@@ -6,12 +6,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
+	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/operator-framework/operator-lib/proxy"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/version"
+	k8sversion "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,7 +53,7 @@ func FCAdmissionReviewVersions() []string {
 	return fcArv
 }
 
-func GetKubernetesVersion() *version.Info {
+func GetKubernetesVersion() *k8sversion.Info {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -63,12 +65,12 @@ func GetKubernetesVersion() *version.Info {
 		panic(err.Error())
 	}
 
-	version, err := clientset.DiscoveryClient.ServerVersion()
+	serverVersion, err := clientset.DiscoveryClient.ServerVersion()
 	if err != nil {
 		panic(err.Error())
 	}
 
-	return version
+	return serverVersion
 }
 
 func EncodedBase64String(data string) []byte {
@@ -236,4 +238,35 @@ func GetNamespacedObject(ctx context.Context, client client.Client, apiReader cl
 		return err
 	}
 	return apiReader.Get(ctx, key, obj, opts...)
+}
+
+// OperatorMetaLabels returns labels carrying the operator manifest and image versions.
+func OperatorMetaLabels() map[string]string {
+	return map[string]string{
+		FalconOperatorManifestKey: os.Getenv("OPERATOR_MANIFEST"),
+		FalconOperatorVersionKey:  version.Get(),
+	}
+}
+
+func OperatorMetaEnvVars() []corev1.EnvVar {
+	return []corev1.EnvVar{
+		{
+			Name: "OPERATOR_MANIFEST",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  fmt.Sprintf("metadata.labels['%s']", FalconOperatorManifestKey),
+				},
+			},
+		},
+		{
+			Name: "OPERATOR_VERSION",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  fmt.Sprintf("metadata.labels['%s']", FalconOperatorVersionKey),
+				},
+			},
+		},
+	}
 }

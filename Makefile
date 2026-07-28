@@ -297,6 +297,7 @@ bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metada
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
+	perl -pi -e 's/FALCON_OPERATOR_MANIFEST_PLACEHOLDER/$(VERSION)/g' bundle/manifests/falcon-operator.clusterserviceversion.yaml
 	$(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: bundle-build
@@ -351,6 +352,7 @@ catalog-push: ## Push a catalog image.
 .PHONY: non-olm
 non-olm: kustomize ## Generate non-olm deployment manifest
 	$(KUSTOMIZE) build config/non-olm -o deploy/falcon-operator.yaml
+	perl -pi -e 's/FALCON_OPERATOR_MANIFEST_PLACEHOLDER/$(VERSION)/g' deploy/falcon-operator.yaml
 
 .PHONY: bundle-openshift
 bundle-openshift: manifests kustomize operator-sdk ## Generate OpenShift bundle with certification requirements
