@@ -359,6 +359,7 @@ bundle-openshift: manifests kustomize operator-sdk ## Generate OpenShift bundle 
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS) --channels=certified-1.0 --default-channel=certified-1.0
+	perl -pi -e 's/FALCON_OPERATOR_MANIFEST_PLACEHOLDER/$(VERSION)/g' bundle/manifests/falcon-operator.clusterserviceversion.yaml
 	@echo "Applying OpenShift-specific patches..."
 	@yq -i '.[0].value = "falcon-operator.v$(PREVIOUS_VERSION)"' config/manifests-openshift/patches/replaces.yaml
 	@hack/patch-openshift-bundle.sh
