@@ -191,6 +191,7 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 							Image:           imageUri,
 							ImagePullPolicy: falconContainer.Spec.Injector.ImagePullPolicy,
 							Command:         common.FalconInjectorCommand,
+							Env:             common.OperatorMetaEnvVars(),
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -373,6 +374,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 									Protocol:      corev1.ProtocolTCP,
 								},
 							},
+							Env: common.OperatorMetaEnvVars(),
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -524,6 +526,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 			Value: falconAdmission.Spec.AdmissionConfig.FalconImageAnalyzerNamespace,
 		})
 	}
+	falconClientEnv = common.AppendUniqueEnvVars(falconClientEnv, common.OperatorMetaEnvVars())
 
 	kacContainers := &[]corev1.Container{
 		{
@@ -607,6 +610,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 					},
 				},
 			},
+			Env: common.OperatorMetaEnvVars(),
 			EnvFrom: []corev1.EnvFromSource{
 				{
 					ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -883,7 +887,7 @@ func admissionDepWatcherEnvVars(admission *falconv1alpha1.FalconAdmission) []cor
 		},
 	}
 
-	return envVars
+	return common.AppendUniqueEnvVars(envVars, common.OperatorMetaEnvVars())
 }
 
 func getNodeAffinity(nodeAffinity *corev1.NodeAffinity) *corev1.Affinity {

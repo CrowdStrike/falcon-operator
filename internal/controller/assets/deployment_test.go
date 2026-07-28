@@ -310,6 +310,7 @@ func testSideCarDeployment(name string, namespace string, component string, imag
 							Image:           imageUri,
 							ImagePullPolicy: falconContainer.Spec.Injector.ImagePullPolicy,
 							Command:         common.FalconInjectorCommand,
+							Env:             common.OperatorMetaEnvVars(),
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -413,7 +414,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 					},
 				},
 			},
-			Env: []corev1.EnvVar{
+			Env: common.AppendUniqueEnvVars([]corev1.EnvVar{
 				{
 					Name: "__CS_POD_NAMESPACE",
 					ValueFrom: &corev1.EnvVarSource{
@@ -441,7 +442,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 						},
 					},
 				},
-			},
+			}, common.OperatorMetaEnvVars()),
 			EnvFrom: []corev1.EnvFromSource{
 				{
 					ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -518,6 +519,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 					},
 				},
 			},
+			Env: common.OperatorMetaEnvVars(),
 			EnvFrom: []corev1.EnvFromSource{
 				{
 					ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -592,8 +594,8 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 					},
 				},
 			},
-			Env: []corev1.EnvVar{
-				corev1.EnvVar{
+			Env: common.AppendUniqueEnvVars([]corev1.EnvVar{
+				{
 					Name: "__CS_POD_NAMESPACE",
 					ValueFrom: &corev1.EnvVarSource{
 						FieldRef: &corev1.ObjectFieldSelector{
@@ -602,7 +604,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 						},
 					},
 				},
-				corev1.EnvVar{
+				{
 					Name: "__CS_POD_NAME",
 					ValueFrom: &corev1.EnvVarSource{
 						FieldRef: &corev1.ObjectFieldSelector{
@@ -611,7 +613,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 						},
 					},
 				},
-				corev1.EnvVar{
+				{
 					Name: "__CS_POD_NODENAME",
 					ValueFrom: &corev1.EnvVarSource{
 						FieldRef: &corev1.ObjectFieldSelector{
@@ -620,7 +622,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 						},
 					},
 				},
-			},
+			}, common.OperatorMetaEnvVars()),
 			EnvFrom: []corev1.EnvFromSource{
 				{
 					ConfigMapRef: &corev1.ConfigMapEnvSource{

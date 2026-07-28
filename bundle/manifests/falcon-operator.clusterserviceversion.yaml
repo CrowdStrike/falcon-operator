@@ -2422,6 +2422,8 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: OPERATOR_NAME
                   value: falcon-operator
+                - name: OPERATOR_MANIFEST
+                  value: 1.13.0
                 image: quay.io/crowdstrike/falcon-operator:1.13.0
                 livenessProbe:
                   httpGet:
