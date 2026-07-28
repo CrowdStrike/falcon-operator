@@ -3,7 +3,6 @@ package assets
 import (
 	"context"
 	"fmt"
-	"maps"
 	"testing"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -145,8 +144,6 @@ func testSideCarDeployment(name string, namespace string, component string, imag
 	initContainers := []corev1.Container{}
 	var registryCAConfigMapName string = ""
 	labels := common.CRLabels("deployment", name, component)
-	podLabels := maps.Clone(labels)
-	maps.Copy(podLabels, common.OperatorMetaLabels())
 
 	if falconContainer.Spec.Injector.Resources != nil {
 		resources = falconContainer.Spec.Injector.Resources
@@ -262,7 +259,7 @@ func testSideCarDeployment(name string, namespace string, component string, imag
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: podLabels,
+					Labels: labels,
 					Annotations: map[string]string{
 						common.FalconContainerInjection: "disabled",
 					},
@@ -385,8 +382,6 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 	sizeLimitPrivate := resource.MustParse("4Ki")
 	sizeLimitWatcher := resource.MustParse("64Mi")
 	labels := common.CRLabels("deployment", name, component)
-	podLabels := maps.Clone(labels)
-	maps.Copy(podLabels, common.OperatorMetaLabels())
 
 	if falconAdmission.Spec.AdmissionConfig.ResourcesClient != nil {
 		resourcesClient = falconAdmission.Spec.AdmissionConfig.ResourcesClient
@@ -714,7 +709,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 			Strategy: admissionDepUpdateStrategy(falconAdmission),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: podLabels,
+					Labels: labels,
 					Annotations: map[string]string{
 						common.FalconContainerInjection: "disabled",
 					},

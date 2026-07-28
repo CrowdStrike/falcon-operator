@@ -46,8 +46,7 @@ const (
 	FalconCreatedKey         = "crowdstrike.com/created-by"
 	FalconAdmissionReviewKey = "falcon.crowdstrike.com/admission-review"
 
-	FalconOperatorManifestKey = "crowdstrike.com/operator-manifest"
-	FalconOperatorVersionKey  = "crowdstrike.com/operator-version"
+	FalconOperatorVersionKey = "crowdstrike.com/operator-version"
 
 	FalconKernelSensor        = "kernel_sensor"
 	FalconSidecarSensor       = "container_sensor"

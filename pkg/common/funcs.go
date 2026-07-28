@@ -240,33 +240,15 @@ func GetNamespacedObject(ctx context.Context, client client.Client, apiReader cl
 	return apiReader.Get(ctx, key, obj, opts...)
 }
 
-// OperatorMetaLabels returns labels carrying the operator manifest and image versions.
-func OperatorMetaLabels() map[string]string {
-	return map[string]string{
-		FalconOperatorManifestKey: os.Getenv("OPERATOR_MANIFEST"),
-		FalconOperatorVersionKey:  version.Get(),
-	}
-}
-
 func OperatorMetaEnvVars() []corev1.EnvVar {
 	return []corev1.EnvVar{
 		{
-			Name: "OPERATOR_MANIFEST",
-			ValueFrom: &corev1.EnvVarSource{
-				FieldRef: &corev1.ObjectFieldSelector{
-					APIVersion: "v1",
-					FieldPath:  fmt.Sprintf("metadata.labels['%s']", FalconOperatorManifestKey),
-				},
-			},
+			Name:  "OPERATOR_MANIFEST",
+			Value: os.Getenv("OPERATOR_MANIFEST"),
 		},
 		{
-			Name: "OPERATOR_VERSION",
-			ValueFrom: &corev1.EnvVarSource{
-				FieldRef: &corev1.ObjectFieldSelector{
-					APIVersion: "v1",
-					FieldPath:  fmt.Sprintf("metadata.labels['%s']", FalconOperatorVersionKey),
-				},
-			},
+			Name:  "OPERATOR_VERSION",
+			Value: version.Get(),
 		},
 	}
 }

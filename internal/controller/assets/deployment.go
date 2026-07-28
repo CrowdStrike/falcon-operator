@@ -2,7 +2,6 @@ package assets
 
 import (
 	"fmt"
-	"maps"
 	"reflect"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -47,8 +46,6 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 	initContainers := []corev1.Container{}
 	var registryCAConfigMapName string = ""
 	labels := common.CRLabels("deployment", name, component)
-	podLabels := maps.Clone(labels)
-	maps.Copy(podLabels, common.OperatorMetaLabels())
 
 	if falconContainer.Spec.Injector.Resources != nil {
 		resources = falconContainer.Spec.Injector.Resources
@@ -163,7 +160,7 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: podLabels,
+					Labels: labels,
 					Annotations: map[string]string{
 						common.FalconContainerInjection: "disabled",
 					},
@@ -256,8 +253,6 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 // ImageAnalyzerDeployment returns a Deployment object for the CrowdStrike Falcon IAR Controller
 func ImageAnalyzerDeployment(name string, namespace string, component string, imageUri string, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) *appsv1.Deployment {
 	labels := common.CRLabels("deployment", name, component)
-	podLabels := maps.Clone(labels)
-	maps.Copy(podLabels, common.OperatorMetaLabels())
 	var replicaCount int32 = 1
 	hostPathFile := corev1.HostPathFile
 	var rootUid int64 = 0
@@ -345,7 +340,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 			Strategy: imageAnalyzerDepUpdateStrategy(falconImageAnalyzer),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: podLabels,
+					Labels: labels,
 					Annotations: map[string]string{
 						common.FalconContainerInjection: "disabled",
 					},
@@ -416,8 +411,6 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 	sizeLimitPrivate := resource.MustParse("4Ki")
 	sizeLimitWatcher := resource.MustParse("64Mi")
 	labels := common.CRLabels("deployment", name, component)
-	podLabels := maps.Clone(labels)
-	maps.Copy(podLabels, common.OperatorMetaLabels())
 	registryCAConfigMapName := ""
 	registryCABundleConfigMapName := name + "-registry-certs"
 
@@ -753,7 +746,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 			Strategy: admissionDepUpdateStrategy(falconAdmission),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: podLabels,
+					Labels: labels,
 					Annotations: map[string]string{
 						common.FalconContainerInjection: "disabled",
 					},

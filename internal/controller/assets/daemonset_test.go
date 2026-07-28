@@ -198,7 +198,6 @@ func TestGKEManageAutoPilotLabels(t *testing.T) {
 	falconNode.Spec.Node.GKE.CleanupAllowListVersion = &cleanupAllowlistVersion
 
 	commonLabels := common.CRLabels(dsType, dsName, common.FalconKernelSensor)
-	maps.Copy(commonLabels, common.OperatorMetaLabels())
 
 	want := map[string]string{
 		common.GKEAutoPilotAllowListLabelKey: fmt.Sprintf("%s-%s", common.GKEAutoPilotDeployDSAllowlistPrefix, deployAllowlistVersion),

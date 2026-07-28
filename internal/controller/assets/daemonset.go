@@ -93,8 +93,6 @@ func dsManageAutoPilotLabels(dsType string, dsName string, f func(*falconv1alpha
 		maps.Copy(dsLabels, f(node))
 	}
 
-	maps.Copy(dsLabels, common.OperatorMetaLabels())
-
 	return dsLabels
 }
 
