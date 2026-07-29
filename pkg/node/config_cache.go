@@ -93,6 +93,10 @@ func (cc *ConfigCache) SensorEnvVars() map[string]string {
 		sensorConfig["FALCON_CLUSTER_NAME"] = sanitizeClusterName(cc.nodesensor.Spec.Node.ClusterName)
 	}
 
+	for _, ev := range common.OperatorMetaEnvVars() {
+		sensorConfig[ev.Name] = ev.Value
+	}
+
 	return sensorConfig
 }
 
