@@ -7858,8 +7858,9 @@ spec:
                         type: object
                       backend:
                         default: bpf
-                        description: Sets the backend to be used by the DaemonSet
-                          Sensor.
+                        description: |-
+                          Deprecated: This option is deprecated and will be ignored. It may be removed in a future sensor release.
+                          Sets the backend to be used by the DaemonSet Sensor.
                         enum:
                         - kernel
                         - bpf
@@ -8149,12 +8150,14 @@ spec:
                             type: integer
                         type: object
                       resources:
-                        description: Configure resource requests and limits for the
-                          DaemonSet Sensor. Only applies when using the eBPF backend.
+                        description: |-
+                          Configure resource requests and limits for the DaemonSet Sensor.
+                          The sensor uses eBPF by default, but falls back to kernel mode on unsupported kernel versions.
+                          Resource limits are not recommended when running in kernel mode.
                         properties:
                           limits:
                             description: Sets the resource limits for the DaemonSet
-                              Sensor. Only applies when using the eBPF backend.
+                              Sensor.
                             properties:
                               cpu:
                                 description: Minimum allowed is 250m.
@@ -8169,7 +8172,7 @@ spec:
                             type: object
                           requests:
                             description: Sets the resource requests for the DaemonSet
-                              Sensor. Only applies when using the eBPF backend.
+                              Sensor.
                             properties:
                               cpu:
                                 description: Minimum allowed is 250m.
@@ -9388,7 +9391,9 @@ spec:
                     type: object
                   backend:
                     default: bpf
-                    description: Sets the backend to be used by the DaemonSet Sensor.
+                    description: |-
+                      Deprecated: This option is deprecated and will be ignored. It may be removed in a future sensor release.
+                      Sets the backend to be used by the DaemonSet Sensor.
                     enum:
                     - kernel
                     - bpf
@@ -9676,12 +9681,13 @@ spec:
                         type: integer
                     type: object
                   resources:
-                    description: Configure resource requests and limits for the DaemonSet
-                      Sensor. Only applies when using the eBPF backend.
+                    description: |-
+                      Configure resource requests and limits for the DaemonSet Sensor.
+                      The sensor uses eBPF by default, but falls back to kernel mode on unsupported kernel versions.
+                      Resource limits are not recommended when running in kernel mode.
                     properties:
                       limits:
                         description: Sets the resource limits for the DaemonSet Sensor.
-                          Only applies when using the eBPF backend.
                         properties:
                           cpu:
                             description: Minimum allowed is 250m.
@@ -9696,7 +9702,7 @@ spec:
                         type: object
                       requests:
                         description: Sets the resource requests for the DaemonSet
-                          Sensor. Only applies when using the eBPF backend.
+                          Sensor.
                         properties:
                           cpu:
                             description: Minimum allowed is 250m.
