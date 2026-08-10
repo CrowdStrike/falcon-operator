@@ -389,6 +389,7 @@ func ImageAnalyzerDeployment(name string, namespace string, component string, im
 					NodeSelector:       common.NodeSelector,
 					Volumes:            volumes,
 					PriorityClassName:  falconImageAnalyzer.Spec.ImageAnalyzerConfig.PriorityClass.Name,
+					Tolerations:        falconImageAnalyzer.Spec.Tolerations,
 				},
 			},
 		},
@@ -484,7 +485,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 	}
 
 	if falconAdmission.Spec.AdmissionConfig.Replicas == nil || *falconAdmission.Spec.AdmissionConfig.Replicas != 1 {
-		log.Info("ignoring Replicas setting as only one is currently supported")
+		log.V(1).Info("ignoring Replicas setting as only one is currently supported")
 	}
 
 	falconClientEnv := []corev1.EnvVar{
@@ -770,6 +771,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 					PriorityClassName:  common.FalconPriorityClassName,
 					Containers:         *kacContainers,
 					Volumes:            volumes,
+					Tolerations:        falconAdmission.Spec.AdmissionConfig.Tolerations,
 				},
 			},
 		},

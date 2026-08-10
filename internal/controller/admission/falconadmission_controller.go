@@ -720,6 +720,29 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionDeployment(ctx context.Con
 			}
 		}
 
+		mergedTolerations := dep.Spec.Template.Spec.Tolerations
+		for _, existingTol := range existingDeployment.Spec.Template.Spec.Tolerations {
+			found := false
+			for _, specTol := range dep.Spec.Template.Spec.Tolerations {
+				if existingTol.Key == specTol.Key && existingTol.Effect == specTol.Effect {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				mergedTolerations = append(mergedTolerations, existingTol)
+			}
+		}
+
+		if !equality.Semantic.DeepEqual(existingDeployment.Spec.Template.Spec.Tolerations, mergedTolerations) {
+			log.V(1).Info("Updating FalconAdmission Deployment: Tolerations changed",
+				"old", existingDeployment.Spec.Template.Spec.Tolerations,
+				"new", mergedTolerations)
+			existingDeployment.Spec.Template.Spec.Tolerations = mergedTolerations
+			updated = true
+		}
+
 		if updated {
 			existingDeployment.SetGroupVersionKind(appsv1.SchemeGroupVersion.WithKind("Deployment"))
 			if err := k8sutils.Update(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, existingDeployment); err != nil {
