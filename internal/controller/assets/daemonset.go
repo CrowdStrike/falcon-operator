@@ -212,8 +212,16 @@ func volumes() []corev1.Volume {
 				},
 			},
 		},
+		{
+			Name: "cs-config",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: common.FalconConfigDir,
+					Type: &pathTypeUnset,
+				},
+			},
+		},
 	}
-
 }
 
 func DaemonsetConfigMapName(node *falconv1alpha1.FalconNodeSensor) string {
@@ -333,6 +341,10 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 								{
 									Name:      "falconstore",
 									MountPath: common.FalconStoreFile,
+								},
+								{
+									Name:      "cs-config",
+									MountPath: common.FalconConfigDir,
 								},
 							},
 							Resources: dsResources(node),
