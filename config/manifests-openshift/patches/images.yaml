@@ -1,0 +1,39 @@
+- op: replace
+  path: /metadata/annotations/containerImage
+  value: registry.connect.redhat.com/crowdstrike/falcon-operator@OPERATOR_DIGEST
+- op: replace
+  path: /spec/install/spec/deployments/0/spec/template/spec/containers/0/image
+  value: registry.connect.redhat.com/crowdstrike/falcon-operator@OPERATOR_DIGEST
+- op: add
+  path: /spec/install/spec/deployments/0/spec/template/spec/containers/0/env/-
+  value:
+    name: RELATED_IMAGE_NODE_SENSOR
+    value: registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@SENSOR_DIGEST
+- op: add
+  path: /spec/install/spec/deployments/0/spec/template/spec/containers/0/env/-
+  value:
+    name: RELATED_IMAGE_SIDECAR_SENSOR
+    value: registry.crowdstrike.com/falcon-container/release/falcon-container@CONTAINER_DIGEST
+- op: add
+  path: /spec/install/spec/deployments/0/spec/template/spec/containers/0/env/-
+  value:
+    name: RELATED_IMAGE_ADMISSION_CONTROLLER
+    value: registry.crowdstrike.com/falcon-kac/release/falcon-kac@KAC_DIGEST
+- op: add
+  path: /spec/install/spec/deployments/0/spec/template/spec/containers/0/env/-
+  value:
+    name: RELATED_IMAGE_IMAGE_ANALYZER
+    value: registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@IAR_DIGEST
+- op: add
+  path: /spec/relatedImages
+  value:
+    - image: registry.connect.redhat.com/crowdstrike/falcon-operator@OPERATOR_DIGEST
+      name: operator
+    - image: registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@SENSOR_DIGEST
+      name: node-sensor
+    - image: registry.crowdstrike.com/falcon-container/release/falcon-container@CONTAINER_DIGEST
+      name: sidecar-sensor
+    - image: registry.crowdstrike.com/falcon-kac/release/falcon-kac@KAC_DIGEST
+      name: admission-controller
+    - image: registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@IAR_DIGEST
+      name: image-analyzer

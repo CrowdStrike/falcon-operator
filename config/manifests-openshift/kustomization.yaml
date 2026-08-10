@@ -1,0 +1,23 @@
+# Kustomize overlay for OpenShift bundle generation.
+# Applies OpenShift-specific patches to the generated bundle CSV.
+# This runs AFTER operator-sdk generates the base bundle.
+
+resources:
+- ../../bundle/manifests/falcon-operator.clusterserviceversion.yaml
+
+patches:
+- target:
+    group: operators.coreos.com
+    version: v1alpha1
+    kind: ClusterServiceVersion
+  path: patches/openshift-csv.yaml
+- target:
+    group: operators.coreos.com
+    version: v1alpha1
+    kind: ClusterServiceVersion
+  path: patches/replaces.yaml
+- target:
+    group: operators.coreos.com
+    version: v1alpha1
+    kind: ClusterServiceVersion
+  path: patches/images.yaml
