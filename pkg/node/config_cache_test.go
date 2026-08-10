@@ -116,11 +116,11 @@ func TestSensorEnvVars(t *testing.T) {
 		t.Errorf("SensorEnvVars() mismatch (-want +got): %s", diff)
 	}
 
+	// Backend field is deprecated; setting it must not affect the sensor env vars
 	testConfig.nodesensor.Spec.Node.Backend = "kernel"
-	want["FALCONCTL_OPT_BACKEND"] = "kernel"
 	got = testConfig.SensorEnvVars()
 	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("SensorEnvVars() mismatch (-want +got): %s", diff)
+		t.Errorf("SensorEnvVars() mismatch after setting deprecated Backend field (-want +got): %s", diff)
 	}
 
 	cloudRegion := "us-2"
