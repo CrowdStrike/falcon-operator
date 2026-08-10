@@ -339,16 +339,23 @@ func (r *FalconImageAnalyzerReconciler) reconcileImageAnalyzerDeployment(ctx con
 	}
 
 	if !reflect.DeepEqual(existingDeployment.Spec.Strategy.RollingUpdate, dep.Spec.Strategy.RollingUpdate) {
+		log.V(1).Info("Updating FalconImageAnalyzer Deployment: RollingUpdate strategy changed",
+			"old", existingDeployment.Spec.Strategy.RollingUpdate,
+			"new", dep.Spec.Strategy.RollingUpdate)
 		existingDeployment.Spec.Strategy.RollingUpdate = dep.Spec.Strategy.RollingUpdate
 		updated = true
 	}
 
 	if !reflect.DeepEqual(existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity, dep.Spec.Template.Spec.Affinity.NodeAffinity) {
+		log.V(1).Info("Updating FalconImageAnalyzer Deployment: NodeAffinity changed",
+			"old", existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity,
+			"new", dep.Spec.Template.Spec.Affinity.NodeAffinity)
 		existingDeployment.Spec.Template.Spec.Affinity.NodeAffinity = dep.Spec.Template.Spec.Affinity.NodeAffinity
 		updated = true
 	}
 
 	if updated {
+		existingDeployment.SetGroupVersionKind(appsv1.SchemeGroupVersion.WithKind("Deployment"))
 		if err := k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, existingDeployment); err != nil {
 			return err
 		}
@@ -522,6 +529,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileIARAgentService(ctx context.Con
 
 	if !reflect.DeepEqual(service.Spec, existingService.Spec) {
 		existingService.Spec = service.Spec
+		existingService.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Service"))
 		err = k8sutils.Update(r.Client, ctx, req, log, falconImageAnalyzer, &falconImageAnalyzer.Status, existingService)
 		if err != nil {
 			return err
