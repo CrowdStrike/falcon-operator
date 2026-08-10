@@ -94,6 +94,34 @@ func TestAdmissionDepUpdateStrategy(t *testing.T) {
 	}
 }
 
+// TestImageAnalyzerDepUpdateStrategy tests the Image Analyzer Deployment Update Strategy function
+func TestImageAnalyzerDepUpdateStrategy(t *testing.T) {
+	falconImageAnalyzer := falconv1alpha1.FalconImageAnalyzer{}
+
+	// Test RollingUpdate return value
+	want := appsv1.DeploymentStrategy{
+		Type: appsv1.RollingUpdateDeploymentStrategyType,
+		RollingUpdate: &appsv1.RollingUpdateDeployment{
+			MaxSurge: &intstr.IntOrString{
+				Type:   intstr.Int,
+				IntVal: 1,
+			},
+			MaxUnavailable: &intstr.IntOrString{
+				Type:   intstr.Int,
+				IntVal: 1,
+			},
+		},
+	}
+
+	falconImageAnalyzer.Spec.ImageAnalyzerConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable = &intstr.IntOrString{Type: intstr.Int, IntVal: 1}
+	falconImageAnalyzer.Spec.ImageAnalyzerConfig.DepUpdateStrategy.RollingUpdate.MaxSurge = &intstr.IntOrString{Type: intstr.Int, IntVal: 1}
+
+	got := imageAnalyzerDepUpdateStrategy(&falconImageAnalyzer)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("imageAnalyzerDepUpdateStrategy() mismatch (-want +got): %s", diff)
+	}
+}
+
 // testSideCarDeployment is a helper function to create a Deployment object for testing
 func testSideCarDeployment(name string, namespace string, component string, imageUri string, falconContainer *falconv1alpha1.FalconContainer) *appsv1.Deployment {
 	replicas := int32(123)
