@@ -41,3 +41,9 @@ patches:
       kind: CustomResourceDefinition
       name: falconcontainers.falcon.crowdstrike.com
   path: patches/log_volume_defaults_falconcontainers.yaml
+- target:
+    group: operators.coreos.com
+    version: v1alpha1
+    kind: ClusterServiceVersion
+    name: falcon-operator.v0.0.0
+  path: patches/csv_skips.yaml
