@@ -511,6 +511,7 @@ var _ = Describe("falcon", Ordered, func() {
 			nodeConfig.manageCrdInstance(crApply, manifest)
 			nodeConfig.validateCrStatus()
 			nodeConfig.validateDefaultValues()
+			nodeConfig.validateOperatorEnvVars()
 		})
 		It("should cleanup successfully", func() {
 			nodeConfig.manageCrdInstance(crDelete, manifest)
@@ -526,6 +527,7 @@ var _ = Describe("falcon", Ordered, func() {
 			nodeConfig.manageCrdInstance(crApply, manifest)
 			nodeConfig.validateCrStatus()
 			nodeConfig.validateInitContainerReadOnlyRootFilesystem()
+			nodeConfig.validateOperatorEnvVars()
 		})
 		It("should cleanup successfully", func() {
 			nodeConfig.manageCrdInstance(crDelete, manifest)
@@ -542,6 +544,7 @@ var _ = Describe("falcon", Ordered, func() {
 			kacConfig.validateRunningStatus(shouldBeRunning)
 			kacConfig.validateCrStatus()
 			kacConfig.validateDefaultValues()
+			kacConfig.validateOperatorEnvVars()
 		})
 	})
 
@@ -590,6 +593,7 @@ var _ = Describe("falcon", Ordered, func() {
 			sidecarConfig.validateRunningStatus(shouldBeRunning)
 			sidecarConfig.validateCrStatus()
 			sidecarConfig.validateDefaultValues()
+			sidecarConfig.validateOperatorEnvVars()
 		})
 		It("should cleanup successfully", func() {
 			sidecarConfig.manageCrdInstance(crDelete, manifest)
@@ -605,6 +609,7 @@ var _ = Describe("falcon", Ordered, func() {
 			sidecarConfig.manageCrdInstance(crApply, manifest)
 			sidecarConfig.validateRunningStatus(shouldBeRunning)
 			sidecarConfig.validateCrStatus()
+			sidecarConfig.validateOperatorEnvVars()
 		})
 		It("should cleanup successfully", func() {
 			sidecarConfig.manageCrdInstance(crDelete, manifest)
@@ -625,6 +630,7 @@ var _ = Describe("falcon", Ordered, func() {
 			sidecarConfig.validateRunningStatus(shouldBeRunning)
 			sidecarConfig.validateCrStatus()
 			validateAITapSecrets()
+			sidecarConfig.validateOperatorEnvVars()
 		})
 		It("should cleanup successfully", func() {
 			sidecarConfig.manageCrdInstance(crDelete, manifest)
@@ -640,10 +646,13 @@ var _ = Describe("falcon", Ordered, func() {
 			falconDeploymentConfig.manageCrdInstance(crApply, manifest)
 			kacConfig.validateRunningStatus(shouldBeRunning)
 			kacConfig.validateCrStatus()
+			kacConfig.validateOperatorEnvVars()
 			sidecarConfig.validateRunningStatus(shouldBeRunning)
 			sidecarConfig.validateCrStatus()
+			sidecarConfig.validateOperatorEnvVars()
 			iarConfig.validateRunningStatus(shouldBeRunning)
 			iarConfig.validateCrStatus()
+			iarConfig.validateOperatorEnvVars()
 		})
 		It("should cleanup successfully", func() {
 			falconDeploymentConfig.manageCrdInstance(crDelete, manifest)
@@ -663,11 +672,14 @@ var _ = Describe("falcon", Ordered, func() {
 			falconDeploymentConfig.manageCrdInstance(crApply, manifest)
 			kacConfig.validateRunningStatus(shouldBeRunning)
 			kacConfig.validateCrStatus()
+			kacConfig.validateOperatorEnvVars()
 			nodeConfig.validateRunningStatus(shouldBeRunning)
 			nodeConfig.validateCrStatus()
+			nodeConfig.validateOperatorEnvVars()
 			iarConfig.validateRunningStatus(shouldBeRunning)
 			iarConfig.validateCrStatus()
 			iarConfig.validateDefaultValues()
+			iarConfig.validateOperatorEnvVars()
 		})
 		It("should cleanup successfully", func() {
 			falconDeploymentConfig.manageCrdInstance(crDelete, manifest)
@@ -687,10 +699,13 @@ var _ = Describe("falcon", Ordered, func() {
 			falconDeploymentConfig.manageCrdInstance(crApply, manifest)
 			kacConfig.validateRunningStatus(shouldBeRunning)
 			kacConfig.validateCrStatus()
+			kacConfig.validateOperatorEnvVars()
 			nodeConfig.validateRunningStatus(shouldBeRunning)
 			nodeConfig.validateCrStatus()
+			nodeConfig.validateOperatorEnvVars()
 			iarConfig.validateRunningStatus(shouldBeRunning)
 			iarConfig.validateCrStatus()
+			iarConfig.validateOperatorEnvVars()
 		})
 		It("should cleanup successfully", func() {
 			falconDeploymentConfig.manageCrdInstance(crDelete, manifest)
@@ -719,6 +734,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 			iarConfig.validateRunningStatus(shouldBeRunning)
 			iarConfig.validateCrStatus()
+			iarConfig.validateOperatorEnvVars()
 
 			if reconcileLoopCheck {
 				By("validating no reconcile loop after IAR deployment")
@@ -757,6 +773,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 			iarConfig.validateRunningStatus(shouldBeRunning)
 			iarConfig.validateCrStatus()
+			iarConfig.validateOperatorEnvVars()
 
 			if reconcileLoopCheck {
 				By("validating no reconcile loop after IAR deployment")
