@@ -290,7 +290,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 								AllowPrivilegeEscalation: &escalation,
 								Capabilities:             sensorCapabilities(node, true),
 							},
-							Env: common.AppendUniqueEnvVars([]corev1.EnvVar{
+							Env: []corev1.EnvVar{
 								{
 									Name: "POD_NODE_NAME",
 									ValueFrom: &corev1.EnvVarSource{
@@ -300,7 +300,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 										},
 									},
 								},
-							}, common.OperatorMetaEnvVars()),
+							},
 						},
 					},
 					ServiceAccountName: serviceAccount,
@@ -316,7 +316,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 							Name:            "falcon-node-sensor",
 							Image:           image,
 							ImagePullPolicy: node.Spec.Node.ImagePullPolicy,
-							Env: common.AppendUniqueEnvVars([]corev1.EnvVar{
+							Env: []corev1.EnvVar{
 								{
 									Name: "POD_NODE_NAME",
 									ValueFrom: &corev1.EnvVarSource{
@@ -326,7 +326,7 @@ func Daemonset(dsName, image, serviceAccount string, node *falconv1alpha1.Falcon
 										},
 									},
 								},
-							}, common.OperatorMetaEnvVars()),
+							},
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -406,7 +406,6 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 								AllowPrivilegeEscalation: &escalation,
 								Capabilities:             sensorCapabilities(node, true),
 							},
-							Env: common.OperatorMetaEnvVars(),
 						},
 					},
 					ServiceAccountName: serviceAccount,
@@ -422,7 +421,6 @@ func RemoveNodeDirDaemonset(dsName, image, serviceAccount string, node *falconv1
 								ReadOnlyRootFilesystem:   &readOnlyFs,
 								AllowPrivilegeEscalation: &allowEscalation,
 							},
-							Env: common.OperatorMetaEnvVars(),
 						},
 					},
 				},
