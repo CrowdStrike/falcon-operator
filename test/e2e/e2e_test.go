@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+
 	//nolint:golint
 	//nolint:revive
 	. "github.com/onsi/ginkgo/v2"
@@ -264,7 +266,7 @@ var _ = Describe("falcon", Ordered, func() {
 		}
 	})
 
-	Context("Falcon Operator", Label("FalconNodeSensor", "FalconAdmission", "FalconContainer", "FalconDeployment"), func() {
+	Context("Falcon Operator", Label("FalconNodeSensor", "FalconAdmission", "FalconImageAnalyzer", "FalconContainer", "FalconDeployment"), func() {
 		It("should run successfully", func() {
 
 			var err error
@@ -695,6 +697,34 @@ var _ = Describe("falcon", Ordered, func() {
 			kacConfig.waitForNamespaceDeletion()
 			iarConfig.waitForNamespaceDeletion()
 			secretConfig.waitForNamespaceDeletion()
+		})
+	})
+
+	Context("Falcon Image Analyzer", Label("FalconImageAnalyzer"), func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconimageanalyzer.yaml"
+		It("should deploy successfully", func() {
+			By("loading and modifying the FalconImageAnalyzer manifest")
+			var iar falconv1alpha1.FalconImageAnalyzer
+			err := loadManifest(manifest, &iar)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("applying the modified manifest")
+			err = applyManifest(&iar, iarConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			iarConfig.validateRunningStatus(shouldBeRunning)
+			iarConfig.validateCrStatus()
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after IAR deployment")
+				validateNoReconcileLoop(controllerPodName, namespace, iarConfig.kind, reconcileLoopValidationDuration)
+			}
+		})
+
+		It("should cleanup successfully", func() {
+			iarConfig.manageCrdInstance(crDelete, manifest)
+			iarConfig.validateRunningStatus(shouldBeTerminated)
+			iarConfig.waitForNamespaceDeletion()
 		})
 	})
 })
