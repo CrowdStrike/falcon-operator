@@ -16,7 +16,7 @@ metadata:
     crowdstrike.com/name: falconcontainer
     crowdstrike.com/part-of: Falcon
     crowdstrike.com/provider: crowdstrike
-  name: falcon-container-sensor-aitap
+  name: falcon-container-sensor
 spec:
   falcon_api:
     client_id: PLEASE_FILL_IN
@@ -31,7 +31,7 @@ spec:
       - aitap
   injector:
     aitap:
-      aidrCollectorApiToken: PLEASE_FILL_IN_AIDR_TOKEN
+      aidrCollectorApiToken: PLEASE_FILL_IN
+      aidrCollectorBaseApiUrl: PLEASE_FILL_IN
       namespaces:
         - default
-        - kube-public
