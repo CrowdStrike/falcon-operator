@@ -1325,8 +1325,10 @@ spec:
       - description: Falcon Node Sensor Controller Configuration
         displayName: Falcon Node Sensor Configuration
         path: falconNodeSensor
-      - description: Configure resource requests and limits for the DaemonSet Sensor.
-          Only applies when using the eBPF backend.
+      - description: |-
+          Configure resource requests and limits for the DaemonSet Sensor.
+          The sensor uses eBPF by default, but falls back to kernel mode on unsupported kernel versions.
+          Resource limits are not recommended when running in kernel mode.
         displayName: Falcon eBPF Sensor Resources
         path: falconNodeSensor.node.resources
       - displayName: Falcon Admission Controller Resources
@@ -1458,8 +1460,7 @@ spec:
           purposes.
         displayName: Deploy Allow List Version
         path: falconNodeSensor.node.gke.deployAllowListVersion
-      - description: Sets the resource limits for the DaemonSet Sensor. Only applies
-          when using the eBPF backend.
+      - description: Sets the resource limits for the DaemonSet Sensor.
         displayName: Limits
         path: falconNodeSensor.node.resources.limits
       - description: Minimum allowed is 250m.
@@ -1470,8 +1471,7 @@ spec:
       - description: Minimum allowed is 500Mi.
         displayName: Memory
         path: falconNodeSensor.node.resources.limits.memory
-      - description: Sets the resource requests for the DaemonSet Sensor. Only applies
-          when using the eBPF backend.
+      - description: Sets the resource requests for the DaemonSet Sensor.
         displayName: Requests
         path: falconNodeSensor.node.resources.requests
       - description: Minimum allowed is 250m.
@@ -1853,8 +1853,10 @@ spec:
           Disabling might have unintended consequences for certain operations such as sensor downgrading.
         displayName: Node Cleanup
         path: node.disableCleanup
-      - description: Configure resource requests and limits for the DaemonSet Sensor.
-          Only applies when using the eBPF backend.
+      - description: |-
+          Configure resource requests and limits for the DaemonSet Sensor.
+          The sensor uses eBPF by default, but falls back to kernel mode on unsupported kernel versions.
+          Resource limits are not recommended when running in kernel mode.
         displayName: Falcon eBPF Sensor Resources
         path: node.resources
       - description: Enables the use of GKE Autopilot.
@@ -1886,8 +1888,7 @@ spec:
           purposes.
         displayName: Deploy Allow List Version
         path: node.gke.deployAllowListVersion
-      - description: Sets the resource limits for the DaemonSet Sensor. Only applies
-          when using the eBPF backend.
+      - description: Sets the resource limits for the DaemonSet Sensor.
         displayName: Limits
         path: node.resources.limits
       - description: Minimum allowed is 250m.
@@ -1898,8 +1899,7 @@ spec:
       - description: Minimum allowed is 500Mi.
         displayName: Memory
         path: node.resources.limits.memory
-      - description: Sets the resource requests for the DaemonSet Sensor. Only applies
-          when using the eBPF backend.
+      - description: Sets the resource requests for the DaemonSet Sensor.
         displayName: Requests
         path: node.resources.requests
       - description: Minimum allowed is 250m.
