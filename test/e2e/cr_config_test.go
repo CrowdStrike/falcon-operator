@@ -181,3 +181,48 @@ func (cr crConfig) manageCrdInstance(crCmd crOperation, manifest string) {
 		return err
 	}, defaultTimeout, defaultPollPeriod).Should(Succeed())
 }
+
+// validateOperatorEnvVars checks that running sensor pods expose OPERATOR_VERSION and
+// OPERATOR_MANIFEST env vars with non-empty resolved values via the Downward API.
+func (cr crConfig) validateOperatorEnvVars() {
+	By(fmt.Sprintf("validating OPERATOR_VERSION and OPERATOR_MANIFEST env vars on %s pods", cr.kind))
+
+	componentLabel := fmt.Sprintf("crowdstrike.com/component=%s", cr.componentName)
+
+	getPodName := func() (string, error) {
+		cmd := exec.Command("kubectl", "get", "pods",
+			"-n", cr.namespace,
+			"-l", componentLabel,
+			"--field-selector=status.phase=Running",
+			"-o", "jsonpath={.items[0].metadata.name}",
+		)
+		output, err := utils.Run(cmd)
+		if err != nil {
+			return "", err
+		}
+		name := strings.TrimSpace(string(output))
+		if name == "" {
+			return "", fmt.Errorf("no running pods found with label %s", componentLabel)
+		}
+		return name, nil
+	}
+
+	validateEnvInPod := func(g Gomega) {
+		podName, err := getPodName()
+		g.Expect(err).NotTo(HaveOccurred())
+
+		for _, envVar := range []string{"OPERATOR_VERSION", "OPERATOR_MANIFEST"} {
+			cmd := exec.Command("kubectl", "exec", podName,
+				"-n", cr.namespace,
+				"--", "sh", "-c", fmt.Sprintf("printenv %s", envVar),
+			)
+			output, err := utils.Run(cmd)
+			g.Expect(err).NotTo(HaveOccurred(),
+				fmt.Sprintf("failed to exec into pod %s to check %s", podName, envVar))
+			g.Expect(strings.TrimSpace(string(output))).NotTo(BeEmpty(),
+				fmt.Sprintf("%s should be non-empty in pod %s", envVar, podName))
+		}
+	}
+
+	EventuallyWithOffset(1, validateEnvInPod, defaultTimeout, defaultPollPeriod).Should(Succeed())
+}
