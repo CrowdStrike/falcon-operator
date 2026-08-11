@@ -6,8 +6,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
+	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/test/utils"
+
 	//nolint:golint
 	//nolint:revive
 	. "github.com/onsi/ginkgo/v2"
@@ -15,6 +18,7 @@ import (
 	//nolint:golint
 	//nolint:revive
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/yaml"
 )
 
 type tokenRequest struct {
@@ -173,4 +177,57 @@ func (c crConfig) validateInitContainerReadOnlyRootFilesystem() {
 	output, err := utils.Run(cmd)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	ExpectWithOffset(1, string(output)).To(Equal("true"))
+}
+
+// loadManifest reads a manifest file, unmarshals it into the provided object, and updates credentials
+func loadManifest(manifest string, obj any) error {
+	manifestPath := filepath.Join(projectDir, manifest)
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return err
+	}
+
+	if err := yaml.Unmarshal(data, obj); err != nil {
+		return err
+	}
+
+	falconClientID, falconClientSecret := getCredentials()
+	if falconClientID == "" || falconClientSecret == "" {
+		return nil
+	}
+
+	switch v := obj.(type) {
+	case *falconv1alpha1.FalconImageAnalyzer:
+		v.Spec.FalconAPI.ClientId = falconClientID
+		v.Spec.FalconAPI.ClientSecret = falconClientSecret
+	case *falconv1alpha1.FalconAdmission:
+		v.Spec.FalconAPI.ClientId = falconClientID
+		v.Spec.FalconAPI.ClientSecret = falconClientSecret
+	case *falconv1alpha1.FalconNodeSensor:
+		v.Spec.FalconAPI.ClientId = falconClientID
+		v.Spec.FalconAPI.ClientSecret = falconClientSecret
+	case *falconv1alpha1.FalconContainer:
+		v.Spec.FalconAPI.ClientId = falconClientID
+		v.Spec.FalconAPI.ClientSecret = falconClientSecret
+	case *falconv1alpha1.FalconDeployment:
+		v.Spec.FalconAPI.ClientId = falconClientID
+		v.Spec.FalconAPI.ClientSecret = falconClientSecret
+	}
+
+	return nil
+}
+
+// applyManifest marshals the object to YAML and applies it via kubectl
+func applyManifest(obj any, namespace string) error {
+	// Marshal to YAML
+	data, err := yaml.Marshal(obj)
+	if err != nil {
+		return err
+	}
+
+	// Apply via kubectl
+	cmd := exec.Command("kubectl", "apply", "-f", "-", "-n", namespace)
+	cmd.Stdin = strings.NewReader(string(data))
+	_, err = utils.Run(cmd)
+	return err
 }
