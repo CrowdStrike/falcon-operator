@@ -336,7 +336,7 @@ func TestDaemonset(t *testing.T) {
 								ReadOnlyRootFilesystem:   isInitReadOnlyRootFilesystem(&falconNode),
 								AllowPrivilegeEscalation: &escalation,
 							},
-							Env: []corev1.EnvVar{
+							Env: common.AppendUniqueEnvVars([]corev1.EnvVar{
 								{
 									Name: "POD_NODE_NAME",
 									ValueFrom: &corev1.EnvVarSource{
@@ -346,7 +346,7 @@ func TestDaemonset(t *testing.T) {
 										},
 									},
 								},
-							},
+							}, common.OperatorMetaEnvVars()),
 						},
 					},
 					ServiceAccountName: common.NodeServiceAccountName,
@@ -361,7 +361,7 @@ func TestDaemonset(t *testing.T) {
 							Name:            "falcon-node-sensor",
 							Image:           image,
 							ImagePullPolicy: falconNode.Spec.Node.ImagePullPolicy,
-							Env: []corev1.EnvVar{
+							Env: common.AppendUniqueEnvVars([]corev1.EnvVar{
 								{
 									Name: "POD_NODE_NAME",
 									ValueFrom: &corev1.EnvVarSource{
@@ -371,7 +371,7 @@ func TestDaemonset(t *testing.T) {
 										},
 									},
 								},
-							},
+							}, common.OperatorMetaEnvVars()),
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -496,6 +496,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 								ReadOnlyRootFilesystem:   isInitReadOnlyRootFilesystem(&falconNode),
 								AllowPrivilegeEscalation: &escalation,
 							},
+							Env: common.OperatorMetaEnvVars(),
 						},
 					},
 					ServiceAccountName: common.NodeServiceAccountName,
@@ -511,6 +512,7 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 								ReadOnlyRootFilesystem:   &readOnlyFSEnabled,
 								AllowPrivilegeEscalation: &allowEscalation,
 							},
+							Env: common.OperatorMetaEnvVars(),
 						},
 					},
 				},
