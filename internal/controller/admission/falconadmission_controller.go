@@ -93,6 +93,7 @@ func (r *FalconAdmissionReconciler) GetK8sReader() client.Reader {
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gatewayclasses;gateways;httproutes,verbs=get;list;watch
 //+kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices,verbs=get;list;watch
+//+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
