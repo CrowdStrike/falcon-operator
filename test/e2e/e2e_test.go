@@ -5,7 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	//nolint:golint
@@ -20,46 +22,64 @@ import (
 )
 
 // Environment Variables:
-//   USE_EXISTING_OPERATOR - Set to "true" to run tests against an existing operator installation
-//                           without installing OLM, building images, installing CRDs,
-//                           or deploying the operator. When set, the tests will use
-//                           the operator deployment already present in the cluster.
-//   OPERATOR_NAMESPACE    - Override the namespace where the operator is deployed.
-//                           Defaults to "falcon-operator" when USE_EXISTING_OPERATOR=true,
-//                           otherwise defaults to "falcon-operator-system".
-//   BUNDLE_IMG            - (Optional) Use OLM bundle installation method instead of
-//                           traditional make deploy. Only used when USE_EXISTING_OPERATOR
-//                           is not set.
-//   OPERATOR_IMAGE        - (Optional) Custom operator image to use. Only used when
-//                           USE_EXISTING_OPERATOR is not set and BUNDLE_IMG is not set.
+//   USE_EXISTING_OPERATOR      - Set to "true" to run tests against an existing operator installation
+//                                without installing OLM, building images, installing CRDs,
+//                                or deploying the operator. When set, the tests will use
+//                                the operator deployment already present in the cluster.
+//   OPERATOR_NAMESPACE         - Override the namespace where the operator is deployed.
+//                                Defaults to "falcon-operator" when USE_EXISTING_OPERATOR=true,
+//                                otherwise defaults to "falcon-operator-system".
+//   BUNDLE_IMG                 - (Optional) Use OLM bundle installation method instead of
+//                                traditional make deploy. Only used when USE_EXISTING_OPERATOR
+//                                is not set.
+//   OPERATOR_IMAGE             - (Optional) Custom operator image to use. Only used when
+//                                USE_EXISTING_OPERATOR is not set and BUNDLE_IMG is not set.
+//   SKIP_TESTS                 - (Optional) Comma-delimited list of resource kinds to skip.
+//                                Examples: "FalconNodeSensor", "FalconAdmission,FalconContainer"
+//   RECONCILE_LOOP_CHECK       - (Optional) Set to "true" to enable reconcile loop validation.
 //
 // Example usage with existing operator installation:
 //   USE_EXISTING_OPERATOR=true OPERATOR_NAMESPACE=falcon-operator go test ./test/e2e/...
+//
+// Example usage skipping specific tests:
+//   SKIP_TESTS="FalconNodeSensor,FalconAdmission" go test ./test/e2e/...
+//
+// Example usage enabling reconcile loop checks:
+//   RECONCILE_LOOP_CHECK=true go test ./test/e2e/...
 
 // constant parts of the file
 const (
-	defaultTimeout         = 3 * time.Minute
-	defaultPollPeriod      = 5 * time.Second
-	metricsServiceName     = "falcon-operator-controller-manager-metrics-service"
-	metricsRoleBindingName = "falcon-operator-metrics-binding"
-	serviceAccountName     = "falcon-operator-controller-manager"
-	metricsReaderRoleName  = "falcon-operator-metrics-reader"
-	falconSecretNamespace  = "falcon-secrets"
-	falconSecretName       = "falcon-secret"
-	shouldBeRunning        = true
-	shouldBeTerminated     = false
+	defaultTimeout                  = 3 * time.Minute
+	defaultPollPeriod               = 5 * time.Second
+	reconcileLoopValidationDuration = 30 * time.Second
+	metricsServiceName              = "falcon-operator-controller-manager-metrics-service"
+	metricsRoleBindingName          = "falcon-operator-metrics-binding"
+	serviceAccountName              = "falcon-operator-controller-manager"
+	metricsReaderRoleName           = "falcon-operator-metrics-reader"
+	falconSecretNamespace           = "falcon-secrets"
+	falconSecretName                = "falcon-secret"
+	shouldBeRunning                 = true
+	shouldBeTerminated              = false
 )
 
 var (
-	namespace       string
-	skipMetricsTest bool
+	namespace          string
+	skipMetricsTest    bool
+	controllerPodName  string
+	reconcileLoopCheck bool
 )
 
 var _ = Describe("falcon", Ordered, func() {
 	BeforeAll(func() {
 		skipMetricsTest = false
 
-		// Determine if we're using an existing operator installation
+		reconcileLoopCheck = os.Getenv("RECONCILE_LOOP_CHECK") == "true"
+		if reconcileLoopCheck {
+			By("RECONCILE_LOOP_CHECK: reconcile loop validation will be performed")
+		} else {
+			By("RECONCILE_LOOP_CHECK not set: skipping reconcile loop validation for faster tests")
+		}
+
 		useExistingOperator := os.Getenv("USE_EXISTING_OPERATOR") == "true"
 
 		// Set namespace based on environment or default
@@ -103,6 +123,53 @@ var _ = Describe("falcon", Ordered, func() {
 			"pod-security.kubernetes.io/enforce=privileged")
 		_, err := utils.Run(cmd)
 		Expect(err).To(Not(HaveOccurred()))
+	})
+
+	AfterEach(func() {
+		if !reconcileLoopCheck {
+			return
+		}
+
+		report := CurrentSpecReport()
+
+		// Only run for "deploy successfully" tests, not "cleanup" tests
+		if !strings.Contains(report.LeafNodeText, "should deploy successfully") {
+			return
+		}
+
+		labels := report.Labels()
+
+		// Handle FalconDeployment specially - it creates multiple resources
+		if slices.Contains(labels, "FalconDeployment") {
+			var wg sync.WaitGroup
+			// Check all possible resources that FalconDeployment might create
+			kinds := []string{falconDeploymentConfig.kind, kacConfig.kind, sidecarConfig.kind, nodeConfig.kind, iarConfig.kind}
+
+			for _, kind := range kinds {
+				wg.Add(1)
+				go func(k string) {
+					defer wg.Done()
+					defer GinkgoRecover()
+					validateNoReconcileLoop(controllerPodName, namespace, k, reconcileLoopValidationDuration)
+				}(kind)
+			}
+			wg.Wait()
+			return
+		}
+
+		// For single resource tests
+		var kind string
+		if slices.Contains(labels, "FalconNodeSensor") {
+			kind = nodeConfig.kind
+		} else if slices.Contains(labels, "FalconAdmission") {
+			kind = kacConfig.kind
+		} else if slices.Contains(labels, "FalconContainer") {
+			kind = sidecarConfig.kind
+		}
+
+		if kind != "" {
+			validateNoReconcileLoop(controllerPodName, namespace, kind, reconcileLoopValidationDuration)
+		}
 	})
 
 	AfterAll(func() {
@@ -197,8 +264,7 @@ var _ = Describe("falcon", Ordered, func() {
 		}
 	})
 
-	Context("Falcon Operator", func() {
-		var controllerPodName string
+	Context("Falcon Operator", Label("FalconNodeSensor", "FalconAdmission", "FalconContainer", "FalconDeployment"), func() {
 		It("should run successfully", func() {
 
 			var err error
@@ -435,7 +501,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
-	Context("Falcon Node Sensor", func() {
+	Context("Falcon Node Sensor", Label("FalconNodeSensor"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconnodesensor.yaml"
 		It("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
@@ -449,7 +515,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
-	Context("Falcon Node Sensor - GKE Autopilot", func() {
+	Context("Falcon Node Sensor - GKE Autopilot", Label("FalconNodeSensor"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconnodesensor-gke-autopilot.yaml"
 		It("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
@@ -464,7 +530,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
-	Context("Falcon Admission Controller", func() {
+	Context("Falcon Admission Controller", Label("FalconAdmission"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
 		It("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
@@ -474,7 +540,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
-	Context("Falcon Admission Controller", func() {
+	Context("Falcon Admission Controller", Label("FalconAdmission"), func() {
 		It("should manage falcon-kac-meta configMap changes successfully", func() {
 			manifest := "./config/samples/falcon_v1alpha1_falconadmission_custom_clustername.yaml"
 			updateManifestApiCreds(manifest)
@@ -502,7 +568,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
-	Context("Falcon Admission Controller", func() {
+	Context("Falcon Admission Controller", Label("FalconAdmission"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
 		It("should cleanup successfully", func() {
 			kacConfig.manageCrdInstance(crDelete, manifest)
@@ -511,7 +577,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
-	Context("Falcon Sidecar Sensor", func() {
+	Context("Falcon Sidecar Sensor", Label("FalconContainer"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconcontainer.yaml"
 		It("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
@@ -526,7 +592,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
-	Context("Falcon Sidecar Sensor with Falcon Secret", func() {
+	Context("Falcon Sidecar Sensor with Falcon Secret", Label("FalconContainer"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconcontainer-with-falcon-secret.yaml"
 		It("should deploy successfully", func() {
 			addFalconSecretToManifest(manifest)
@@ -543,7 +609,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
-	Context("Falcon Sidecar Sensor with AITap", func() {
+	Context("Falcon Sidecar Sensor with AITap", Label("FalconContainer"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconcontainer-with-aitap.yaml"
 		It("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
@@ -561,7 +627,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
-	Context("Falcon Deployment Controller with Container Sensor", func() {
+	Context("Falcon Deployment Controller with Container Sensor", Label("FalconDeployment"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falcondeployment-container-sensor.yaml"
 		It("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
@@ -584,7 +650,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
-	Context("Falcon Deployment Controller with Node Sensor", func() {
+	Context("Falcon Deployment Controller with Node Sensor", Label("FalconDeployment"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falcondeployment-node-sensor.yaml"
 		It("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
@@ -607,7 +673,7 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
-	Context("Falcon Deployment Controller with Node Sensor and Falcon Secret", func() {
+	Context("Falcon Deployment Controller with Node Sensor and Falcon Secret", Label("FalconDeployment"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falcondeployment-node-sensor-with-falcon-secret.yaml"
 		It("should deploy successfully", func() {
 			addFalconSecretToManifest(manifest)
