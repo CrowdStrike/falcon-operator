@@ -13,6 +13,18 @@ Use `FalconDeployment` to deploy these Falcon components:
 | Falcon Kubernetes Admission Controller | `FalconAdmission` |
 | Falcon Image Assessment at Runtime agent | `FalconImageAnalyzer` |
 
+### Version Support Matrix
+
+The following table shows the minimum supported sensor version for each component per Operator release. For the full per-component matrix, see the individual resource documentation linked below.
+
+| Operator Version | Node Sensor | Container Sensor | KAC (Admission) | IAR (Image Analyzer) | Notes |
+| ---------------- | ----------- | ---------------- | --------------- | -------------------- | ----- |
+| v1.13.0          | >= 7.35     | >= 7.37          | >= 7.33         | >= 1.0.24            | Added AI-DR support for container sensor (requires >= 7.37). |
+| v1.12.1          | >= 7.35     | >= 7.33          | >= 7.33         | >= 1.0.24            | Added Falcon Data Protection for Cloud support for node sensor.<br/>Added unified image support for IAR. |
+| v1.11.0          | >= 7.31     | >= 7.33          | >= 7.33         | >= 1.0.21, <= 1.0.23 | Added IAR image exclusion support. |
+| v1.10.0          | >= 7.31     | >= 7.33          | >= 7.33         | >= 1.0.21, <= 1.0.23 | Added unified image path support for container and KAC sensors<br/>KAC added extended resource monitoring capabilities. |
+| v1.9.0           | >= 7.31     | <= 7.32          | <= 7.32         | >= 1.0.21, <= 1.0.23 | Added unified image path support for node sensor<br/>KAC added `falconImageAnalyzerNamespace` param.<br/>IAR added Image Analyzer Agent service support. |
+
 ### Required permissions
 
 The Falcon Operator retrieves the component images from the CrowdStrike registry. If you need to create a new API key, see [API clients and keys](https://falcon.crowdstrike.com/api-clients-and-keys). To access the registry, you must have a CrowdStrike API client and key with the necessary scopes for the components you want to deploy.
