@@ -3,12 +3,12 @@
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
-VERSION ?= 1.13.0
+VERSION ?= 1.14.0
 
 # PREVIOUS_VERSION defines the version that this release replaces.
 # Update this value when you bump VERSION to the next release.
 # This is used to set spec.replaces in the OpenShift bundle CSV.
-PREVIOUS_VERSION ?= 1.12.1
+PREVIOUS_VERSION = 1.13.0
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")

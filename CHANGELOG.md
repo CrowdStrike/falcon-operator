@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-08-11
+
+### Changed
+
+- update node.backend docs to align with sensor docs (#844)
+- fix cs-config volume path (#843)
+- move FalconNodeSensor HELM_CHART env to configmap (#842)
+- chore: add OPERATOR_VERSION and OPERATOR_MANIFEST envs to all sensor pods (#841)
+- chore: add us-3 (#839)
+- chore: add make target to build openshift bundle (#828)
+- Deprecate backend field for node sensor (#836)
+- chore: update default KAC watcher memory resources to 512Mi (#835)
+- chore: add s390x label to csv
+- Update docs and remove IAR deployment retries
+- docs: add docs for iar and kac tolerations support
+- chore: bump Makefile version and rebuild all manifests
+- feat: add tolerations support to iar and kac
+- feat(FalconNodeSensor): add new falcon config volume (#833)
+- fix: correct deployment rolling update configuration for KAC and IAR
+- chore: add default value validation to e2e tests
+- chore: remediate CVEs for July 2026
+- chore: Add endpointslices permissions
+- chore: Add IAR e2e test
+- docs: add version support tables for each sensor type (#822)
+- chore: Add infinite reconcile loop check and skips to e2e tests
+- fix: Ensure pinned version of operator-sdk is being used during builds
+- chore: Bump go.opentelemetry.io/otel/sdk to v1.40.0 and google.golang.org/grpc to v1.79.3
+- fix(falcon-container): update aitap e2e tests with latest changes (#818)
+
 ## [1.13.0] - 2026-05-07
 
 ### Changed
