@@ -147,7 +147,7 @@ metadata:
       ]
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
-    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:61ed7dc5d0c5eff462ffdafb42cf0cbe5b99128d0485b6c45c3f20875ab72737
+    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:aa9bb3f92f0447c7f22436934423cc328ef05bf06194bfcb80c02dd6c408a6e9
     createdAt: "2025-11-18T23:39:10Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
@@ -166,7 +166,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: registry.connect.redhat.com/crowdstrike/falcon-operator
     support: CrowdStrike
-  name: falcon-operator.v1.13.0
+  name: falcon-operator.v1.14.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -428,14 +428,13 @@ spec:
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: admissionConfig.nodeAffinity
-      - description: Determines if the admission controller watches for configMap
-          events
-        displayName: Enable ConfigMap Event Watcher
-        path: admissionConfig.configMapWatcherEnabled
       - description: Namespace where Falcon Image Analyzer is installed. KAC needs
           to know this to discover and communicate with IAR.
         displayName: Falcon Image Analyzer Namespace
         path: admissionConfig.falconImageAnalyzerNamespace
+      - description: Specifies tolerations for scheduling the Admission Controller.
+        displayName: Tolerations
+        path: admissionConfig.tolerations
       version: v1alpha1
     - description: FalconContainer is the Schema for the falconcontainers API
       displayName: Falcon Container
@@ -1434,7 +1433,8 @@ spec:
       - description: Set the falcon image analyzer volume size limit.
         displayName: Falcon Image Analyzer Volume Size Limit
         path: falconImageAnalyzer.imageAnalyzerConfig.sizeLimit
-      - description: Specifies node affinity for scheduling the Sensor.
+      - description: Specifies node affinity for scheduling the Falcon Image Analyzer
+          Sensor.
         displayName: Node Affinity
         path: falconImageAnalyzer.nodeAffinity
       - description: Utilize default or Pay-As-You-Go billing.
@@ -1463,11 +1463,17 @@ spec:
       - description: Set the falcon image analyzer volume mount path.
         displayName: Falcon Image Analyzer Volume Mount Path
         path: falconImageAnalyzer.imageAnalyzerConfig.mountPath
+      - description: Specifies tolerations for scheduling the Falcon Image Analyzer
+          Sensor.
+        displayName: Tolerations
+        path: falconImageAnalyzer.tolerations
       - description: Falcon Node Sensor Controller Configuration
         displayName: Falcon Node Sensor Configuration
         path: falconNodeSensor
-      - description: Configure resource requests and limits for the DaemonSet Sensor.
-          Only applies when using the eBPF backend.
+      - description: |-
+          Configure resource requests and limits for the DaemonSet Sensor.
+          The sensor uses eBPF by default, but falls back to kernel mode on unsupported kernel versions.
+          Resource limits are not recommended when running in kernel mode.
         displayName: Falcon eBPF Sensor Resources
         path: falconNodeSensor.node.resources
       - displayName: Falcon Admission Controller Resources
@@ -1560,14 +1566,13 @@ spec:
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: falconAdmission.admissionConfig.nodeAffinity
-      - description: Determines if the admission controller watches for configMap
-          events
-        displayName: Enable ConfigMap Event Watcher
-        path: falconAdmission.admissionConfig.configMapWatcherEnabled
       - description: Namespace where Falcon Image Analyzer is installed. KAC needs
           to know this to discover and communicate with IAR.
         displayName: Falcon Image Analyzer Namespace
         path: falconAdmission.admissionConfig.falconImageAnalyzerNamespace
+      - description: Specifies tolerations for scheduling the Admission Controller.
+        displayName: Tolerations
+        path: falconAdmission.admissionConfig.tolerations
       - description: |-
           Advanced configures various options that go against industry practices or are otherwise not recommended for use.
           Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
@@ -1600,8 +1605,7 @@ spec:
           purposes.
         displayName: Deploy Allow List Version
         path: falconNodeSensor.node.gke.deployAllowListVersion
-      - description: Sets the resource limits for the DaemonSet Sensor. Only applies
-          when using the eBPF backend.
+      - description: Sets the resource limits for the DaemonSet Sensor.
         displayName: Limits
         path: falconNodeSensor.node.resources.limits
       - description: Minimum allowed is 250m.
@@ -1612,8 +1616,7 @@ spec:
       - description: Minimum allowed is 500Mi.
         displayName: Memory
         path: falconNodeSensor.node.resources.limits.memory
-      - description: Sets the resource requests for the DaemonSet Sensor. Only applies
-          when using the eBPF backend.
+      - description: Sets the resource requests for the DaemonSet Sensor.
         displayName: Requests
         path: falconNodeSensor.node.resources.requests
       - description: Minimum allowed is 250m.
@@ -1811,12 +1814,17 @@ spec:
       - description: Set the falcon image analyzer volume size limit.
         displayName: Falcon Image Analyzer Volume Size Limit
         path: imageAnalyzerConfig.sizeLimit
-      - description: Specifies node affinity for scheduling the Sensor.
+      - description: Specifies node affinity for scheduling the Falcon Image Analyzer
+          Sensor.
         displayName: Node Affinity
         path: nodeAffinity
       - description: Set the falcon image analyzer volume mount path.
         displayName: Falcon Image Analyzer Volume Mount Path
         path: imageAnalyzerConfig.mountPath
+      - description: Specifies tolerations for scheduling the Falcon Image Analyzer
+          Sensor.
+        displayName: Tolerations
+        path: tolerations
       - description: Name of the Kubernetes Cluster.
         displayName: Falcon Image Analyzer Cluster Name
         path: imageAnalyzerConfig.clusterName
@@ -1990,8 +1998,10 @@ spec:
           Disabling might have unintended consequences for certain operations such as sensor downgrading.
         displayName: Node Cleanup
         path: node.disableCleanup
-      - description: Configure resource requests and limits for the DaemonSet Sensor.
-          Only applies when using the eBPF backend.
+      - description: |-
+          Configure resource requests and limits for the DaemonSet Sensor.
+          The sensor uses eBPF by default, but falls back to kernel mode on unsupported kernel versions.
+          Resource limits are not recommended when running in kernel mode.
         displayName: Falcon eBPF Sensor Resources
         path: node.resources
       - description: Enables the use of GKE Autopilot.
@@ -2023,8 +2033,7 @@ spec:
           purposes.
         displayName: Deploy Allow List Version
         path: node.gke.deployAllowListVersion
-      - description: Sets the resource limits for the DaemonSet Sensor. Only applies
-          when using the eBPF backend.
+      - description: Sets the resource limits for the DaemonSet Sensor.
         displayName: Limits
         path: node.resources.limits
       - description: Minimum allowed is 250m.
@@ -2035,8 +2044,7 @@ spec:
       - description: Minimum allowed is 500Mi.
         displayName: Memory
         path: node.resources.limits.memory
-      - description: Sets the resource requests for the DaemonSet Sensor. Only applies
-          when using the eBPF backend.
+      - description: Sets the resource requests for the DaemonSet Sensor.
         displayName: Requests
         path: node.resources.requests
       - description: Minimum allowed is 250m.
@@ -2232,6 +2240,14 @@ spec:
           - update
           - watch
         - apiGroups:
+          - discovery.k8s.io
+          resources:
+          - endpointslices
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
           - falcon.crowdstrike.com
           resources:
           - falconadmissions
@@ -2417,15 +2433,17 @@ spec:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
                 - name: OPERATOR_NAME
                   value: falcon-operator
+                - name: OPERATOR_MANIFEST
+                  value: 1.14.0
                 - name: RELATED_IMAGE_NODE_SENSOR
-                  value: registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:931bdf7e1e08f3f0276650222d083ead36732f5ca5d3263b494d3175721e7e4e
+                  value: registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:1d3acdd8d476a4d73ef5f3fe7b2b189f5a5fe76f5866eb58fa35616092874f14
                 - name: RELATED_IMAGE_SIDECAR_SENSOR
-                  value: registry.crowdstrike.com/falcon-container/release/falcon-container@sha256:adc1455b1c304a36b838c7b0bfe0367a3f93d7d85d735e6c4fcd4e3af2e9b8a7
+                  value: registry.crowdstrike.com/falcon-container/release/falcon-container@sha256:685810bb17b9f6c50ebdb7c56ce1108207180b647c104644c7a17ff88ac40705
                 - name: RELATED_IMAGE_ADMISSION_CONTROLLER
-                  value: registry.crowdstrike.com/falcon-kac/release/falcon-kac@sha256:68bc61209cf6966870a1afac95d660e3d78cfe1ee854a3c3ab11dfb830551c66
+                  value: registry.crowdstrike.com/falcon-kac/release/falcon-kac@sha256:fb4d16cf5b85dc4fe6a682cbb648e86b28adab976eb6d9239ba48718a6edee61
                 - name: RELATED_IMAGE_IMAGE_ANALYZER
-                  value: registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@sha256:1d54f516fec3ecc769cfd24bd3e085e7b4c98dadf127fa07dc3795afdba6778d
-                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:61ed7dc5d0c5eff462ffdafb42cf0cbe5b99128d0485b6c45c3f20875ab72737
+                  value: registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@sha256:527a573126c3e0f7b3896bb4a3098c78226d822490d6283158cbefad34858078
+                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:aa9bb3f92f0447c7f22436934423cc328ef05bf06194bfcb80c02dd6c408a6e9
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -2526,18 +2544,18 @@ spec:
     name: CrowdStrike
     url: https://crowdStrike.com
   relatedImages:
-  - image: "registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:61ed7dc5d0c5eff462ffdafb42cf0cbe5b99128d0485b6c45c3f20875ab72737"
+  - image: "registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:aa9bb3f92f0447c7f22436934423cc328ef05bf06194bfcb80c02dd6c408a6e9"
     name: operator
-  - image: "registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:931bdf7e1e08f3f0276650222d083ead36732f5ca5d3263b494d3175721e7e4e"
+  - image: "registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:1d3acdd8d476a4d73ef5f3fe7b2b189f5a5fe76f5866eb58fa35616092874f14"
     name: node-sensor
-  - image: "registry.crowdstrike.com/falcon-container/release/falcon-container@sha256:adc1455b1c304a36b838c7b0bfe0367a3f93d7d85d735e6c4fcd4e3af2e9b8a7"
+  - image: "registry.crowdstrike.com/falcon-container/release/falcon-container@sha256:685810bb17b9f6c50ebdb7c56ce1108207180b647c104644c7a17ff88ac40705"
     name: sidecar-sensor
-  - image: "registry.crowdstrike.com/falcon-kac/release/falcon-kac@sha256:68bc61209cf6966870a1afac95d660e3d78cfe1ee854a3c3ab11dfb830551c66"
+  - image: "registry.crowdstrike.com/falcon-kac/release/falcon-kac@sha256:fb4d16cf5b85dc4fe6a682cbb648e86b28adab976eb6d9239ba48718a6edee61"
     name: admission-controller
-  - image: "registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@sha256:1d54f516fec3ecc769cfd24bd3e085e7b4c98dadf127fa07dc3795afdba6778d"
+  - image: "registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@sha256:527a573126c3e0f7b3896bb4a3098c78226d822490d6283158cbefad34858078"
     name: image-analyzer
-  replaces: falcon-operator.v1.12.1
-  version: 1.13.0
+  replaces: falcon-operator.v1.13.0
   skips:
   - falcon-operator.v1.3.0
   - falcon-operator.v1.12.0
+  version: 1.14.0
