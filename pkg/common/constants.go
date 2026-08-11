@@ -7,6 +7,7 @@ const (
 	FalconInitHostInstallDir                = "/host_opt"
 	FalconDataDir                           = "/opt/CrowdStrike"
 	FalconInitDataDir                       = "/host_opt/CrowdStrike/"
+	FalconConfigDir                         = "/opt/Crowdstrike/config"
 	FalconStoreFile                         = "/opt/CrowdStrike/falconstore"
 	FalconInitStoreFile                     = "/host_opt/CrowdStrike/falconstore"
 	FalconDaemonsetInitBinary               = "/opt/CrowdStrike/falcon-daemonset-init -i"
