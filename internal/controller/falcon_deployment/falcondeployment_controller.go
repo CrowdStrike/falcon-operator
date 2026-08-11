@@ -63,6 +63,7 @@ type FalconDeploymentReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.0/pkg/reconcile
 func (r *FalconDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
+	log.Info("reconciling FalconDeployment")
 
 	falconDeployment := &falconv1alpha1.FalconDeployment{}
 	err := r.Get(ctx, req.NamespacedName, falconDeployment)
