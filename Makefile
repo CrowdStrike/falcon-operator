@@ -5,6 +5,11 @@
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
 VERSION ?= 1.13.0
 
+# PREVIOUS_VERSION defines the version that this release replaces.
+# Update this value when you bump VERSION to the next release.
+# This is used to set spec.replaces in the OpenShift bundle CSV.
+PREVIOUS_VERSION ?= 1.12.1
+
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
 # To re-generate a bundle for other specific channels without changing the standard setup, you can:
@@ -346,3 +351,22 @@ catalog-push: ## Push a catalog image.
 .PHONY: non-olm
 non-olm: kustomize ## Generate non-olm deployment manifest
 	$(KUSTOMIZE) build config/non-olm -o deploy/falcon-operator.yaml
+
+.PHONY: bundle-openshift
+bundle-openshift: manifests kustomize operator-sdk ## Generate OpenShift bundle with certification requirements
+	$(OPERATOR_SDK) generate kustomize manifests -q
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS) --channels=certified-1.0 --default-channel=certified-1.0
+	@echo "Applying OpenShift-specific patches..."
+	@yq -i '.[0].value = "falcon-operator.v$(PREVIOUS_VERSION)"' config/manifests-openshift/patches/replaces.yaml
+	@hack/patch-openshift-bundle.sh
+	@hack/patch-openshift-bundle.sh --apply
+	@yq eval-all -i 'select(fileIndex == 0) * select(fileIndex == 1)' bundle/metadata/annotations.yaml config/manifests-openshift/patches/bundle-metadata-annotations.yaml
+	@echo "Restoring patch templates..."
+	@yq -i '.[0].value = "falcon-operator.vPREVIOUS_VERSION"' config/manifests-openshift/patches/replaces.yaml
+	@hack/patch-openshift-bundle.sh --restore
+	@echo "✓ OpenShift bundle generated successfully"
+
+.PHONY: bundle-openshift-validate
+bundle-openshift-validate: ## Validate OpenShift bundle patches were applied correctly
+	@hack/validate-openshift-bundle.sh
