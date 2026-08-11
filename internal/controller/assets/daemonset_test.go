@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -385,6 +386,10 @@ func TestDaemonset(t *testing.T) {
 									Name:      "falconstore",
 									MountPath: common.FalconStoreFile,
 								},
+								{
+									Name:      "cs-config",
+									MountPath: common.FalconConfigDir,
+								},
 							},
 							Resources: dsResources(&falconNode),
 						},
@@ -395,6 +400,15 @@ func TestDaemonset(t *testing.T) {
 							VolumeSource: corev1.VolumeSource{
 								HostPath: &corev1.HostPathVolumeSource{
 									Path: common.FalconStoreFile,
+									Type: &pathTypeUnset,
+								},
+							},
+						},
+						{
+							Name: "cs-config",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: &corev1.HostPathVolumeSource{
+									Path: common.FalconConfigDir,
 									Type: &pathTypeUnset,
 								},
 							},
@@ -507,5 +521,195 @@ func TestRemoveNodeDirDaemonset(t *testing.T) {
 	got := RemoveNodeDirDaemonset(dsName, image, common.NodeServiceAccountName, &falconNode)
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("Daemonset() mismatch (-want +got): %s", diff)
+	}
+}
+
+func TestInitContainerResources(t *testing.T) {
+	gkeEnabled := true
+	gkeDisabled := false
+
+	fixedResources := corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			"cpu":               resource.MustParse("10m"),
+			"ephemeral-storage": resource.MustParse("100Mi"),
+			"memory":            resource.MustParse("50Mi"),
+		},
+		Requests: corev1.ResourceList{
+			"cpu":               resource.MustParse("10m"),
+			"ephemeral-storage": resource.MustParse("100Mi"),
+			"memory":            resource.MustParse("50Mi"),
+		},
+		Claims: []corev1.ResourceClaim{},
+	}
+
+	tests := []struct {
+		name string
+		node falconv1alpha1.FalconNodeSensor
+		want corev1.ResourceRequirements
+	}{
+		{
+			name: "no resources and no GKE returns empty",
+			node: falconv1alpha1.FalconNodeSensor{},
+			want: corev1.ResourceRequirements{},
+		},
+		{
+			name: "GKE disabled returns empty",
+			node: falconv1alpha1.FalconNodeSensor{
+				Spec: falconv1alpha1.FalconNodeSensorSpec{
+					Node: falconv1alpha1.FalconNodeSensorConfig{
+						GKE: falconv1alpha1.AutoPilot{Enabled: &gkeDisabled},
+					},
+				},
+			},
+			want: corev1.ResourceRequirements{},
+		},
+		{
+			name: "GKE enabled returns fixed resources",
+			node: falconv1alpha1.FalconNodeSensor{
+				Spec: falconv1alpha1.FalconNodeSensorSpec{
+					Node: falconv1alpha1.FalconNodeSensorConfig{
+						GKE: falconv1alpha1.AutoPilot{Enabled: &gkeEnabled},
+					},
+				},
+			},
+			want: fixedResources,
+		},
+		{
+			name: "SensorResources configured returns fixed resources",
+			node: falconv1alpha1.FalconNodeSensor{
+				Spec: falconv1alpha1.FalconNodeSensorSpec{
+					Node: falconv1alpha1.FalconNodeSensorConfig{
+						GKE: falconv1alpha1.AutoPilot{Enabled: &gkeDisabled},
+						SensorResources: falconv1alpha1.Resources{
+							Limits: falconv1alpha1.ResourceList{CPU: "1000m"},
+						},
+					},
+				},
+			},
+			want: fixedResources,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := initContainerResources(&tt.node)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("initContainerResources() mismatch (-want +got): %s", diff)
+			}
+		})
+	}
+}
+
+func TestDsResources(t *testing.T) {
+	gkeEnabled := true
+	gkeDisabled := false
+
+	tests := []struct {
+		name string
+		node falconv1alpha1.FalconNodeSensor
+		want corev1.ResourceRequirements
+	}{
+		{
+			name: "no resources and no GKE returns empty",
+			node: falconv1alpha1.FalconNodeSensor{},
+			want: corev1.ResourceRequirements{},
+		},
+		{
+			name: "GKE disabled returns empty",
+			node: falconv1alpha1.FalconNodeSensor{
+				Spec: falconv1alpha1.FalconNodeSensorSpec{
+					Node: falconv1alpha1.FalconNodeSensorConfig{
+						GKE: falconv1alpha1.AutoPilot{Enabled: &gkeDisabled},
+					},
+				},
+			},
+			want: corev1.ResourceRequirements{},
+		},
+		{
+			name: "GKE enabled returns GKE defaults",
+			node: falconv1alpha1.FalconNodeSensor{
+				Spec: falconv1alpha1.FalconNodeSensorSpec{
+					Node: falconv1alpha1.FalconNodeSensorConfig{
+						GKE: falconv1alpha1.AutoPilot{Enabled: &gkeEnabled},
+					},
+				},
+			},
+			want: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					"cpu":               resource.MustParse("750m"),
+					"memory":            resource.MustParse("1.5Gi"),
+					"ephemeral-storage": resource.MustParse("100Mi"),
+				},
+				Requests: corev1.ResourceList{
+					"cpu":               resource.MustParse("750m"),
+					"memory":            resource.MustParse("1.5Gi"),
+					"ephemeral-storage": resource.MustParse("100Mi"),
+				},
+				Claims: []corev1.ResourceClaim{},
+			},
+		},
+		{
+			name: "SensorResources configured without GKE",
+			node: falconv1alpha1.FalconNodeSensor{
+				Spec: falconv1alpha1.FalconNodeSensorSpec{
+					Node: falconv1alpha1.FalconNodeSensorConfig{
+						GKE: falconv1alpha1.AutoPilot{Enabled: &gkeDisabled},
+						SensorResources: falconv1alpha1.Resources{
+							Limits:   falconv1alpha1.ResourceList{CPU: "1000m", Memory: "512Mi", EphemeralStorage: "1Gi"},
+							Requests: falconv1alpha1.ResourceList{CPU: "500m", Memory: "256Mi", EphemeralStorage: "512Mi"},
+						},
+					},
+				},
+			},
+			want: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					"cpu":               resource.MustParse("1000m"),
+					"memory":            resource.MustParse("512Mi"),
+					"ephemeral-storage": resource.MustParse("1Gi"),
+				},
+				Requests: corev1.ResourceList{
+					"cpu":               resource.MustParse("500m"),
+					"memory":            resource.MustParse("256Mi"),
+					"ephemeral-storage": resource.MustParse("512Mi"),
+				},
+				Claims: []corev1.ResourceClaim{},
+			},
+		},
+		{
+			name: "SensorResources override GKE defaults",
+			node: falconv1alpha1.FalconNodeSensor{
+				Spec: falconv1alpha1.FalconNodeSensorSpec{
+					Node: falconv1alpha1.FalconNodeSensorConfig{
+						GKE: falconv1alpha1.AutoPilot{Enabled: &gkeEnabled},
+						SensorResources: falconv1alpha1.Resources{
+							Limits:   falconv1alpha1.ResourceList{CPU: "1000m", Memory: "2Gi"},
+							Requests: falconv1alpha1.ResourceList{CPU: "500m"},
+						},
+					},
+				},
+			},
+			want: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					"cpu":               resource.MustParse("1000m"),
+					"memory":            resource.MustParse("2Gi"),
+					"ephemeral-storage": resource.MustParse("100Mi"),
+				},
+				Requests: corev1.ResourceList{
+					"cpu":               resource.MustParse("500m"),
+					"memory":            resource.MustParse("1.5Gi"),
+					"ephemeral-storage": resource.MustParse("100Mi"),
+				},
+				Claims: []corev1.ResourceClaim{},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := dsResources(&tt.node)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("dsResources() mismatch (-want +got): %s", diff)
+			}
+		})
 	}
 }
