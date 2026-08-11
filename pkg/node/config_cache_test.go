@@ -110,6 +110,8 @@ func TestSensorEnvVars(t *testing.T) {
 	testConfig := config
 	want := make(map[string]string)
 	want["FALCONCTL_OPT_CID"] = falconCID
+	want["OPERATOR_MANIFEST"] = ""
+	want["OPERATOR_VERSION"] = ""
 
 	got := testConfig.SensorEnvVars()
 	if diff := cmp.Diff(want, got); diff != "" {
