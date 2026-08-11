@@ -42,6 +42,16 @@ spec:
     type: crowdstrike
 ```
 
+### Version Support Matrix
+
+| Operator Version | Sensor Version | Notes                                              |
+| ---------------- | -------------- | -------------------------------------------------- |
+| v1.13.0          | >= 7.37        | Added AI-DR support.                               |
+| v1.12.1          | >= 7.33        | —                                                  |
+| v1.11.0          | >= 7.33        | —                                                  |
+| v1.10.0          | >= 7.33        | Added unified falcon-container image path support. |
+| v1.9.0           | <= 7.32        | —                                                  |
+
 ### FalconContainer Reference Manual
 
 #### Falcon API Settings
