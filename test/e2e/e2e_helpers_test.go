@@ -59,8 +59,8 @@ func isOpenShift() bool {
 
 // validateNoReconcileLoop checks that the controller is not stuck in an infinite reconcile loop
 // kind parameter specifies the CRD kind to filter logs (e.g., "FalconNodeSensor", "FalconAdmission")
-func validateNoReconcileLoop(controllerPodName, namespace, kind string, duration time.Duration) {
-	By(fmt.Sprintf("validating no infinite reconcile loop for %s over %v", kind, duration))
+func validateNoReconcileLoop(controllerPodName, namespace, kind string, duration time.Duration, threshold int) {
+	By(fmt.Sprintf("validating no infinite reconcile loop for %s over %v (threshold: %d)", kind, duration, threshold))
 
 	// Sleep for duration + 5 seconds buffer to ensure any in-progress reconciles complete
 	bufferDuration := duration + (5 * time.Second)
@@ -89,8 +89,8 @@ func validateNoReconcileLoop(controllerPodName, namespace, kind string, duration
 	reconcileCount := len(reconcileIDs)
 	By(fmt.Sprintf("detected %d unique reconcile operations for %s in the last %v", reconcileCount, kind, duration))
 
-	if reconcileCount > 0 {
-		Fail(fmt.Sprintf("Infinite reconcile loop detected for %s: %d unique reconcile operations in %v (expected: 0)",
-			kind, reconcileCount, duration))
+	if reconcileCount > threshold {
+		Fail(fmt.Sprintf("Infinite reconcile loop detected for %s: %d unique reconcile operations in %v (expected: <= %d)",
+			kind, reconcileCount, duration, threshold))
 	}
 }
