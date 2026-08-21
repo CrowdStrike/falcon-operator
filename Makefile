@@ -251,10 +251,12 @@ KUBECTL ?= kubectl
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+KUBEBUILDER ?= $(LOCALBIN)/kubebuilder
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.6.0
 CONTROLLER_TOOLS_VERSION ?= v0.20.1
+KUBEBUILDER_VERSION ?= v4.15.0
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary. If wrong version is installed, it will be removed before downloading.
@@ -275,6 +277,22 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.23
+
+.PHONY: kubebuilder
+kubebuilder: $(KUBEBUILDER) ## Download kubebuilder locally if necessary. If wrong version is installed, it will be removed before downloading.
+$(KUBEBUILDER): $(LOCALBIN)
+	@if test -x $(KUBEBUILDER) && ! $(KUBEBUILDER) version | grep -q $(KUBEBUILDER_VERSION); then \
+		echo "$(KUBEBUILDER) version does not match expected $(KUBEBUILDER_VERSION). Removing and reinstalling."; \
+		rm -rf $(KUBEBUILDER); \
+	fi
+	@if ! test -s $(KUBEBUILDER); then \
+		set -e ;\
+		mkdir -p $(LOCALBIN) ;\
+		OS=$$(go env GOOS) && ARCH=$$(go env GOARCH) && \
+		curl -sSLo $(KUBEBUILDER) https://github.com/kubernetes-sigs/kubebuilder/releases/download/$(KUBEBUILDER_VERSION)/kubebuilder_$${OS}_$${ARCH} ;\
+		chmod +x $(KUBEBUILDER) ;\
+	fi
+	@echo "Installed kubebuilder version: $$($(KUBEBUILDER) version | awk 'NR==1{print $$NF}')"
 
 .PHONY: operator-sdk
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
@@ -373,3 +391,90 @@ bundle-openshift: manifests kustomize operator-sdk ## Generate OpenShift bundle 
 .PHONY: bundle-openshift-validate
 bundle-openshift-validate: ## Validate OpenShift bundle patches were applied correctly
 	@hack/validate-openshift-bundle.sh
+
+##@ Helm Deployment
+
+## Helm binary to use for deploying the chart
+HELM ?= $(LOCALBIN)/helm
+## Namespace to deploy the Helm release
+HELM_NAMESPACE ?= falcon-operator
+## Name of the Helm release
+HELM_RELEASE ?= falcon-operator
+## Path to the Helm chart directory
+HELM_CHART_DIR ?= helm-charts/chart
+## Additional arguments to pass to helm commands
+HELM_EXTRA_ARGS ?=
+## Helm version to install
+HELM_VERSION ?=
+
+# RBAC template files that were ClusterRole/ClusterRoleBinding in kustomize.
+# The helm plugin wraps all RBAC kinds with an rbac.namespaced toggle regardless
+# of the source kind, so we strip the toggle back out after generation.
+HELM_CLUSTERROLE_TEMPLATES = \
+	$(HELM_CHART_DIR)/templates/rbac/admission-controller-role.yaml \
+	$(HELM_CHART_DIR)/templates/rbac/container-role.yaml \
+	$(HELM_CHART_DIR)/templates/rbac/image-controller-role.yaml \
+	$(HELM_CHART_DIR)/templates/rbac/manager-role.yaml \
+	$(HELM_CHART_DIR)/templates/rbac/manager-rolebinding.yaml \
+	$(HELM_CHART_DIR)/templates/rbac/node-sensor-role.yaml
+
+.PHONY: helm-build
+helm-build: kubebuilder
+	$(KUBEBUILDER) edit --plugins=helm/v2-alpha --output-dir=helm-charts --manifests deploy/falcon-operator.yaml
+	@# Remove unused templates
+	rm -rf $(HELM_CHART_DIR)/templates/prometheus $(HELM_CHART_DIR)/templates/network-policy
+	rm -f $(HELM_CHART_DIR)/templates/rbac/falcon-FalconDeployment-editor-role.yaml
+	rm -f $(HELM_CHART_DIR)/templates/rbac/falcon-FalconDeployment-viewer-role.yaml
+	rm -f .github/workflows/test-chart.yml
+	@# Strip rbac.namespaced kind/namespace toggles — keep ClusterRole/ClusterRoleBinding hardcoded
+	@for f in $(HELM_CLUSTERROLE_TEMPLATES); do \
+		perl -0777 -i -pe \
+			's/\{\{- if \.Values\.rbac\.namespaced \}\}\nkind: Role\n\{\{- else \}\}\nkind: ClusterRole\n\{\{- end \}\}/kind: ClusterRole/g; \
+			 s/\{\{- if \.Values\.rbac\.namespaced \}\}\nkind: RoleBinding\n\{\{- else \}\}\nkind: ClusterRoleBinding\n\{\{- end \}\}/kind: ClusterRoleBinding/g; \
+			 s/  \{\{- if \.Values\.rbac\.namespaced \}\}\n  kind: Role\n  \{\{- else \}\}\n  kind: ClusterRole\n  \{\{- end \}\}/  kind: ClusterRole/g; \
+			 s/\{\{- if \.Values\.rbac\.namespaced \}\}\n  namespace: \{\{ \.Release\.Namespace \}\}\n\{\{- end \}\}\n//g' \
+			$$f; \
+	done
+
+.PHONY: install-helm
+install-helm: $(LOCALBIN) ## Install Helm (version specified by HELM_VERSION, or latest if unset).
+	@if [ -n "$(HELM_VERSION)" ] && test -x $(HELM) && ! $(HELM) version --short | grep -q "$(HELM_VERSION)"; then \
+		echo "$(HELM) version is not expected $(HELM_VERSION). Removing it before installing."; \
+		rm -f $(HELM); \
+	fi
+	@if [ -z "$(HELM_VERSION)" ] || [ ! -f $(HELM) ]; then \
+		echo "Installing Helm..." && \
+		if [ -n "$(HELM_VERSION)" ]; then \
+			curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | HELM_INSTALL_DIR=$(LOCALBIN) DESIRED_VERSION="$(HELM_VERSION)" USE_SUDO=false bash; \
+		else \
+			curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | HELM_INSTALL_DIR=$(LOCALBIN) USE_SUDO=false bash; \
+		fi; \
+	fi
+
+.PHONY: helm-deploy
+helm-deploy: install-helm helm-build ## Deploy manager to the K8s cluster via Helm. Specify an image with IMG.
+	img="$(IMG)"; \
+	$(HELM) upgrade --install $(HELM_RELEASE) $(HELM_CHART_DIR) \
+		--namespace $(HELM_NAMESPACE) \
+		--create-namespace \
+		--set manager.image.repository=$${img%:*} \
+		--set manager.image.tag=$${img##*:} \
+		--wait \
+		--timeout 5m \
+		$(HELM_EXTRA_ARGS)
+
+.PHONY: helm-uninstall
+helm-uninstall: ## Uninstall the Helm release from the K8s cluster.
+	$(HELM) uninstall $(HELM_RELEASE) --namespace $(HELM_NAMESPACE)
+
+.PHONY: helm-status
+helm-status: ## Show Helm release status.
+	$(HELM) status $(HELM_RELEASE) --namespace $(HELM_NAMESPACE)
+
+.PHONY: helm-history
+helm-history: ## Show Helm release history.
+	$(HELM) history $(HELM_RELEASE) --namespace $(HELM_NAMESPACE)
+
+.PHONY: helm-rollback
+helm-rollback: ## Rollback to previous Helm release.
+	$(HELM) rollback $(HELM_RELEASE) --namespace $(HELM_NAMESPACE)
