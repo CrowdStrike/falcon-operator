@@ -112,6 +112,8 @@ func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name s
 
 	data["AGENT_DEBUG"] = strconv.FormatBool(falconImageAnalyzer.Spec.ImageAnalyzerConfig.EnableDebug)
 
+	data["LOG_VERBOSITY"] = falconImageAnalyzer.Spec.ImageAnalyzerConfig.LogVerbosity
+
 	// Registry auto-discovery configuration
 	data["SECRETS_AUTODISCOVER_ENABLED"] = strconv.FormatBool(falconImageAnalyzer.Spec.ImageAnalyzerConfig.RegistryConfig.AutoDiscoverCredentials)
 

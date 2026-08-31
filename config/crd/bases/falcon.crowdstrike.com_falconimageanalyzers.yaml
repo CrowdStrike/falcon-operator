@@ -121,7 +121,9 @@ spec:
                     type: string
                   debug:
                     default: false
-                    description: Enable debugging for the Falcon Image Analyzer.
+                    description: |-
+                      Enable debugging for the Falcon Image Analyzer.
+                      Deprecated: Use LogVerbosity instead. Kept for backwards compatibility.
                     type: boolean
                   exclusions:
                     description: Exclusions for the Falcon Image Analyzer.
@@ -207,6 +209,17 @@ spec:
                           Image Analyzer must know the namespace for KAC to enable inter-communication between IAR and KAC.
                         type: string
                     type: object
+                  logVerbosity:
+                    default: info
+                    description: |-
+                      Set the log verbosity for the Falcon Image Analyzer. Allowed values are "info", "debug", "warn", "error".
+                      Note: imageAnalyzerConfig.debug is deprecated as of IAR 1.0.26. Use "info" for standard logging.
+                    enum:
+                    - info
+                    - debug
+                    - warn
+                    - error
+                    type: string
                   mountPath:
                     default: /tmp
                     description: Set the falcon image analyzer volume mount path.
