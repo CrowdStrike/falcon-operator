@@ -315,7 +315,7 @@ func (r *FalconImageAnalyzerReconciler) reconcileImageAnalyzerDeployment(ctx con
 				updated = true
 			}
 			if updated {
-				log.Info("Updating FalconNodeSensor Deployment Proxy Settings")
+				log.Info("Updating FalconImageAnalyzer Deployment Proxy Settings")
 			}
 		}
 	}
