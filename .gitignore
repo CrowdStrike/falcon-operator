@@ -27,3 +27,6 @@ testbin/*
 /deploy/parts/crd-*.yaml
 .tool-versions
 Dockerfile.cross
+
+# Generated Helm chart
+helm-charts/
