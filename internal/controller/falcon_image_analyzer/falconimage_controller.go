@@ -352,6 +352,14 @@ func (r *FalconImageAnalyzerReconciler) reconcileImageAnalyzerDeployment(ctx con
 		updated = true
 	}
 
+	if !equality.Semantic.DeepEqual(dep.Spec.Template.Spec.Containers[0].Resources, existingDeployment.Spec.Template.Spec.Containers[0].Resources) {
+		log.V(1).Info("Updating FalconImageAnalyzer Deployment: Container Resources changed",
+			"old", existingDeployment.Spec.Template.Spec.Containers[0].Resources,
+			"new", dep.Spec.Template.Spec.Containers[0].Resources)
+		existingDeployment.Spec.Template.Spec.Containers[0].Resources = dep.Spec.Template.Spec.Containers[0].Resources
+		updated = true
+	}
+
 	if !equality.Semantic.DeepEqual(existingDeployment.Spec.Strategy.RollingUpdate, dep.Spec.Strategy.RollingUpdate) {
 		log.V(1).Info("Updating FalconImageAnalyzer Deployment: RollingUpdate strategy changed",
 			"old", existingDeployment.Spec.Strategy.RollingUpdate,
