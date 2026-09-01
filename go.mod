@@ -1,6 +1,6 @@
 module github.com/crowdstrike/falcon-operator
 
-go 1.26.5
+go 1.26.7
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
