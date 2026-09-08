@@ -322,6 +322,13 @@ bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metada
 bundle-build: ## Build the bundle image.
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
 
+.PHONY: bundle-buildx-push
+bundle-buildx-push: ## Build and push the bundle image for cross-platform support.
+	- $(CONTAINER_TOOL) buildx create --name project-v3-builder
+	$(CONTAINER_TOOL) buildx use project-v3-builder
+	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --provenance=false --tag $(BUNDLE_IMG) -f bundle.Dockerfile .
+	- $(CONTAINER_TOOL) buildx rm project-v3-builder
+
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
 	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
