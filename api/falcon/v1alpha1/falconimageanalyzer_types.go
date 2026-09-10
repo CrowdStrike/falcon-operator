@@ -118,18 +118,26 @@ type FalconImageAnalyzerConfigSpec struct {
 	RegistryConfig RegistryConfig `json:"registryConfig,omitempty"`
 
 	// Enable debugging for the Falcon Image Analyzer.
+	// Deprecated: Use LogVerbosity instead. Kept for backwards compatibility.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Enable Debugging",order=13
 	// +kubebuilder:default:=false
 	EnableDebug bool `json:"debug,omitempty"`
 
+	// Set the log verbosity for the Falcon Image Analyzer. Allowed values are "info", "debug", "warn", "error".
+	// Note: imageAnalyzerConfig.debug is deprecated as of IAR 1.0.26. Use "info" for standard logging.
+	// +kubebuilder:default:=info
+	// +kubebuilder:validation:Enum=info;debug;warn;error
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Log Verbosity",order=14
+	LogVerbosity string `json:"logVerbosity,omitempty"`
+
 	// IAR Agent Service configuration for enabling communication between IAR components.
 	// +kubebuilder:default:={}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="IAR Agent Service Configuration",order=14
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="IAR Agent Service Configuration",order=15
 	IARAgentService FalconImageAnalyzerAgentServiceSpec `json:"iarAgentService,omitempty"`
 
 	// IAR Agent Service configuration for enabling inter-communication between Image Analyzer and Admission Controller.
 	// +kubebuilder:default:={}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="KAC Inter-communication Configuration",order=14
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="KAC Inter-communication Configuration",order=16
 	KAC FalconImageAnalyzerKACSpec `json:"kac,omitempty"`
 }
 

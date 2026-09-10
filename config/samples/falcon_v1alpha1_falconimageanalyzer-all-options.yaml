@@ -27,7 +27,8 @@ spec:
     sizeLimit: "20Gi"
     mountPath: "/tmp"
     clusterName: my-cluster
-    debug: true
+    debug: true  # Deprecated as of IAR 1.0.26; use logVerbosity instead
+    logVerbosity: info  # Allowed values: info, debug, warn, error. Note: debug is deprecated as of IAR 1.0.26
     priorityClass:
       name: my_pc_name
     exclusions:
