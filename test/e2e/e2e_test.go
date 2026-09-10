@@ -963,6 +963,112 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 	})
 
+	Context("Falcon Image Analyzer Log Verbosity", Label("FalconImageAnalyzer"), func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconimageanalyzer.yaml"
+		It("should set LOG_VERBOSITY in the ConfigMap and trigger a rollout when logVerbosity changes", func() {
+			By("loading and deploying the FalconImageAnalyzer manifest with logVerbosity=warn")
+			var iar falconv1alpha1.FalconImageAnalyzer
+			err := loadManifest(manifest, &iar)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			iar.Spec.ImageAnalyzerConfig.LogVerbosity = "warn"
+
+			err = applyManifest(&iar, iarConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			iarConfig.validateRunningStatus(shouldBeRunning)
+
+			By("validating LOG_VERBOSITY=warn is set in the ConfigMap")
+			validateLogVerbosity := func() error {
+				cmd := exec.Command("kubectl", "get", "configmap", "falcon-image-analyzer-config",
+					"-n", iarConfig.namespace,
+					"-o", "jsonpath={.data.LOG_VERBOSITY}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if string(output) != "warn" {
+					return fmt.Errorf("expected LOG_VERBOSITY=warn, got %q", string(output))
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateLogVerbosity, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("updating logVerbosity to error and validating ConfigMap and rollout")
+			err = loadManifest(manifest, &iar)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			iar.Spec.ImageAnalyzerConfig.LogVerbosity = "error"
+
+			err = applyManifest(&iar, iarConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating LOG_VERBOSITY=error is reflected in the ConfigMap")
+			validateLogVerbosityUpdated := func() error {
+				cmd := exec.Command("kubectl", "get", "configmap", "falcon-image-analyzer-config",
+					"-n", iarConfig.namespace,
+					"-o", "jsonpath={.data.LOG_VERBOSITY}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if string(output) != "error" {
+					return fmt.Errorf("expected LOG_VERBOSITY=error, got %q", string(output))
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateLogVerbosityUpdated, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("validating the deployment was rolled (falcon.config.version annotation incremented)")
+			validateRollout := func() error {
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-image-analyzer",
+					"-n", iarConfig.namespace,
+					"-o", "jsonpath={.spec.template.metadata.annotations.falcon\\.config\\.version}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if string(output) == "" {
+					return fmt.Errorf("expected falcon.config.version annotation to be set after config change")
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateRollout, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after logVerbosity change")
+				validateNoReconcileLoop(controllerPodName, namespace, iarConfig.kind, reconcileLoopValidationDuration, reconcileLoopThreshold)
+			}
+		})
+
+		It("should default LOG_VERBOSITY to info when logVerbosity is not set", func() {
+			By("loading and deploying the FalconImageAnalyzer manifest without setting logVerbosity")
+			var iar falconv1alpha1.FalconImageAnalyzer
+			err := loadManifest(manifest, &iar)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			err = applyManifest(&iar, iarConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			iarConfig.validateRunningStatus(shouldBeRunning)
+			iarConfig.validateDefaultValues()
+
+			By("validating LOG_VERBOSITY defaults to info in the ConfigMap")
+			validateDefaultLogVerbosity := func() error {
+				cmd := exec.Command("kubectl", "get", "configmap", "falcon-image-analyzer-config",
+					"-n", iarConfig.namespace,
+					"-o", "jsonpath={.data.LOG_VERBOSITY}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if string(output) != "info" {
+					return fmt.Errorf("expected LOG_VERBOSITY=info (default), got %q", string(output))
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateDefaultLogVerbosity, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+
+		It("should cleanup successfully", func() {
+			iarConfig.manageCrdInstance(crDelete, manifest)
+			iarConfig.validateRunningStatus(shouldBeTerminated)
+			iarConfig.waitForNamespaceDeletion()
+		})
+	})
+
 	Context("Falcon Admission Controller Tolerations", Label("FalconAdmission"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
 		It("should deploy successfully", func() {
