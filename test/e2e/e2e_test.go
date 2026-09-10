@@ -586,6 +586,11 @@ var _ = Describe("falcon", Ordered, func() {
 	})
 
 	Context("Falcon Sidecar Sensor", Label("FalconContainer"), func() {
+		BeforeEach(func() {
+			if isOpenShift() {
+				Skip("FalconContainer is not supported on OpenShift - skipping")
+			}
+		})
 		manifest := "./config/samples/falcon_v1alpha1_falconcontainer.yaml"
 		It("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
@@ -603,6 +608,11 @@ var _ = Describe("falcon", Ordered, func() {
 	})
 
 	Context("Falcon Sidecar Sensor with Falcon Secret", Label("FalconContainer"), func() {
+		BeforeEach(func() {
+			if isOpenShift() {
+				Skip("FalconContainer is not supported on OpenShift - skipping")
+			}
+		})
 		manifest := "./config/samples/falcon_v1alpha1_falconcontainer-with-falcon-secret.yaml"
 		It("should deploy successfully", func() {
 			addFalconSecretToManifest(manifest)
@@ -621,6 +631,11 @@ var _ = Describe("falcon", Ordered, func() {
 	})
 
 	Context("Falcon Sidecar Sensor with AITap", Label("FalconContainer"), func() {
+		BeforeEach(func() {
+			if isOpenShift() {
+				Skip("FalconContainer is not supported on OpenShift - skipping")
+			}
+		})
 		manifest := "./config/samples/falcon_v1alpha1_falconcontainer-with-aitap.yaml"
 		It("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
@@ -640,6 +655,11 @@ var _ = Describe("falcon", Ordered, func() {
 	})
 
 	Context("Falcon Deployment Controller with Container Sensor", Label("FalconDeployment"), func() {
+		BeforeEach(func() {
+			if isOpenShift() {
+				Skip("FalconDeployment with Container sensor is not supported on OpenShift - skipping")
+			}
+		})
 		manifest := "./config/samples/falcon_v1alpha1_falcondeployment-container-sensor.yaml"
 		It("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
