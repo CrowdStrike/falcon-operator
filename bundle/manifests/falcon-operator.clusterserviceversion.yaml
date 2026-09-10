@@ -147,7 +147,7 @@ metadata:
       ]
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
-    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:aa9bb3f92f0447c7f22436934423cc328ef05bf06194bfcb80c02dd6c408a6e9
+    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:7658b20ca65b7e0b8a20af039fcb66a088ac45c6bbfd6c373036b11cf9374cd3
     createdAt: "2025-11-18T23:39:10Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
@@ -166,7 +166,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: registry.connect.redhat.com/crowdstrike/falcon-operator
     support: CrowdStrike
-  name: falcon-operator.v1.14.0
+  name: falcon-operator.v1.15.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1525,7 +1525,9 @@ spec:
         path: falconAdmission.admissionConfig.deployWatcher
       - displayName: Injector replica count
         path: falconContainerSensor.injector.replicas
-      - description: Enable debugging for the Falcon Image Analyzer.
+      - description: |-
+          Enable debugging for the Falcon Image Analyzer.
+          Deprecated: Use LogVerbosity instead. Kept for backwards compatibility.
         displayName: Falcon Image Analyzer Enable Debugging
         path: falconImageAnalyzer.imageAnalyzerConfig.debug
       - description: Determines if Kubernetes resources are watched for cluster visibility.
@@ -1533,14 +1535,11 @@ spec:
         path: falconAdmission.admissionConfig.watcherEnabled
       - displayName: Enable Alternate Mount Path
         path: falconContainerSensor.injector.alternateMountPath
-      - description: IAR Agent Service configuration for enabling communication between
-          IAR components.
-        displayName: IAR Agent Service Configuration
-        path: falconImageAnalyzer.imageAnalyzerConfig.iarAgentService
-      - description: IAR Agent Service configuration for enabling inter-communication
-          between Image Analyzer and Admission Controller.
-        displayName: KAC Inter-communication Configuration
-        path: falconImageAnalyzer.imageAnalyzerConfig.kac
+      - description: |-
+          Set the log verbosity for the Falcon Image Analyzer. Allowed values are "info", "debug", "warn", "error".
+          Note: imageAnalyzerConfig.debug is deprecated as of IAR 1.0.26. Use "info" for standard logging.
+        displayName: Falcon Image Analyzer Log Verbosity
+        path: falconImageAnalyzer.imageAnalyzerConfig.logVerbosity
       - description: Determines if snapshots of Kubernetes resources are periodically
           taken for cluster visibility.
         displayName: Enable Resource Snapshots
@@ -1548,10 +1547,18 @@ spec:
       - description: AITap configures AI Detection and Response (AI-DR) functionality
         displayName: AITap AI-DR Configuration
         path: falconContainerSensor.injector.aitap
+      - description: IAR Agent Service configuration for enabling communication between
+          IAR components.
+        displayName: IAR Agent Service Configuration
+        path: falconImageAnalyzer.imageAnalyzerConfig.iarAgentService
       - description: Time interval between two snapshots of Kubernetes resources in
           the cluster.
         displayName: Time Interval Between Two Snapshots
         path: falconAdmission.admissionConfig.snapshotsInterval
+      - description: IAR Agent Service configuration for enabling inter-communication
+          between Image Analyzer and Admission Controller.
+        displayName: KAC Inter-communication Configuration
+        path: falconImageAnalyzer.imageAnalyzerConfig.kac
       - description: Determines if the admission controller watches for configMap
           events
         displayName: Enable ConfigMap Event Watcher
@@ -1834,9 +1841,16 @@ spec:
       - description: RegistryConfig for the Falcon Image Analyzer.
         displayName: Falcon Image Analyzer Registry Configuration Options
         path: imageAnalyzerConfig.registryConfig
-      - description: Enable debugging for the Falcon Image Analyzer.
+      - description: |-
+          Enable debugging for the Falcon Image Analyzer.
+          Deprecated: Use LogVerbosity instead. Kept for backwards compatibility.
         displayName: Falcon Image Analyzer Enable Debugging
         path: imageAnalyzerConfig.debug
+      - description: |-
+          Set the log verbosity for the Falcon Image Analyzer. Allowed values are "info", "debug", "warn", "error".
+          Note: imageAnalyzerConfig.debug is deprecated as of IAR 1.0.26. Use "info" for standard logging.
+        displayName: Falcon Image Analyzer Log Verbosity
+        path: imageAnalyzerConfig.logVerbosity
       - description: IAR Agent Service configuration for enabling communication between
           IAR components.
         displayName: IAR Agent Service Configuration
@@ -2434,16 +2448,16 @@ spec:
                 - name: OPERATOR_NAME
                   value: falcon-operator
                 - name: OPERATOR_MANIFEST
-                  value: 1.14.0
+                  value: 1.15.0
                 - name: RELATED_IMAGE_NODE_SENSOR
-                  value: registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:1d3acdd8d476a4d73ef5f3fe7b2b189f5a5fe76f5866eb58fa35616092874f14
+                  value: registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:26d60f33c9f651b598dccb78d42363a06ae5741f6c16176aa21c88d84b091027
                 - name: RELATED_IMAGE_SIDECAR_SENSOR
-                  value: registry.crowdstrike.com/falcon-container/release/falcon-container@sha256:685810bb17b9f6c50ebdb7c56ce1108207180b647c104644c7a17ff88ac40705
+                  value: registry.crowdstrike.com/falcon-container/release/falcon-container@sha256:7ece1ebdd95a70d8c9a29e9abb62d434e389b5c551bc2298b65e14d69e297c4c
                 - name: RELATED_IMAGE_ADMISSION_CONTROLLER
-                  value: registry.crowdstrike.com/falcon-kac/release/falcon-kac@sha256:fb4d16cf5b85dc4fe6a682cbb648e86b28adab976eb6d9239ba48718a6edee61
+                  value: registry.crowdstrike.com/falcon-kac/release/falcon-kac@sha256:c72ef408a26a340aff7bc24d02f53e618f9895115ad39873beb8e0ab0905bb8e
                 - name: RELATED_IMAGE_IMAGE_ANALYZER
-                  value: registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@sha256:527a573126c3e0f7b3896bb4a3098c78226d822490d6283158cbefad34858078
-                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:aa9bb3f92f0447c7f22436934423cc328ef05bf06194bfcb80c02dd6c408a6e9
+                  value: registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@sha256:2670a66c025fa9ce43e3752edd90e63556df711d816ec0a8b9b2a3cc0dbcf471
+                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:7658b20ca65b7e0b8a20af039fcb66a088ac45c6bbfd6c373036b11cf9374cd3
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -2544,18 +2558,18 @@ spec:
     name: CrowdStrike
     url: https://crowdStrike.com
   relatedImages:
-  - image: "registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:aa9bb3f92f0447c7f22436934423cc328ef05bf06194bfcb80c02dd6c408a6e9"
+  - image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:7658b20ca65b7e0b8a20af039fcb66a088ac45c6bbfd6c373036b11cf9374cd3
     name: operator
-  - image: "registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:1d3acdd8d476a4d73ef5f3fe7b2b189f5a5fe76f5866eb58fa35616092874f14"
+  - image: registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:26d60f33c9f651b598dccb78d42363a06ae5741f6c16176aa21c88d84b091027
     name: node-sensor
-  - image: "registry.crowdstrike.com/falcon-container/release/falcon-container@sha256:685810bb17b9f6c50ebdb7c56ce1108207180b647c104644c7a17ff88ac40705"
+  - image: registry.crowdstrike.com/falcon-container/release/falcon-container@sha256:7ece1ebdd95a70d8c9a29e9abb62d434e389b5c551bc2298b65e14d69e297c4c
     name: sidecar-sensor
-  - image: "registry.crowdstrike.com/falcon-kac/release/falcon-kac@sha256:fb4d16cf5b85dc4fe6a682cbb648e86b28adab976eb6d9239ba48718a6edee61"
+  - image: registry.crowdstrike.com/falcon-kac/release/falcon-kac@sha256:c72ef408a26a340aff7bc24d02f53e618f9895115ad39873beb8e0ab0905bb8e
     name: admission-controller
-  - image: "registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@sha256:527a573126c3e0f7b3896bb4a3098c78226d822490d6283158cbefad34858078"
+  - image: registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@sha256:2670a66c025fa9ce43e3752edd90e63556df711d816ec0a8b9b2a3cc0dbcf471
     name: image-analyzer
-  replaces: falcon-operator.v1.13.0
+  replaces: falcon-operator.v1.14.0
   skips:
   - falcon-operator.v1.3.0
   - falcon-operator.v1.12.0
-  version: 1.14.0
+  version: 1.15.0
