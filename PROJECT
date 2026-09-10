@@ -7,6 +7,9 @@ layout:
 - go.kubebuilder.io/v4
 multigroup: true
 plugins:
+  helm.kubebuilder.io/v2-alpha:
+    manifests: deploy/falcon-operator.yaml
+    output: helm-charts
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: falcon-operator
