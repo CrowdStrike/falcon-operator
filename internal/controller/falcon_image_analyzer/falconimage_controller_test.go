@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -1216,6 +1217,114 @@ var _ = Describe("FalconImageAnalyzer controller", func() {
 					}
 				}
 				return hasNoSchedule && hasNoExecute
+			}, 10*time.Second, time.Second).Should(BeTrue())
+		})
+		It("should apply resources from spec to deployment and update when spec changes", func() {
+			By("Creating FalconImageAnalyzer with resource requirements")
+			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ImageAnalyzerName,
+					Namespace: testNamespace.Name,
+				},
+				Spec: falconv1alpha1.FalconImageAnalyzerSpec{
+					InstallNamespace: imageAnalyzerNamespacedName.Namespace,
+					FalconAPI: &falconv1alpha1.FalconAPI{
+						CID:         &falconCID,
+						CloudRegion: "autodiscover",
+					},
+					Image: imageAnalyzerImage,
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					ImageAnalyzerConfig: falconv1alpha1.FalconImageAnalyzerConfigSpec{
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    resource.MustParse("100m"),
+								corev1.ResourceMemory: resource.MustParse("128Mi"),
+							},
+							Limits: corev1.ResourceList{
+								corev1.ResourceCPU:    resource.MustParse("500m"),
+								corev1.ResourceMemory: resource.MustParse("256Mi"),
+							},
+						},
+					},
+				},
+			}
+
+			err := k8sClient.Create(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling the custom resource")
+			falconImageAnalyzerReconciler := &FalconImageAnalyzerReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err = falconImageAnalyzerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying resources were applied to the deployment container")
+			Eventually(func() bool {
+				deployment := &appsv1.Deployment{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      ImageAnalyzerName,
+					Namespace: imageAnalyzerNamespacedName.Namespace,
+				}, deployment); err != nil {
+					return false
+				}
+				if len(deployment.Spec.Template.Spec.Containers) == 0 {
+					return false
+				}
+				res := deployment.Spec.Template.Spec.Containers[0].Resources
+				return res.Requests.Cpu().String() == "100m" &&
+					res.Requests.Memory().String() == "128Mi" &&
+					res.Limits.Cpu().String() == "500m" &&
+					res.Limits.Memory().String() == "256Mi"
+			}, 10*time.Second, time.Second).Should(BeTrue())
+
+			By("Updating resources in spec")
+			err = k8sClient.Get(ctx, imageAnalyzerNamespacedName, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			falconImageAnalyzer.Spec.ImageAnalyzerConfig.Resources = &corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("200m"),
+					corev1.ResourceMemory: resource.MustParse("256Mi"),
+				},
+				Limits: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("1"),
+					corev1.ResourceMemory: resource.MustParse("512Mi"),
+				},
+			}
+			err = k8sClient.Update(ctx, falconImageAnalyzer)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Reconciling to apply updated resources")
+			_, err = falconImageAnalyzerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: imageAnalyzerNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying updated resources are reflected in the deployment")
+			Eventually(func() bool {
+				deployment := &appsv1.Deployment{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      ImageAnalyzerName,
+					Namespace: imageAnalyzerNamespacedName.Namespace,
+				}, deployment); err != nil {
+					return false
+				}
+				if len(deployment.Spec.Template.Spec.Containers) == 0 {
+					return false
+				}
+				res := deployment.Spec.Template.Spec.Containers[0].Resources
+				return res.Requests.Cpu().String() == "200m" &&
+					res.Requests.Memory().String() == "256Mi" &&
+					res.Limits.Cpu().String() == "1" &&
+					res.Limits.Memory().String() == "512Mi"
 			}, 10*time.Second, time.Second).Should(BeTrue())
 		})
 	})
