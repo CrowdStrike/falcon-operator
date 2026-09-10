@@ -323,6 +323,7 @@ func (cr crConfig) validateDefaultValues() {
 		validateField(".spec.imageAnalyzerConfig.kac.namespace", "falcon-kac", "spec.imageAnalyzerConfig.kac.namespace")
 		validateField(".spec.imageAnalyzerConfig.updateStrategy.rollingUpdate.maxUnavailable", "0", "spec.imageAnalyzerConfig.updateStrategy.rollingUpdate.maxUnavailable")
 		validateField(".spec.imageAnalyzerConfig.updateStrategy.rollingUpdate.maxSurge", "1", "spec.imageAnalyzerConfig.updateStrategy.rollingUpdate.maxSurge")
+		validateField(".spec.imageAnalyzerConfig.logVerbosity", "info", "spec.imageAnalyzerConfig.logVerbosity")
 
 	case "FalconDeployment":
 		// FalconDeployment level defaults
@@ -370,6 +371,7 @@ func (cr crConfig) validateDefaultValues() {
 		validateField(".spec.falconImageAnalyzer.imageAnalyzerConfig.kac.namespace", "falcon-kac", "spec.falconImageAnalyzer.imageAnalyzerConfig.kac.namespace")
 		validateField(".spec.falconImageAnalyzer.imageAnalyzerConfig.updateStrategy.rollingUpdate.maxUnavailable", "0", "spec.falconImageAnalyzer.imageAnalyzerConfig.updateStrategy.rollingUpdate.maxUnavailable")
 		validateField(".spec.falconImageAnalyzer.imageAnalyzerConfig.updateStrategy.rollingUpdate.maxSurge", "1", "spec.falconImageAnalyzer.imageAnalyzerConfig.updateStrategy.rollingUpdate.maxSurge")
+		validateField(".spec.falconImageAnalyzer.imageAnalyzerConfig.logVerbosity", "info", "spec.falconImageAnalyzer.imageAnalyzerConfig.logVerbosity")
 
 		// Nested FalconContainerSensor defaults (only if deployContainerSensor is true)
 		validateField(".spec.falconContainerSensor.installNamespace", "falcon-system", "spec.falconContainerSensor.installNamespace")
