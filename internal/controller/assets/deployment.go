@@ -672,7 +672,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 					},
 				},
 			},
-			Env: admissionDepWatcherEnvVars(falconAdmission),
+			Env: admissionDepWatcherEnvVars(),
 			EnvFrom: []corev1.EnvFromSource{
 				{
 					ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -856,9 +856,9 @@ func admissionDepUpdateStrategy(admission *falconv1alpha1.FalconAdmission) appsv
 	}
 }
 
-func admissionDepWatcherEnvVars(admission *falconv1alpha1.FalconAdmission) []corev1.EnvVar {
+func admissionDepWatcherEnvVars() []corev1.EnvVar {
 	envVars := []corev1.EnvVar{
-		corev1.EnvVar{
+		{
 			Name: "__CS_POD_NAMESPACE",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
@@ -867,7 +867,7 @@ func admissionDepWatcherEnvVars(admission *falconv1alpha1.FalconAdmission) []cor
 				},
 			},
 		},
-		corev1.EnvVar{
+		{
 			Name: "__CS_POD_NAME",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
@@ -876,7 +876,7 @@ func admissionDepWatcherEnvVars(admission *falconv1alpha1.FalconAdmission) []cor
 				},
 			},
 		},
-		corev1.EnvVar{
+		{
 			Name: "__CS_POD_NODENAME",
 			ValueFrom: &corev1.EnvVarSource{
 				FieldRef: &corev1.ObjectFieldSelector{
