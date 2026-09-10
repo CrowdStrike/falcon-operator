@@ -1380,7 +1380,9 @@ spec:
         path: falconAdmission.admissionConfig.deployWatcher
       - displayName: Injector replica count
         path: falconContainerSensor.injector.replicas
-      - description: Enable debugging for the Falcon Image Analyzer.
+      - description: |-
+          Enable debugging for the Falcon Image Analyzer.
+          Deprecated: Use LogVerbosity instead. Kept for backwards compatibility.
         displayName: Falcon Image Analyzer Enable Debugging
         path: falconImageAnalyzer.imageAnalyzerConfig.debug
       - description: Determines if Kubernetes resources are watched for cluster visibility.
@@ -1388,14 +1390,11 @@ spec:
         path: falconAdmission.admissionConfig.watcherEnabled
       - displayName: Enable Alternate Mount Path
         path: falconContainerSensor.injector.alternateMountPath
-      - description: IAR Agent Service configuration for enabling communication between
-          IAR components.
-        displayName: IAR Agent Service Configuration
-        path: falconImageAnalyzer.imageAnalyzerConfig.iarAgentService
-      - description: IAR Agent Service configuration for enabling inter-communication
-          between Image Analyzer and Admission Controller.
-        displayName: KAC Inter-communication Configuration
-        path: falconImageAnalyzer.imageAnalyzerConfig.kac
+      - description: |-
+          Set the log verbosity for the Falcon Image Analyzer. Allowed values are "info", "debug", "warn", "error".
+          Note: imageAnalyzerConfig.debug is deprecated as of IAR 1.0.26. Use "info" for standard logging.
+        displayName: Falcon Image Analyzer Log Verbosity
+        path: falconImageAnalyzer.imageAnalyzerConfig.logVerbosity
       - description: Determines if snapshots of Kubernetes resources are periodically
           taken for cluster visibility.
         displayName: Enable Resource Snapshots
@@ -1403,10 +1402,18 @@ spec:
       - description: AITap configures AI Detection and Response (AI-DR) functionality
         displayName: AITap AI-DR Configuration
         path: falconContainerSensor.injector.aitap
+      - description: IAR Agent Service configuration for enabling communication between
+          IAR components.
+        displayName: IAR Agent Service Configuration
+        path: falconImageAnalyzer.imageAnalyzerConfig.iarAgentService
       - description: Time interval between two snapshots of Kubernetes resources in
           the cluster.
         displayName: Time Interval Between Two Snapshots
         path: falconAdmission.admissionConfig.snapshotsInterval
+      - description: IAR Agent Service configuration for enabling inter-communication
+          between Image Analyzer and Admission Controller.
+        displayName: KAC Inter-communication Configuration
+        path: falconImageAnalyzer.imageAnalyzerConfig.kac
       - description: Determines if the admission controller watches for configMap
           events
         displayName: Enable ConfigMap Event Watcher
@@ -1689,9 +1696,16 @@ spec:
       - description: RegistryConfig for the Falcon Image Analyzer.
         displayName: Falcon Image Analyzer Registry Configuration Options
         path: imageAnalyzerConfig.registryConfig
-      - description: Enable debugging for the Falcon Image Analyzer.
+      - description: |-
+          Enable debugging for the Falcon Image Analyzer.
+          Deprecated: Use LogVerbosity instead. Kept for backwards compatibility.
         displayName: Falcon Image Analyzer Enable Debugging
         path: imageAnalyzerConfig.debug
+      - description: |-
+          Set the log verbosity for the Falcon Image Analyzer. Allowed values are "info", "debug", "warn", "error".
+          Note: imageAnalyzerConfig.debug is deprecated as of IAR 1.0.26. Use "info" for standard logging.
+        displayName: Falcon Image Analyzer Log Verbosity
+        path: imageAnalyzerConfig.logVerbosity
       - description: IAR Agent Service configuration for enabling communication between
           IAR components.
         displayName: IAR Agent Service Configuration
