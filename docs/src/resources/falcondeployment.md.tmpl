@@ -18,7 +18,9 @@ Use `FalconDeployment` to deploy these Falcon components:
 The following table shows the minimum supported sensor version for each component per Operator release. For the full per-component matrix, see the individual resource documentation linked below.
 
 | Operator Version | Node Sensor | Container Sensor | KAC (Admission) | IAR (Image Analyzer) | Notes |
-| ---------------- | ----------- | ---------------- | --------------- | -------------------- | ----- |
+|------------------|-------------|------------------|-----------------|----------------------|-------|
+| v1.15.0          | >= 7.40     | >= 7.37          | >= 7.33         | >= 1.0.26            | Added IAR log.verbosity. |
+| v1.14.0          | >= 7.40     | >= 7.37          | >= 7.33         | >= 1.0.24            | Deprecated node backend option. Added new CrowdStrike config volume. |
 | v1.13.0          | >= 7.35     | >= 7.37          | >= 7.33         | >= 1.0.24            | Added AI-DR support for container sensor (requires >= 7.37). |
 | v1.12.1          | >= 7.35     | >= 7.33          | >= 7.33         | >= 1.0.24            | Added Falcon Data Protection for Cloud support for node sensor.<br/>Added unified image support for IAR. |
 | v1.11.0          | >= 7.31     | >= 7.33          | >= 7.33         | >= 1.0.21, <= 1.0.23 | Added IAR image exclusion support. |
