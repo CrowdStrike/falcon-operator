@@ -147,7 +147,8 @@ func TestReconcileDaemonSet_TerminationGracePeriod(t *testing.T) {
 	r := newFakeReconciler(owner)
 
 	cfg := baseConfig(ns, owner)
-	cfg.NodeSensor.TerminationGracePeriod = 30
+	grace30 := int64(30)
+	cfg.NodeSensor.TerminationGracePeriod = &grace30
 	n := New(r, cfg)
 
 	ds := reconcileAndGet(t, n, r, ns, "falcon-sensor")
@@ -160,7 +161,8 @@ func TestReconcileDaemonSet_TerminationGracePeriod(t *testing.T) {
 
 	// Now update the config to a new value and reconcile again.
 	cfg2 := baseConfig(ns, owner)
-	cfg2.NodeSensor.TerminationGracePeriod = 90
+	grace90 := int64(90)
+	cfg2.NodeSensor.TerminationGracePeriod = &grace90
 	n2 := New(r, cfg2)
 
 	ds = reconcileAndGet(t, n2, r, ns, "falcon-sensor")

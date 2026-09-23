@@ -436,7 +436,7 @@ def test_admission_cluster_name_in_admission_config():
   falconAdmission:
     clusterName: my-cluster
 """)
-    assert spec["falconClusterGuard"]["admissionConfig"]["clusterName"] == "my-cluster"
+    assert spec["falconClusterGuard"]["controller"]["clusterName"] == "my-cluster"
 
 
 # ── admission: admissionConfig.* fields that promote to FCG top-level ────────
@@ -450,7 +450,7 @@ def test_admission_config_imagepullpolicy_promoted_to_fcg():
       imagePullPolicy: Always
 """)
     assert spec["falconClusterGuard"]["imagePullPolicy"] == "Always"
-    assert "imagePullPolicy" not in spec["falconClusterGuard"].get("admissionConfig", {})
+    assert "imagePullPolicy" not in spec["falconClusterGuard"].get("controller", {})
 
 
 def test_admission_config_imagepullsecrets_promoted_to_fcg():
@@ -463,7 +463,7 @@ def test_admission_config_imagepullsecrets_promoted_to_fcg():
         - name: kac-secret
 """)
     assert spec["falconClusterGuard"]["imagePullSecrets"][0]["name"] == "kac-secret"
-    assert "imagePullSecrets" not in spec["falconClusterGuard"].get("admissionConfig", {})
+    assert "imagePullSecrets" not in spec["falconClusterGuard"].get("controller", {})
 
 
 def test_admission_config_imagepullpolicy_does_not_overwrite_node_sensor():
@@ -489,7 +489,7 @@ def test_admission_config_service_account():
         annotations:
           eks.amazonaws.com/role-arn: arn:aws:iam::123:role/role
 """)
-    assert "serviceAccount" in spec["falconClusterGuard"]["admissionConfig"]
+    assert "serviceAccount" in spec["falconClusterGuard"]["controller"]
 
 
 def test_admission_config_service_port():
@@ -498,7 +498,7 @@ def test_admission_config_service_port():
     admissionConfig:
       servicePort: 8443
 """)
-    assert spec["falconClusterGuard"]["admissionConfig"]["servicePort"] == 8443
+    assert spec["falconClusterGuard"]["controller"]["servicePort"] == 8443
 
 
 def test_admission_config_container_port():
@@ -507,7 +507,7 @@ def test_admission_config_container_port():
     admissionConfig:
       containerPort: 4443
 """)
-    assert spec["falconClusterGuard"]["admissionConfig"]["containerPort"] == 4443
+    assert spec["falconClusterGuard"]["controller"]["containerPort"] == 4443
 
 
 def test_admission_config_tls():
@@ -517,7 +517,7 @@ def test_admission_config_tls():
       tls:
         validity: 365
 """)
-    assert "tls" in spec["falconClusterGuard"]["admissionConfig"]
+    assert "tls" in spec["falconClusterGuard"]["controller"]
 
 
 def test_admission_config_failure_policy():
@@ -526,7 +526,7 @@ def test_admission_config_failure_policy():
     admissionConfig:
       failurePolicy: Ignore
 """)
-    assert spec["falconClusterGuard"]["admissionConfig"]["failurePolicy"] == "Ignore"
+    assert spec["falconClusterGuard"]["controller"]["failurePolicy"] == "Ignore"
 
 
 def test_admission_config_disabled_namespaces():
@@ -537,17 +537,8 @@ def test_admission_config_disabled_namespaces():
         namespaces:
           - kube-system
 """)
-    ns = spec["falconClusterGuard"]["admissionConfig"]["disabledNamespaces"]["namespaces"]
+    ns = spec["falconClusterGuard"]["controller"]["disabledNamespaces"]["namespaces"]
     assert "kube-system" in ns
-
-
-def test_admission_config_deploy_watcher():
-    spec, _ = run("""\
-  falconAdmission:
-    admissionConfig:
-      deployWatcher: false
-""")
-    assert spec["falconClusterGuard"]["admissionConfig"]["deployWatcher"] is False
 
 
 def test_admission_config_watcher_enabled():
@@ -556,7 +547,7 @@ def test_admission_config_watcher_enabled():
     admissionConfig:
       watcherEnabled: true
 """)
-    assert spec["falconClusterGuard"]["admissionConfig"]["watcherEnabled"] is True
+    assert spec["falconClusterGuard"]["controller"]["watcherEnabled"] is True
 
 
 def test_admission_config_snapshots_enabled():
@@ -565,7 +556,7 @@ def test_admission_config_snapshots_enabled():
     admissionConfig:
       snapshotsEnabled: false
 """)
-    assert spec["falconClusterGuard"]["admissionConfig"]["snapshotsEnabled"] is False
+    assert spec["falconClusterGuard"]["controller"]["snapshotsEnabled"] is False
 
 
 def test_admission_config_snapshots_interval():
@@ -574,7 +565,7 @@ def test_admission_config_snapshots_interval():
     admissionConfig:
       snapshotsInterval: 12h
 """)
-    assert spec["falconClusterGuard"]["admissionConfig"]["snapshotsInterval"] == "12h"
+    assert spec["falconClusterGuard"]["controller"]["snapshotsInterval"] == "12h"
 
 
 def test_admission_config_admission_control_enabled():
@@ -583,7 +574,7 @@ def test_admission_config_admission_control_enabled():
     admissionConfig:
       admissionControlEnabled: false
 """)
-    assert spec["falconClusterGuard"]["admissionConfig"]["admissionControlEnabled"] is False
+    assert spec["falconClusterGuard"]["controller"]["admissionControlEnabled"] is False
 
 
 def test_admission_config_configmap_watcher_enabled():
@@ -592,7 +583,7 @@ def test_admission_config_configmap_watcher_enabled():
     admissionConfig:
       configMapWatcherEnabled: false
 """)
-    assert spec["falconClusterGuard"]["admissionConfig"]["configMapWatcherEnabled"] is False
+    assert spec["falconClusterGuard"]["controller"]["configMapWatcherEnabled"] is False
 
 
 # ── conflict resolution ───────────────────────────────────────────────────────
@@ -1034,8 +1025,8 @@ def test_e2e_scenario1_crds_only():
     assert fcg["installNamespace"] == "falcon-system"
     assert fcg["falcon_api"]["client_id"] == "abc"
     assert fcg["nodeSensor"]["backend"] == "bpf"
-    assert fcg["admissionConfig"]["failurePolicy"] == "Ignore"
-    assert fcg["admissionConfig"]["servicePort"] == 8443
+    assert fcg["controller"]["failurePolicy"] == "Ignore"
+    assert fcg["controller"]["servicePort"] == 8443
 
 
 def test_e2e_scenario2_fd_only():
@@ -1059,7 +1050,7 @@ def test_e2e_scenario2_fd_only():
     assert result["spec"]["deployClusterGuard"] is True
     assert fcg["installNamespace"] == "falcon-system"
     assert fcg["nodeSensor"]["backend"] == "bpf"
-    assert fcg["admissionConfig"]["failurePolicy"] == "Ignore"
+    assert fcg["controller"]["failurePolicy"] == "Ignore"
 
 
 def test_e2e_scenario3_fd_plus_crds_precedence():
@@ -1086,7 +1077,7 @@ def test_e2e_scenario3_fd_plus_crds_precedence():
     assert fcg["installNamespace"] == "from-fd"
     assert fcg["nodeSensor"]["backend"] == "bpf"
     assert fcg["falcon_api"]["client_id"] == "fd-api-key"
-    assert fcg["admissionConfig"]["failurePolicy"] == "Ignore"
+    assert fcg["controller"]["failurePolicy"] == "Ignore"
     assert spec["falconContainerSensor"]["injector"]["listenPort"] == 4433
     assert spec["deployContainerSensor"] is True
     assert any("FalconNodeSensor" in w and "ignored" in w.lower() for w in warnings)

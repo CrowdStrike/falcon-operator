@@ -1,4 +1,4 @@
-package admission
+package clusterguard_controller
 
 import (
 	"context"
@@ -17,16 +17,16 @@ import (
 // Config holds the inputs needed to reconcile the admission controller component.
 type Config struct {
 	components.BaseConfig
-	AdmissionConfig falconv1alpha1.FalconClusterGuardAdmissionSpec
-	ClusterName     *string
-	RegistryTLS     falconv1alpha1.RegistryTLSSpec
+	ClusterGuardControllerConfig falconv1alpha1.FalconClusterGuardController
+	ClusterName                  *string
+	RegistryTLS                  falconv1alpha1.RegistryTLSSpec
 }
 
-const admissionDefaultPrefix = "falcon-cluster-sensor"
+const admissionDefaultPrefix = "falcon-clusterguard"
 
 // prefix returns the name prefix to use for owned resources.
 // If NamePrefix is set in config, it is used; otherwise the default is returned.
-func (a *Admission) prefix() string {
+func (a *ClusterGuardController) prefix() string {
 	if a.cfg.NamePrefix != "" {
 		return a.cfg.NamePrefix
 	}
@@ -34,18 +34,18 @@ func (a *Admission) prefix() string {
 }
 
 // Admission owns the reconciliation of all admission controller sub-resources.
-type Admission struct {
+type ClusterGuardController struct {
 	r   k8sutils.Reconciler
 	cfg Config
 }
 
 // New returns an Admission ready to reconcile.
-func New(r k8sutils.Reconciler, cfg Config) *Admission {
-	return &Admission{r: r, cfg: cfg}
+func New(r k8sutils.Reconciler, cfg Config) *ClusterGuardController {
+	return &ClusterGuardController{r: r, cfg: cfg}
 }
 
 // Reconcile runs all admission controller reconciliation steps in order.
-func (a *Admission) Reconcile(ctx context.Context) (ctrl.Result, error) {
+func (a *ClusterGuardController) Reconcile(ctx context.Context) (ctrl.Result, error) {
 	log := a.r.GetLog()
 
 	if err := a.reconcileServiceAccount(ctx); err != nil {

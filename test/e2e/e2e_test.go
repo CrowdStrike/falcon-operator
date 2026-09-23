@@ -1721,7 +1721,7 @@ var _ = Describe("falcon", Ordered, func() {
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 			clusterName := "test-cluster"
-			fcg.Spec.AdmissionConfig.ClusterName = &clusterName
+			fcg.Spec.ClusterGuardControllerConfig.ClusterName = &clusterName
 
 			By("applying the modified manifest")
 			err = applyManifest(&fcg, fcgConfig.namespace)
@@ -1751,7 +1751,7 @@ var _ = Describe("falcon", Ordered, func() {
 			err := loadManifest(manifest, &fcg)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-			fcg.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+			fcg.Spec.ClusterGuardControllerConfig.Tolerations = []corev1.Toleration{
 				{
 					Key:      "node.kubernetes.io/memory-pressure",
 					Operator: corev1.TolerationOpExists,
@@ -1768,7 +1768,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 			By("validating the deployment has the expected admission tolerations")
 			validateTolerationsInDeployment := func() error {
-				cmd := exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-clusterguard-controller",
 					"-n", fcgConfig.namespace,
 					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node.kubernetes.io/memory-pressure')].effect}")
 				output, err := utils.Run(cmd)
@@ -1783,7 +1783,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 		It("should preserve system-added admission tolerations", func() {
 			By("getting current tolerations")
-			cmd := exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+			cmd := exec.Command("kubectl", "get", "deployment", "falcon-clusterguard-controller",
 				"-n", fcgConfig.namespace,
 				"-o", "jsonpath={.spec.template.spec.tolerations}")
 			currentTolerations, err := utils.Run(cmd)
@@ -1794,7 +1794,7 @@ var _ = Describe("falcon", Ordered, func() {
 			err = loadManifest(manifest, &fcg)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-			fcg.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+			fcg.Spec.ClusterGuardControllerConfig.Tolerations = []corev1.Toleration{
 				{
 					Key:      "node.kubernetes.io/memory-pressure",
 					Operator: corev1.TolerationOpExists,
@@ -1814,7 +1814,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 			By("validating both old and new admission tolerations are present")
 			validateBothTolerations := func() error {
-				cmd := exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-clusterguard-controller",
 					"-n", fcgConfig.namespace,
 					"-o", "jsonpath={.spec.template.spec.tolerations}")
 				updatedTolerations, err := utils.Run(cmd)
@@ -1847,7 +1847,7 @@ var _ = Describe("falcon", Ordered, func() {
 			err := loadManifest(manifest, &fcg)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-			fcg.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+			fcg.Spec.ClusterGuardControllerConfig.Tolerations = []corev1.Toleration{
 				{
 					Key:      "environment",
 					Operator: corev1.TolerationOpExists,
@@ -1861,7 +1861,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 			By("validating initial toleration with Exists operator")
 			validateInitialToleration := func() error {
-				cmd := exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-clusterguard-controller",
 					"-n", fcgConfig.namespace,
 					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='environment')].operator}")
 				output, err := utils.Run(cmd)
@@ -1877,7 +1877,7 @@ var _ = Describe("falcon", Ordered, func() {
 			err = loadManifest(manifest, &fcg)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-			fcg.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+			fcg.Spec.ClusterGuardControllerConfig.Tolerations = []corev1.Toleration{
 				{
 					Key:      "environment",
 					Operator: corev1.TolerationOpEqual,
@@ -1892,7 +1892,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 			By("validating admission toleration was replaced with new Value and Operator")
 			validateReplacedToleration := func() error {
-				cmd := exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-clusterguard-controller",
 					"-n", fcgConfig.namespace,
 					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='environment')].operator}")
 				output, err := utils.Run(cmd)
@@ -1901,7 +1901,7 @@ var _ = Describe("falcon", Ordered, func() {
 					return fmt.Errorf("expected Equal operator not found: %s", output)
 				}
 
-				cmd = exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+				cmd = exec.Command("kubectl", "get", "deployment", "falcon-clusterguard-controller",
 					"-n", fcgConfig.namespace,
 					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='environment')].value}")
 				output, err = utils.Run(cmd)
@@ -1910,7 +1910,7 @@ var _ = Describe("falcon", Ordered, func() {
 					return fmt.Errorf("expected value 'production' not found: %s", output)
 				}
 
-				cmd = exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+				cmd = exec.Command("kubectl", "get", "deployment", "falcon-clusterguard-controller",
 					"-n", fcgConfig.namespace,
 					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='environment')]}")
 				output, err = utils.Run(cmd)
@@ -1930,7 +1930,7 @@ var _ = Describe("falcon", Ordered, func() {
 			err := loadManifest(manifest, &fcg)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-			fcg.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+			fcg.Spec.ClusterGuardControllerConfig.Tolerations = []corev1.Toleration{
 				{
 					Key:      "node-type",
 					Operator: corev1.TolerationOpExists,
@@ -1949,7 +1949,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 			By("validating both admission tolerations with same Key but different Effect exist")
 			validateBothEffects := func() error {
-				cmd := exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-clusterguard-controller",
 					"-n", fcgConfig.namespace,
 					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node-type')]}")
 				output, err := utils.Run(cmd)
@@ -2231,14 +2231,14 @@ var _ = Describe("falcon", Ordered, func() {
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 			By("deleting the sensor TLS secret to force certificate regeneration")
-			cmd := exec.Command("kubectl", "delete", "secret", "falcon-cluster-sensor-tls",
+			cmd := exec.Command("kubectl", "delete", "secret", "falcon-clusterguard-tls",
 				"-n", fcgConfig.namespace, "--ignore-not-found")
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 			By("waiting for the operator to recreate the TLS secret")
 			EventuallyWithOffset(1, func() error {
-				cmd := exec.Command("kubectl", "get", "secret", "falcon-cluster-sensor-tls",
+				cmd := exec.Command("kubectl", "get", "secret", "falcon-clusterguard-tls",
 					"-n", fcgConfig.namespace)
 				_, err := utils.Run(cmd)
 				return err
@@ -2273,7 +2273,8 @@ var _ = Describe("falcon", Ordered, func() {
 			By("patching the FalconClusterGuard spec to change TerminationGracePeriod")
 			err = loadManifest(manifest, &fcg)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
-			fcg.Spec.NodeSensor.TerminationGracePeriod = 90
+			grace90 := int64(90)
+			fcg.Spec.NodeSensor.TerminationGracePeriod = &grace90
 			err = applyManifest(&fcg, fcgConfig.namespace)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
@@ -2299,7 +2300,8 @@ var _ = Describe("falcon", Ordered, func() {
 			By("restoring the original TerminationGracePeriod so subsequent tests start from a clean baseline")
 			err = loadManifest(manifest, &fcg)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
-			fcg.Spec.NodeSensor.TerminationGracePeriod = 60 // explicit so omitempty does not drop it from the patch
+			grace60 := int64(60)
+			fcg.Spec.NodeSensor.TerminationGracePeriod = &grace60 // explicit so omitempty does not drop it from the patch
 			err = applyManifest(&fcg, fcgConfig.namespace)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 			EventuallyWithOffset(1, func() (string, error) {

@@ -1,4 +1,4 @@
-package admission
+package clusterguard_controller
 
 import (
 	"context"
@@ -14,12 +14,12 @@ import (
 )
 
 // serviceAccount builds the ServiceAccount for the FalconClusterGuard admission controller.
-func (a *Admission) serviceAccount() *corev1.ServiceAccount {
-	return assets.ServiceAccount(a.prefix()+"-sa", a.cfg.InstallNamespace, pkgcommon.AdmissionComponentName, a.cfg.AdmissionConfig.ServiceAccount.Annotations, a.cfg.ImagePullSecrets)
+func (a *ClusterGuardController) serviceAccount() *corev1.ServiceAccount {
+	return assets.ServiceAccount(a.prefix()+"-sa", a.cfg.InstallNamespace, pkgcommon.AdmissionComponentName, a.cfg.ClusterGuardControllerConfig.ServiceAccount.Annotations, a.cfg.ImagePullSecrets)
 }
 
 // clusterRoleBinding builds the ClusterRoleBinding for the FalconClusterGuard admission controller.
-func (a *Admission) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
+func (a *ClusterGuardController) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return assets.ClusterRoleBinding(
 		a.prefix()+"-security-crb",
 		a.cfg.InstallNamespace,
@@ -31,17 +31,17 @@ func (a *Admission) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 }
 
 // roleBinding builds the RoleBinding for the FalconClusterGuard admission controller.
-func (a *Admission) roleBinding() *rbacv1.RoleBinding {
+func (a *ClusterGuardController) roleBinding() *rbacv1.RoleBinding {
 	return assets.RoleBinding(a.prefix()+"-rolebinding", a.cfg.InstallNamespace, a.prefix()+"-namespace-role", a.prefix()+"-sa")
 }
 
 // role builds the Role for the FalconClusterGuard admission controller.
-func (a *Admission) role() *rbacv1.Role {
+func (a *ClusterGuardController) role() *rbacv1.Role {
 	return assets.Role(a.prefix()+"-namespace-role", a.cfg.InstallNamespace)
 }
 
 // reconcileServiceAccount reconciles the ServiceAccount for the admission controller.
-func (a *Admission) reconcileServiceAccount(ctx context.Context) error {
+func (a *ClusterGuardController) reconcileServiceAccount(ctx context.Context) error {
 	sa := a.serviceAccount()
 	existing := &corev1.ServiceAccount{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, sa, existing,
@@ -92,7 +92,7 @@ func (a *Admission) reconcileServiceAccount(ctx context.Context) error {
 	return nil
 }
 
-func (a *Admission) reconcileClusterRoleBinding(ctx context.Context) error {
+func (a *ClusterGuardController) reconcileClusterRoleBinding(ctx context.Context) error {
 	crb := a.clusterRoleBinding()
 	existing := &rbacv1.ClusterRoleBinding{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, crb, existing,
@@ -116,7 +116,7 @@ func (a *Admission) reconcileClusterRoleBinding(ctx context.Context) error {
 	return nil
 }
 
-func (a *Admission) reconcileRoleBinding(ctx context.Context) error {
+func (a *ClusterGuardController) reconcileRoleBinding(ctx context.Context) error {
 	rb := a.roleBinding()
 	existing := &rbacv1.RoleBinding{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, rb, existing,
@@ -140,7 +140,7 @@ func (a *Admission) reconcileRoleBinding(ctx context.Context) error {
 	return nil
 }
 
-func (a *Admission) reconcileRole(ctx context.Context) error {
+func (a *ClusterGuardController) reconcileRole(ctx context.Context) error {
 	role := a.role()
 	existing := &rbacv1.Role{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, role, existing,

@@ -1,4 +1,4 @@
-package admission
+package clusterguard_controller
 
 import (
 	"testing"
@@ -104,8 +104,8 @@ func TestClusterGuardValidatingWebhookReturnsWebhook(t *testing.T) {
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: namespace,
 		},
-		AdmissionConfig: falconv1alpha1.FalconClusterGuardAdmissionSpec{
-			DisabledNamespaces: falconv1alpha1.FalconClusterGuardAdmissionNamespace{
+		ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{
+			DisabledNamespaces: falconv1alpha1.FalconClusterGuardControllerNamespace{
 				Namespaces: extraDisabledNamespaces,
 			},
 		},
@@ -133,8 +133,8 @@ func TestClusterGuardValidatingWebhookDeduplicatesNamespaces(t *testing.T) {
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: namespace,
 		},
-		AdmissionConfig: falconv1alpha1.FalconClusterGuardAdmissionSpec{
-			DisabledNamespaces: falconv1alpha1.FalconClusterGuardAdmissionNamespace{
+		ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{
+			DisabledNamespaces: falconv1alpha1.FalconClusterGuardControllerNamespace{
 				Namespaces: extraDisabledNamespaces,
 			},
 		},
@@ -168,7 +168,7 @@ func TestAdmissionConfigMapHasRequiredKeys(t *testing.T) {
 			InstallNamespace: "falcon-clusterguard",
 			Cid:              "abc123",
 		},
-		AdmissionConfig: falconv1alpha1.FalconClusterGuardAdmissionSpec{
+		ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{
 			AdmissionControlEnabled: &trueVal,
 		},
 	})
@@ -225,7 +225,7 @@ func TestAdmissionConfigMapAdmissionControlEnabled(t *testing.T) {
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "falcon-clusterguard",
 		},
-		AdmissionConfig: falconv1alpha1.FalconClusterGuardAdmissionSpec{AdmissionControlEnabled: &trueVal},
+		ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{AdmissionControlEnabled: &trueVal},
 	})
 	cm := a.configMap()
 
@@ -240,7 +240,7 @@ func TestAdmissionConfigMapAdmissionControlDisabled(t *testing.T) {
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "falcon-clusterguard",
 		},
-		AdmissionConfig: falconv1alpha1.FalconClusterGuardAdmissionSpec{AdmissionControlEnabled: &falseVal},
+		ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{AdmissionControlEnabled: &falseVal},
 	})
 	cm := a.configMap()
 
@@ -254,7 +254,7 @@ func TestAdmissionConfigMapAdmissionControlNilIsTrue(t *testing.T) {
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "falcon-clusterguard",
 		},
-		AdmissionConfig: falconv1alpha1.FalconClusterGuardAdmissionSpec{AdmissionControlEnabled: nil},
+		ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{AdmissionControlEnabled: nil},
 	})
 	cm := a.configMap()
 
@@ -304,8 +304,8 @@ func TestAdmissionConfigMapDefaultName(t *testing.T) {
 	})
 	cm := a.configMap()
 
-	if cm.Name != "falcon-cluster-sensor-config" {
-		t.Errorf("expected default ConfigMap name %q, got %q", "falcon-cluster-sensor-config", cm.Name)
+	if cm.Name != "falcon-clusterguard-config" {
+		t.Errorf("expected default ConfigMap name %q, got %q", "falcon-clusterguard-config", cm.Name)
 	}
 }
 
@@ -355,8 +355,8 @@ func TestAdmissionServiceAccountName(t *testing.T) {
 	if sa == nil {
 		t.Fatal("expected non-nil ServiceAccount")
 	}
-	if sa.Name != "falcon-cluster-sensor-sa" {
-		t.Errorf("expected name %q, got %q", "falcon-cluster-sensor-sa", sa.Name)
+	if sa.Name != "falcon-clusterguard-sa" {
+		t.Errorf("expected name %q, got %q", "falcon-clusterguard-sa", sa.Name)
 	}
 	if sa.Namespace != "falcon-clusterguard" {
 		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", sa.Namespace)
@@ -405,8 +405,8 @@ func TestAdmissionServiceAccountAnnotations(t *testing.T) {
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "falcon-clusterguard",
 		},
-		AdmissionConfig: falconv1alpha1.FalconClusterGuardAdmissionSpec{
-			ServiceAccount: falconv1alpha1.FalconClusterGuardAdmissionServiceAccount{Annotations: annotations},
+		ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{
+			ServiceAccount: falconv1alpha1.FalconClusterGuardControllerServiceAccount{Annotations: annotations},
 		},
 	})
 	sa := a.serviceAccount()
@@ -429,8 +429,8 @@ func TestAdmissionClusterRoleBindingName(t *testing.T) {
 	if crb == nil {
 		t.Fatal("expected non-nil ClusterRoleBinding")
 	}
-	if crb.Name != "falcon-cluster-sensor-security-crb" {
-		t.Errorf("expected name %q, got %q", "falcon-cluster-sensor-security-crb", crb.Name)
+	if crb.Name != "falcon-clusterguard-security-crb" {
+		t.Errorf("expected name %q, got %q", "falcon-clusterguard-security-crb", crb.Name)
 	}
 }
 
@@ -506,8 +506,8 @@ func TestAdmissionRoleBindingName(t *testing.T) {
 	if rb == nil {
 		t.Fatal("expected non-nil RoleBinding")
 	}
-	if rb.Name != "falcon-cluster-sensor-rolebinding" {
-		t.Errorf("expected name %q, got %q", "falcon-cluster-sensor-rolebinding", rb.Name)
+	if rb.Name != "falcon-clusterguard-rolebinding" {
+		t.Errorf("expected name %q, got %q", "falcon-clusterguard-rolebinding", rb.Name)
 	}
 	if rb.Namespace != "falcon-clusterguard" {
 		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", rb.Namespace)
@@ -581,8 +581,8 @@ func TestAdmissionRoleName(t *testing.T) {
 	if role == nil {
 		t.Fatal("expected non-nil Role")
 	}
-	if role.Name != "falcon-cluster-sensor-namespace-role" {
-		t.Errorf("expected name %q, got %q", "falcon-cluster-sensor-namespace-role", role.Name)
+	if role.Name != "falcon-clusterguard-namespace-role" {
+		t.Errorf("expected name %q, got %q", "falcon-clusterguard-namespace-role", role.Name)
 	}
 	if role.Namespace != "falcon-clusterguard" {
 		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", role.Namespace)

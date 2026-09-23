@@ -1,4 +1,4 @@
-package admission
+package clusterguard_controller
 
 import (
 	"context"
@@ -13,13 +13,13 @@ import (
 )
 
 // webhookService builds the Service that exposes the admission webhook.
-func (a *Admission) webhookService() *corev1.Service {
+func (a *ClusterGuardController) webhookService() *corev1.Service {
 	selector := map[string]string{"app": pkgcommon.AdmissionServiceApp}
 	labels := map[string]string{"app": pkgcommon.AdmissionServiceApp}
 
 	port := int32(443)
-	if a.cfg.AdmissionConfig.Port != nil {
-		port = *a.cfg.AdmissionConfig.Port
+	if a.cfg.ClusterGuardControllerConfig.Port != nil {
+		port = *a.cfg.ClusterGuardControllerConfig.Port
 	}
 
 	return assets.ServiceWithCustomLabels(
@@ -34,7 +34,7 @@ func (a *Admission) webhookService() *corev1.Service {
 }
 
 // apiService builds the Service that exposes the gRPC API.
-func (a *Admission) apiService() *corev1.Service {
+func (a *ClusterGuardController) apiService() *corev1.Service {
 	selector := map[string]string{"app": pkgcommon.AdmissionServiceApp}
 	labels := map[string]string{"app": pkgcommon.AdmissionServiceApp}
 
@@ -50,7 +50,7 @@ func (a *Admission) apiService() *corev1.Service {
 }
 
 // reconcileWebhookService returns true if the service was updated, which requires a pod restart.
-func (a *Admission) reconcileWebhookService(ctx context.Context) (bool, error) {
+func (a *ClusterGuardController) reconcileWebhookService(ctx context.Context) (bool, error) {
 	svc := a.webhookService()
 	existing := &corev1.Service{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, svc, existing,
@@ -78,7 +78,7 @@ func (a *Admission) reconcileWebhookService(ctx context.Context) (bool, error) {
 }
 
 // reconcileAPIService returns true if the service was updated, which requires a pod restart.
-func (a *Admission) reconcileAPIService(ctx context.Context) (bool, error) {
+func (a *ClusterGuardController) reconcileAPIService(ctx context.Context) (bool, error) {
 	svc := a.apiService()
 	existing := &corev1.Service{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, svc, existing,

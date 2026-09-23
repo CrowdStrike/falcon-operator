@@ -1,4 +1,4 @@
-package admission
+package clusterguard_controller
 
 import (
 	"context"
@@ -15,12 +15,12 @@ import (
 
 // ValidatingWebhook builds the ValidatingWebhookConfiguration for FalconClusterGuard
 // with three webhooks: pod admission, workload admission, and a test webhook.
-func (a *Admission) ValidatingWebhook(caBundle []byte) *arv1.ValidatingWebhookConfiguration {
+func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.ValidatingWebhookConfiguration {
 	namespace := a.cfg.InstallNamespace
-	extraDisabledNamespaces := a.cfg.AdmissionConfig.DisabledNamespaces.Namespaces
+	extraDisabledNamespaces := a.cfg.ClusterGuardControllerConfig.DisabledNamespaces.Namespaces
 	failurePolicy := arv1.Ignore
-	if a.cfg.AdmissionConfig.FailurePolicy != "" {
-		failurePolicy = a.cfg.AdmissionConfig.FailurePolicy
+	if a.cfg.ClusterGuardControllerConfig.FailurePolicy != "" {
+		failurePolicy = a.cfg.ClusterGuardControllerConfig.FailurePolicy
 	}
 	matchPolicy := arv1.Equivalent
 	sideEffects := arv1.SideEffectClassNone
@@ -30,8 +30,8 @@ func (a *Admission) ValidatingWebhook(caBundle []byte) *arv1.ValidatingWebhookCo
 	webhookName := pkgcommon.AdmissionValidatingWebhookName
 	path := "/validate"
 	port := int32(443)
-	if a.cfg.AdmissionConfig.Port != nil {
-		port = *a.cfg.AdmissionConfig.Port
+	if a.cfg.ClusterGuardControllerConfig.Port != nil {
+		port = *a.cfg.ClusterGuardControllerConfig.Port
 	}
 
 	excludedNamespaces := append(pkgcommon.DefaultDisabledNamespaces,
@@ -272,7 +272,7 @@ func mergeNamespaceSelector(desired, existing *metav1.LabelSelector) *metav1.Lab
 }
 
 // reconcileValidatingWebhook returns true if the webhook configuration was updated, which requires a pod restart.
-func (a *Admission) reconcileValidatingWebhook(ctx context.Context, caBundle []byte) (bool, error) {
+func (a *ClusterGuardController) reconcileValidatingWebhook(ctx context.Context, caBundle []byte) (bool, error) {
 	webhook := a.ValidatingWebhook(caBundle)
 	existing := &arv1.ValidatingWebhookConfiguration{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, webhook, existing,

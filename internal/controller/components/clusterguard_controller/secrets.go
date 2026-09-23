@@ -1,4 +1,4 @@
-package admission
+package clusterguard_controller
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 )
 
 // reconcileTLSSecret reconciles the TLS secret for the admission webhook.
-func (a *Admission) reconcileTLSSecret(ctx context.Context) (*corev1.Secret, error) {
+func (a *ClusterGuardController) reconcileTLSSecret(ctx context.Context) (*corev1.Secret, error) {
 	existing := &corev1.Secret{}
 	namespace := a.cfg.InstallNamespace
 	err := pkgcommon.GetNamespacedObject(ctx, a.r, a.r.GetK8sReader(), types.NamespacedName{Name: a.prefix() + "-tls", Namespace: namespace}, existing)
@@ -26,8 +26,8 @@ func (a *Admission) reconcileTLSSecret(ctx context.Context) (*corev1.Secret, err
 			fmt.Sprintf("%s.%s", svcName, namespace),
 		}
 		validity := 3650
-		if a.cfg.AdmissionConfig.TLS.Validity != nil {
-			validity = *a.cfg.AdmissionConfig.TLS.Validity
+		if a.cfg.ClusterGuardControllerConfig.TLS.Validity != nil {
+			validity = *a.cfg.ClusterGuardControllerConfig.TLS.Validity
 		}
 		cert, key, ca, err := tls.CertSetup(namespace, validity, tls.CertInfo{CommonName: svcName, DNSNames: altDNSNames})
 		if err != nil {
