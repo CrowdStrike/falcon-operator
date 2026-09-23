@@ -1,10 +1,11 @@
 <!--- NOTE: DO NOT EDIT! This file is auto-generated. Please update the source *.tmpl file instead --->
 # Deployment Guide for Kubernetes
 This document will guide you through the installation of the Falcon Operator and deployment of the following custom resources provided by the Falcon Operator:
-- [FalconAdmission](../../resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to .
+- [FalconClusterGuard](../../resources/clusterguard/README.md) **(Recommended)** with the Falcon Cluster Guard image being pulled from the CrowdStrike container registry. Combines the Falcon Kubernetes Admission Controller and Falcon Linux Node Sensor into a single resource.
 - [FalconContainer](../../resources/container/README.md) with the Falcon Container image being mirrored from CrowdStrike container registry to .
 - [FalconImageAnalyzer](../../resources/imageanalyzer/README.md) with the Falcon Image Analyzer image being pull from the CrowdStrike container registry.
-- [FalconNodeSensor](../../resources/node/README.md) custom resource to the cluster.
+- [FalconNodeSensor](../../resources/node/README.md) **(Deprecated)** — use FalconClusterGuard instead.
+- [FalconAdmission](../../resources/admission/README.md) **(Deprecated)** — use FalconClusterGuard instead.
 
 ## Prerequisites
 
@@ -32,13 +33,34 @@ This document will guide you through the installation of the Falcon Operator and
 
 </details>
 
+### Deploying the Falcon Cluster Guard (Recommended)
+
+<details>
+  <summary>Click to expand</summary>
+
+FalconClusterGuard combines the Falcon Kubernetes Admission Controller and Falcon Linux Node Sensor into a single resource. This is the recommended approach for new deployments.
+
+After the Falcon Operator has deployed, you can now deploy Falcon Cluster Guard:
+
+- Deploy FalconClusterGuard through the cli using the `kubectl` command:
+  ```sh
+  kubectl create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconclusterguard.yaml --edit=true
+  ```
+
+For the full configuration reference, see [FalconClusterGuard Custom Resource](../../resources/clusterguard/README.md).
+
+</details>
+
 ### Sensor uninstall and maintenance protection
 Important notes for Kubernetes and other container deployments of the Falcon sensor.
 - **Falcon Node sensor for Linux with sensor version 7.33 and earlier:** We do not recommend enabling the **Uninstall and maintenance protection** policy setting for DaemonSet deployments. This setting can cause operational issues that require manual intervention.
 - **Falcon Node sensor for Linux with sensors version 7.34 and later:** DaemonSet deployments do not support the **Uninstall and maintenance protection** policy setting and automatically ignores it.
 - **Falcon Container sensor for Linux:** Deployed as a sidecar container within application pods. This sensor does not support the **Uninstall and maintenance protection** policy setting and automatically ignores it.
 
-### Deploying the Falcon Node Sensor
+### Deploying the Falcon Node Sensor (Deprecated)
+
+> [!WARNING]
+> FalconNodeSensor is deprecated. Use [FalconClusterGuard](#deploying-the-falcon-cluster-guard-recommended) instead.
 
 <details>
   <summary>Click to expand</summary>
@@ -67,7 +89,10 @@ After the Falcon Operator has deployed, you can now deploy the Falcon Node Senso
 
 </details>
 
-### Deploying the Falcon Admission Controller
+### Deploying the Falcon Admission Controller (Deprecated)
+
+> [!WARNING]
+> FalconAdmission is deprecated. Use [FalconClusterGuard](#deploying-the-falcon-cluster-guard-recommended) instead.
 
 <details>
   <summary>Click to expand</summary>
@@ -125,7 +150,23 @@ kubectl apply -f https://github.com/CrowdStrike/falcon-operator/releases/downloa
 > policy setting turned off. For more info, see [Sensor update and uninstallation for DaemonSet sensor versions 7.33
 > and lower](https://falcon.crowdstrike.com/documentation/anchor/sc632f2e).
 
-### Uninstalling the Falcon Node Sensor
+### Uninstalling the Falcon Cluster Guard
+
+<details>
+  <summary>Click to expand</summary>
+
+Remove the FalconClusterGuard resource. The operator will uninstall Falcon Cluster Guard from the cluster:
+
+```sh
+kubectl delete falconclusterguard --all
+```
+
+> [!NOTE]
+> During uninstallation, the node sensor DaemonSet runs a cleanup job to remove `/opt/CrowdStrike` from each node. If cleanup pods crashloop, manually remove the `/opt/CrowdStrike` directory on affected nodes.
+
+</details>
+
+### Uninstalling the Falcon Node Sensor (Deprecated)
 
 <details>
   <summary>Click to expand</summary>
@@ -151,7 +192,7 @@ kubectl delete falconcontainers --all
 
 </details>
 
-### Uninstalling the Falcon Admission Controller
+### Uninstalling the Falcon Admission Controller (Deprecated)
 
 <details>
   <summary>Click to expand</summary>

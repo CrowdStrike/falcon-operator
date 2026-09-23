@@ -27,6 +27,14 @@ testbin/*
 /deploy/parts/crd-*.yaml
 .tool-versions
 Dockerfile.cross
+falcon-operator*.tar
 
 # Generated Helm chart
-helm-charts/
+# Uncomment before release
+# helm-charts/
+*.tgz
+
+# Python artifacts from hack/ migration script and tests
+hack/.venv/
+__pycache__/
+.pytest_cache/

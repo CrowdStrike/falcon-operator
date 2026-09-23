@@ -212,6 +212,9 @@ func loadManifest(manifest string, obj any) error {
 	case *falconv1alpha1.FalconDeployment:
 		v.Spec.FalconAPI.ClientId = falconClientID
 		v.Spec.FalconAPI.ClientSecret = falconClientSecret
+	case *falconv1alpha1.FalconClusterGuard:
+		v.Spec.FalconAPI.ClientId = falconClientID
+		v.Spec.FalconAPI.ClientSecret = falconClientSecret
 	}
 
 	return nil
@@ -228,6 +231,49 @@ func applyManifest(obj any, namespace string) error {
 	// Apply via kubectl
 	cmd := exec.Command("kubectl", "apply", "-f", "-", "-n", namespace)
 	cmd.Stdin = strings.NewReader(string(data))
+	_, err = utils.Run(cmd)
+	return err
+}
+
+// applyManifestFile reads a manifest file, injects Falcon API credentials into the
+// raw YAML map (avoiding Go struct round-trip which zeroes unset enum fields), and
+// applies it via kubectl. Use this instead of loadManifest+applyManifest when the
+// manifest contains enum fields that must not be serialized as empty strings.
+func applyManifestFile(manifest string) error {
+	manifestPath := filepath.Join(projectDir, manifest)
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return err
+	}
+
+	var raw map[string]any
+	if err := yaml.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	falconClientID, falconClientSecret := getCredentials()
+	if falconClientID != "" && falconClientSecret != "" {
+		spec, _ := raw["spec"].(map[string]any)
+		if spec == nil {
+			spec = map[string]any{}
+			raw["spec"] = spec
+		}
+		falconAPI, _ := spec["falcon_api"].(map[string]any)
+		if falconAPI == nil {
+			falconAPI = map[string]any{}
+			spec["falcon_api"] = falconAPI
+		}
+		falconAPI["client_id"] = falconClientID
+		falconAPI["client_secret"] = falconClientSecret
+	}
+
+	out, err := yaml.Marshal(raw)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("kubectl", "apply", "-f", "-")
+	cmd.Stdin = strings.NewReader(string(out))
 	_, err = utils.Run(cmd)
 	return err
 }
@@ -389,6 +435,33 @@ func (cr crConfig) validateDefaultValues() {
 		validateField(".spec.falconNodeSensor.falcon.apd", "false", "spec.falconNodeSensor.falcon.apd")
 		validateField(".spec.falconContainerSensor.falcon.trace", "none", "spec.falconContainerSensor.falcon.trace")
 		validateField(".spec.falconContainerSensor.falcon.apd", "false", "spec.falconContainerSensor.falcon.apd")
+
+	case "FalconClusterGuard":
+		validateField(".spec.installNamespace", "falcon-sensor", "spec.installNamespace")
+		validateField(".spec.registry.type", "crowdstrike", "spec.registry.type")
+		validateField(".spec.imagePullPolicy", "IfNotPresent", "spec.imagePullPolicy")
+		// admissionConfig defaults (inherited from FalconAdmissionBaseConfig)
+		validateField(".spec.admissionConfig.servicePort", "443", "spec.admissionConfig.servicePort")
+		validateField(".spec.admissionConfig.containerPort", "4443", "spec.admissionConfig.containerPort")
+		validateField(".spec.admissionConfig.failurePolicy", "Ignore", "spec.admissionConfig.failurePolicy")
+		validateField(".spec.admissionConfig.imagePullPolicy", "Always", "spec.admissionConfig.imagePullPolicy")
+		validateField(".spec.admissionConfig.deployWatcher", "true", "spec.admissionConfig.deployWatcher")
+		validateField(".spec.admissionConfig.watcherEnabled", "true", "spec.admissionConfig.watcherEnabled")
+		validateField(".spec.admissionConfig.snapshotsEnabled", "true", "spec.admissionConfig.snapshotsEnabled")
+		validateField(".spec.admissionConfig.admissionControlEnabled", "true", "spec.admissionConfig.admissionControlEnabled")
+		validateField(".spec.admissionConfig.configMapWatcherEnabled", "true", "spec.admissionConfig.configMapWatcherEnabled")
+		validateField(".spec.admissionConfig.snapshotsInterval", "22h", "spec.admissionConfig.snapshotsInterval")
+		validateField(".spec.admissionConfig.falconImageAnalyzerNamespace", "falcon-iar", "spec.admissionConfig.falconImageAnalyzerNamespace")
+		validateField(".spec.admissionConfig.replicas", "2", "spec.admissionConfig.replicas")
+		validateField(".spec.admissionConfig.updateStrategy.rollingUpdate.maxUnavailable", "0", "spec.admissionConfig.updateStrategy.rollingUpdate.maxUnavailable")
+		validateField(".spec.admissionConfig.updateStrategy.rollingUpdate.maxSurge", "1", "spec.admissionConfig.updateStrategy.rollingUpdate.maxSurge")
+		// nodeSensor defaults (inherited from FalconNodeBaseConfig)
+		validateField(".spec.nodeSensor.backend", "bpf", "spec.nodeSensor.backend")
+		validateField(".spec.nodeSensor.terminationGracePeriod", "60", "spec.nodeSensor.terminationGracePeriod")
+		validateField(".spec.nodeSensor.disableCleanup", "false", "spec.nodeSensor.disableCleanup")
+		validateField(".spec.nodeSensor.updateStrategy.type", "RollingUpdate", "spec.nodeSensor.updateStrategy.type")
+		validateContains(".spec.nodeSensor.tolerations[*].key", "node-role.kubernetes.io/master", "spec.nodeSensor.tolerations[master]")
+		validateContains(".spec.nodeSensor.tolerations[*].key", "node-role.kubernetes.io/control-plane", "spec.nodeSensor.tolerations[control-plane]")
 	}
 
 	// Report all failures at once

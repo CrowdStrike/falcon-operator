@@ -8,6 +8,8 @@ metadata:
 spec:
   group: falcon.crowdstrike.com
   names:
+    categories:
+    - falcon
     kind: FalconDeployment
     listKind: FalconDeploymentList
     plural: falcondeployments
@@ -15,14 +17,38 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - description: Version of the Operator
-      jsonPath: .status.version
-      name: Operator Version
+    - description: Cluster Guard enabled
+      jsonPath: .spec.deployClusterGuard
+      name: Cluster Guard
       type: string
-    - description: Version of the Falcon Container
-      jsonPath: .status.sensor
-      name: Falcon Sensor
+    - description: Image Analyzer enabled
+      jsonPath: .spec.deployImageAnalyzer
+      name: Image Analyzer
       type: string
+    - description: Container Sensor enabled
+      jsonPath: .spec.deployContainerSensor
+      name: Container
+      type: string
+    - description: Node Sensor enabled (deprecated)
+      jsonPath: .spec.deployNodeSensor
+      name: Node Sensor
+      type: string
+    - description: Admission Controller enabled (deprecated)
+      jsonPath: .spec.deployAdmissionController
+      name: Admission
+      type: string
+    - description: Deployment status
+      jsonPath: .status.conditions[?(@.type=='Success')].reason
+      name: Status
+      type: string
+    - description: Migration status
+      jsonPath: .status.conditions[?(@.type=='MigrationRequired')].reason
+      name: Migration
+      type: string
+    - description: Age of the resource
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -49,8 +75,12 @@ spec:
             description: FalconDeploymentSpec defines the desired state of FalconDeployment
             properties:
               deployAdmissionController:
-                default: true
+                default: false
                 description: Determines if Falcon Admission Controller is deployed
+                type: boolean
+              deployClusterGuard:
+                default: false
+                description: Determines if Falcon Cluster Guard is deployed
                 type: boolean
               deployContainerSensor:
                 default: false
@@ -58,10 +88,10 @@ spec:
                 type: boolean
               deployImageAnalyzer:
                 default: true
-                description: Determines if Falcon Node Sensor is deployed
+                description: Determines if Falcon Image Analyzer is deployed
                 type: boolean
               deployNodeSensor:
-                default: true
+                default: false
                 description: Determines if Falcon Node Sensor is deployed
                 type: boolean
               falcon_api:
@@ -84,6 +114,7 @@ spec:
                     description: Falcon OAuth2 API Client Secret
                     type: string
                   cloud_region:
+                    default: autodiscover
                     description: Cloud Region defines CrowdStrike Falcon Cloud Region
                       to which the operator will connect and register.
                     enum:
@@ -95,8 +126,6 @@ spec:
                     - us-gov-1
                     - us-gov-2
                     type: string
-                required:
-                - cloud_region
                 type: object
               falconAdmission:
                 default: {}
@@ -855,6 +884,7 @@ spec:
                         description: Falcon OAuth2 API Client Secret
                         type: string
                       cloud_region:
+                        default: autodiscover
                         description: Cloud Region defines CrowdStrike Falcon Cloud
                           Region to which the operator will connect and register.
                         enum:
@@ -866,8 +896,6 @@ spec:
                         - us-gov-1
                         - us-gov-2
                         type: string
-                    required:
-                    - cloud_region
                     type: object
                   falconSecret:
                     default:
@@ -964,6 +992,1320 @@ spec:
                       Example: 6.31, 6.31.0, 6.31.0-1409, etc.'
                     type: string
                 type: object
+              falconClusterGuard:
+                default: {}
+                description: Falcon Cluster Guard Configuration
+                properties:
+                  admissionConfig:
+                    default: {}
+                    description: AdmissionConfig configures the admission controller
+                      deployed alongside FalconClusterGuard.
+                    properties:
+                      admissionControlEnabled:
+                        default: false
+                        description: Determines if the admission controller webhook
+                          is enabled.
+                        type: boolean
+                      clusterName:
+                        description: Cluster Name if Falcon KAC cannot discover the
+                          cluster name. This will be overwritten if Falcon KAC is
+                          able to discover the cluster name.
+                        type: string
+                      configMapWatcherEnabled:
+                        default: true
+                        description: Determines if the admission controller watches
+                          for configMap events.
+                        type: boolean
+                      containerPort:
+                        default: 4443
+                        description: Port on which the Falcon Admission Controller
+                          container will listen for requests.
+                        format: int32
+                        maximum: 65535
+                        minimum: 0
+                        type: integer
+                        x-kubernetes-int-or-string: true
+                      deployWatcher:
+                        default: true
+                        description: Determines if the falcon-watcher container is
+                          included in the Pod.
+                        type: boolean
+                      disabledNamespaces:
+                        description: Ignore admission control for a specific set of
+                          namespaces.
+                        properties:
+                          namespaces:
+                            description: Configure a list of namespaces to ignore
+                              admission control.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      enabled:
+                        default: true
+                        description: Enabled controls whether the admission controller
+                          Deployment is deployed. Defaults to true.
+                        type: boolean
+                      failurePolicy:
+                        default: Ignore
+                        description: Configure the failure policy for the Falcon Admission
+                          Controller.
+                        enum:
+                        - Ignore
+                        - Fail
+                        type: string
+                      falconImageAnalyzerNamespace:
+                        default: falcon-iar
+                        description: Namespace where Falcon Image Analyzer is installed.
+                          KAC needs to know this to discover and communicate with
+                          IAR.
+                        type: string
+                      nodeAffinity:
+                        description: Specifies node affinity for scheduling the Admission
+                          Controller.
+                        properties:
+                          preferredDuringSchedulingIgnoredDuringExecution:
+                            description: |-
+                              The scheduler will prefer to schedule pods to nodes that satisfy
+                              the affinity expressions specified by this field, but it may choose
+                              a node that violates one or more of the expressions. The node that is
+                              most preferred is the one with the greatest sum of weights, i.e.
+                              for each node that meets all of the scheduling requirements (resource
+                              request, requiredDuringScheduling affinity expressions, etc.),
+                              compute a sum by iterating through the elements of this field and adding
+                              "weight" to the sum if the node matches the corresponding matchExpressions; the
+                              node(s) with the highest sum are the most preferred.
+                            items:
+                              description: |-
+                                An empty preferred scheduling term matches all objects with implicit weight 0
+                                (i.e. it's a no-op). A null preferred scheduling term matches no objects (i.e. is also a no-op).
+                              properties:
+                                preference:
+                                  description: A node selector term, associated with
+                                    the corresponding weight.
+                                  properties:
+                                    matchExpressions:
+                                      description: A list of node selector requirements
+                                        by node's labels.
+                                      items:
+                                        description: |-
+                                          A node selector requirement is a selector that contains values, a key, and an operator
+                                          that relates the key and values.
+                                        properties:
+                                          key:
+                                            description: The label key that the selector
+                                              applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              An array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. If the operator is Gt or Lt, the values
+                                              array must have a single element, which will be interpreted as an integer.
+                                              This array is replaced during a strategic merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                    matchFields:
+                                      description: A list of node selector requirements
+                                        by node's fields.
+                                      items:
+                                        description: |-
+                                          A node selector requirement is a selector that contains values, a key, and an operator
+                                          that relates the key and values.
+                                        properties:
+                                          key:
+                                            description: The label key that the selector
+                                              applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              An array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. If the operator is Gt or Lt, the values
+                                              array must have a single element, which will be interpreted as an integer.
+                                              This array is replaced during a strategic merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                weight:
+                                  description: Weight associated with matching the
+                                    corresponding nodeSelectorTerm, in the range 1-100.
+                                  format: int32
+                                  type: integer
+                              required:
+                              - preference
+                              - weight
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          requiredDuringSchedulingIgnoredDuringExecution:
+                            description: |-
+                              If the affinity requirements specified by this field are not met at
+                              scheduling time, the pod will not be scheduled onto the node.
+                              If the affinity requirements specified by this field cease to be met
+                              at some point during pod execution (e.g. due to an update), the system
+                              may or may not try to eventually evict the pod from its node.
+                            properties:
+                              nodeSelectorTerms:
+                                description: Required. A list of node selector terms.
+                                  The terms are ORed.
+                                items:
+                                  description: |-
+                                    A null or empty node selector term matches no objects. The requirements of
+                                    them are ANDed.
+                                    The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
+                                  properties:
+                                    matchExpressions:
+                                      description: A list of node selector requirements
+                                        by node's labels.
+                                      items:
+                                        description: |-
+                                          A node selector requirement is a selector that contains values, a key, and an operator
+                                          that relates the key and values.
+                                        properties:
+                                          key:
+                                            description: The label key that the selector
+                                              applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              An array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. If the operator is Gt or Lt, the values
+                                              array must have a single element, which will be interpreted as an integer.
+                                              This array is replaced during a strategic merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                    matchFields:
+                                      description: A list of node selector requirements
+                                        by node's fields.
+                                      items:
+                                        description: |-
+                                          A node selector requirement is a selector that contains values, a key, and an operator
+                                          that relates the key and values.
+                                        properties:
+                                          key:
+                                            description: The label key that the selector
+                                              applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              An array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. If the operator is Gt or Lt, the values
+                                              array must have a single element, which will be interpreted as an integer.
+                                              This array is replaced during a strategic merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            required:
+                            - nodeSelectorTerms
+                            type: object
+                            x-kubernetes-map-type: atomic
+                        type: object
+                      replicas:
+                        default: 2
+                        description: Currently ignored and internally set to 1.
+                        format: int32
+                        maximum: 65535
+                        minimum: 0
+                        type: integer
+                        x-kubernetes-int-or-string: true
+                      resources:
+                        default:
+                          limits:
+                            memory: 256Mi
+                          requests:
+                            cpu: 100m
+                            memory: 256Mi
+                        description: ResourceRequirements describes the compute resource
+                          requirements.
+                        properties:
+                          claims:
+                            description: |-
+                              Claims lists the names of resources, defined in spec.resourceClaims,
+                              that are used by this container.
+
+                              This field depends on the
+                              DynamicResourceAllocation feature gate.
+
+                              This field is immutable. It can only be set for containers.
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name must match the name of one entry in pod.spec.resourceClaims of
+                                    the Pod where this field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                                request:
+                                  description: |-
+                                    Request is the name chosen for a request in the referenced claim.
+                                    If empty, everything from the claim is made available, otherwise
+                                    only the result of this request.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Limits describes the maximum amount of compute resources allowed.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Requests describes the minimum amount of compute resources required.
+                              If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                              otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                        type: object
+                      resourcesClient:
+                        default:
+                          limits:
+                            memory: 384Mi
+                          requests:
+                            cpu: 250m
+                            memory: 384Mi
+                        description: ResourceRequirements describes the compute resource
+                          requirements.
+                        properties:
+                          claims:
+                            description: |-
+                              Claims lists the names of resources, defined in spec.resourceClaims,
+                              that are used by this container.
+
+                              This field depends on the
+                              DynamicResourceAllocation feature gate.
+
+                              This field is immutable. It can only be set for containers.
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name must match the name of one entry in pod.spec.resourceClaims of
+                                    the Pod where this field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                                request:
+                                  description: |-
+                                    Request is the name chosen for a request in the referenced claim.
+                                    If empty, everything from the claim is made available, otherwise
+                                    only the result of this request.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Limits describes the maximum amount of compute resources allowed.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Requests describes the minimum amount of compute resources required.
+                              If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                              otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                        type: object
+                      resourcesClientNoWebhook:
+                        default:
+                          limits:
+                            memory: 128Mi
+                          requests:
+                            cpu: 100m
+                            memory: 128Mi
+                        description: ResourceRequirements describes the compute resource
+                          requirements.
+                        properties:
+                          claims:
+                            description: |-
+                              Claims lists the names of resources, defined in spec.resourceClaims,
+                              that are used by this container.
+
+                              This field depends on the
+                              DynamicResourceAllocation feature gate.
+
+                              This field is immutable. It can only be set for containers.
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name must match the name of one entry in pod.spec.resourceClaims of
+                                    the Pod where this field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                                request:
+                                  description: |-
+                                    Request is the name chosen for a request in the referenced claim.
+                                    If empty, everything from the claim is made available, otherwise
+                                    only the result of this request.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Limits describes the maximum amount of compute resources allowed.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Requests describes the minimum amount of compute resources required.
+                              If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                              otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                        type: object
+                      resourcesWatcher:
+                        default:
+                          limits:
+                            memory: 384Mi
+                          requests:
+                            cpu: 250m
+                            memory: 384Mi
+                        description: ResourceRequirements describes the compute resource
+                          requirements.
+                        properties:
+                          claims:
+                            description: |-
+                              Claims lists the names of resources, defined in spec.resourceClaims,
+                              that are used by this container.
+
+                              This field depends on the
+                              DynamicResourceAllocation feature gate.
+
+                              This field is immutable. It can only be set for containers.
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name must match the name of one entry in pod.spec.resourceClaims of
+                                    the Pod where this field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                                request:
+                                  description: |-
+                                    Request is the name chosen for a request in the referenced claim.
+                                    If empty, everything from the claim is made available, otherwise
+                                    only the result of this request.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Limits describes the maximum amount of compute resources allowed.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Requests describes the minimum amount of compute resources required.
+                              If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                              otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                        type: object
+                      serviceAccount:
+                        description: Define annotations that will be passed down to
+                          admission controller service account. This is useful for
+                          passing along AWS IAM Role or GCP Workload Identity.
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: Define annotations that will be passed down
+                              to the Service Account. This is useful for passing along
+                              AWS IAM Role or GCP Workload Identity.
+                            type: object
+                        type: object
+                      servicePort:
+                        default: 443
+                        description: Port on which the Falcon Admission Controller
+                          service will listen for requests from the cluster.
+                        format: int32
+                        maximum: 65535
+                        minimum: 0
+                        type: integer
+                        x-kubernetes-int-or-string: true
+                      snapshotsEnabled:
+                        default: true
+                        description: Determines if snapshots of Kubernetes resources
+                          are periodically taken for cluster visibility.
+                        type: boolean
+                      snapshotsInterval:
+                        default: 22h
+                        description: Time interval between two snapshots of Kubernetes
+                          resources in the cluster.
+                        format: duration
+                        type: string
+                      tls:
+                        description: Configure TLS settings for the Falcon Admission
+                          Controller
+                        properties:
+                          validity:
+                            description: Validity of the TLS certificate in days.
+                              Default is 3650 days.
+                            pattern: ^[0-9]{1-4}$
+                            type: integer
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      tolerations:
+                        default: []
+                        description: Specifies tolerations for scheduling the Admission
+                          Controller.
+                        items:
+                          description: |-
+                            The pod this Toleration is attached to tolerates any taint that matches
+                            the triple <key,value,effect> using the matching operator <operator>.
+                          properties:
+                            effect:
+                              description: |-
+                                Effect indicates the taint effect to match. Empty means match all taint effects.
+                                When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                              type: string
+                            key:
+                              description: |-
+                                Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                              type: string
+                            operator:
+                              description: |-
+                                Operator represents a key's relationship to the value.
+                                Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
+                                Exists is equivalent to wildcard for value, so that a pod can
+                                tolerate all taints of a particular category.
+                                Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).
+                              type: string
+                            tolerationSeconds:
+                              description: |-
+                                TolerationSeconds represents the period of time the toleration (which must be
+                                of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                negative values will be treated as 0 (evict immediately) by the system.
+                              format: int64
+                              type: integer
+                            value:
+                              description: |-
+                                Value is the taint value the toleration matches to.
+                                If the operator is Exists, the value should be empty, otherwise just a regular string.
+                              type: string
+                          type: object
+                        type: array
+                      updateStrategy:
+                        default: {}
+                        description: Type of Deployment update. Can be "RollingUpdate"
+                          or "OnDelete". Default is RollingUpdate.
+                        properties:
+                          rollingUpdate:
+                            default: {}
+                            description: RollingUpdate is used to specify the strategy
+                              used to roll out a deployment.
+                            properties:
+                              maxSurge:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                default: 1
+                                description: The maximum number of pods that can be
+                                  scheduled above the desired number of pods.
+                                x-kubernetes-int-or-string: true
+                              maxUnavailable:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                default: 0
+                                description: The maximum number of pods that can be
+                                  unavailable during the update.
+                                x-kubernetes-int-or-string: true
+                            type: object
+                        type: object
+                      watcherEnabled:
+                        default: true
+                        description: Determines if Kubernetes resources are watched
+                          for cluster visibility.
+                        type: boolean
+                    type: object
+                  falcon:
+                    default: {}
+                    description: CrowdStrike Falcon sensor configuration
+                    properties:
+                      apd:
+                        default: false
+                        description: Disable the Falcon Sensor's use of a proxy.
+                        type: boolean
+                      aph:
+                        description: The application proxy host to use for Falcon
+                          sensor proxy configuration.
+                        type: string
+                      app:
+                        description: The application proxy port to use for Falcon
+                          sensor proxy configuration.
+                        maximum: 65535
+                        minimum: 0
+                        type: integer
+                      billing:
+                        description: Utilize default or Pay-As-You-Go billing.
+                        enum:
+                        - default
+                        - metered
+                        type: string
+                      cid:
+                        description: Falcon Customer ID (CID)
+                        pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
+                        type: string
+                      provisioning_token:
+                        description: Installation token that prevents unauthorized
+                          hosts from being accidentally or maliciously added to your
+                          customer ID (CID).
+                        pattern: ^[0-9a-fA-F]{8}$
+                        type: string
+                      tags:
+                        description: 'Sensor grouping tags are optional, user-defined
+                          identifiers that can used to group and filter hosts. Allowed
+                          characters: all alphanumerics, ''/'', ''-'', and ''_''.'
+                        items:
+                          type: string
+                        type: array
+                      trace:
+                        default: none
+                        description: Set sensor trace level.
+                        enum:
+                        - none
+                        - err
+                        - warn
+                        - info
+                        - debug
+                        type: string
+                    type: object
+                  falcon_api:
+                    description: |-
+                      FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
+
+                      When configured, it will pull the sensor from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
+
+                      If using the API is not desired, the sensor can be manually configured by setting the Image field.
+                    properties:
+                      cid:
+                        description: Falcon Customer ID (CID) Override (optional,
+                          default is derived from the API Key pair)
+                        pattern: ^[0-9a-fA-F]{32}-[0-9a-fA-F]{2}$
+                        type: string
+                      client_id:
+                        description: Falcon OAuth2 API Client ID
+                        type: string
+                      client_secret:
+                        description: Falcon OAuth2 API Client Secret
+                        type: string
+                      cloud_region:
+                        default: autodiscover
+                        description: Cloud Region defines CrowdStrike Falcon Cloud
+                          Region to which the operator will connect and register.
+                        enum:
+                        - autodiscover
+                        - us-1
+                        - us-2
+                        - us-3
+                        - eu-1
+                        - us-gov-1
+                        - us-gov-2
+                        type: string
+                    type: object
+                  falconSecret:
+                    default:
+                      enabled: false
+                    description: |-
+                      FalconSecret config is used to inject k8s secrets with sensitive data for the FalconAPI.
+                      The following Falcon values are supported by k8s secret injection:
+                        falcon-client-id
+                        falcon-client-secret
+                        falcon-cid
+                        falcon-provisioning-token
+                    properties:
+                      enabled:
+                        default: false
+                        description: Enable injecting sensitive Falcon values from
+                          existing k8s secret
+                        type: boolean
+                      namespace:
+                        description: Namespace where the Falcon k8s secret is located.
+                        type: string
+                      secretName:
+                        description: SecretName of the existing Falcon k8s secret
+                        type: string
+                    required:
+                    - enabled
+                    type: object
+                  image:
+                    description: Location of the Falcon sensor image. Used for all
+                      deployed components. Use only when mirroring the image to a
+                      custom repository.
+                    pattern: ^.*:.*$
+                    type: string
+                  imagePullPolicy:
+                    default: IfNotPresent
+                    description: PullPolicy describes a policy for if/when to pull
+                      a container image
+                    enum:
+                    - Always
+                    - IfNotPresent
+                    - Never
+                    type: string
+                  imagePullSecrets:
+                    description: ImagePullSecrets is an optional list of references
+                      to secrets used for pulling images across all deployed components.
+                    items:
+                      description: |-
+                        LocalObjectReference contains enough information to let you locate the
+                        referenced object inside the same namespace.
+                      properties:
+                        name:
+                          default: ""
+                          description: |-
+                            Name of the referent.
+                            This field is effectively required, but due to backwards compatibility is
+                            allowed to be empty. Instances of this type with an empty value here are
+                            almost certainly wrong.
+                            More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          type: string
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    type: array
+                  installNamespace:
+                    default: falcon-system
+                    description: InstallNamespace is the namespace where the Falcon
+                      Cloud Guard resources will be deployed
+                    type: string
+                  nodeSensor:
+                    default: {}
+                    description: NodeSensor configures the node sensor DaemonSet deployed
+                      alongside FalconClusterGuard.
+                    properties:
+                      advanced:
+                        description: |-
+                          Advanced configures various options that go against industry practices or are otherwise not recommended for use.
+                          Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
+                          For more information, please see https://github.com/CrowdStrike/falcon-operator/blob/main/docs/ADVANCED.md.
+                        properties:
+                          autoUpdate:
+                            description: |-
+                              AutoUpdate determines whether to install new versions of the sensor as they become available. Defaults to "off" and is ignored if FalconAPI is not set.
+                              Setting this to "force" causes the reconciler to run on every polling cycle, even if a new sensor version is not available.
+                              Setting it to "normal" only reconciles when a new version is detected.
+                            enum:
+                            - "off"
+                            - normal
+                            - force
+                            type: string
+                          updatePolicy:
+                            description: UpdatePolicy is the name of a sensor update
+                              policy configured and enabled in Falcon UI. It is ignored
+                              when Image and/or Version are set.
+                            type: string
+                        type: object
+                      backend:
+                        default: bpf
+                        description: Sets the backend to be used by the DaemonSet
+                          Sensor.
+                        enum:
+                        - kernel
+                        - bpf
+                        type: string
+                      clusterName:
+                        description: When running on an unmanaged K8S cluster, set
+                          a cluster name. When running on managed, K8S cluster name
+                          is resolved cloud-side
+                        pattern: ^[0-9a-zA-Z]{1}[0-9a-zA-Z_-]{1,99}$
+                        type: string
+                      disableCleanup:
+                        default: false
+                        description: |-
+                          Disables the cleanup of the sensor through DaemonSet on the nodes.
+                          Disabling might have unintended consequences for certain operations such as sensor downgrading.
+                        type: boolean
+                      enabled:
+                        default: true
+                        description: Enabled controls whether the node sensor DaemonSet
+                          is deployed. Defaults to true.
+                        type: boolean
+                      gke:
+                        default: {}
+                        description: Enables the use of GKE Autopilot.
+                        properties:
+                          autopilot:
+                            default: false
+                            description: Enables the use of GKE Autopilot.
+                            type: boolean
+                          cleanupAllowListVersion:
+                            description: Version of the GKE AutoPilot Cleanup DaemonSet
+                              for allow list troubleshooting purposes.
+                            pattern: ^v[0-9]+\.[0-9]+\.[0-9]+$
+                            type: string
+                          deployAllowListVersion:
+                            description: Version of the GKE AutoPilot DaemonSet for
+                              allow list troubleshooting purposes.
+                            pattern: ^v[0-9]+\.[0-9]+\.[0-9]+$
+                            type: string
+                        type: object
+                      nodeAffinity:
+                        description: Specifies node affinity for scheduling the DaemonSet.
+                          Defaults to allowing scheduling on all nodes.
+                        properties:
+                          preferredDuringSchedulingIgnoredDuringExecution:
+                            description: |-
+                              The scheduler will prefer to schedule pods to nodes that satisfy
+                              the affinity expressions specified by this field, but it may choose
+                              a node that violates one or more of the expressions. The node that is
+                              most preferred is the one with the greatest sum of weights, i.e.
+                              for each node that meets all of the scheduling requirements (resource
+                              request, requiredDuringScheduling affinity expressions, etc.),
+                              compute a sum by iterating through the elements of this field and adding
+                              "weight" to the sum if the node matches the corresponding matchExpressions; the
+                              node(s) with the highest sum are the most preferred.
+                            items:
+                              description: |-
+                                An empty preferred scheduling term matches all objects with implicit weight 0
+                                (i.e. it's a no-op). A null preferred scheduling term matches no objects (i.e. is also a no-op).
+                              properties:
+                                preference:
+                                  description: A node selector term, associated with
+                                    the corresponding weight.
+                                  properties:
+                                    matchExpressions:
+                                      description: A list of node selector requirements
+                                        by node's labels.
+                                      items:
+                                        description: |-
+                                          A node selector requirement is a selector that contains values, a key, and an operator
+                                          that relates the key and values.
+                                        properties:
+                                          key:
+                                            description: The label key that the selector
+                                              applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              An array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. If the operator is Gt or Lt, the values
+                                              array must have a single element, which will be interpreted as an integer.
+                                              This array is replaced during a strategic merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                    matchFields:
+                                      description: A list of node selector requirements
+                                        by node's fields.
+                                      items:
+                                        description: |-
+                                          A node selector requirement is a selector that contains values, a key, and an operator
+                                          that relates the key and values.
+                                        properties:
+                                          key:
+                                            description: The label key that the selector
+                                              applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              An array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. If the operator is Gt or Lt, the values
+                                              array must have a single element, which will be interpreted as an integer.
+                                              This array is replaced during a strategic merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                weight:
+                                  description: Weight associated with matching the
+                                    corresponding nodeSelectorTerm, in the range 1-100.
+                                  format: int32
+                                  type: integer
+                              required:
+                              - preference
+                              - weight
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          requiredDuringSchedulingIgnoredDuringExecution:
+                            description: |-
+                              If the affinity requirements specified by this field are not met at
+                              scheduling time, the pod will not be scheduled onto the node.
+                              If the affinity requirements specified by this field cease to be met
+                              at some point during pod execution (e.g. due to an update), the system
+                              may or may not try to eventually evict the pod from its node.
+                            properties:
+                              nodeSelectorTerms:
+                                description: Required. A list of node selector terms.
+                                  The terms are ORed.
+                                items:
+                                  description: |-
+                                    A null or empty node selector term matches no objects. The requirements of
+                                    them are ANDed.
+                                    The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
+                                  properties:
+                                    matchExpressions:
+                                      description: A list of node selector requirements
+                                        by node's labels.
+                                      items:
+                                        description: |-
+                                          A node selector requirement is a selector that contains values, a key, and an operator
+                                          that relates the key and values.
+                                        properties:
+                                          key:
+                                            description: The label key that the selector
+                                              applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              An array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. If the operator is Gt or Lt, the values
+                                              array must have a single element, which will be interpreted as an integer.
+                                              This array is replaced during a strategic merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                    matchFields:
+                                      description: A list of node selector requirements
+                                        by node's fields.
+                                      items:
+                                        description: |-
+                                          A node selector requirement is a selector that contains values, a key, and an operator
+                                          that relates the key and values.
+                                        properties:
+                                          key:
+                                            description: The label key that the selector
+                                              applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              An array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. If the operator is Gt or Lt, the values
+                                              array must have a single element, which will be interpreted as an integer.
+                                              This array is replaced during a strategic merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            required:
+                            - nodeSelectorTerms
+                            type: object
+                            x-kubernetes-map-type: atomic
+                        type: object
+                      priorityClass:
+                        description: Enable priority class for the DaemonSet. This
+                          is useful for GKE Autopilot clusters, but can be set for
+                          any cluster.
+                        properties:
+                          deploy:
+                            description: Enables the operator to deploy a PriorityClass
+                              instead of rolling your own. Default is false.
+                            type: boolean
+                          name:
+                            description: Name of the priority class to use for the
+                              DaemonSet.
+                            type: string
+                          value:
+                            description: Value of the priority class to use for the
+                              DaemonSet. Requires the Deploy field to be set to true.
+                            format: int32
+                            type: integer
+                        type: object
+                      resources:
+                        description: Configure resource requests and limits for the
+                          DaemonSet Sensor. Only applies when using the eBPF backend.
+                        properties:
+                          limits:
+                            description: Sets the resource limits for the DaemonSet
+                              Sensor. Only applies when using the eBPF backend.
+                            properties:
+                              cpu:
+                                description: Minimum allowed is 250m.
+                                pattern: ^(([0-9]{4,}|[2-9][5-9][0-9])m$)|[0-9]+$
+                                type: string
+                              ephemeral-storage:
+                                type: string
+                              memory:
+                                description: Minimum allowed is 500Mi.
+                                pattern: ^(([5-9][0-9]{2}[Mi]+)|([0-9.]+[iEGTP]+))|(([5-9][0-9]{8})|([0-9]{10,}))$
+                                type: string
+                            type: object
+                          requests:
+                            description: Sets the resource requests for the DaemonSet
+                              Sensor. Only applies when using the eBPF backend.
+                            properties:
+                              cpu:
+                                description: Minimum allowed is 250m.
+                                pattern: ^(([0-9]{4,}|[2-9][5-9][0-9])m$)|[0-9]+$
+                                type: string
+                              ephemeral-storage:
+                                type: string
+                              memory:
+                                description: Minimum allowed is 500Mi.
+                                pattern: ^(([5-9][0-9]{2}[Mi]+)|([0-9.]+[iEGTP]+))|(([5-9][0-9]{8})|([0-9]{10,}))$
+                                type: string
+                            type: object
+                        type: object
+                      serviceAccount:
+                        description: Add metadata to the DaemonSet Service Account
+                          for IAM roles.
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: Define annotations that will be passed down
+                              to the Service Account. This is useful for passing along
+                              AWS IAM Role or GCP Workload Identity.
+                            type: object
+                        type: object
+                      terminationGracePeriod:
+                        default: 60
+                        description: Kills pod after a specificed amount of time (in
+                          seconds). Default is 60 seconds.
+                        format: int64
+                        type: integer
+                      tolerations:
+                        default:
+                        - effect: NoSchedule
+                          key: node-role.kubernetes.io/master
+                          operator: Exists
+                        - effect: NoSchedule
+                          key: node-role.kubernetes.io/control-plane
+                          operator: Exists
+                        - effect: NoSchedule
+                          key: node-role.kubernetes.io/infra
+                          operator: Exists
+                        - effect: NoSchedule
+                          key: kubernetes.azure.com/scalesetpriority
+                          operator: Equal
+                          value: spot
+                        description: Specifies tolerations for custom taints. Defaults
+                          to allowing scheduling on all nodes.
+                        items:
+                          description: |-
+                            The pod this Toleration is attached to tolerates any taint that matches
+                            the triple <key,value,effect> using the matching operator <operator>.
+                          properties:
+                            effect:
+                              description: |-
+                                Effect indicates the taint effect to match. Empty means match all taint effects.
+                                When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                              type: string
+                            key:
+                              description: |-
+                                Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                              type: string
+                            operator:
+                              description: |-
+                                Operator represents a key's relationship to the value.
+                                Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
+                                Exists is equivalent to wildcard for value, so that a pod can
+                                tolerate all taints of a particular category.
+                                Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).
+                              type: string
+                            tolerationSeconds:
+                              description: |-
+                                TolerationSeconds represents the period of time the toleration (which must be
+                                of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                negative values will be treated as 0 (evict immediately) by the system.
+                              format: int64
+                              type: integer
+                            value:
+                              description: |-
+                                Value is the taint value the toleration matches to.
+                                If the operator is Exists, the value should be empty, otherwise just a regular string.
+                              type: string
+                          type: object
+                        type: array
+                      updateStrategy:
+                        default: {}
+                        description: Type of DaemonSet update. Can be "RollingUpdate"
+                          or "OnDelete". Default is RollingUpdate.
+                        properties:
+                          rollingUpdate:
+                            default:
+                              maxSurge: 0
+                              maxUnavailable: 1
+                            description: Spec to control the desired behavior of daemon
+                              set rolling update.
+                            properties:
+                              maxSurge:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: |-
+                                  The maximum number of nodes with an existing available DaemonSet pod that
+                                  can have an updated DaemonSet pod during during an update.
+                                  Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
+                                  This can not be 0 if MaxUnavailable is 0.
+                                  Absolute number is calculated from percentage by rounding up to a minimum of 1.
+                                  Default value is 0.
+                                  Example: when this is set to 30%, at most 30% of the total number of nodes
+                                  that should be running the daemon pod (i.e. status.desiredNumberScheduled)
+                                  can have their a new pod created before the old pod is marked as deleted.
+                                  The update starts by launching new pods on 30% of nodes. Once an updated
+                                  pod is available (Ready for at least minReadySeconds) the old DaemonSet pod
+                                  on that node is marked deleted. If the old pod becomes unavailable for any
+                                  reason (Ready transitions to false, is evicted, or is drained) an updated
+                                  pod is immediately created on that node without considering surge limits.
+                                  Allowing surge implies the possibility that the resources consumed by the
+                                  daemonset on any given node can double if the readiness check fails, and
+                                  so resource intensive daemonsets should take into account that they may
+                                  cause evictions during disruption.
+                                x-kubernetes-int-or-string: true
+                              maxUnavailable:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: |-
+                                  The maximum number of DaemonSet pods that can be unavailable during the
+                                  update. Value can be an absolute number (ex: 5) or a percentage of total
+                                  number of DaemonSet pods at the start of the update (ex: 10%). Absolute
+                                  number is calculated from percentage by rounding up.
+                                  This cannot be 0 if MaxSurge is 0
+                                  Default value is 1.
+                                  Example: when this is set to 30%, at most 30% of the total number of nodes
+                                  that should be running the daemon pod (i.e. status.desiredNumberScheduled)
+                                  can have their pods stopped for an update at any given time. The update
+                                  starts by stopping at most 30% of those DaemonSet pods and then brings
+                                  up new DaemonSet pods in their place. Once the new pods are available,
+                                  it then proceeds onto other DaemonSet pods, thus ensuring that at least
+                                  70% of original number of DaemonSet pods are available at all times during
+                                  the update.
+                                x-kubernetes-int-or-string: true
+                            type: object
+                          type:
+                            default: RollingUpdate
+                            enum:
+                            - RollingUpdate
+                            - OnDelete
+                            type: string
+                        type: object
+                      version:
+                        description: Version of the sensor to be installed. The latest
+                          version will be selected when this version specifier is
+                          missing.
+                        type: string
+                    type: object
+                  registry:
+                    default:
+                      type: crowdstrike
+                    description: Registry configures the container image registry
+                      used for the Cloud Guard image.
+                    properties:
+                      tls:
+                        description: TLS configures TLS settings for connecting to
+                          the container image registry
+                        properties:
+                          caCertificate:
+                            description: Allow for users to provide a CA Cert Bundle,
+                              as either a string or base64 encoded string
+                            type: string
+                          caCertificateConfigMap:
+                            description: Allow for users to provide a ConfigMap containing
+                              a CA Cert Bundle under a key ending in .crt
+                            type: string
+                          insecure_skip_verify:
+                            description: Allow pushing to docker registries over HTTPS
+                              with failed TLS verification. Note that this does not
+                              affect other TLS connections.
+                            type: boolean
+                        type: object
+                      type:
+                        default: crowdstrike
+                        description: Type specifies whether to use CrowdStrike's registry
+                          or a private registry
+                        enum:
+                        - crowdstrike
+                        - private
+                        type: string
+                    type: object
+                  version:
+                    description: Version of the sensor to be installed. The latest
+                      version will be selected when this version specifier is missing.
+                    type: string
+                type: object
               falconContainerSensor:
                 default: {}
                 description: Falcon Container Sensor Configuration
@@ -1058,6 +2400,7 @@ spec:
                         description: Falcon OAuth2 API Client Secret
                         type: string
                       cloud_region:
+                        default: autodiscover
                         description: Cloud Region defines CrowdStrike Falcon Cloud
                           Region to which the operator will connect and register.
                         enum:
@@ -1069,8 +2412,6 @@ spec:
                         - us-gov-1
                         - us-gov-2
                         type: string
-                    required:
-                    - cloud_region
                     type: object
                   falconSecret:
                     default:
@@ -3509,6 +4850,7 @@ spec:
                         description: Falcon OAuth2 API Client Secret
                         type: string
                       cloud_region:
+                        default: autodiscover
                         description: Cloud Region defines CrowdStrike Falcon Cloud
                           Region to which the operator will connect and register.
                         enum:
@@ -3520,8 +4862,6 @@ spec:
                         - us-gov-1
                         - us-gov-2
                         type: string
-                    required:
-                    - cloud_region
                     type: object
                   falconSecret:
                     default:
@@ -4192,6 +5532,7 @@ spec:
                         description: Falcon OAuth2 API Client Secret
                         type: string
                       cloud_region:
+                        default: autodiscover
                         description: Cloud Region defines CrowdStrike Falcon Cloud
                           Region to which the operator will connect and register.
                         enum:
@@ -4203,8 +5544,6 @@ spec:
                         - us-gov-1
                         - us-gov-2
                         type: string
-                    required:
-                    - cloud_region
                     type: object
                   falconSecret:
                     default:

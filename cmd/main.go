@@ -5,6 +5,7 @@ Copyright 2021 CrowdStrike
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -46,11 +47,13 @@ import (
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	admissioncontroller "github.com/crowdstrike/falcon-operator/internal/controller/admission"
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/sensorversion"
+	clusterguardcontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_clusterguard"
 	containercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_container"
 	falcondeployment "github.com/crowdstrike/falcon-operator/internal/controller/falcon_deployment"
 	imageanalyzercontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_image_analyzer"
 	nodecontroller "github.com/crowdstrike/falcon-operator/internal/controller/falcon_node"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
+	"github.com/crowdstrike/falcon-operator/pkg/webhookcert"
 	"github.com/crowdstrike/falcon-operator/version"
 	// +kubebuilder:scaffold:imports
 )
@@ -66,10 +69,11 @@ var (
 	setupLog          = ctrl.Log.WithName("setup")
 	environment       = "Kubernetes"
 	requiredCacheObjs = map[client.Object]cache.ByObject{
-		&falconv1alpha1.FalconAdmission{}:  {},
-		&falconv1alpha1.FalconNodeSensor{}: {},
-		&falconv1alpha1.FalconContainer{}:  {},
-		&falconv1alpha1.FalconDeployment{}: {},
+		&falconv1alpha1.FalconAdmission{}:    {},
+		&falconv1alpha1.FalconNodeSensor{}:   {},
+		&falconv1alpha1.FalconContainer{}:    {},
+		&falconv1alpha1.FalconDeployment{}:   {},
+		&falconv1alpha1.FalconClusterGuard{}: {},
 		&schedulingv1.PriorityClass{}: {
 			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconKernelSensor}),
 		},
@@ -92,7 +96,7 @@ var (
 			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconSidecarSensor}),
 		},
 		&arv1.ValidatingWebhookConfiguration{}: {
-			Label: labels.SelectorFromSet(labels.Set{common.FalconComponentKey: common.FalconAdmissionController}),
+			Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
 		},
 		&corev1.Namespace{}: {
 			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "namespace"}),
@@ -102,6 +106,9 @@ var (
 		},
 		&rbacv1.ClusterRoleBinding{}: {
 			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "clusterrolebinding"}),
+		},
+		&rbacv1.RoleBinding{}: {
+			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "rolebinding"}),
 		},
 		&corev1.ServiceAccount{}: {
 			Label: labels.SelectorFromSet(labels.Set{common.FalconInstanceNameKey: "serviceaccount"}),
@@ -132,6 +139,9 @@ func main() {
 	var leaseDuration time.Duration
 	var renewDeadline time.Duration
 	var openshiftFlag bool
+	var webhookServiceName string
+	var webhookConfigName string
+	var webhookCertSecret string
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -150,6 +160,9 @@ func main() {
 	flag.DurationVar(&leaseDuration, "lease-duration", defaultLeaseDuration, "The duration that non-leader candidates will wait to force acquire leadership.")
 	flag.DurationVar(&renewDeadline, "renew-deadline", defaultRenewDeadline, "the duration that the acting controlplane will retry refreshing leadership before giving up.")
 	flag.BoolVar(&openshiftFlag, "openshift", false, "If set, the operator will run in OpenShift mode. If not set, OpenShift is auto-detected.")
+	flag.StringVar(&webhookServiceName, "webhook-service-name", "falcon-operator-webhook-service", "Name of the Service fronting the operator webhook server (after kustomize namePrefix is applied).")
+	flag.StringVar(&webhookConfigName, "webhook-config-name", "falcon-operator-validating-webhook-configuration", "Name of the ValidatingWebhookConfiguration managed by this operator.")
+	flag.StringVar(&webhookCertSecret, "webhook-cert-secret", webhookcert.CertSecretName, "Name of the Secret containing the webhook TLS certificate. Create this secret manually to provide a custom certificate.")
 
 	// Openshift does not support persisting command line arguments when deploying the operator.
 	// The ARGS env var must be used instead if operator deployment options are updated.
@@ -298,6 +311,22 @@ func main() {
 		setupLog.Info("cert-manager installation not found")
 	}
 
+	if err := webhookcert.ReconcileCert(
+		context.Background(),
+		ctrl.GetConfigOrDie(),
+		scheme,
+		setupLog,
+		webhookcert.OperatorNamespace(),
+		webhookConfigName,
+		webhookServiceName,
+		webhookcert.DefaultCertDir,
+		webhookCertSecret,
+		openShift,
+	); err != nil {
+		setupLog.Error(err, "failed to reconcile webhook cert")
+		os.Exit(1)
+	}
+
 	ctx := ctrl.SetupSignalHandler()
 	tracker := sensorversion.NewTracker(ctx, sensorAutoUpdateInterval)
 
@@ -345,7 +374,36 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "FalconDeployment")
 		os.Exit(1)
 	}
+	if err = (&clusterguardcontroller.FalconClusterGuardReconciler{
+		Client:        mgr.GetClient(),
+		Reader:        mgr.GetAPIReader(),
+		RuntimeScheme: mgr.GetScheme(),
+		OpenShift:     openShift,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "FalconClusterGuard")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
+
+	if err := (&falconv1alpha1.FalconNodeSensorValidator{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "FalconNodeSensor")
+		os.Exit(1)
+	}
+
+	if err := (&falconv1alpha1.FalconAdmissionValidator{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "FalconAdmission")
+		os.Exit(1)
+	}
+
+	if err := (&falconv1alpha1.FalconDeploymentValidator{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "FalconDeployment")
+		os.Exit(1)
+	}
+
+	if err := (&falconv1alpha1.FalconClusterGuardValidator{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "FalconClusterGuard")
+		os.Exit(1)
+	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

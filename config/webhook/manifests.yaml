@@ -1,0 +1,85 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-falcon-crowdstrike-com-v1alpha1-falconadmission
+  failurePolicy: Ignore
+  name: vfalconadmission.kb.io
+  rules:
+  - apiGroups:
+    - falcon.crowdstrike.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - falconadmissions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-falcon-crowdstrike-com-v1alpha1-falconclusterguard
+  failurePolicy: Ignore
+  name: vfalconclusterguard.kb.io
+  rules:
+  - apiGroups:
+    - falcon.crowdstrike.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - falconclusterguards
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-falcon-crowdstrike-com-v1alpha1-falcondeployment
+  failurePolicy: Ignore
+  name: vfalcondeployment.kb.io
+  rules:
+  - apiGroups:
+    - falcon.crowdstrike.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - falcondeployments
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-falcon-crowdstrike-com-v1alpha1-falconnodesensor
+  failurePolicy: Ignore
+  name: vfalconnodesensor.kb.io
+  rules:
+  - apiGroups:
+    - falcon.crowdstrike.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    resources:
+    - falconnodesensors
+  sideEffects: None

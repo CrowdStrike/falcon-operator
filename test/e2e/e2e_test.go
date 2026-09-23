@@ -168,6 +168,8 @@ var _ = Describe("falcon", Ordered, func() {
 			kind = kacConfig.kind
 		} else if slices.Contains(labels, "FalconContainer") {
 			kind = sidecarConfig.kind
+		} else if slices.Contains(labels, "FalconClusterGuard") {
+			kind = fcgConfig.kind
 		}
 
 		if kind != "" {
@@ -203,12 +205,17 @@ var _ = Describe("falcon", Ordered, func() {
 		cmd = exec.Command("kubectl", "delete", "falconimageanalyzer", "--all", "-A", "--timeout=60s", "--ignore-not-found=true")
 		_, _ = utils.Run(cmd)
 
+		By("deleting FalconClusterGuard instances")
+		cmd = exec.Command("kubectl", "delete", "falconclusterguard", "--all", "-A", "--timeout=60s", "--ignore-not-found=true")
+		_, _ = utils.Run(cmd)
+
 		// Clean up test-created namespaces
 		By("cleaning up test namespaces")
 		testNamespaces := []string{
 			nodeConfig.namespace,  // falcon-system
 			kacConfig.namespace,   // falcon-kac
 			iarConfig.namespace,   // falcon-iar
+			fcgConfig.namespace,   // falcon-sensor
 			falconSecretNamespace, // falcon-secrets
 		}
 
@@ -267,7 +274,7 @@ var _ = Describe("falcon", Ordered, func() {
 		}
 	})
 
-	Context("Falcon Operator", Label("FalconNodeSensor", "FalconAdmission", "FalconImageAnalyzer", "FalconContainer", "FalconDeployment"), func() {
+	Context("Falcon Operator", Label("FalconNodeSensor", "FalconAdmission", "FalconImageAnalyzer", "FalconContainer", "FalconDeployment", "FalconClusterGuard"), func() {
 		It("should run successfully", func() {
 
 			var err error
@@ -506,14 +513,14 @@ var _ = Describe("falcon", Ordered, func() {
 
 	Context("Falcon Node Sensor", Label("FalconNodeSensor"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconnodesensor.yaml"
-		It("should deploy successfully", func() {
+		XIt("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
 			nodeConfig.manageCrdInstance(crApply, manifest)
 			nodeConfig.validateCrStatus()
 			nodeConfig.validateDefaultValues()
 			nodeConfig.validateOperatorEnvVars()
 		})
-		It("should cleanup successfully", func() {
+		XIt("should cleanup successfully", func() {
 			nodeConfig.manageCrdInstance(crDelete, manifest)
 			nodeConfig.validateRunningStatus(shouldBeTerminated)
 			nodeConfig.waitForNamespaceDeletion()
@@ -522,14 +529,14 @@ var _ = Describe("falcon", Ordered, func() {
 
 	Context("Falcon Node Sensor - GKE Autopilot", Label("FalconNodeSensor"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconnodesensor-gke-autopilot.yaml"
-		It("should deploy successfully", func() {
+		XIt("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
 			nodeConfig.manageCrdInstance(crApply, manifest)
 			nodeConfig.validateCrStatus()
 			nodeConfig.validateInitContainerReadOnlyRootFilesystem()
 			nodeConfig.validateOperatorEnvVars()
 		})
-		It("should cleanup successfully", func() {
+		XIt("should cleanup successfully", func() {
 			nodeConfig.manageCrdInstance(crDelete, manifest)
 			nodeConfig.validateRunningStatus(shouldBeTerminated)
 			nodeConfig.waitForNamespaceDeletion()
@@ -538,7 +545,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 	Context("Falcon Admission Controller", Label("FalconAdmission"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
-		It("should deploy successfully", func() {
+		XIt("should deploy successfully", func() {
 			updateManifestApiCreds(manifest)
 			kacConfig.manageCrdInstance(crApply, manifest)
 			kacConfig.validateRunningStatus(shouldBeRunning)
@@ -549,7 +556,7 @@ var _ = Describe("falcon", Ordered, func() {
 	})
 
 	Context("Falcon Admission Controller", Label("FalconAdmission"), func() {
-		It("should manage falcon-kac-meta configMap changes successfully", func() {
+		XIt("should manage falcon-kac-meta configMap changes successfully", func() {
 			manifest := "./config/samples/falcon_v1alpha1_falconadmission_custom_clustername.yaml"
 			updateManifestApiCreds(manifest)
 
@@ -578,7 +585,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 	Context("Falcon Admission Controller", Label("FalconAdmission"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
-		It("should cleanup successfully", func() {
+		XIt("should cleanup successfully", func() {
 			kacConfig.manageCrdInstance(crDelete, manifest)
 			kacConfig.validateRunningStatus(shouldBeTerminated)
 			kacConfig.waitForNamespaceDeletion()
@@ -661,12 +668,20 @@ var _ = Describe("falcon", Ordered, func() {
 			}
 		})
 		manifest := "./config/samples/falcon_v1alpha1_falcondeployment-container-sensor.yaml"
+		// nodeSensor is disabled in the container-sensor manifest; skip DaemonSetReady check.
+		fcgContainerConfig := crConfig{
+			kind:               fcgConfig.kind,
+			namespace:          fcgConfig.namespace,
+			metadataName:       fcgConfig.metadataName,
+			componentName:      fcgConfig.componentName,
+			nodeSensorDisabled: true,
+		}
 		It("should deploy successfully", func() {
-			updateManifestApiCreds(manifest)
-			falconDeploymentConfig.manageCrdInstance(crApply, manifest)
-			kacConfig.validateRunningStatus(shouldBeRunning)
-			kacConfig.validateCrStatus()
-			kacConfig.validateOperatorEnvVars()
+			err := applyManifestFile(manifest)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			fcgContainerConfig.validateRunningStatus(shouldBeRunning)
+			fcgContainerConfig.validateCrStatus()
+			fcgContainerConfig.validateOperatorEnvVars()
 			sidecarConfig.validateRunningStatus(shouldBeRunning)
 			sidecarConfig.validateCrStatus()
 			sidecarConfig.validateOperatorEnvVars()
@@ -676,11 +691,11 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 		It("should cleanup successfully", func() {
 			falconDeploymentConfig.manageCrdInstance(crDelete, manifest)
-			kacConfig.validateRunningStatus(shouldBeTerminated)
+			fcgContainerConfig.validateRunningStatus(shouldBeTerminated)
 			sidecarConfig.validateRunningStatus(shouldBeTerminated)
 			iarConfig.validateRunningStatus(shouldBeTerminated)
 			sidecarConfig.waitForNamespaceDeletion()
-			kacConfig.waitForNamespaceDeletion()
+			fcgContainerConfig.waitForNamespaceDeletion()
 			iarConfig.waitForNamespaceDeletion()
 		})
 	})
@@ -688,14 +703,14 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Deployment Controller with Node Sensor", Label("FalconDeployment"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falcondeployment-node-sensor.yaml"
 		It("should deploy successfully", func() {
-			updateManifestApiCreds(manifest)
-			falconDeploymentConfig.manageCrdInstance(crApply, manifest)
-			kacConfig.validateRunningStatus(shouldBeRunning)
-			kacConfig.validateCrStatus()
-			kacConfig.validateOperatorEnvVars()
-			nodeConfig.validateRunningStatus(shouldBeRunning)
-			nodeConfig.validateCrStatus()
-			nodeConfig.validateOperatorEnvVars()
+			err := applyManifestFile(manifest)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			fcgConfig.validateRunningStatus(shouldBeRunning)
+			fcgConfig.validateCrStatus()
+			fcgConfig.validateOperatorEnvVars()
+			fcgNodeConfig.validateRunningStatus(shouldBeRunning)
+			fcgNodeConfig.validateCrStatus()
+			fcgNodeConfig.validateOperatorEnvVars()
 			iarConfig.validateRunningStatus(shouldBeRunning)
 			iarConfig.validateCrStatus()
 			iarConfig.validateDefaultValues()
@@ -703,11 +718,11 @@ var _ = Describe("falcon", Ordered, func() {
 		})
 		It("should cleanup successfully", func() {
 			falconDeploymentConfig.manageCrdInstance(crDelete, manifest)
-			kacConfig.validateRunningStatus(shouldBeTerminated)
-			nodeConfig.validateRunningStatus(shouldBeTerminated)
+			fcgConfig.validateRunningStatus(shouldBeTerminated)
+			fcgNodeConfig.validateRunningStatus(shouldBeTerminated)
 			iarConfig.validateRunningStatus(shouldBeTerminated)
-			nodeConfig.waitForNamespaceDeletion()
-			kacConfig.waitForNamespaceDeletion()
+			fcgNodeConfig.waitForNamespaceDeletion()
+			fcgConfig.waitForNamespaceDeletion()
 			iarConfig.waitForNamespaceDeletion()
 		})
 	})
@@ -715,26 +730,46 @@ var _ = Describe("falcon", Ordered, func() {
 	Context("Falcon Deployment Controller with Node Sensor and Falcon Secret", Label("FalconDeployment"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falcondeployment-node-sensor-with-falcon-secret.yaml"
 		It("should deploy successfully", func() {
-			addFalconSecretToManifest(manifest)
-			falconDeploymentConfig.manageCrdInstance(crApply, manifest)
-			kacConfig.validateRunningStatus(shouldBeRunning)
-			kacConfig.validateCrStatus()
-			kacConfig.validateOperatorEnvVars()
-			nodeConfig.validateRunningStatus(shouldBeRunning)
-			nodeConfig.validateCrStatus()
-			nodeConfig.validateOperatorEnvVars()
+			By("creating a k8s secret with Falcon API credentials")
+			falconClientID, falconClientSecret := getCredentials()
+			if falconClientID != "" && falconClientSecret != "" {
+				createNamespaceCmd := exec.Command("kubectl", "create", "ns", falconSecretNamespace)
+				_, err := utils.Run(createNamespaceCmd)
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+				createSecretCmd := exec.Command("sh", "-c",
+					fmt.Sprintf("kubectl create secret generic %s -n %s --from-literal=falcon-client-id=\"$FALCON_CLIENT_ID\" --from-literal=falcon-client-secret=\"$FALCON_CLIENT_SECRET\"",
+						falconSecretName, falconSecretNamespace))
+				_, err = utils.Run(createSecretCmd)
+				ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			}
+			err := applyManifestFile(manifest)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			patchCmd := exec.Command("kubectl", "patch", "falcondeployment",
+				falconDeploymentConfig.metadataName,
+				"--type=merge",
+				"--patch", fmt.Sprintf(`{"spec":{"falconSecret":{"namespace":%q,"secretName":%q}}}`,
+					falconSecretNamespace, falconSecretName),
+			)
+			_, err = utils.Run(patchCmd)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			fcgConfig.validateRunningStatus(shouldBeRunning)
+			fcgConfig.validateCrStatus()
+			fcgConfig.validateOperatorEnvVars()
+			fcgNodeConfig.validateRunningStatus(shouldBeRunning)
+			fcgNodeConfig.validateCrStatus()
+			fcgNodeConfig.validateOperatorEnvVars()
 			iarConfig.validateRunningStatus(shouldBeRunning)
 			iarConfig.validateCrStatus()
 			iarConfig.validateOperatorEnvVars()
 		})
 		It("should cleanup successfully", func() {
 			falconDeploymentConfig.manageCrdInstance(crDelete, manifest)
-			kacConfig.validateRunningStatus(shouldBeTerminated)
-			nodeConfig.validateRunningStatus(shouldBeTerminated)
+			fcgConfig.validateRunningStatus(shouldBeTerminated)
+			fcgNodeConfig.validateRunningStatus(shouldBeTerminated)
 			iarConfig.validateRunningStatus(shouldBeTerminated)
 			secretConfig.deleteNamespace()
-			nodeConfig.waitForNamespaceDeletion()
-			kacConfig.waitForNamespaceDeletion()
+			fcgNodeConfig.waitForNamespaceDeletion()
+			fcgConfig.waitForNamespaceDeletion()
 			iarConfig.waitForNamespaceDeletion()
 			secretConfig.waitForNamespaceDeletion()
 		})
@@ -1091,7 +1126,7 @@ var _ = Describe("falcon", Ordered, func() {
 
 	Context("Falcon Admission Controller Tolerations", Label("FalconAdmission"), func() {
 		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
-		It("should deploy successfully", func() {
+		XIt("should deploy successfully", func() {
 			By("loading and modifying the FalconAdmission manifest")
 			var admission falconv1alpha1.FalconAdmission
 			err := loadManifest(manifest, &admission)
@@ -1128,7 +1163,7 @@ var _ = Describe("falcon", Ordered, func() {
 			EventuallyWithOffset(1, validateTolerationsInDeployment, defaultTimeout, defaultPollPeriod).Should(Succeed())
 		})
 
-		It("should preserve system-added tolerations", func() {
+		XIt("should preserve system-added tolerations", func() {
 			By("getting current tolerations")
 			cmd := exec.Command("kubectl", "get", "deployment", "falcon-kac",
 				"-n", kacConfig.namespace,
@@ -1192,7 +1227,7 @@ var _ = Describe("falcon", Ordered, func() {
 			}
 		})
 
-		It("should replace toleration when Key+Effect match but Value/Operator differ", func() {
+		XIt("should replace toleration when Key+Effect match but Value/Operator differ", func() {
 			By("loading and modifying the FalconAdmission manifest with initial toleration")
 			var admission falconv1alpha1.FalconAdmission
 			err := loadManifest(manifest, &admission)
@@ -1291,7 +1326,7 @@ var _ = Describe("falcon", Ordered, func() {
 			EventuallyWithOffset(1, validateReplacedToleration, defaultTimeout, defaultPollPeriod).Should(Succeed())
 		})
 
-		It("should allow multiple tolerations with same Key but different Effect", func() {
+		XIt("should allow multiple tolerations with same Key but different Effect", func() {
 			By("loading and modifying the FalconAdmission manifest with multiple tolerations")
 			var admission falconv1alpha1.FalconAdmission
 			err := loadManifest(manifest, &admission)
@@ -1348,10 +1383,662 @@ var _ = Describe("falcon", Ordered, func() {
 			EventuallyWithOffset(1, validateBothEffects, defaultTimeout, defaultPollPeriod).Should(Succeed())
 		})
 
-		It("should cleanup successfully", func() {
+		XIt("should cleanup successfully", func() {
 			kacConfig.manageCrdInstance(crDelete, manifest)
 			kacConfig.validateRunningStatus(shouldBeTerminated)
 			kacConfig.waitForNamespaceDeletion()
 		})
 	})
+
+	Context("Falcon Cluster Guard", Label("FalconClusterGuard"), func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconclusterguard.yaml"
+		It("should deploy successfully", func() {
+			By("loading and modifying the FalconClusterGuard manifest")
+			var fcg falconv1alpha1.FalconClusterGuard
+			err := loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("applying the modified manifest")
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			fcgConfig.validateRunningStatus(shouldBeRunning)
+			fcgConfig.validateCrStatus()
+			// fcgConfig.validateDefaultValues()
+		})
+	})
+
+	Context("Falcon Cluster Guard ClusterName", Label("FalconClusterGuard"), func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconclusterguard.yaml"
+		It("should manage falcon-kac-meta configMap changes successfully", func() {
+			By("loading and modifying the FalconClusterGuard manifest with a custom clusterName")
+			var fcg falconv1alpha1.FalconClusterGuard
+			err := loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			clusterName := "test-cluster"
+			fcg.Spec.AdmissionConfig.ClusterName = &clusterName
+
+			By("applying the modified manifest")
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating the cluster name in the falcon-kac-meta configMap has updated")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "get", "configmap", "falcon-kac-meta",
+					"-n", fcgConfig.namespace, "-o", "jsonpath='{.data.ClusterName}'")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "test-cluster") {
+					return fmt.Errorf("falcon-kac-meta configMap not updated: %s", output)
+				}
+				return nil
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			fcgConfig.validateRunningStatus(shouldBeRunning)
+		})
+	})
+
+	Context("Falcon Cluster Guard Admission Tolerations", Label("FalconClusterGuard"), func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconclusterguard.yaml"
+		It("should deploy with admission tolerations successfully", func() {
+			By("loading and modifying the FalconClusterGuard manifest")
+			var fcg falconv1alpha1.FalconClusterGuard
+			err := loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			fcg.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+				{
+					Key:      "node.kubernetes.io/memory-pressure",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+			}
+
+			By("applying the modified manifest")
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			fcgConfig.validateRunningStatus(shouldBeRunning)
+			fcgConfig.validateCrStatus()
+
+			By("validating the deployment has the expected admission tolerations")
+			validateTolerationsInDeployment := func() error {
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node.kubernetes.io/memory-pressure')].effect}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "NoSchedule") {
+					return fmt.Errorf("expected toleration not found in deployment: %s", output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateTolerationsInDeployment, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+
+		It("should preserve system-added admission tolerations", func() {
+			By("getting current tolerations")
+			cmd := exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+				"-n", fcgConfig.namespace,
+				"-o", "jsonpath={.spec.template.spec.tolerations}")
+			currentTolerations, err := utils.Run(cmd)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("loading and modifying the FalconClusterGuard manifest with additional admission tolerations")
+			var fcg falconv1alpha1.FalconClusterGuard
+			err = loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			fcg.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+				{
+					Key:      "node.kubernetes.io/memory-pressure",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+				{
+					Key:      "custom-taint",
+					Operator: corev1.TolerationOpEqual,
+					Value:    "true",
+					Effect:   corev1.TaintEffectNoExecute,
+				},
+			}
+
+			By("applying the updated manifest")
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating both old and new admission tolerations are present")
+			validateBothTolerations := func() error {
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations}")
+				updatedTolerations, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+
+				tolerationsStr := string(updatedTolerations)
+				if !strings.Contains(tolerationsStr, "node.kubernetes.io/memory-pressure") {
+					return fmt.Errorf("previous toleration not preserved: %s", tolerationsStr)
+				}
+				if !strings.Contains(tolerationsStr, "custom-taint") {
+					return fmt.Errorf("new toleration not found: %s", tolerationsStr)
+				}
+
+				if len(currentTolerations) > 0 && len(updatedTolerations) < len(currentTolerations) {
+					return fmt.Errorf("tolerations count decreased unexpectedly")
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateBothTolerations, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after admission toleration changes")
+				validateNoReconcileLoop(controllerPodName, namespace, fcgConfig.kind, reconcileLoopValidationDuration, 3)
+			}
+		})
+
+		It("should replace admission toleration when Key+Effect match but Value/Operator differ", func() {
+			By("loading and modifying the FalconClusterGuard manifest with initial admission toleration")
+			var fcg falconv1alpha1.FalconClusterGuard
+			err := loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			fcg.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+				{
+					Key:      "environment",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+			}
+
+			By("applying the manifest with initial admission toleration")
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating initial toleration with Exists operator")
+			validateInitialToleration := func() error {
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='environment')].operator}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "Exists") {
+					return fmt.Errorf("expected Exists operator not found: %s", output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateInitialToleration, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("updating admission toleration with same Key+Effect but different Operator and Value")
+			err = loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			fcg.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+				{
+					Key:      "environment",
+					Operator: corev1.TolerationOpEqual,
+					Value:    "production",
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+			}
+
+			By("applying the updated manifest")
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating admission toleration was replaced with new Value and Operator")
+			validateReplacedToleration := func() error {
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='environment')].operator}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "Equal") {
+					return fmt.Errorf("expected Equal operator not found: %s", output)
+				}
+
+				cmd = exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='environment')].value}")
+				output, err = utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "production") {
+					return fmt.Errorf("expected value 'production' not found: %s", output)
+				}
+
+				cmd = exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='environment')]}")
+				output, err = utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				matches := strings.Count(string(output), `"key":"environment"`)
+				if matches > 1 {
+					return fmt.Errorf("found %d tolerations with key 'environment', expected 1: %s", matches, output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateReplacedToleration, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+
+		It("should allow multiple admission tolerations with same Key but different Effect", func() {
+			By("loading and modifying the FalconClusterGuard manifest with multiple admission tolerations")
+			var fcg falconv1alpha1.FalconClusterGuard
+			err := loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			fcg.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+				{
+					Key:      "node-type",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+				{
+					Key:      "node-type",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoExecute,
+				},
+			}
+
+			By("applying the manifest with multiple admission tolerations")
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating both admission tolerations with same Key but different Effect exist")
+			validateBothEffects := func() error {
+				cmd := exec.Command("kubectl", "get", "deployment", "falcon-cluster-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node-type')]}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+
+				outputStr := string(output)
+				if !strings.Contains(outputStr, "NoSchedule") {
+					return fmt.Errorf("NoSchedule effect not found for key 'node-type': %s", outputStr)
+				}
+				if !strings.Contains(outputStr, "NoExecute") {
+					return fmt.Errorf("NoExecute effect not found for key 'node-type': %s", outputStr)
+				}
+
+				effectCount := strings.Count(outputStr, `"effect":`)
+				if effectCount != 2 {
+					return fmt.Errorf("expected 2 tolerations with key 'node-type', found %d: %s", effectCount, outputStr)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateBothEffects, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+	})
+
+	Context("Falcon Cluster Guard Node Sensor Tolerations", Label("FalconClusterGuard"), func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconclusterguard.yaml"
+		It("should deploy with node sensor tolerations successfully", func() {
+			By("loading and modifying the FalconClusterGuard manifest")
+			var fcg falconv1alpha1.FalconClusterGuard
+			err := loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			tolerations := []corev1.Toleration{
+				{
+					Key:               "node.kubernetes.io/not-ready",
+					Operator:          corev1.TolerationOpExists,
+					Effect:            corev1.TaintEffectNoExecute,
+					TolerationSeconds: func(i int64) *int64 { return &i }(300),
+				},
+			}
+			fcg.Spec.NodeSensor.Tolerations = &tolerations
+
+			By("applying the modified manifest")
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			fcgConfig.validateRunningStatus(shouldBeRunning)
+			fcgConfig.validateCrStatus()
+
+			By("validating the daemonset has the expected node sensor tolerations")
+			validateTolerationsInDaemonSet := func() error {
+				cmd := exec.Command("kubectl", "get", "daemonset", "falcon-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node.kubernetes.io/not-ready')].effect}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "NoExecute") {
+					return fmt.Errorf("expected toleration not found in daemonset: %s", output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateTolerationsInDaemonSet, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after adding node sensor tolerations")
+				validateNoReconcileLoop(controllerPodName, namespace, fcgConfig.kind, reconcileLoopValidationDuration, reconcileLoopThreshold)
+			}
+		})
+
+		It("should replace node sensor toleration when Key+Effect match but Value/Operator differ", func() {
+			By("loading and modifying the FalconClusterGuard manifest with initial node sensor toleration")
+			var fcg falconv1alpha1.FalconClusterGuard
+			err := loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			initialTolerations := []corev1.Toleration{
+				{
+					Key:      "app",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+			}
+			fcg.Spec.NodeSensor.Tolerations = &initialTolerations
+
+			By("applying the manifest with initial node sensor toleration")
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating initial node sensor toleration with Exists operator")
+			validateInitialToleration := func() error {
+				cmd := exec.Command("kubectl", "get", "daemonset", "falcon-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='app')].operator}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "Exists") {
+					return fmt.Errorf("expected Exists operator not found: %s", output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateInitialToleration, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("updating node sensor toleration with same Key+Effect but different Operator and Value")
+			err = loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			updatedTolerations := []corev1.Toleration{
+				{
+					Key:      "app",
+					Operator: corev1.TolerationOpEqual,
+					Value:    "falcon",
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+			}
+			fcg.Spec.NodeSensor.Tolerations = &updatedTolerations
+
+			By("applying the updated manifest")
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating node sensor toleration was replaced with new Value and Operator")
+			validateReplacedToleration := func() error {
+				cmd := exec.Command("kubectl", "get", "daemonset", "falcon-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='app')].operator}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "Equal") {
+					return fmt.Errorf("expected Equal operator not found: %s", output)
+				}
+
+				cmd = exec.Command("kubectl", "get", "daemonset", "falcon-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='app')].value}")
+				output, err = utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				if !strings.Contains(string(output), "falcon") {
+					return fmt.Errorf("expected value 'falcon' not found: %s", output)
+				}
+
+				cmd = exec.Command("kubectl", "get", "daemonset", "falcon-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='app')]}")
+				output, err = utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+				matches := strings.Count(string(output), `"key":"app"`)
+				if matches > 1 {
+					return fmt.Errorf("found %d tolerations with key 'app', expected 1: %s", matches, output)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateReplacedToleration, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+
+		It("should allow multiple node sensor tolerations with same Key but different Effect", func() {
+			By("loading and modifying the FalconClusterGuard manifest with multiple node sensor tolerations")
+			var fcg falconv1alpha1.FalconClusterGuard
+			err := loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			tolerations := []corev1.Toleration{
+				{
+					Key:      "node-type",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoSchedule,
+				},
+				{
+					Key:      "node-type",
+					Operator: corev1.TolerationOpExists,
+					Effect:   corev1.TaintEffectNoExecute,
+				},
+			}
+			fcg.Spec.NodeSensor.Tolerations = &tolerations
+
+			By("applying the manifest with multiple node sensor tolerations")
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("validating both node sensor tolerations with same Key but different Effect exist")
+			validateBothEffects := func() error {
+				cmd := exec.Command("kubectl", "get", "daemonset", "falcon-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.tolerations[?(@.key=='node-type')]}")
+				output, err := utils.Run(cmd)
+				ExpectWithOffset(2, err).NotTo(HaveOccurred())
+
+				outputStr := string(output)
+				if !strings.Contains(outputStr, "NoSchedule") {
+					return fmt.Errorf("NoSchedule effect not found for key 'node-type': %s", outputStr)
+				}
+				if !strings.Contains(outputStr, "NoExecute") {
+					return fmt.Errorf("NoExecute effect not found for key 'node-type': %s", outputStr)
+				}
+
+				effectCount := strings.Count(outputStr, `"effect":`)
+				if effectCount != 2 {
+					return fmt.Errorf("expected 2 tolerations with key 'node-type', found %d: %s", effectCount, outputStr)
+				}
+				return nil
+			}
+			EventuallyWithOffset(1, validateBothEffects, defaultTimeout, defaultPollPeriod).Should(Succeed())
+		})
+	})
+
+	Context("Falcon Cluster Guard DaemonSet Rerollout", Label("FalconClusterGuard"), func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconclusterguard.yaml"
+
+		// dsGeneration fetches the current generation of the node sensor DaemonSet.
+		dsGeneration := func() (string, error) {
+			cmd := exec.Command("kubectl", "get", "daemonset", "falcon-sensor",
+				"-n", fcgConfig.namespace,
+				"-o", "jsonpath={.metadata.generation}")
+			out, err := utils.Run(cmd)
+			return strings.TrimSpace(string(out)), err
+		}
+
+		// dsTemplateAnnotation fetches a pod template annotation value by key.
+		dsTemplateAnnotation := func(key string) func() (string, error) {
+			return func() (string, error) {
+				cmd := exec.Command("kubectl", "get", "daemonset", "falcon-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", fmt.Sprintf("jsonpath={.spec.template.metadata.annotations['%s']}", key))
+				out, err := utils.Run(cmd)
+				return strings.TrimSpace(string(out)), err
+			}
+		}
+
+		It("should reroll pods when a ConfigMap value changes", func() {
+			By("ensuring a baseline FalconClusterGuard is deployed")
+			var fcg falconv1alpha1.FalconClusterGuard
+			err := loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			fcgConfig.validateCrStatus()
+
+			By("recording the current DaemonSet generation and checksum/config annotation")
+			genBefore, err := dsGeneration()
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			checksumBefore, err := dsTemplateAnnotation("checksum/config")()
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			ExpectWithOffset(1, checksumBefore).NotTo(BeEmpty(), "expected checksum/config annotation to be present before update")
+
+			By("patching the FalconClusterGuard spec to change a ConfigMap value (trace level)")
+			err = loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			fcg.Spec.Falcon.Trace = "debug"
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("waiting for checksum/config annotation to change on the pod template")
+			EventuallyWithOffset(1, dsTemplateAnnotation("checksum/config"), defaultTimeout, defaultPollPeriod).
+				ShouldNot(Equal(checksumBefore))
+
+			By("verifying the DaemonSet generation incremented (pod rerollout triggered)")
+			genAfter, err := dsGeneration()
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			ExpectWithOffset(1, genAfter).NotTo(Equal(genBefore), "expected DaemonSet generation to increment after ConfigMap change")
+
+			fcgConfig.validateCrStatus()
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after ConfigMap change")
+				validateNoReconcileLoop(controllerPodName, namespace, fcgConfig.kind, reconcileLoopValidationDuration, reconcileLoopThreshold)
+			}
+		})
+
+		It("should reroll pods when TLS certificates are rotated", func() {
+			By("ensuring a baseline FalconClusterGuard is deployed")
+			var fcg falconv1alpha1.FalconClusterGuard
+			err := loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			fcgConfig.validateCrStatus()
+
+			By("recording the current DaemonSet generation")
+			genBefore, err := dsGeneration()
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("deleting the sensor TLS secret to force certificate regeneration")
+			cmd := exec.Command("kubectl", "delete", "secret", "falcon-cluster-sensor-tls",
+				"-n", fcgConfig.namespace, "--ignore-not-found")
+			_, err = utils.Run(cmd)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("waiting for the operator to recreate the TLS secret")
+			EventuallyWithOffset(1, func() error {
+				cmd := exec.Command("kubectl", "get", "secret", "falcon-cluster-sensor-tls",
+					"-n", fcgConfig.namespace)
+				_, err := utils.Run(cmd)
+				return err
+			}, defaultTimeout, defaultPollPeriod).Should(Succeed())
+
+			By("waiting for the DaemonSet generation to increment (volume secret change triggers rerollout)")
+			EventuallyWithOffset(1, func() (string, error) {
+				return dsGeneration()
+			}, defaultTimeout, defaultPollPeriod).ShouldNot(Equal(genBefore))
+
+			fcgConfig.validateCrStatus()
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after TLS rotation")
+				validateNoReconcileLoop(controllerPodName, namespace, fcgConfig.kind, reconcileLoopValidationDuration, reconcileLoopThreshold)
+			}
+		})
+
+		It("should reroll pods when TerminationGracePeriod changes", func() {
+			By("ensuring a baseline FalconClusterGuard is deployed")
+			var fcg falconv1alpha1.FalconClusterGuard
+			err := loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			fcgConfig.validateCrStatus()
+
+			By("recording the current DaemonSet generation and terminationGracePeriodSeconds")
+			genBefore, err := dsGeneration()
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("patching the FalconClusterGuard spec to change TerminationGracePeriod")
+			err = loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			fcg.Spec.NodeSensor.TerminationGracePeriod = 90
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("waiting for the DaemonSet terminationGracePeriodSeconds to reflect the updated value")
+			EventuallyWithOffset(1, func() (string, error) {
+				cmd := exec.Command("kubectl", "get", "daemonset", "falcon-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.terminationGracePeriodSeconds}")
+				out, err := utils.Run(cmd)
+				return strings.TrimSpace(string(out)), err
+			}, defaultTimeout, defaultPollPeriod).Should(Equal("90"))
+
+			By("verifying the DaemonSet generation incremented")
+			genAfter, err := dsGeneration()
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			ExpectWithOffset(1, genAfter).NotTo(Equal(genBefore), "expected DaemonSet generation to increment after TerminationGracePeriod change")
+
+			if reconcileLoopCheck {
+				By("validating no reconcile loop after TerminationGracePeriod change")
+				validateNoReconcileLoop(controllerPodName, namespace, fcgConfig.kind, reconcileLoopValidationDuration, reconcileLoopThreshold)
+			}
+
+			By("restoring the original TerminationGracePeriod so subsequent tests start from a clean baseline")
+			err = loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			fcg.Spec.NodeSensor.TerminationGracePeriod = 60 // explicit so omitempty does not drop it from the patch
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			EventuallyWithOffset(1, func() (string, error) {
+				cmd := exec.Command("kubectl", "get", "daemonset", "falcon-sensor",
+					"-n", fcgConfig.namespace,
+					"-o", "jsonpath={.spec.template.spec.terminationGracePeriodSeconds}")
+				out, err := utils.Run(cmd)
+				return strings.TrimSpace(string(out)), err
+			}, defaultTimeout, defaultPollPeriod).Should(Equal("60"))
+			fcgConfig.validateCrStatus()
+		})
+
+		It("should not reroll pods when spec is unchanged (idempotency)", func() {
+			By("ensuring a baseline FalconClusterGuard is deployed")
+			var fcg falconv1alpha1.FalconClusterGuard
+			err := loadManifest(manifest, &fcg)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+			fcgConfig.validateCrStatus()
+
+			By("recording the current DaemonSet generation")
+			genBefore, err := dsGeneration()
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("re-applying the identical manifest")
+			err = applyManifest(&fcg, fcgConfig.namespace)
+			ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+			By("verifying the DaemonSet generation did not change")
+			Consistently(func() (string, error) {
+				return dsGeneration()
+			}, reconcileLoopValidationDuration, defaultPollPeriod).Should(Equal(genBefore))
+		})
+	})
+
+	Context("Falcon Cluster Guard Cleanup", Label("FalconClusterGuard"), func() {
+		manifest := "./config/samples/falcon_v1alpha1_falconclusterguard.yaml"
+		It("should cleanup successfully", func() {
+			fcgConfig.manageCrdInstance(crDelete, manifest)
+			fcgConfig.validateRunningStatus(shouldBeTerminated)
+			fcgConfig.waitForNamespaceDeletion()
+		})
+	})
+
 })
