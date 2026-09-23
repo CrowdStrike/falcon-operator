@@ -21,6 +21,11 @@ metadata:
     operatorframework.io/suggested-namespace: falcon-operator
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+    operatorframework.io/arch.s390x: supported
+    operatorframework.io/os.linux: supported
   name: falcon-operator.v0.0.0
   namespace: placeholder
 spec:
@@ -1980,11 +1985,6 @@ spec:
   keywords:
   - security
   - runtime-protection
-  labels:
-    operatorframework.io/arch.amd64: supported
-    operatorframework.io/arch.arm64: supported
-    operatorframework.io/arch.s390x: supported
-    operatorframework.io/os.linux: supported
   links:
   - name: Falcon Operator
     url: https://github.com/CrowdStrike/falcon-operator
