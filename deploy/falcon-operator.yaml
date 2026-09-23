@@ -1023,9 +1023,9 @@ spec:
       jsonPath: .spec.nodeSensor.enabled
       name: Node Sensor
       type: string
-    - description: Admission controller component enabled
-      jsonPath: .spec.admissionConfig.enabled
-      name: Admission
+    - description: Cluster Guard Controller disabled when set
+      jsonPath: .spec.controller.disableClusterGuardController
+      name: Controller
       type: string
     - description: Deployment status
       jsonPath: .status.conditions[?(@.type=='Success')].reason
@@ -1066,10 +1066,10 @@ spec:
           spec:
             description: spec defines the desired state of FalconClusterGuard
             properties:
-              admissionConfig:
+              controller:
                 default: {}
-                description: AdmissionConfig configures the admission controller deployed
-                  alongside FalconClusterGuard.
+                description: ClusterGuardControllerConfig configures the controller
+                  deployed alongside FalconClusterGuard.
                 properties:
                   admissionControlEnabled:
                     default: false
@@ -1077,9 +1077,9 @@ spec:
                       enabled.
                     type: boolean
                   clusterName:
-                    description: Cluster Name if Falcon KAC cannot discover the cluster
-                      name. This will be overwritten if Falcon KAC is able to discover
-                      the cluster name.
+                    description: Cluster Name if Falcon Cluster Guard cannot discover
+                      the cluster name. This will be overwritten if Falcon Cluster
+                      Guard is able to discover the cluster name.
                     type: string
                   configMapWatcherEnabled:
                     default: true
@@ -1088,18 +1088,22 @@ spec:
                     type: boolean
                   containerPort:
                     default: 4443
-                    description: Port on which the Falcon Admission Controller container
-                      will listen for requests.
+                    description: Port on which the Falcon Cluster Guard Controller
+                      container will listen for requests.
                     format: int32
                     maximum: 65535
                     minimum: 0
                     type: integer
                     x-kubernetes-int-or-string: true
-                  deployWatcher:
-                    default: true
-                    description: Determines if the falcon-watcher container is included
-                      in the Pod.
-                    type: boolean
+                  disableClusterGuardController:
+                    description: |-
+                      To prevent the Falcon Cluster Guard Controller from being deployed, set this field to:
+                      "I understand this disables K8s metadata collection and degrades node sensor visibility"
+                      WARNING: Disabling the controller removes Kubernetes metadata collection and degrades node sensor visibility.
+                    enum:
+                    - I understand this disables K8s metadata collection and degrades
+                      node sensor visibility
+                    type: string
                   disabledNamespaces:
                     description: Ignore admission control for a specific set of namespaces.
                     properties:
@@ -1110,15 +1114,10 @@ spec:
                           type: string
                         type: array
                     type: object
-                  enabled:
-                    default: true
-                    description: Enabled controls whether the admission controller
-                      Deployment is deployed. Defaults to true.
-                    type: boolean
                   failurePolicy:
                     default: Ignore
-                    description: Configure the failure policy for the Falcon Admission
-                      Controller.
+                    description: Configure the failure policy for the Falcon Cluster
+                      Guard Controller Admission Controller.
                     enum:
                     - Ignore
                     - Fail
@@ -1126,11 +1125,12 @@ spec:
                   falconImageAnalyzerNamespace:
                     default: falcon-iar
                     description: Namespace where Falcon Image Analyzer is installed.
-                      KAC needs to know this to discover and communicate with IAR.
+                      Falcon Cluster Guard needs to know this to discover and communicate
+                      with IAR.
                     type: string
                   nodeAffinity:
-                    description: Specifies node affinity for scheduling the Admission
-                      Controller.
+                    description: Specifies node affinity for scheduling the Falcon
+                      Cluster Guard Controller.
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         description: |-
@@ -1600,9 +1600,9 @@ spec:
                         type: object
                     type: object
                   serviceAccount:
-                    description: Define annotations that will be passed down to admission
-                      controller service account. This is useful for passing along
-                      AWS IAM Role or GCP Workload Identity.
+                    description: Define annotations that will be passed down to Falcon
+                      Cluster Guard Controller  service account. This is useful for
+                      passing along AWS IAM Role or GCP Workload Identity.
                     properties:
                       annotations:
                         additionalProperties:
@@ -1614,8 +1614,8 @@ spec:
                     type: object
                   servicePort:
                     default: 443
-                    description: Port on which the Falcon Admission Controller service
-                      will listen for requests from the cluster.
+                    description: Port on which the Falcon Cluster Guard Controller
+                      service will listen for requests from the cluster.
                     format: int32
                     maximum: 65535
                     minimum: 0
@@ -1633,19 +1633,20 @@ spec:
                     format: duration
                     type: string
                   tls:
-                    description: Configure TLS settings for the Falcon Admission Controller
+                    description: Configure TLS settings for the Falcon Cluster Guard
+                      Controller Controller
                     properties:
                       validity:
                         description: Validity of the TLS certificate in days. Default
                           is 3650 days.
-                        pattern: ^[0-9]{1-4}$
+                        pattern: ^[0-9]{1,4}$
                         type: integer
                         x-kubernetes-int-or-string: true
                     type: object
                   tolerations:
                     default: []
-                    description: Specifies tolerations for scheduling the Admission
-                      Controller.
+                    description: Specifies tolerations for scheduling the Falcon Cluster
+                      Guard Controller.
                     items:
                       description: |-
                         The pod this Toleration is attached to tolerates any taint that matches
@@ -6060,9 +6061,9 @@ spec:
                 default: {}
                 description: Falcon Cluster Guard Configuration
                 properties:
-                  admissionConfig:
+                  controller:
                     default: {}
-                    description: AdmissionConfig configures the admission controller
+                    description: ClusterGuardControllerConfig configures the controller
                       deployed alongside FalconClusterGuard.
                     properties:
                       admissionControlEnabled:
@@ -6071,9 +6072,9 @@ spec:
                           is enabled.
                         type: boolean
                       clusterName:
-                        description: Cluster Name if Falcon KAC cannot discover the
-                          cluster name. This will be overwritten if Falcon KAC is
-                          able to discover the cluster name.
+                        description: Cluster Name if Falcon Cluster Guard cannot discover
+                          the cluster name. This will be overwritten if Falcon Cluster
+                          Guard is able to discover the cluster name.
                         type: string
                       configMapWatcherEnabled:
                         default: true
@@ -6082,18 +6083,22 @@ spec:
                         type: boolean
                       containerPort:
                         default: 4443
-                        description: Port on which the Falcon Admission Controller
+                        description: Port on which the Falcon Cluster Guard Controller
                           container will listen for requests.
                         format: int32
                         maximum: 65535
                         minimum: 0
                         type: integer
                         x-kubernetes-int-or-string: true
-                      deployWatcher:
-                        default: true
-                        description: Determines if the falcon-watcher container is
-                          included in the Pod.
-                        type: boolean
+                      disableClusterGuardController:
+                        description: |-
+                          To prevent the Falcon Cluster Guard Controller from being deployed, set this field to:
+                          "I understand this disables K8s metadata collection and degrades node sensor visibility"
+                          WARNING: Disabling the controller removes Kubernetes metadata collection and degrades node sensor visibility.
+                        enum:
+                        - I understand this disables K8s metadata collection and degrades
+                          node sensor visibility
+                        type: string
                       disabledNamespaces:
                         description: Ignore admission control for a specific set of
                           namespaces.
@@ -6105,15 +6110,10 @@ spec:
                               type: string
                             type: array
                         type: object
-                      enabled:
-                        default: true
-                        description: Enabled controls whether the admission controller
-                          Deployment is deployed. Defaults to true.
-                        type: boolean
                       failurePolicy:
                         default: Ignore
-                        description: Configure the failure policy for the Falcon Admission
-                          Controller.
+                        description: Configure the failure policy for the Falcon Cluster
+                          Guard Controller Admission Controller.
                         enum:
                         - Ignore
                         - Fail
@@ -6121,12 +6121,12 @@ spec:
                       falconImageAnalyzerNamespace:
                         default: falcon-iar
                         description: Namespace where Falcon Image Analyzer is installed.
-                          KAC needs to know this to discover and communicate with
-                          IAR.
+                          Falcon Cluster Guard needs to know this to discover and
+                          communicate with IAR.
                         type: string
                       nodeAffinity:
-                        description: Specifies node affinity for scheduling the Admission
-                          Controller.
+                        description: Specifies node affinity for scheduling the Falcon
+                          Cluster Guard Controller.
                         properties:
                           preferredDuringSchedulingIgnoredDuringExecution:
                             description: |-
@@ -6597,8 +6597,8 @@ spec:
                         type: object
                       serviceAccount:
                         description: Define annotations that will be passed down to
-                          admission controller service account. This is useful for
-                          passing along AWS IAM Role or GCP Workload Identity.
+                          Falcon Cluster Guard Controller  service account. This is
+                          useful for passing along AWS IAM Role or GCP Workload Identity.
                         properties:
                           annotations:
                             additionalProperties:
@@ -6610,7 +6610,7 @@ spec:
                         type: object
                       servicePort:
                         default: 443
-                        description: Port on which the Falcon Admission Controller
+                        description: Port on which the Falcon Cluster Guard Controller
                           service will listen for requests from the cluster.
                         format: int32
                         maximum: 65535
@@ -6629,20 +6629,20 @@ spec:
                         format: duration
                         type: string
                       tls:
-                        description: Configure TLS settings for the Falcon Admission
-                          Controller
+                        description: Configure TLS settings for the Falcon Cluster
+                          Guard Controller Controller
                         properties:
                           validity:
                             description: Validity of the TLS certificate in days.
                               Default is 3650 days.
-                            pattern: ^[0-9]{1-4}$
+                            pattern: ^[0-9]{1,4}$
                             type: integer
                             x-kubernetes-int-or-string: true
                         type: object
                       tolerations:
                         default: []
-                        description: Specifies tolerations for scheduling the Admission
-                          Controller.
+                        description: Specifies tolerations for scheduling the Falcon
+                          Cluster Guard Controller.
                         items:
                           description: |-
                             The pod this Toleration is attached to tolerates any taint that matches

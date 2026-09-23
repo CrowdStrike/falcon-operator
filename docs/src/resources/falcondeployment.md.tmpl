@@ -340,7 +340,7 @@ hack/.venv/bin/pip install ruamel.yaml
 3. Copies `falconNodeSensor` and `falconAdmission` configuration into the appropriate `falconClusterGuard` fields:
    - `falconNodeSensor.installNamespace`, `falcon_api`, `falcon`, and `falconSecret` are promoted to `falconClusterGuard` top-level fields
    - `falconNodeSensor.node.*` fields (tolerations, resources, backend, etc.) are mapped to `falconClusterGuard.nodeSensor.*`
-   - `falconAdmission.admissionConfig.*` fields are mapped to `falconClusterGuard.admissionConfig.*`
+   - `falconAdmission.admissionConfig.*` fields are mapped to `falconClusterGuard.controller.*`
    - `falconAdmission.image`, `version`, and `registry` are promoted to `falconClusterGuard` top-level fields
 
 ### Fields that require manual attention
@@ -399,7 +399,7 @@ spec:
         - key: node-role.kubernetes.io/master
           operator: Exists
           effect: NoSchedule
-    admissionConfig:
+    controller:
       failurePolicy: Ignore
 ```
 

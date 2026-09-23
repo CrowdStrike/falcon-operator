@@ -15,6 +15,8 @@ const (
 	ClusterGuardWatchEventsEnabledDefault      = true
 	ClusterGuardSnapshotsEnabledDefault        = true
 	ClusterGuardSnapshotIntervalDefault        = 22
+
+	DisableClusterGuardControllerAck = "I understand this disables K8s metadata collection and degrades node sensor visibility"
 )
 
 // FalconClusterGuardRegistryType specifies the type of registry used for Cloud Guard images
@@ -66,7 +68,7 @@ type FalconClusterGuardNodeSpec struct {
 	// Kills pod after a specificed amount of time (in seconds). Default is 60 seconds.
 	// +kubebuilder:default:=60
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=7
-	TerminationGracePeriod int64 `json:"terminationGracePeriod,omitempty"`
+	TerminationGracePeriod *int64 `json:"terminationGracePeriod,omitempty"`
 
 	// Add metadata to the DaemonSet Service Account for IAM roles.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -111,51 +113,49 @@ type FalconClusterGuardNodeSpec struct {
 	ClusterName *string `json:"clusterName,omitempty"`
 }
 
-// FalconClusterGuardAdmissionSpec defines configuration for the admission controller deployed by FalconClusterGuard.
-type FalconClusterGuardAdmissionSpec struct {
-	// Enabled controls whether the admission controller Deployment is deployed. Defaults to true.
-	// +kubebuilder:default:=true
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Admission Controller",order=1
-	Enabled *bool `json:"enabled,omitempty"`
+// FalconClusterGuardController defines configuration for the admission controller deployed by FalconClusterGuard.
+type FalconClusterGuardController struct {
+	// To prevent the Falcon Cluster Guard Controller from being deployed, set this field to:
+	// "I understand this disables K8s metadata collection and degrades node sensor visibility"
+	// WARNING: Disabling the controller removes Kubernetes metadata collection and degrades node sensor visibility.
+	// +kubebuilder:validation:Enum="I understand this disables K8s metadata collection and degrades node sensor visibility"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Disable Falcon Cluster Guard Controller",order=1
+	// +optional
+	DisableClusterGuardController string `json:"disableClusterGuardController,omitempty"`
 
-	// Define annotations that will be passed down to admission controller service account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
+	// Define annotations that will be passed down to Falcon Cluster Guard Controller  service account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Service Account Configuration",order=7
-	ServiceAccount FalconClusterGuardAdmissionServiceAccount `json:"serviceAccount,omitempty"`
+	ServiceAccount FalconClusterGuardControllerServiceAccount `json:"serviceAccount,omitempty"`
 
-	// Port on which the Falcon Admission Controller service will listen for requests from the cluster.
+	// Port on which the Falcon Cluster Guard Controller service will listen for requests from the cluster.
 	// +kubebuilder:default:=443
 	// +kubebuilder:validation:XIntOrString
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:validation:Maximum:=65535
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Service Port",order=3,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Controller Service Port",order=3,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	Port *int32 `json:"servicePort,omitempty"`
 
-	// Port on which the Falcon Admission Controller container will listen for requests.
+	// Port on which the Falcon Cluster Guard Controller container will listen for requests.
 	// +kubebuilder:default:=4443
 	// +kubebuilder:validation:XIntOrString
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:validation:Maximum:=65535
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Container Port",order=4,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Controller Container Port",order=4,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	ContainerPort *int32 `json:"containerPort,omitempty"`
 
-	// Configure TLS settings for the Falcon Admission Controller
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller TLS Configuration",order=8
-	TLS FalconClusterGuardAdmissionTLS `json:"tls,omitempty"`
+	// Configure TLS settings for the Falcon Cluster Guard Controller Controller
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Controller TLS Configuration",order=8
+	TLS FalconClusterGuardControllerTLS `json:"tls,omitempty"`
 
-	// Configure the failure policy for the Falcon Admission Controller.
+	// Configure the failure policy for the Falcon Cluster Guard Controller Admission Controller.
 	// +kubebuilder:default:=Ignore
 	// +kubebuilder:validation:Enum=Ignore;Fail
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Failure Policy",order=6
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Controller Admission Controller Failure Policy",order=6
 	FailurePolicy arv1.FailurePolicyType `json:"failurePolicy,omitempty"`
 
 	// Ignore admission control for a specific set of namespaces.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=12
-	DisabledNamespaces FalconClusterGuardAdmissionNamespace `json:"disabledNamespaces,omitempty"`
-
-	// Determines if the falcon-watcher container is included in the Pod.
-	// +kubebuilder:default:=true
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deploy Watcher Container",order=13
-	DeployWatcher *bool `json:"deployWatcher,omitempty"`
+	DisabledNamespaces FalconClusterGuardControllerNamespace `json:"disabledNamespaces,omitempty"`
 
 	// Determines if Kubernetes resources are watched for cluster visibility.
 	// +kubebuilder:default:=true
@@ -184,50 +184,50 @@ type FalconClusterGuardAdmissionSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable ConfigMap Event Watcher",order=17
 	ConfigMapWatcherEnabled *bool `json:"configMapWatcherEnabled,omitempty"`
 
-	// Namespace where Falcon Image Analyzer is installed. KAC needs to know this to discover and communicate with IAR.
+	// Namespace where Falcon Image Analyzer is installed. Falcon Cluster Guard needs to know this to discover and communicate with IAR.
 	// +kubebuilder:default:="falcon-iar"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Namespace",order=20
-	FalconImageAnalyzerNamespace string `json:"falconImageAnalyzerNamespace,omitempty"`
+	FalconImageAnalyzerNamespace *string `json:"falconImageAnalyzerNamespace,omitempty"`
 
 	// Currently ignored and internally set to 1.
 	// +kubebuilder:default:=2
 	// +kubebuilder:validation:XIntOrString
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:validation:Maximum:=65535
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Admission Controller Replica Count",order=5,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Controller Replica Count",order=5,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Client Resources",order=9,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Controller Client Resources",order=9,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	// +kubebuilder:default:={"limits":{"memory":"384Mi"},"requests":{"cpu":"250m","memory":"384Mi"}}
 	ResourcesClient *corev1.ResourceRequirements `json:"resourcesClient,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Client Resources",order=9,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Controller Client Resources",order=9,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	// +kubebuilder:default:={"limits":{"memory":"128Mi"},"requests":{"cpu":"100m","memory":"128Mi"}}
 	ResourcesClientNoWebhook *corev1.ResourceRequirements `json:"resourcesClientNoWebhook,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Watcher Resources",order=18,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Controller Watcher Resources",order=18,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	// +kubebuilder:default:={"limits":{"memory":"384Mi"},"requests":{"cpu":"250m","memory":"384Mi"}}
 	ResourcesWatcher *corev1.ResourceRequirements `json:"resourcesWatcher,omitempty"`
 
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Resources",order=10,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Controller Admission Controller Resources",order=10,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	// +kubebuilder:default:={"limits":{"memory":"256Mi"},"requests":{"cpu":"100m","memory":"256Mi"}}
 	ResourcesAC *corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// Type of Deployment update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
 	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deployment Update Strategy",order=11
-	DepUpdateStrategy FalconClusterGuardAdmissionUpdateStrategy `json:"updateStrategy,omitempty"`
+	DepUpdateStrategy FalconClusterGuardControllerUpdateStrategy `json:"updateStrategy,omitempty"`
 
-	// Specifies node affinity for scheduling the Admission Controller.
+	// Specifies node affinity for scheduling the Falcon Cluster Guard Controller.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=19
 	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
 
-	// Specifies tolerations for scheduling the Admission Controller.
+	// Specifies tolerations for scheduling the Falcon Cluster Guard Controller.
 	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=20
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 
-	// Cluster Name if Falcon KAC cannot discover the cluster name. This will be overwritten if Falcon KAC is able to discover the cluster name.
+	// Cluster Name if Falcon Cluster Guard cannot discover the cluster name. This will be overwritten if Falcon Cluster Guard is able to discover the cluster name.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Cluster Name",order=21
 	ClusterName *string `json:"clusterName,omitempty"`
 }
@@ -236,48 +236,32 @@ func (s *FalconClusterGuardNodeSpec) IsEnabled() bool {
 	return s.Enabled == nil || *s.Enabled
 }
 
-func (s *FalconClusterGuardAdmissionSpec) IsEnabled() bool {
-	return s.Enabled == nil || *s.Enabled
+func (s *FalconClusterGuardController) IsEnabled() bool {
+	return s.DisableClusterGuardController != DisableClusterGuardControllerAck
 }
 
-func (s *FalconClusterGuardAdmissionSpec) DeployWatcherContainer() bool {
-	if s.DeployWatcher == nil {
-		return DeployWatcherDefault
-	}
-	return *s.DeployWatcher
-}
-
-func (s *FalconClusterGuardAdmissionSpec) GetWatcherEnabled() bool {
-	if s.DeployWatcher != nil && !*s.DeployWatcher {
-		return false
-	}
+func (s *FalconClusterGuardController) GetWatcherEnabled() bool {
 	if s.WatcherEnabled == nil {
 		return WatcherEnabledDefault
 	}
 	return *s.WatcherEnabled
 }
 
-func (s *FalconClusterGuardAdmissionSpec) GetSnapshotsEnabled() bool {
-	if s.DeployWatcher != nil && !*s.DeployWatcher {
-		return false
-	}
+func (s *FalconClusterGuardController) GetSnapshotsEnabled() bool {
 	if s.SnapshotsEnabled == nil {
 		return SnapshotsEnabledDefault
 	}
 	return *s.SnapshotsEnabled
 }
 
-func (s *FalconClusterGuardAdmissionSpec) GetSnapshotsInterval() time.Duration {
+func (s *FalconClusterGuardController) GetSnapshotsInterval() time.Duration {
 	if s.SnapshotsInterval == nil {
 		return SnapshotsIntervalDefault * time.Hour
 	}
 	return s.SnapshotsInterval.Duration
 }
 
-func (s *FalconClusterGuardAdmissionSpec) GetConfigMapWatcherEnabled() bool {
-	if s.DeployWatcher != nil && !*s.DeployWatcher {
-		return false
-	}
+func (s *FalconClusterGuardController) GetConfigMapWatcherEnabled() bool {
 	if s.ConfigMapWatcherEnabled == nil {
 		return ConfigMapWatcherEnabledDefault
 	}
@@ -340,10 +324,10 @@ type FalconClusterGuardSpec struct {
 	// +optional
 	Version *string `json:"version,omitempty"`
 
-	// AdmissionConfig configures the admission controller deployed alongside FalconClusterGuard.
+	// ClusterGuardControllerConfig configures the controller deployed alongside FalconClusterGuard.
 	// +kubebuilder:default={}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Admission Controller Configuration",order=8
-	AdmissionConfig FalconClusterGuardAdmissionSpec `json:"admissionConfig,omitempty"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Controller Configuration",order=8
+	ClusterGuardControllerConfig FalconClusterGuardController `json:"controller,omitempty"`
 
 	// NodeSensor configures the node sensor DaemonSet deployed alongside FalconClusterGuard.
 	// +kubebuilder:default={}
@@ -356,7 +340,7 @@ type FalconClusterGuardSpec struct {
 // +kubebuilder:resource:scope=Cluster,shortName=fcg,categories={falcon}
 // +kubebuilder:printcolumn:name="Sensor",type="string",JSONPath=".status.sensor",description="Version of the Falcon Sensor"
 // +kubebuilder:printcolumn:name="Node Sensor",type="string",JSONPath=".spec.nodeSensor.enabled",description="Node sensor component enabled"
-// +kubebuilder:printcolumn:name="Admission",type="string",JSONPath=".spec.admissionConfig.enabled",description="Admission controller component enabled"
+// +kubebuilder:printcolumn:name="Controller",type="string",JSONPath=".spec.controller.disableClusterGuardController",description="Cluster Guard Controller disabled when set"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type=='Success')].reason",description="Deployment status"
 // +kubebuilder:printcolumn:name="Operator Version",type="string",JSONPath=".status.version",description="Version of the operator",priority=1
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Age of the resource"
@@ -418,9 +402,9 @@ func (f *FalconClusterGuard) SetFalconSpec(sensor FalconSensor) {
 	f.Spec.Falcon = sensor
 }
 
-// GetClusterName returns the cluster name from admissionConfig.
+// GetClusterName returns the cluster name from controller.
 func (f *FalconClusterGuard) GetClusterName() *string {
-	return f.Spec.AdmissionConfig.ClusterName
+	return f.Spec.ClusterGuardControllerConfig.ClusterName
 }
 
 // GetConditions returns a pointer to the Conditions slice for status updates
@@ -514,15 +498,15 @@ type FalconClusterGuardPriorityClassConfig struct {
 
 // --- Admission controller types ---
 
-// FalconClusterGuardAdmissionServiceAccount defines service account metadata for the admission controller.
-type FalconClusterGuardAdmissionServiceAccount struct {
+// FalconClusterGuardControllerServiceAccount defines service account metadata for the admission controller.
+type FalconClusterGuardControllerServiceAccount struct {
 	// Define annotations that will be passed down to the Service Account. This is useful for passing along AWS IAM Role or GCP Workload Identity.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Service Account Annotations",order=1
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
-// FalconClusterGuardAdmissionRollingUpdate defines rolling update parameters for the admission controller Deployment.
-type FalconClusterGuardAdmissionRollingUpdate struct {
+// FalconClusterGuardControllerRollingUpdate defines rolling update parameters for the admission controller Deployment.
+type FalconClusterGuardControllerRollingUpdate struct {
 	// The maximum number of pods that can be unavailable during the update.
 	// +kubebuilder:default:=0
 	// +optional
@@ -534,25 +518,25 @@ type FalconClusterGuardAdmissionRollingUpdate struct {
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 }
 
-// FalconClusterGuardAdmissionUpdateStrategy defines the update strategy for the admission controller Deployment.
-type FalconClusterGuardAdmissionUpdateStrategy struct {
+// FalconClusterGuardControllerUpdateStrategy defines the update strategy for the admission controller Deployment.
+type FalconClusterGuardControllerUpdateStrategy struct {
 	// RollingUpdate is used to specify the strategy used to roll out a deployment.
 	// +kubebuilder:default:={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller deployment update configuration",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:updateStrategy"}
-	RollingUpdate FalconClusterGuardAdmissionRollingUpdate `json:"rollingUpdate,omitempty"`
+	RollingUpdate FalconClusterGuardControllerRollingUpdate `json:"rollingUpdate,omitempty"`
 }
 
-// FalconClusterGuardAdmissionTLS defines TLS settings for the admission controller.
-type FalconClusterGuardAdmissionTLS struct {
+// FalconClusterGuardControllerTLS defines TLS settings for the admission controller.
+type FalconClusterGuardControllerTLS struct {
 	// Validity of the TLS certificate in days. Default is 3650 days.
 	// +kubebuilder:validation:XIntOrString
-	// +kubebuilder:validation:Pattern="^[0-9]{1-4}$"
+	// +kubebuilder:validation:Pattern="^[0-9]{1,4}$"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller TLS Validity Length (days)",order=1,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	Validity *int `json:"validity,omitempty"`
 }
 
-// FalconClusterGuardAdmissionNamespace defines the namespace ignore list for the admission controller.
-type FalconClusterGuardAdmissionNamespace struct {
+// FalconClusterGuardControllerNamespace defines the namespace ignore list for the admission controller.
+type FalconClusterGuardControllerNamespace struct {
 	// Configure a list of namespaces to ignore admission control.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=1
 	Namespaces []string `json:"namespaces,omitempty"`

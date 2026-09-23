@@ -11,7 +11,7 @@ import (
 	commonctrl "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/image"
 	"github.com/crowdstrike/falcon-operator/internal/controller/components"
-	"github.com/crowdstrike/falcon-operator/internal/controller/components/admission"
+	"github.com/crowdstrike/falcon-operator/internal/controller/components/clusterguard_controller"
 	"github.com/crowdstrike/falcon-operator/internal/controller/components/node_sensor"
 	"github.com/crowdstrike/falcon-operator/internal/controller/predicates"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
@@ -260,12 +260,12 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	if falconClusterGuard.Spec.AdmissionConfig.IsEnabled() {
-		if result, err := admission.New(r, admission.Config{
-			BaseConfig:      base,
-			AdmissionConfig: falconClusterGuard.Spec.AdmissionConfig,
-			ClusterName:     falconClusterGuard.GetClusterName(),
-			RegistryTLS:     falconClusterGuard.Spec.Registry.TLS,
+	if falconClusterGuard.Spec.ClusterGuardControllerConfig.IsEnabled() {
+		if result, err := clusterguard_controller.New(r, clusterguard_controller.Config{
+			BaseConfig:                   base,
+			ClusterGuardControllerConfig: falconClusterGuard.Spec.ClusterGuardControllerConfig,
+			ClusterName:                  falconClusterGuard.GetClusterName(),
+			RegistryTLS:                  falconClusterGuard.Spec.Registry.TLS,
 		}).Reconcile(ctx); err != nil || result.RequeueAfter > 0 {
 			return result, err
 		}

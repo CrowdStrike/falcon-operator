@@ -57,51 +57,34 @@ spec:
 | registry.tls.caCertificate          | (optional) A string containing an optionally base64-encoded Certificate Authority Chain for connecting to a registry with a self-signed TLS certificate                                       |
 | registry.tls.caCertificateConfigMap | (optional) The name of a ConfigMap containing CA Certificate Authority Chains under keys ending in ".tls" for connecting to a registry with a self-signed TLS certificate (ignored when registry.tls.caCertificate is set) |
 
-#### Admission Controller Configuration Settings
-| Spec                                            | Description                                                                                                                                                                                                  |
-|:------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| admissionConfig.enabled                         | (optional) Controls whether the admission controller Deployment is deployed. Default is `true`.                                                                                                              |
-| admissionConfig.clusterName                     | (optional) Custom cluster name to be used by the admission controller if automatic discovery fails. Note that this value cannot be changed after initial deployment and requires a full redeployment to modify. |
-| admissionConfig.serviceAccount.annotations     | (optional) Configure annotations for the admission controller service account (e.g. for IAM role association)                                                                                                |
-| admissionConfig.servicePort                     | (optional) Configure the port the admission controller Service listens on. Default is `443`.                                                                                                                                    |
-| admissionConfig.containerPort                   | (optional) Configure the port the admission controller container listens on. Default is `4443`.                                                                                                                                 |
-| admissionConfig.tls.validity                    | (optional) Configure the validity of the TLS certificate used by the admission controller                                                                                                                                    |
-| admissionConfig.failurePolicy                   | (optional) Configure the failure policy of the admission controller (`Ignore` or `Fail`). Default is `Ignore`.                                                                                                               |
-| admissionConfig.disabledNamespaces.namespaces   | (optional) Configure the list of namespaces the admission controller validating webhook should ignore                                                                                                                        |
-| admissionConfig.deployWatcher                   | (optional) Determines if the falcon-watcher container is added to the admission controller Pod. Default is `true`.                                                                                                           |
-| admissionConfig.watcherEnabled                  | (optional) Determines if Kubernetes resources are watched for cluster visibility. Default is `true`. Cannot be enabled when `admissionConfig.deployWatcher` is `false`.                                                      |
-| admissionConfig.snapshotsEnabled                | (optional) Determines if snapshots of Kubernetes resources are periodically taken for cluster visibility. Default is `true`. Cannot be enabled when `admissionConfig.deployWatcher` is `false`.                               |
-| admissionConfig.snapshotsInterval               | (optional) Time interval between two snapshots of Kubernetes resources in the cluster. Default is `22h`. Cannot be enabled when `admissionConfig.deployWatcher` is `false`.                                                  |
-| admissionConfig.configMapWatcherEnabled         | (optional) Determines if the watcher for ConfigMap events is enabled. Default is `true`. Cannot be enabled when `admissionConfig.deployWatcher` is `false`.                                                                  |
-| admissionConfig.admissionControlEnabled         | (optional) Enable the admission controller webhook. Default is `true`.                                                                                                                                                       |
-| admissionConfig.replicas                        | (optional) Ignored — the admission controller always runs as a single replica.                                                                                                                               |
-| admissionConfig.resourcesClient                 | (optional) Configure the resources for the falcon-client container                                                                                                                                           |
-| admissionConfig.resourcesClientNoWebhook        | (optional) Configure the resources for the falcon-client container only when the admission webhook is disabled. Overrides admissionConfig.resourcesClient.                                                    |
-| admissionConfig.resourcesWatcher                | (optional) Configure the resources for the falcon-watcher container                                                                                                                                          |
-| admissionConfig.resources                       | (optional) Configure the resources for the falcon-ac container                                                                                                                                               |
-| admissionConfig.updateStrategy                  | (optional) Configure the Deployment update strategy for the admission controller                                                                                                                             |
-| admissionConfig.nodeAffinity                    | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity. AMD64 and ARM64 architectures are supported by default.                   |
-| admissionConfig.tolerations                     | (optional) Specify tolerations for scheduling the admission controller pods. See https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ for examples. Note: Tolerations can be added or updated through the operator, but removing tolerations from the spec requires manual deletion from the deployment to distinguish user-defined tolerations from those automatically added by Kubernetes. |
-| admissionConfig.falconImageAnalyzerNamespace    | (optional) Namespace where Falcon Image Analyzer is installed. Required only if your IAR namespace is not `falcon-iar`.                                                                                      |
+#### Cluster Guard Controller Configuration Settings
+| Spec                                              | Description                                                                                                                                                                                                  |
+|:--------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| controller.disableClusterGuardController   | (optional) To disable the Falcon Cluster Guard Controller, set this field to the acknowledgment string: `"I understand this disables K8s metadata collection and degrades node sensor visibility"`. Omit this field (default) to keep the controller enabled. |
+| controller.clusterName                     | (optional) Custom cluster name to be used by the controller if automatic discovery fails. Note that this value cannot be changed after initial deployment and requires a full redeployment to modify. |
+| controller.serviceAccount.annotations     | (optional) Configure annotations for the controller service account (e.g. for IAM role association)                                                                                                |
+| controller.servicePort                     | (optional) Configure the port the controller Service listens on. Default is `443`.                                                                                                                 |
+| controller.containerPort                   | (optional) Configure the port the controller container listens on. Default is `4443`.                                                                                                              |
+| controller.tls.validity                    | (optional) Configure the validity of the TLS certificate used by the controller.                                                                                                                   |
+| controller.failurePolicy                   | (optional) Configure the failure policy of the admission webhook (`Ignore` or `Fail`). Default is `Ignore`.                                                                                        |
+| controller.disabledNamespaces.namespaces   | (optional) Configure the list of namespaces the admission webhook should ignore.                                                                                                                   |
+| controller.watcherEnabled                  | (optional) Determines if Kubernetes resources are watched for cluster visibility. Default is `true`.                                                                                               |
+| controller.snapshotsEnabled                | (optional) Determines if snapshots of Kubernetes resources are periodically taken for cluster visibility. Default is `true`.                                                                       |
+| controller.snapshotsInterval               | (optional) Time interval between two snapshots of Kubernetes resources in the cluster. Default is `22h`.                                                                                           |
+| controller.configMapWatcherEnabled         | (optional) Determines if the watcher for ConfigMap events is enabled. Default is `true`.                                                                                                           |
+| controller.admissionControlEnabled         | (optional) Enable the admission webhook. Default is `false`.                                                                                                                                       |
+| controller.replicas                        | (optional) Ignored — the controller always runs as a single replica.                                                                                                                               |
+| controller.resourcesClient                 | (optional) Configure the resources for the falcon-client container.                                                                                                                                |
+| controller.resourcesClientNoWebhook        | (optional) Configure the resources for the falcon-client container only when the admission webhook is disabled. Overrides `controller.resourcesClient`.                                      |
+| controller.resourcesWatcher                | (optional) Configure the resources for the falcon-watcher container.                                                                                                                               |
+| controller.resources                       | (optional) Configure the resources for the falcon-ac container.                                                                                                                                    |
+| controller.updateStrategy                  | (optional) Configure the Deployment update strategy for the controller.                                                                                                                            |
+| controller.nodeAffinity                    | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity. AMD64 and ARM64 architectures are supported by default.          |
+| controller.tolerations                     | (optional) Specify tolerations for scheduling the controller pods. See https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ for examples. Note: Tolerations can be added or updated through the operator, but removing tolerations from the spec requires manual deletion from the deployment to distinguish user-defined tolerations from those automatically added by Kubernetes. |
+| controller.falconImageAnalyzerNamespace    | (optional) Namespace where Falcon Image Analyzer is installed. Required only if your IAR namespace is not `falcon-iar`.                                                                            |
 
 > [!IMPORTANT]
-> Always install Falcon Cluster Guard to its own unique namespace. We recommend the namespace `falcon-sensor`. The admission controller does not monitor its own namespace.
-
-#### Watcher Dependency
-
-The `falcon-watcher` container is the infrastructure that performs cluster visibility work — resource snapshots and
-ConfigMap event watching. `admissionConfig.deployWatcher` is the prerequisite gate: when it is `false`, the container
-is not deployed and `watcherEnabled`, `snapshotsEnabled`, and `configMapWatcherEnabled` cannot be enabled regardless
-of their individual values.
-
-When `deployWatcher` is `true` (the default), the `watcherEnabled` and `snapshotsEnabled` flags operate independently.
-However, `configMapWatcherEnabled` cannot be enabled if both `watcherEnabled` and `snapshotsEnabled` are disabled.
-
-| Setting                                         | Controls                                                         |
-|:------------------------------------------------|:-----------------------------------------------------------------|
-| `admissionConfig.watcherEnabled`                | Whether the watcher actively monitors Kubernetes resource events |
-| `admissionConfig.snapshotsEnabled`              | Whether the watcher periodically takes cluster snapshots         |
-| `admissionConfig.configMapWatcherEnabled`       | Whether the watcher monitors ConfigMap events                    |
+> Always install Falcon Cluster Guard to its own unique namespace. We recommend the namespace `falcon-system`. The controller does not monitor its own namespace.
 
 #### Node Sensor Configuration Settings
 | Spec                                        | Description                                                                                                                                                                                      |

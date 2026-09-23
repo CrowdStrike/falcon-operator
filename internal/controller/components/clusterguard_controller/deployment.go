@@ -1,4 +1,4 @@
-package admission
+package clusterguard_controller
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 
 // Deployment builds the Deployment for FalconClusterGuard with 3 containers:
 // falcon-ac (admission controller), falcon-client (webhook), and falcon-watcher (event watcher + gRPC API).
-func (a *Admission) Deployment() *appsv1.Deployment {
+func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 	name := pkgcommon.AdmissionDeploymentName
 	namespace := a.cfg.InstallNamespace
 	imageUri := a.cfg.Image
@@ -38,13 +38,13 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 	terminationGracePeriod := int64(60)
 	singleReplica := int32(1)
 
-	if a.cfg.AdmissionConfig.Replicas != nil && *a.cfg.AdmissionConfig.Replicas != 1 {
+	if a.cfg.ClusterGuardControllerConfig.Replicas != nil && *a.cfg.ClusterGuardControllerConfig.Replicas != 1 {
 		a.r.GetLog().V(1).Info("Ignoring Replicas setting: only 1 replica is currently supported")
 	}
 
 	containerPort := pkgcommon.AdmissionWebhookPort
-	if a.cfg.AdmissionConfig.ContainerPort != nil {
-		containerPort = *a.cfg.AdmissionConfig.ContainerPort
+	if a.cfg.ClusterGuardControllerConfig.ContainerPort != nil {
+		containerPort = *a.cfg.ClusterGuardControllerConfig.ContainerPort
 	}
 
 	resourcesAC := corev1.ResourceRequirements{
@@ -56,8 +56,8 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 			corev1.ResourceMemory: resource.MustParse("512Mi"),
 		},
 	}
-	if a.cfg.AdmissionConfig.ResourcesAC != nil {
-		resourcesAC = *a.cfg.AdmissionConfig.ResourcesAC
+	if a.cfg.ClusterGuardControllerConfig.ResourcesAC != nil {
+		resourcesAC = *a.cfg.ClusterGuardControllerConfig.ResourcesAC
 	}
 
 	resourcesClient := corev1.ResourceRequirements{
@@ -69,11 +69,11 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 			corev1.ResourceMemory: resource.MustParse("256Mi"),
 		},
 	}
-	if a.cfg.AdmissionConfig.ResourcesClient != nil {
-		resourcesClient = *a.cfg.AdmissionConfig.ResourcesClient
+	if a.cfg.ClusterGuardControllerConfig.ResourcesClient != nil {
+		resourcesClient = *a.cfg.ClusterGuardControllerConfig.ResourcesClient
 	}
-	if (a.cfg.AdmissionConfig.AdmissionControlEnabled != nil && !*a.cfg.AdmissionConfig.AdmissionControlEnabled) && a.cfg.AdmissionConfig.ResourcesClientNoWebhook != nil {
-		resourcesClient = *a.cfg.AdmissionConfig.ResourcesClientNoWebhook
+	if (a.cfg.ClusterGuardControllerConfig.AdmissionControlEnabled != nil && !*a.cfg.ClusterGuardControllerConfig.AdmissionControlEnabled) && a.cfg.ClusterGuardControllerConfig.ResourcesClientNoWebhook != nil {
+		resourcesClient = *a.cfg.ClusterGuardControllerConfig.ResourcesClientNoWebhook
 	}
 
 	resourcesWatcher := corev1.ResourceRequirements{
@@ -86,17 +86,17 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 			corev1.ResourceMemory: resource.MustParse("256Mi"),
 		},
 	}
-	if a.cfg.AdmissionConfig.ResourcesWatcher != nil {
-		resourcesWatcher = *a.cfg.AdmissionConfig.ResourcesWatcher
+	if a.cfg.ClusterGuardControllerConfig.ResourcesWatcher != nil {
+		resourcesWatcher = *a.cfg.ClusterGuardControllerConfig.ResourcesWatcher
 	}
 
 	maxUnavailable := intstr.FromInt(0)
 	maxSurge := intstr.FromInt(1)
-	if a.cfg.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable != nil {
-		maxUnavailable = *a.cfg.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable
+	if a.cfg.ClusterGuardControllerConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable != nil {
+		maxUnavailable = *a.cfg.ClusterGuardControllerConfig.DepUpdateStrategy.RollingUpdate.MaxUnavailable
 	}
-	if a.cfg.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxSurge != nil {
-		maxSurge = *a.cfg.AdmissionConfig.DepUpdateStrategy.RollingUpdate.MaxSurge
+	if a.cfg.ClusterGuardControllerConfig.DepUpdateStrategy.RollingUpdate.MaxSurge != nil {
+		maxSurge = *a.cfg.ClusterGuardControllerConfig.DepUpdateStrategy.RollingUpdate.MaxSurge
 	}
 
 	selectorLabels := map[string]string{
@@ -146,7 +146,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 					NodeSelector: map[string]string{
 						"kubernetes.io/os": "linux",
 					},
-					Affinity: admissionNodeAffinity(a.cfg.AdmissionConfig.NodeAffinity),
+					Affinity: admissionNodeAffinity(a.cfg.ClusterGuardControllerConfig.NodeAffinity),
 					SecurityContext: &corev1.PodSecurityContext{
 						RunAsNonRoot: &runNonRoot,
 						SeccompProfile: &corev1.SeccompProfile{
@@ -163,7 +163,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 							},
 						},
 					},
-					Tolerations: a.cfg.AdmissionConfig.Tolerations,
+					Tolerations: a.cfg.ClusterGuardControllerConfig.Tolerations,
 					Volumes: []corev1.Volume{
 						{
 							Name: "crowdstrike-falcon-vol0",
@@ -436,7 +436,7 @@ func (a *Admission) Deployment() *appsv1.Deployment {
 	}
 }
 
-func (a *Admission) reconcileDeployment(ctx context.Context) error {
+func (a *ClusterGuardController) reconcileDeployment(ctx context.Context) error {
 	dep := a.Deployment()
 
 	// Inject operator proxy env vars into the desired spec containers before create/update.
@@ -553,6 +553,7 @@ func (a *Admission) reconcileDeployment(ctx context.Context) error {
 				}
 
 				if container.LivenessProbe != nil && existingContainer.LivenessProbe != nil &&
+					container.LivenessProbe.ProbeHandler.HTTPGet != nil && existingContainer.LivenessProbe.ProbeHandler.HTTPGet != nil &&
 					!reflect.DeepEqual(container.LivenessProbe.ProbeHandler.HTTPGet.Port, existingContainer.LivenessProbe.ProbeHandler.HTTPGet.Port) {
 					a.r.GetLog().V(1).Info("Updating FalconClusterGuard Deployment: container LivenessProbe port changed",
 						"container", container.Name,
@@ -563,6 +564,7 @@ func (a *Admission) reconcileDeployment(ctx context.Context) error {
 				}
 
 				if container.StartupProbe != nil && existingContainer.StartupProbe != nil &&
+					container.StartupProbe.ProbeHandler.HTTPGet != nil && existingContainer.StartupProbe.ProbeHandler.HTTPGet != nil &&
 					!reflect.DeepEqual(container.StartupProbe.ProbeHandler.HTTPGet.Port, existingContainer.StartupProbe.ProbeHandler.HTTPGet.Port) {
 					a.r.GetLog().V(1).Info("Updating FalconClusterGuard Deployment: container StartupProbe port changed",
 						"container", container.Name,
@@ -636,7 +638,7 @@ func (a *Admission) reconcileDeployment(ctx context.Context) error {
 	return nil
 }
 
-func (a *Admission) triggerRollingDeployment(ctx context.Context) error {
+func (a *ClusterGuardController) triggerRollingDeployment(ctx context.Context) error {
 	const configVersionAnnotation = "falcon.config.version"
 	existing := &appsv1.Deployment{}
 	if err := pkgcommon.GetNamespacedObject(ctx, a.r, a.r.GetK8sReader(),
@@ -665,7 +667,7 @@ func (a *Admission) triggerRollingDeployment(ctx context.Context) error {
 }
 
 // falconClientEnv returns the env vars for the falcon-client container.
-func (a *Admission) falconClientEnv() []corev1.EnvVar {
+func (a *ClusterGuardController) falconClientEnv() []corev1.EnvVar {
 	env := []corev1.EnvVar{
 		{
 			Name: "__CS_POD_NAMESPACE",
@@ -686,10 +688,10 @@ func (a *Admission) falconClientEnv() []corev1.EnvVar {
 			},
 		},
 	}
-	if a.cfg.AdmissionConfig.FalconImageAnalyzerNamespace != "" {
+	if a.cfg.ClusterGuardControllerConfig.FalconImageAnalyzerNamespace != nil {
 		env = append(env, corev1.EnvVar{
 			Name:  "__CS_IAR_NAMESPACE",
-			Value: a.cfg.AdmissionConfig.FalconImageAnalyzerNamespace,
+			Value: *a.cfg.ClusterGuardControllerConfig.FalconImageAnalyzerNamespace,
 		})
 	}
 	return append(env, pkgcommon.OperatorMetaEnvVars()...)

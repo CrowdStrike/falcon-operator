@@ -39,9 +39,9 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 		imagePullPolicy = corev1.PullIfNotPresent
 	}
 
-	terminationGracePeriod := nodeSpec.TerminationGracePeriod
-	if terminationGracePeriod == 0 {
-		terminationGracePeriod = 60
+	var terminationGracePeriod int64 = 60
+	if nodeSpec.TerminationGracePeriod != nil {
+		terminationGracePeriod = *nodeSpec.TerminationGracePeriod
 	}
 
 	tolerations := []corev1.Toleration{}
@@ -195,9 +195,9 @@ func (n *NodeSensor) cleanupDaemonSet() *appsv1.DaemonSet {
 	}
 	privileged := true
 	runAsUser := int64(0)
-	terminationGracePeriod := n.cfg.NodeSensor.TerminationGracePeriod
-	if terminationGracePeriod == 0 {
-		terminationGracePeriod = 60
+	var terminationGracePeriod int64 = 60
+	if n.cfg.NodeSensor.TerminationGracePeriod != nil {
+		terminationGracePeriod = *n.cfg.NodeSensor.TerminationGracePeriod
 	}
 	readOnlyRootFilesystem := true
 	allowPrivilegeEscalation := true

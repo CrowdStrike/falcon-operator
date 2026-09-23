@@ -49,19 +49,18 @@ Field mapping notes:
     falconSecret                -> falconClusterGuard.falconSecret     (skipped if already set)
     image                       -> falconClusterGuard.image            (skipped if already set)
     registry                    -> falconClusterGuard.registry         (skipped if already set, type differs — verify manually)
-    clusterName                 -> falconClusterGuard.admissionConfig.clusterName (if present on FalconAdmission CR spec)
-    admissionConfig.serviceAccount         -> falconClusterGuard.admissionConfig.serviceAccount
-    admissionConfig.servicePort            -> falconClusterGuard.admissionConfig.servicePort
-    admissionConfig.containerPort          -> falconClusterGuard.admissionConfig.containerPort
-    admissionConfig.tls                    -> falconClusterGuard.admissionConfig.tls
-    admissionConfig.failurePolicy          -> falconClusterGuard.admissionConfig.failurePolicy
-    admissionConfig.disabledNamespaces     -> falconClusterGuard.admissionConfig.disabledNamespaces
-    admissionConfig.deployWatcher          -> falconClusterGuard.admissionConfig.deployWatcher
-    admissionConfig.watcherEnabled         -> falconClusterGuard.admissionConfig.watcherEnabled
-    admissionConfig.snapshotsEnabled       -> falconClusterGuard.admissionConfig.snapshotsEnabled
-    admissionConfig.snapshotsInterval      -> falconClusterGuard.admissionConfig.snapshotsInterval
-    admissionConfig.admissionControlEnabled -> falconClusterGuard.admissionConfig.admissionControlEnabled
-    admissionConfig.configMapWatcherEnabled -> falconClusterGuard.admissionConfig.configMapWatcherEnabled
+    clusterName                 -> falconClusterGuard.controller.clusterName (if present on FalconAdmission CR spec)
+    admissionConfig.serviceAccount         -> falconClusterGuard.controller.serviceAccount
+    admissionConfig.servicePort            -> falconClusterGuard.controller.servicePort
+    admissionConfig.containerPort          -> falconClusterGuard.controller.containerPort
+    admissionConfig.tls                    -> falconClusterGuard.controller.tls
+    admissionConfig.failurePolicy          -> falconClusterGuard.controller.failurePolicy
+    admissionConfig.disabledNamespaces     -> falconClusterGuard.controller.disabledNamespaces
+    admissionConfig.watcherEnabled         -> falconClusterGuard.controller.watcherEnabled
+    admissionConfig.snapshotsEnabled       -> falconClusterGuard.controller.snapshotsEnabled
+    admissionConfig.snapshotsInterval      -> falconClusterGuard.controller.snapshotsInterval
+    admissionConfig.admissionControlEnabled -> falconClusterGuard.controller.admissionControlEnabled
+    admissionConfig.configMapWatcherEnabled -> falconClusterGuard.controller.configMapWatcherEnabled
     resourcequota                          -> (no equivalent, skipped with warning)
 
 Usage:
@@ -238,14 +237,14 @@ def migrate_admission(admission: CommentedMap, fcg: CommentedMap, warnings: list
 
     # clusterName lives on FalconAdmissionSpec directly (not in admissionConfig)
     if admission.get("clusterName"):
-        ac_dst = fcg.setdefault("admissionConfig", CommentedMap())
+        ac_dst = fcg.setdefault("controller", CommentedMap())
         ac_dst["clusterName"] = copy.deepcopy(admission["clusterName"])
 
     ac_src = admission.get("admissionConfig")
     if not ac_src:
         return
 
-    ac_dst = fcg.setdefault("admissionConfig", CommentedMap())
+    ac_dst = fcg.setdefault("controller", CommentedMap())
 
     # These admissionConfig fields promote to FCG top-level (they don't exist on
     # FalconClusterGuardAdmissionSpec, only on FalconClusterGuardSpec).
@@ -263,7 +262,6 @@ def migrate_admission(admission: CommentedMap, fcg: CommentedMap, warnings: list
         "tls",
         "failurePolicy",
         "disabledNamespaces",
-        "deployWatcher",
         "watcherEnabled",
         "snapshotsEnabled",
         "snapshotsInterval",
@@ -439,7 +437,7 @@ def apply_overrides(fd_doc: CommentedMap, fcg_image_override: str | None,
         fcg["imagePullPolicy"] = fcg_image_pull_policy
 
     if admission_control is not None:
-        ac = fcg.setdefault("admissionConfig", CommentedMap())
+        ac = fcg.setdefault("controller", CommentedMap())
         ac["admissionControlEnabled"] = admission_control
 
     if image_analyzer is not None:
@@ -598,7 +596,7 @@ def _peek_ac_iar_defaults(file_paths: list[str]) -> tuple[bool, bool, str, bool]
                     iar_default = True
                 # Already-migrated FCG config
                 fcg_ac = ((spec.get("falconClusterGuard") or {})
-                          .get("admissionConfig") or {}).get("admissionControlEnabled")
+                          .get("controller") or {}).get("admissionControlEnabled")
                 if fcg_ac is not None:
                     ac_default = bool(fcg_ac)
                 else:
@@ -696,11 +694,11 @@ def print_migration_preview(fd_doc: CommentedMap, output_path: str) -> None:
         for key in fcg:
             print(f"    •  {key}")
 
-        ac = fcg.get("admissionConfig") or CommentedMap()
+        ac = fcg.get("controller") or CommentedMap()
         ac_enabled = ac.get("admissionControlEnabled")
         if ac_enabled is not None:
             mark = "✓" if ac_enabled else "✗"
-            print(f"\n  {mark}  falconClusterGuard.admissionConfig.admissionControlEnabled = {str(bool(ac_enabled)).lower()}")
+            print(f"\n  {mark}  falconClusterGuard.controller.admissionControlEnabled = {str(bool(ac_enabled)).lower()}")
 
     print(f"\n{sep}")
 
@@ -810,7 +808,7 @@ def run_wizard(
 
     _FCG_DEST = {
         "FalconNodeSensor":     "migrates to falconClusterGuard.nodeSensor",
-        "FalconAdmission":      "migrates to falconClusterGuard.admissionConfig",
+        "FalconAdmission":      "migrates to falconClusterGuard.controller",
         "FalconContainerSensor":"preserved in falconContainerSensor",
         "FalconImageAnalyzer":  "preserved in falconImageAnalyzer",
     }
@@ -1005,7 +1003,7 @@ def main() -> None:
     parser.add_argument("--fcg-image-pull-policy",
                         help="Override falconClusterGuard.imagePullPolicy (Always, IfNotPresent, Never)")
     parser.add_argument("--admission-control", metavar="BOOL",
-                        help="Override falconClusterGuard.admissionConfig.admissionControlEnabled (true/false)")
+                        help="Override falconClusterGuard.controller.admissionControlEnabled (true/false)")
     parser.add_argument("--image-analyzer", metavar="BOOL",
                         help="Override spec.deployImageAnalyzer (true/false)")
     args = parser.parse_args()

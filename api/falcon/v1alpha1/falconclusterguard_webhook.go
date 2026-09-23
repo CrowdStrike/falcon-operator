@@ -49,8 +49,8 @@ func hasFalconDeploymentOwner(obj *FalconClusterGuard) bool {
 }
 
 func validateAtLeastOneEnabled(obj *FalconClusterGuard) (admission.Warnings, error) {
-	if !obj.Spec.AdmissionConfig.IsEnabled() && !obj.Spec.NodeSensor.IsEnabled() {
-		return nil, fmt.Errorf("at least one of admissionConfig.enabled or nodeSensor.enabled must be true")
+	if !obj.Spec.ClusterGuardControllerConfig.IsEnabled() && !obj.Spec.NodeSensor.IsEnabled() {
+		return nil, fmt.Errorf("at least one of controllerConfig or nodeSensor must be enabled")
 	}
 	return nil, nil
 }

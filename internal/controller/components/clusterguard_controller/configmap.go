@@ -1,4 +1,4 @@
-package admission
+package clusterguard_controller
 
 import (
 	"context"
@@ -22,8 +22,8 @@ import (
 // These are not managed by the operator; do not attempt to reconcile or delete them.
 
 // configMap builds the ConfigMap for the FalconClusterGuard admission controller.
-func (a *Admission) configMap() *corev1.ConfigMap {
-	cfg := a.cfg.AdmissionConfig
+func (a *ClusterGuardController) configMap() *corev1.ConfigMap {
+	cfg := a.cfg.ClusterGuardControllerConfig
 
 	// Start with sensor environment variables from the Falcon sensor config
 	data := pkgcommon.MakeSensorEnvMap(a.cfg.Falcon)
@@ -51,7 +51,7 @@ func (a *Admission) configMap() *corev1.ConfigMap {
 
 // syncConfigMap creates or updates a ConfigMap when its Data has drifted.
 // It returns true if the ConfigMap data was updated.
-func (a *Admission) syncConfigMap(ctx context.Context, cm *corev1.ConfigMap, logLabel string) (bool, error) {
+func (a *ClusterGuardController) syncConfigMap(ctx context.Context, cm *corev1.ConfigMap, logLabel string) (bool, error) {
 	existing := &corev1.ConfigMap{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, cm, existing,
 		types.NamespacedName{Name: cm.Name, Namespace: cm.Namespace},
@@ -80,13 +80,13 @@ func (a *Admission) syncConfigMap(ctx context.Context, cm *corev1.ConfigMap, log
 }
 
 // reconcileConfigMap reconciles the admission controller ConfigMap.
-func (a *Admission) reconcileConfigMap(ctx context.Context) (bool, error) {
+func (a *ClusterGuardController) reconcileConfigMap(ctx context.Context) (bool, error) {
 	cm := a.configMap()
 	return a.syncConfigMap(ctx, cm, "FalconClusterGuard")
 }
 
 // clusterNameConfigMap builds the cluster name ConfigMap.
-func (a *Admission) clusterNameConfigMap() *corev1.ConfigMap {
+func (a *ClusterGuardController) clusterNameConfigMap() *corev1.ConfigMap {
 	return assets.SensorConfigMap(
 		pkgcommon.FalconAdmissionClusterNameConfigMapName,
 		a.cfg.InstallNamespace,
@@ -97,7 +97,7 @@ func (a *Admission) clusterNameConfigMap() *corev1.ConfigMap {
 
 // reconcileClusterNameConfigMap creates or updates the cluster name ConfigMap when
 // ClusterName is set, or removes the ClusterName key when it is unset.
-func (a *Admission) reconcileClusterNameConfigMap(ctx context.Context) (bool, error) {
+func (a *ClusterGuardController) reconcileClusterNameConfigMap(ctx context.Context) (bool, error) {
 	if a.cfg.ClusterName == nil {
 		return a.removeClusterNameConfigMapKey(ctx)
 	}
@@ -106,7 +106,7 @@ func (a *Admission) reconcileClusterNameConfigMap(ctx context.Context) (bool, er
 
 // removeClusterNameConfigMapKey deletes the ClusterName key from the cluster name
 // ConfigMap if it exists.
-func (a *Admission) removeClusterNameConfigMapKey(ctx context.Context) (bool, error) {
+func (a *ClusterGuardController) removeClusterNameConfigMapKey(ctx context.Context) (bool, error) {
 	existing := &corev1.ConfigMap{}
 	err := pkgcommon.GetNamespacedObject(ctx, a.r, a.r.GetK8sReader(),
 		types.NamespacedName{
