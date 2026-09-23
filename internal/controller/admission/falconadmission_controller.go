@@ -105,6 +105,11 @@ func (r *FalconAdmissionReconciler) GetK8sReader() client.Reader {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// FalconAdmission is deprecated
+	if !common.FalconAdmissionEnabled {
+		return ctrl.Result{}, nil
+	}
+
 	updated := false
 	log := log.FromContext(ctx)
 	log.Info("reconciling FalconAdmission")

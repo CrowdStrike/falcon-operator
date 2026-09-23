@@ -8,6 +8,8 @@ metadata:
 spec:
   group: falcon.crowdstrike.com
   names:
+    categories:
+    - falcon
     kind: FalconNodeSensor
     listKind: FalconNodeSensorList
     plural: falconnodesensors

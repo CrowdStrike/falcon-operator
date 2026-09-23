@@ -454,7 +454,7 @@ func testAdmissionDeployment(name string, namespace string, component string, im
 			},
 			Ports: []corev1.ContainerPort{
 				{
-					ContainerPort: *falconAdmission.Spec.AdmissionConfig.Port,
+					ContainerPort: *falconAdmission.Spec.AdmissionConfig.ContainerPort,
 					Name:          common.FalconServiceHTTPSName,
 					Protocol:      corev1.ProtocolTCP,
 				},

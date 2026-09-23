@@ -17,6 +17,8 @@ const (
 	ConditionRouteReady      string = "RouteReady"
 	ConditionSecretReady     string = "SecretReady"
 	ConditionWebhookReady    string = "WebhookReady"
+	ConditionNodeSensorReady string = "NodeSensorReady"
+	ConditionAdmissionReady  string = "AdmissionReady"
 
 	// Following strings are condition reasons
 
@@ -33,7 +35,7 @@ const (
 	ReasonDiscovered       string = "Discovered"
 )
 
-// FalconAdmissionStatus defines the observed state of FalconAdmission
+// FalconCRStatus defines the observed state common to all Falcon custom resources.
 type FalconCRStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
