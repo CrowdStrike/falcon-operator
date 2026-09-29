@@ -13,14 +13,17 @@ import (
 )
 
 // serviceAccount builds the ServiceAccount for the node sensor.
+// The name is a fixed cluster-wide constant, not prefix-based. Currently only one node_sensor
+// component is supported per FalconClusterGuard; if multiple become supported this will need revisiting.
 func (n *NodeSensor) serviceAccount() *corev1.ServiceAccount {
 	return assets.ServiceAccount(pkgcommon.ClusterGuardSensorServiceAccountName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, n.cfg.NodeSensor.ServiceAccount.Annotations, n.cfg.ImagePullSecrets)
 }
 
 // clusterRoleBinding builds the ClusterRoleBinding for the node sensor.
+// The name is a fixed cluster-wide constant — see serviceAccount() for rationale.
 func (n *NodeSensor) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return assets.ClusterRoleBinding(
-		n.prefix()+"-sensor-crb",
+		pkgcommon.ClusterGuardSensorClusterRoleBindingName,
 		n.cfg.InstallNamespace,
 		pkgcommon.ClusterGuardSensorClusterRoleName,
 		pkgcommon.ClusterGuardSensorServiceAccountName,
@@ -30,6 +33,7 @@ func (n *NodeSensor) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 }
 
 // cleanupServiceAccount builds the ServiceAccount for the node sensor cleanup DaemonSet.
+// The name is a fixed cluster-wide constant — see serviceAccount() for rationale.
 func (n *NodeSensor) cleanupServiceAccount() *corev1.ServiceAccount {
 	return assets.ServiceAccount(pkgcommon.ClusterGuardSensorCleanupServiceAccountName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, nil, nil)
 }
@@ -46,7 +50,7 @@ func (n *NodeSensor) reconcileClusterRoleBinding(ctx context.Context) error {
 	crb := n.clusterRoleBinding()
 	existing := &rbacv1.ClusterRoleBinding{}
 	found, err := k8sutils.GetOrCreate(ctx, n.r, n.cfg.Request, n.cfg.Owner, n.cfg.Status, crb, existing,
-		types.NamespacedName{Name: n.prefix() + "-sensor-crb"},
+		types.NamespacedName{Name: pkgcommon.ClusterGuardSensorClusterRoleBindingName},
 		"Failed to get FalconClusterGuard sensor ClusterRoleBinding")
 	if !found || err != nil {
 		return err

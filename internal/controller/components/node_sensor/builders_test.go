@@ -402,7 +402,7 @@ func TestClusterGuardSensorDaemonSetVolumesAndMounts(t *testing.T) {
 	}})
 	ds := n.daemonSet()
 
-	wantVolumes := []string{"cs-config", "falconstore", "falcon-node-sensor-tls-certs", "falcon-api-ca"}
+	wantVolumes := []string{"cs-config", "falconstore", "falcon-sensor-tls-certs", "falcon-api-ca"}
 	volumeNames := map[string]bool{}
 	for _, v := range ds.Spec.Template.Spec.Volumes {
 		volumeNames[v.Name] = true
@@ -470,7 +470,7 @@ func TestNodeSensorConfigMapNameWithPrefix(t *testing.T) {
 	n := New(nil, cfg)
 	ds := n.daemonSet()
 
-	expectedCM := prefix + "-sensor-config"
+	expectedCM := pkgcommon.ClusterGuardSensorConfigMapName
 	found := false
 	for _, ef := range ds.Spec.Template.Spec.Containers[0].EnvFrom {
 		if ef.ConfigMapRef != nil && ef.ConfigMapRef.Name == expectedCM {
@@ -520,7 +520,6 @@ func TestNodeSensorConfigMapAPIServiceNameIncludesNamespace(t *testing.T) {
 
 	expectedAPIServiceName := pkgcommon.ClusterGuardAPIServiceName + "." + namespace + ".svc"
 
-	// Check init container env
 	foundInit := false
 	for _, env := range ds.Spec.Template.Spec.InitContainers[0].Env {
 		if env.Name == "API_SERVICE_NAME" && env.Value == expectedAPIServiceName {
@@ -531,7 +530,6 @@ func TestNodeSensorConfigMapAPIServiceNameIncludesNamespace(t *testing.T) {
 		t.Errorf("init container: expected API_SERVICE_NAME=%q", expectedAPIServiceName)
 	}
 
-	// Check main container env
 	foundMain := false
 	for _, env := range ds.Spec.Template.Spec.Containers[0].Env {
 		if env.Name == "API_SERVICE_NAME" && env.Value == expectedAPIServiceName {
@@ -540,6 +538,29 @@ func TestNodeSensorConfigMapAPIServiceNameIncludesNamespace(t *testing.T) {
 	}
 	if !foundMain {
 		t.Errorf("main container: expected API_SERVICE_NAME=%q", expectedAPIServiceName)
+	}
+}
+
+func TestNodeSensorDaemonSetMainContainerHasHostIP(t *testing.T) {
+	cfg := Config{
+		BaseConfig: components.BaseConfig{
+			InstallNamespace: "falcon-clusterguard",
+			Image:            "quay.io/crowdstrike/falcon-sensor:latest",
+		},
+	}
+	n := New(nil, cfg)
+	ds := n.daemonSet()
+
+	found := false
+	for _, env := range ds.Spec.Template.Spec.Containers[0].Env {
+		if env.Name == "HOST_IP" && env.ValueFrom != nil &&
+			env.ValueFrom.FieldRef != nil &&
+			env.ValueFrom.FieldRef.FieldPath == "status.hostIP" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected main container to have HOST_IP env var from status.hostIP")
 	}
 }
 
@@ -561,7 +582,6 @@ func TestNodeSensorConfigMapHasRequiredKeys(t *testing.T) {
 
 	requiredKeys := []string{
 		"FALCONCTL_OPT_BACKEND",
-		"FLOW_ENABLED",
 		"FALCON_MODE",
 		"__CS_ENABLE_K8S_METADATA_SERVICE",
 		"API_SERVICE_NAME",
@@ -585,9 +605,6 @@ func TestNodeSensorConfigMapStaticValues(t *testing.T) {
 
 	if cm.Data["FALCONCTL_OPT_BACKEND"] != "bpf" {
 		t.Errorf("expected FALCONCTL_OPT_BACKEND=bpf, got %q", cm.Data["FALCONCTL_OPT_BACKEND"])
-	}
-	if cm.Data["FLOW_ENABLED"] != "false" {
-		t.Errorf("expected FLOW_ENABLED=false, got %q", cm.Data["FLOW_ENABLED"])
 	}
 	if cm.Data["FALCON_MODE"] != "daemonset" {
 		t.Errorf("expected FALCON_MODE=daemonset, got %q", cm.Data["FALCON_MODE"])
@@ -641,9 +658,8 @@ func TestNodeSensorConfigMapNameUsesPrefix(t *testing.T) {
 	n := New(nil, cfg)
 	cm := n.configMap()
 
-	expected := prefix + "-sensor-config"
-	if cm.Name != expected {
-		t.Errorf("expected ConfigMap name %q, got %q", expected, cm.Name)
+	if cm.Name != pkgcommon.ClusterGuardSensorConfigMapName {
+		t.Errorf("expected ConfigMap name %q, got %q", pkgcommon.ClusterGuardSensorConfigMapName, cm.Name)
 	}
 	if cm.Namespace != "test-ns" {
 		t.Errorf("expected namespace %q, got %q", "test-ns", cm.Namespace)
@@ -758,8 +774,8 @@ func TestNodeSensorClusterRoleBindingName(t *testing.T) {
 	if crb == nil {
 		t.Fatal("expected non-nil ClusterRoleBinding")
 	}
-	if crb.Name != "falcon-sensor-crb" {
-		t.Errorf("expected name %q, got %q", "falcon-sensor-crb", crb.Name)
+	if crb.Name != pkgcommon.ClusterGuardSensorClusterRoleBindingName {
+		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardSensorClusterRoleBindingName, crb.Name)
 	}
 }
 
@@ -774,8 +790,8 @@ func TestNodeSensorClusterRoleBindingNameUsesPrefix(t *testing.T) {
 	n := New(nil, cfg)
 	crb := n.clusterRoleBinding()
 
-	if crb.Name != prefix+"-sensor-crb" {
-		t.Errorf("expected name %q, got %q", prefix+"-sensor-crb", crb.Name)
+	if crb.Name != pkgcommon.ClusterGuardSensorClusterRoleBindingName {
+		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardSensorClusterRoleBindingName, crb.Name)
 	}
 }
 

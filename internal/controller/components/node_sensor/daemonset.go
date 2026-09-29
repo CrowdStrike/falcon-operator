@@ -108,14 +108,14 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "cs-config", MountPath: pkgcommon.FalconConfigDir},
 					{Name: "falconstore", MountPath: pkgcommon.FalconStoreFile},
-					{Name: "falcon-node-sensor-tls-certs", MountPath: "/run/secrets/tls", ReadOnly: true},
+					{Name: n.prefix() + "-sensor-tls-certs", MountPath: "/run/secrets/tls", ReadOnly: true},
 					{Name: "falcon-api-ca", MountPath: "/run/secrets/ca", ReadOnly: true},
 				},
 			},
 		},
 		Containers: []corev1.Container{
 			{
-				Name:            "falcon-node-sensor",
+				Name:            n.prefix() + "-sensor",
 				Image:           imageUri,
 				ImagePullPolicy: imagePullPolicy,
 				SecurityContext: &corev1.SecurityContext{
@@ -128,6 +128,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 				Resources: containerResources,
 				Env: append([]corev1.EnvVar{
 					{Name: "POD_NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{APIVersion: "v1", FieldPath: "spec.nodeName"}}},
+					{Name: "HOST_IP", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{APIVersion: "v1", FieldPath: "status.hostIP"}}},
 					{Name: "API_SERVICE_NAME", Value: apiServiceName},
 				}, pkgcommon.OperatorMetaEnvVars()...),
 				EnvFrom: []corev1.EnvFromSource{
@@ -136,7 +137,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "cs-config", MountPath: pkgcommon.FalconConfigDir},
 					{Name: "falconstore", MountPath: pkgcommon.FalconStoreFile},
-					{Name: "falcon-node-sensor-tls-certs", MountPath: "/run/secrets/tls", ReadOnly: true},
+					{Name: n.prefix() + "-sensor-tls-certs", MountPath: "/run/secrets/tls", ReadOnly: true},
 					{Name: "falcon-api-ca", MountPath: "/run/secrets/ca", ReadOnly: true},
 				},
 			},
@@ -144,7 +145,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 		Volumes: []corev1.Volume{
 			{Name: "cs-config", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: pkgcommon.FalconConfigDir, Type: &hostPathType}}},
 			{Name: "falconstore", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: pkgcommon.FalconStoreFile, Type: &hostPathType}}},
-			{Name: "falcon-node-sensor-tls-certs", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: "falcon-node-sensor-tls", DefaultMode: &secretDefaultMode}}},
+			{Name: n.prefix() + "-sensor-tls-certs", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: pkgcommon.ClusterGuardNodeSensorTLSSecretName, DefaultMode: &secretDefaultMode}}},
 			{Name: "falcon-api-ca", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: pkgcommon.ClusterGuardAPICASecretName, DefaultMode: &secretDefaultMode}}},
 		},
 	}
@@ -408,7 +409,7 @@ func (n *NodeSensor) configMapName() string {
 	if n.cfg.NodeSensor.GKE.Enabled != nil && *n.cfg.NodeSensor.GKE.Enabled {
 		return pkgcommon.GKEAutoPilotConfigMapName
 	}
-	return n.prefix() + "-sensor-config"
+	return pkgcommon.ClusterGuardSensorConfigMapName
 }
 
 // isInitReadOnlyRootFilesystem returns whether init container should have read-only root filesystem

@@ -15,6 +15,7 @@ import (
 // reconcilePriorityClass creates or updates a PriorityClass when Deploy is true.
 // If a name is provided but Deploy is false or nil, no PriorityClass is created —
 // the caller is expected to reference an existing cluster-level resource by name.
+// When no name is specified the default is a fixed cluster-wide constant — see rbac.go serviceAccount() for rationale.
 func (n *NodeSensor) reconcilePriorityClass(ctx context.Context) error {
 	pc := n.cfg.NodeSensor.PriorityClass
 	if pc.Deploy == nil || !*pc.Deploy {
@@ -23,7 +24,7 @@ func (n *NodeSensor) reconcilePriorityClass(ctx context.Context) error {
 
 	name := pc.Name
 	if name == "" {
-		name = n.prefix() + "-priorityclass"
+		name = pkgcommon.ClusterGuardSensorPriorityClassName
 	}
 
 	desired := assets.PriorityClass(name, pc.Value)

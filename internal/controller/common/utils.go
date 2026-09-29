@@ -135,6 +135,47 @@ func Update(r client.Client, ctx context.Context, req ctrl.Request, log logr.Log
 	}
 }
 
+// Patch applies a patch to obj using the provided patch strategy, logging and updating status conditions.
+func Patch(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *falconv1alpha1.FalconCRStatus, obj client.Object, patch client.Patch) error {
+	name := obj.GetName()
+	namespace := obj.GetNamespace()
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	fgvk := falconObject.GetObjectKind().GroupVersionKind()
+	condType := fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:])
+
+	log.Info(logMessage("Patching", fgvk.Kind, gvk.Kind), oLogMessage(gvk.Kind, "Name"), name, oLogMessage(gvk.Kind, "Namespace"), namespace)
+	err := r.Patch(ctx, obj, patch)
+	if err != nil {
+		log.Error(err, logMessage("Failed to patch", fgvk.Kind, gvk.Kind), oLogMessage(gvk.Kind, "Name"), name, oLogMessage(gvk.Kind, "Namespace"), namespace)
+
+		if err := ConditionsUpdate(r, ctx, req, log, falconObject, falconStatus,
+			metav1.Condition{
+				Status:             metav1.ConditionFalse,
+				Reason:             falconv1alpha1.ReasonUpdateFailed,
+				Type:               condType,
+				Message:            fmt.Sprintf("%s %s patch has failed", fgvk.Kind, gvk.Kind),
+				ObservedGeneration: falconObject.GetGeneration(),
+			}); err != nil {
+			return err
+		}
+
+		return err
+	}
+
+	if err := ConditionsUpdate(r, ctx, req, log, falconObject, falconStatus,
+		metav1.Condition{
+			Status:             metav1.ConditionTrue,
+			Reason:             falconv1alpha1.ReasonUpdateSucceeded,
+			Type:               condType,
+			Message:            fmt.Sprintf("%s %s has been successfully patched", fgvk.Kind, gvk.Kind),
+			ObservedGeneration: falconObject.GetGeneration(),
+		}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Delete(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *falconv1alpha1.FalconCRStatus, obj runtime.Object) error {
 	switch o := obj.(type) {
 	case client.Object:

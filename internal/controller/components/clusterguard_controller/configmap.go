@@ -44,6 +44,9 @@ func (a *ClusterGuardController) configMap() *corev1.ConfigMap {
 	data["__CS_SNAPSHOTS_ENABLED"] = strconv.FormatBool(cfg.GetSnapshotsEnabled())
 	data["__CS_SNAPSHOT_INTERVAL"] = cfg.GetSnapshotsInterval().String()
 	data["__CS_GRPC_API_ENABLED"] = "true"
+	if cfg.TLSVersionMinimum != nil {
+		data["__CS_TLS_PROTOCOL_MIN"] = *cfg.TLSVersionMinimum
+	}
 	data["FALCONCTL_OPT_CID"] = a.cfg.Cid
 
 	return assets.SensorConfigMap(a.prefix()+"-config", a.cfg.InstallNamespace, pkgcommon.AdmissionComponentName, data)

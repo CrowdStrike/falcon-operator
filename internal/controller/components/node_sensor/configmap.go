@@ -14,6 +14,7 @@ import (
 )
 
 // configMap builds the ConfigMap for the node sensor.
+// The name is a fixed cluster-wide constant — see rbac.go serviceAccount() for rationale.
 func (n *NodeSensor) configMap() *corev1.ConfigMap {
 	apiServiceName := fmt.Sprintf("%s.%s.svc", pkgcommon.ClusterGuardAPIServiceName, n.cfg.InstallNamespace)
 
@@ -27,7 +28,6 @@ func (n *NodeSensor) configMap() *corev1.ConfigMap {
 
 	// Add node sensor-specific configuration
 	data["FALCONCTL_OPT_BACKEND"] = "bpf"
-	data["FLOW_ENABLED"] = "false"
 	data["FALCON_MODE"] = "daemonset"
 	data["__CS_ENABLE_K8S_METADATA_SERVICE"] = "true"
 	data["API_SERVICE_NAME"] = apiServiceName
@@ -41,7 +41,7 @@ func (n *NodeSensor) configMap() *corev1.ConfigMap {
 		data["FALCONCTL_OPT_CID"] = n.cfg.Cid
 	}
 
-	return assets.SensorConfigMap(n.prefix()+"-sensor-config", n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, data)
+	return assets.SensorConfigMap(pkgcommon.ClusterGuardSensorConfigMapName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, data)
 }
 
 // syncConfigMap creates or updates a ConfigMap when its Data has drifted.

@@ -68,6 +68,7 @@ const (
 	ImageServiceAccountName     = "falcon-operator-image-analyzer"
 
 	ClusterGuardSensorConfigMapName             = "falcon-sensor-config"
+	ClusterGuardSensorPriorityClassName         = "falcon-sensor-priorityclass"
 	ClusterGuardSensorClusterRoleBindingName    = "falcon-sensor-access-binding"
 	ClusterGuardSensorDaemonSetName             = "falcon-sensor"
 	ClusterGuardSensorCleanupServiceAccountName = "crowdstrike-falcon-sa-node-cleanup"
@@ -78,28 +79,30 @@ const (
 	NodeClusterRoleName      = "falcon-operator-node-sensor-role"
 
 	// Admission Sensor Module Vars
-	AdmissionNamespaceRoleName        = "falcon-operator-admission-controller-namespace-role"
-	AdmissionModuleServiceAccountName = "falcon-clusterguard-sa"
-	AdmissionDeploymentName           = "falcon-clusterguard-controller"
-	AdmissionConfigMapName            = "falcon-clusterguard-config"
-	AdmissionClusterRoleBindingName   = "falcon-clusterguard-security-crb"
-	AdmissionRoleName                 = "falcon-clusterguard-role"
-	AdmissionRoleBindingName          = "falcon-clusterguard-rolebinding"
-	AdmissionServiceApp               = "falcon-kac"
-	AdmissionWebhookServiceName       = "webhook"
-	AdmissionAPIServiceName           = "api"
-	AdmissionWebhookPort              = int32(4443)
-	AdmissionWebhookPortStr           = "4443"
-	AdmissionGRPCPort                 = int32(50051)
-	AdmissionGRPCPortStr              = "50051"
-	AdmissionWatcherHTTPPort          = int32(4080)
-	AdmissionWatcherHTTPPortStr       = "4080"
-	AdmissionTLSSecretName            = "falcon-clusterguard-tls"
-	AdmissionAPITLSSecretName         = "falcon-api-tls"
-	AdmissionAPICASecretName          = "falcon-api-ca"
-	ClusterGuardSensorTLSSecretName   = "falcon-sensor-tls"
-	AdmissionValidatingWebhookName    = "validating.falcon-kac.crowdstrike.com"
-	AdmissionComponentName            = "kac"
+	AdmissionNamespaceRoleName          = "falcon-operator-admission-controller-namespace-role"
+	AdmissionModuleServiceAccountName   = "falcon-clusterguard-sa"
+	AdmissionDeploymentName             = "falcon-clusterguard-controller"
+	AdmissionConfigMapName              = "falcon-clusterguard-config"
+	AdmissionClusterRoleBindingName     = "falcon-clusterguard-security-crb"
+	AdmissionRoleName                   = "falcon-clusterguard-role"
+	AdmissionRoleBindingName            = "falcon-clusterguard-rolebinding"
+	AdmissionServiceApp                 = "falcon-kac"
+	AdmissionWebhookServiceName         = "webhook"
+	AdmissionAPIServiceName             = "api"
+	AdmissionWebhookPort                = int32(4443)
+	AdmissionWebhookPortStr             = "4443"
+	AdmissionGRPCPort                   = int32(50051)
+	AdmissionGRPCPortStr                = "50051"
+	AdmissionWatcherHTTPPort            = int32(4080)
+	AdmissionWatcherHTTPPortStr         = "4080"
+	AdmissionTLSSecretName              = "falcon-clusterguard-tls"
+	AdmissionAPITLSSecretName           = "falcon-api-tls"
+	AdmissionAPICASecretName            = "falcon-api-ca"
+	ClusterGuardSensorTLSSecretName     = "falcon-sensor-tls"
+	ClusterGuardNodeSensorTLSSecretName = "falcon-node-sensor-tls"
+	AdmissionValidatingWebhookName      = "validating.falcon-clusterguard.crowdstrike.com"
+	AdmissionReviewLabelKey             = "falcon-clusterguard.crowdstrike.com/admission-review"
+	AdmissionComponentName              = "kac"
 
 	// Node Sensor Module Vars
 	ClusterGuardSensorServiceAccountName = "crowdstrike-falcon-sa"

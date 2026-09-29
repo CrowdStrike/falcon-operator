@@ -60,7 +60,7 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 				Values:   excludedNamespaces,
 			},
 			{
-				Key:      "falcon-kac.crowdstrike.com/admission-review",
+				Key:      pkgcommon.AdmissionReviewLabelKey,
 				Operator: metav1.LabelSelectorOpNotIn,
 				Values:   []string{"disabled"},
 			},

@@ -309,6 +309,36 @@ func TestAdmissionConfigMapDefaultName(t *testing.T) {
 	}
 }
 
+func TestAdmissionConfigMapTLSVersionMinimumWhenSet(t *testing.T) {
+	tlsMin := "TLS1.3"
+	a := New(nil, Config{
+		BaseConfig: components.BaseConfig{
+			InstallNamespace: "falcon-clusterguard",
+		},
+		ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{
+			TLSVersionMinimum: &tlsMin,
+		},
+	})
+	cm := a.configMap()
+
+	if cm.Data["__CS_TLS_PROTOCOL_MIN"] != "TLS1.3" {
+		t.Errorf("expected __CS_TLS_PROTOCOL_MIN=TLS1.3, got %q", cm.Data["__CS_TLS_PROTOCOL_MIN"])
+	}
+}
+
+func TestAdmissionConfigMapTLSVersionMinimumAbsentWhenUnset(t *testing.T) {
+	a := New(nil, Config{
+		BaseConfig: components.BaseConfig{
+			InstallNamespace: "falcon-clusterguard",
+		},
+	})
+	cm := a.configMap()
+
+	if _, ok := cm.Data["__CS_TLS_PROTOCOL_MIN"]; ok {
+		t.Errorf("expected __CS_TLS_PROTOCOL_MIN to be absent when TLSVersionMinimum is nil, got %q", cm.Data["__CS_TLS_PROTOCOL_MIN"])
+	}
+}
+
 func TestClusterNameConfigMapHasClusterName(t *testing.T) {
 	clusterName := "my-cluster"
 	a := New(nil, Config{
@@ -753,5 +783,74 @@ func TestAdmissionWebhookAndAPIServiceHaveDifferentPortNames(t *testing.T) {
 	if webhook.Spec.Ports[0].Name == api.Spec.Ports[0].Name {
 		t.Errorf("expected webhook and API service port names to differ, both are %q",
 			webhook.Spec.Ports[0].Name)
+	}
+}
+
+// ResourceQuota builder tests
+
+func TestResourceQuotaDefaultPods(t *testing.T) {
+	a := New(nil, Config{
+		BaseConfig: components.BaseConfig{InstallNamespace: "falcon-clusterguard"},
+	})
+	rq := a.resourceQuota()
+
+	pods, ok := rq.Spec.Hard[corev1.ResourcePods]
+	if !ok {
+		t.Fatal("expected ResourcePods in Hard limits")
+	}
+	if pods.Value() != int64(defaultResourceQuotaPods) {
+		t.Errorf("expected %d pods, got %d", defaultResourceQuotaPods, pods.Value())
+	}
+}
+
+func TestResourceQuotaCustomPods(t *testing.T) {
+	custom := int32(5)
+	a := New(nil, Config{
+		BaseConfig: components.BaseConfig{InstallNamespace: "falcon-clusterguard"},
+		ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{
+			ResourceQuotaPods: &custom,
+		},
+	})
+	rq := a.resourceQuota()
+
+	pods, ok := rq.Spec.Hard[corev1.ResourcePods]
+	if !ok {
+		t.Fatal("expected ResourcePods in Hard limits")
+	}
+	if pods.Value() != int64(custom) {
+		t.Errorf("expected %d pods, got %d", custom, pods.Value())
+	}
+}
+
+func TestResourceQuotaNameUsesPrefix(t *testing.T) {
+	a := New(nil, Config{
+		BaseConfig: components.BaseConfig{
+			InstallNamespace: "falcon-clusterguard",
+			NamePrefix:       "my-guard",
+		},
+	})
+	rq := a.resourceQuota()
+
+	expected := "my-guard-quota"
+	if rq.Name != expected {
+		t.Errorf("expected name %q, got %q", expected, rq.Name)
+	}
+}
+
+func TestResourceQuotaHasPriorityClassScopeSelector(t *testing.T) {
+	a := New(nil, Config{
+		BaseConfig: components.BaseConfig{InstallNamespace: "falcon-clusterguard"},
+	})
+	rq := a.resourceQuota()
+
+	if rq.Spec.ScopeSelector == nil {
+		t.Fatal("expected non-nil ScopeSelector")
+	}
+	if len(rq.Spec.ScopeSelector.MatchExpressions) != 1 {
+		t.Fatalf("expected 1 scope expression, got %d", len(rq.Spec.ScopeSelector.MatchExpressions))
+	}
+	expr := rq.Spec.ScopeSelector.MatchExpressions[0]
+	if expr.ScopeName != corev1.ResourceQuotaScopePriorityClass {
+		t.Errorf("expected ScopeName %q, got %q", corev1.ResourceQuotaScopePriorityClass, expr.ScopeName)
 	}
 }

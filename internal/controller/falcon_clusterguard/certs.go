@@ -32,7 +32,7 @@ func (r *FalconClusterGuardReconciler) reconcileAPITLSSecrets(
 	existingCA := &corev1.Secret{}
 	errCA := pkgcommon.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: pkgcommon.AdmissionAPICASecretName, Namespace: namespace}, existingCA)
 	existingSensor := &corev1.Secret{}
-	errSensor := pkgcommon.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: "falcon-node-sensor-tls", Namespace: namespace}, existingSensor)
+	errSensor := pkgcommon.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: pkgcommon.ClusterGuardNodeSensorTLSSecretName, Namespace: namespace}, existingSensor)
 	if errAPI == nil && errCA == nil && errSensor == nil {
 		return nil
 	}
@@ -92,7 +92,7 @@ func (r *FalconClusterGuardReconciler) reconcileAPITLSSecrets(
 	}
 
 	if apierrors.IsNotFound(errSensor) {
-		s := assets.Secret("falcon-node-sensor-tls", namespace, pkgcommon.AdmissionComponentName,
+		s := assets.Secret(pkgcommon.ClusterGuardNodeSensorTLSSecretName, namespace, pkgcommon.AdmissionComponentName,
 			map[string][]byte{"tls.crt": clientCert, "tls.key": clientKey}, corev1.SecretTypeTLS)
 		if err := k8sutils.Create(r, r.RuntimeScheme, ctx, req, r.log, fcg, status, s); err != nil {
 			return err

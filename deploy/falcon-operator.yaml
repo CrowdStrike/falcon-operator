@@ -1335,6 +1335,14 @@ spec:
                     minimum: 0
                     type: integer
                     x-kubernetes-int-or-string: true
+                  resourceQuotaPods:
+                    default: 2
+                    description: |-
+                      Maximum number of pods allowed with the system-cluster-critical priority class.
+                      Controls the ResourceQuota for the admission controller namespace. Defaults to 2.
+                    format: int32
+                    minimum: 0
+                    type: integer
                   resources:
                     default:
                       limits:
@@ -1643,6 +1651,14 @@ spec:
                         type: integer
                         x-kubernetes-int-or-string: true
                     type: object
+                  tlsVersionMinimum:
+                    description: |-
+                      Minimum TLS version accepted by the webhook server. Valid values are "TLS1.2" and "TLS1.3".
+                      When unset the server default is used.
+                    enum:
+                    - TLS1.2
+                    - TLS1.3
+                    type: string
                   tolerations:
                     default: []
                     description: Specifies tolerations for scheduling the Falcon Cluster
@@ -6331,6 +6347,14 @@ spec:
                         minimum: 0
                         type: integer
                         x-kubernetes-int-or-string: true
+                      resourceQuotaPods:
+                        default: 2
+                        description: |-
+                          Maximum number of pods allowed with the system-cluster-critical priority class.
+                          Controls the ResourceQuota for the admission controller namespace. Defaults to 2.
+                        format: int32
+                        minimum: 0
+                        type: integer
                       resources:
                         default:
                           limits:
@@ -6639,6 +6663,14 @@ spec:
                             type: integer
                             x-kubernetes-int-or-string: true
                         type: object
+                      tlsVersionMinimum:
+                        description: |-
+                          Minimum TLS version accepted by the webhook server. Valid values are "TLS1.2" and "TLS1.3".
+                          When unset the server default is used.
+                        enum:
+                        - TLS1.2
+                        - TLS1.3
+                        type: string
                       tolerations:
                         default: []
                         description: Specifies tolerations for scheduling the Falcon
@@ -12813,6 +12845,15 @@ rules:
   - create
   - update
   - delete
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - get
+  - update
+  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -13099,6 +13140,15 @@ rules:
   - get
   - list
   - watch
+  - create
+- apiGroups:
+  - admissionregistration.k8s.io
+  resourceNames:
+  - install-guard.falcon-clusterguard.crowdstrike.com
+  resources:
+  - validatingwebhookconfigurations
+  verbs:
+  - delete
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
