@@ -230,6 +230,21 @@ type FalconClusterGuardController struct {
 	// Cluster Name if Falcon Cluster Guard cannot discover the cluster name. This will be overwritten if Falcon Cluster Guard is able to discover the cluster name.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Cluster Name",order=21
 	ClusterName *string `json:"clusterName,omitempty"`
+
+	// Minimum TLS version accepted by the webhook server. Valid values are "TLS1.2" and "TLS1.3".
+	// When unset the server default is used.
+	// +kubebuilder:validation:Enum=TLS1.2;TLS1.3
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Minimum TLS Version",order=22
+	// +optional
+	TLSVersionMinimum *string `json:"tlsVersionMinimum,omitempty"`
+
+	// Maximum number of pods allowed with the system-cluster-critical priority class.
+	// Controls the ResourceQuota for the admission controller namespace. Defaults to 2.
+	// +kubebuilder:default:=2
+	// +kubebuilder:validation:Minimum:=0
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Resource Quota Pods",order=23
+	// +optional
+	ResourceQuotaPods *int32 `json:"resourceQuotaPods,omitempty"`
 }
 
 func (s *FalconClusterGuardNodeSpec) IsEnabled() bool {

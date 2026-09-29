@@ -185,7 +185,7 @@ func UpdateEnvVars(envVars []corev1.EnvVar, updateEnvVars []corev1.EnvVar) []cor
 
 // MergeEnvVars merges specific env vars from env B into env A
 func MergeEnvVars(envA, envB []corev1.EnvVar, envVarsToMerge []string) []corev1.EnvVar {
-	if envVarsToMerge == nil || len(envVarsToMerge) == 0 {
+	if len(envVarsToMerge) == 0 {
 		return envA
 	}
 

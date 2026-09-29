@@ -102,6 +102,11 @@ func TestRole(t *testing.T) {
 				APIGroups: []string{"coordination.k8s.io"},
 				Resources: []string{"leases"},
 			},
+			{
+				Verbs:     []string{"create", "get", "update", "delete"},
+				APIGroups: []string{""},
+				Resources: []string{"secrets"},
+			},
 		},
 	}
 	got := Role(name, namespace)
