@@ -341,7 +341,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 							Name:            "falcon-watcher",
 							Image:           imageUri,
 							ImagePullPolicy: imagePullPolicy,
-							Args:            []string{"client", "-app=watcher"},
+							Args:            []string{"client", "-app=watcher", fmt.Sprintf("-http-port=%d", a.cfg.ClusterGuardControllerConfig.GetWatcherPort())},
 							SecurityContext: &corev1.SecurityContext{
 								ReadOnlyRootFilesystem:   &readOnlyRootFilesystem,
 								AllowPrivilegeEscalation: &allowPrivilegeEscalation,

@@ -794,6 +794,11 @@ func (in *FalconClusterGuardController) DeepCopyInto(out *FalconClusterGuardCont
 		*out = new(int32)
 		**out = **in
 	}
+	if in.WatcherPort != nil {
+		in, out := &in.WatcherPort, &out.WatcherPort
+		*out = new(int32)
+		**out = **in
+	}
 	in.TLS.DeepCopyInto(&out.TLS)
 	in.DisabledNamespaces.DeepCopyInto(&out.DisabledNamespaces)
 	if in.WatcherEnabled != nil {

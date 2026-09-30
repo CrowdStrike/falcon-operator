@@ -15,6 +15,7 @@ const (
 	ClusterGuardWatchEventsEnabledDefault      = true
 	ClusterGuardSnapshotsEnabledDefault        = true
 	ClusterGuardSnapshotIntervalDefault        = 22
+	ClusterGuardWatcherPortDefault             = int32(4080)
 
 	DisableClusterGuardControllerAck = "I understand this disables K8s metadata collection and degrades node sensor visibility"
 )
@@ -142,6 +143,14 @@ type FalconClusterGuardController struct {
 	// +kubebuilder:validation:Maximum:=65535
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Controller Container Port",order=4,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	ContainerPort *int32 `json:"containerPort,omitempty"`
+
+	// Port on which the Falcon Cluster Guard Watcher container will listen for health probes.
+	// +kubebuilder:default:=4080
+	// +kubebuilder:validation:XIntOrString
+	// +kubebuilder:validation:Minimum:=0
+	// +kubebuilder:validation:Maximum:=65535
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Watcher HTTP Port",order=5,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	WatcherPort *int32 `json:"watcherPort,omitempty"`
 
 	// Configure TLS settings for the Falcon Cluster Guard Controller Controller
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Controller TLS Configuration",order=8
@@ -274,6 +283,13 @@ func (s *FalconClusterGuardController) GetSnapshotsInterval() time.Duration {
 		return SnapshotsIntervalDefault * time.Hour
 	}
 	return s.SnapshotsInterval.Duration
+}
+
+func (s *FalconClusterGuardController) GetWatcherPort() int32 {
+	if s.WatcherPort == nil {
+		return ClusterGuardWatcherPortDefault
+	}
+	return *s.WatcherPort
 }
 
 func (s *FalconClusterGuardController) GetConfigMapWatcherEnabled() bool {

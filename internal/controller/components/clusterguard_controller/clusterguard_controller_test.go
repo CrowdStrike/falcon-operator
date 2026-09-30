@@ -182,7 +182,6 @@ func TestAdmissionConfigMapHasRequiredKeys(t *testing.T) {
 		"FALCON_MODE",
 		"WEBHOOK_PORT",
 		"GRPC_PORT",
-		"WATCHER_HTTP_PORT",
 		"__CS_ADMISSION_CONTROL_ENABLED",
 		"__CS_WATCH_EVENTS_ENABLED",
 		"__CS_SNAPSHOTS_ENABLED",
@@ -213,9 +212,6 @@ func TestAdmissionConfigMapPortValues(t *testing.T) {
 	}
 	if cm.Data["GRPC_PORT"] != common.AdmissionGRPCPortStr {
 		t.Errorf("expected GRPC_PORT=%q, got %q", common.AdmissionGRPCPortStr, cm.Data["GRPC_PORT"])
-	}
-	if cm.Data["WATCHER_HTTP_PORT"] != common.AdmissionWatcherHTTPPortStr {
-		t.Errorf("expected WATCHER_HTTP_PORT=%q, got %q", common.AdmissionWatcherHTTPPortStr, cm.Data["WATCHER_HTTP_PORT"])
 	}
 }
 

@@ -1734,6 +1734,15 @@ spec:
                     description: Determines if Kubernetes resources are watched for
                       cluster visibility.
                     type: boolean
+                  watcherPort:
+                    default: 4080
+                    description: Port on which the Falcon Cluster Guard Watcher container
+                      will listen for health probes.
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
+                    x-kubernetes-int-or-string: true
                 type: object
               falcon:
                 default: {}
@@ -6746,6 +6755,15 @@ spec:
                         description: Determines if Kubernetes resources are watched
                           for cluster visibility.
                         type: boolean
+                      watcherPort:
+                        default: 4080
+                        description: Port on which the Falcon Cluster Guard Watcher
+                          container will listen for health probes.
+                        format: int32
+                        maximum: 65535
+                        minimum: 0
+                        type: integer
+                        x-kubernetes-int-or-string: true
                     type: object
                   falcon:
                     default: {}
