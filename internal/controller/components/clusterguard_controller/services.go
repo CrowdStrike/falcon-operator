@@ -36,7 +36,7 @@ func (a *ClusterGuardController) webhookService() *corev1.Service {
 // apiService builds the Service that exposes the gRPC API.
 func (a *ClusterGuardController) apiService() *corev1.Service {
 	selector := map[string]string{"app": pkgcommon.AdmissionServiceApp}
-	labels := map[string]string{"app": pkgcommon.AdmissionServiceApp}
+	labels := map[string]string{"app": pkgcommon.ClusterGuardServiceApp}
 
 	return assets.ServiceWithCustomLabels(
 		pkgcommon.AdmissionAPIServiceName,
