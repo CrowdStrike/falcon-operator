@@ -87,6 +87,7 @@ const (
 	AdmissionRoleName                   = "falcon-clusterguard-role"
 	AdmissionRoleBindingName            = "falcon-clusterguard-rolebinding"
 	AdmissionServiceApp                 = "falcon-kac"
+	ClusterGuardServiceApp              = "falcon-clusterguard"
 	AdmissionWebhookServiceName         = "webhook"
 	AdmissionAPIServiceName             = "api"
 	AdmissionWebhookPort                = int32(4443)
