@@ -20,6 +20,7 @@ import (
 	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -196,7 +197,11 @@ func main() {
 	if openshiftFlag {
 		imageStreamAvailable = waitForImageStream(dc)
 	} else {
-		imageStreamAvailable = isImageStreamAvailable(dc)
+		var err error
+		imageStreamAvailable, err = isImageStreamAvailable(dc)
+		if err != nil && !kerrors.IsNotFound(err) {
+			setupLog.Error(err, "unexpected error checking ImageStream API availability")
+		}
 	}
 	openShift := openshiftFlag || imageStreamAvailable
 
@@ -377,15 +382,22 @@ func main() {
 	}
 }
 
-func isImageStreamAvailable(client discovery.DiscoveryInterface) bool {
+func isImageStreamAvailable(client discovery.DiscoveryInterface) (bool, error) {
 	_, err := client.ServerResourcesForGroupVersion("image.openshift.io/v1")
-	return err == nil
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func waitForImageStream(dc discovery.DiscoveryInterface) bool {
 	for i := 1; i <= imageStreamRetries; i++ {
-		if isImageStreamAvailable(dc) {
+		available, err := isImageStreamAvailable(dc)
+		if available {
 			return true
+		}
+		if err != nil && !kerrors.IsNotFound(err) {
+			setupLog.Error(err, fmt.Sprintf("unexpected error checking ImageStream API availability (%d/%d)", i, imageStreamRetries))
 		}
 		if i < imageStreamRetries {
 			setupLog.Info(fmt.Sprintf("ImageStream API not yet available, retrying (%d/%d)...", i, imageStreamRetries))
