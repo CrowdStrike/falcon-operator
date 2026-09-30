@@ -37,7 +37,6 @@ func (a *ClusterGuardController) configMap() *corev1.ConfigMap {
 	data["FALCON_MODE"] = "kac"
 	data["WEBHOOK_PORT"] = pkgcommon.AdmissionWebhookPortStr
 	data["GRPC_PORT"] = pkgcommon.AdmissionGRPCPortStr
-	data["WATCHER_HTTP_PORT"] = pkgcommon.AdmissionWatcherHTTPPortStr
 	data["__CS_ADMISSION_CONTROL_ENABLED"] = strconv.FormatBool(cfg.AdmissionControlEnabled == nil || *cfg.AdmissionControlEnabled)
 	data["__CS_WATCH_EVENTS_ENABLED"] = strconv.FormatBool(cfg.GetWatcherEnabled())
 	data["__CS_VISIBILITY_CONFIGMAPS_ENABLED"] = strconv.FormatBool(cfg.GetConfigMapWatcherEnabled())
