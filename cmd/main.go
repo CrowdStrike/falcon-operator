@@ -20,6 +20,7 @@ import (
 	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -188,7 +189,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	openShift := isOpenShift(dc)
+	openShift, err := isOpenShift(dc)
+	if err != nil {
+		setupLog.Error(err, "failed to determine if cluster is OpenShift")
+	}
 
 	if openShift {
 		environment = "OpenShift"
@@ -359,9 +363,17 @@ func main() {
 	}
 }
 
-func isOpenShift(client discovery.DiscoveryInterface) bool {
+func isOpenShift(client discovery.DiscoveryInterface) (bool, error) {
 	_, err := client.ServerResourcesForGroupVersion("image.openshift.io/v1")
-	return err == nil
+	if err == nil {
+		return true, nil
+	}
+
+	if apierrors.IsNotFound(err) {
+		return false, nil
+	}
+
+	return false, err
 }
 
 func isCertManagerInstalled(client discovery.DiscoveryInterface) (bool, error) {
