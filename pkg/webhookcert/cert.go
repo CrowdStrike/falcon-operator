@@ -57,6 +57,17 @@ func ReconcileCert(ctx context.Context, cfg *rest.Config, scheme *runtime.Scheme
 		return fmt.Errorf("creating client for webhook cert reconciliation: %w", err)
 	}
 
+	// On OpenShift, the service-signing CA provisions the cert Secret automatically.
+	// The Secret is mounted as a read-only volume; writing to disk is neither needed
+	// nor possible. Annotate the Service and VWC and return.
+	if openShift {
+		log.Info("OpenShift detected; patching Service and ValidatingWebhookConfiguration with OpenShift service-signing CA annotations")
+		if err := patchServiceOpenShift(ctx, c, log, namespace, serviceName); err != nil {
+			return err
+		}
+		return patchWebhookOpenShift(ctx, c, webhookConfigName)
+	}
+
 	ownerRef := lookupOwnerRef(ctx, c, log, namespace)
 
 	certPEM, keyPEM, caBundle, err := getOrGenerateCert(ctx, c, log, namespace, serviceName, secretName, ownerRef)
@@ -66,14 +77,6 @@ func ReconcileCert(ctx context.Context, cfg *rest.Config, scheme *runtime.Scheme
 
 	if err := writeCerts(certDir, certPEM, keyPEM); err != nil {
 		return err
-	}
-
-	if openShift && len(caBundle) == 0 {
-		log.Info("OpenShift detected and no ca.crt in webhook cert secret; patching Service and ValidatingWebhookConfiguration with OpenShift service-signing CA annotations")
-		if err := patchServiceOpenShift(ctx, c, log, namespace, serviceName); err != nil {
-			return err
-		}
-		return patchWebhookOpenShift(ctx, c, webhookConfigName)
 	}
 
 	return patchWebhookCABundle(ctx, c, webhookConfigName, caBundle)
