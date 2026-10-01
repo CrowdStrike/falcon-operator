@@ -106,13 +106,11 @@ func lookupOwnerRef(ctx context.Context, c client.Client, log logr.Logger, names
 		return nil
 	}
 	dep := &depList.Items[0]
-	t := true
 	return &metav1.OwnerReference{
-		APIVersion:         "apps/v1",
-		Kind:               "Deployment",
-		Name:               dep.Name,
-		UID:                dep.UID,
-		BlockOwnerDeletion: &t,
+		APIVersion: "apps/v1",
+		Kind:       "Deployment",
+		Name:       dep.Name,
+		UID:        dep.UID,
 	}
 }
 
