@@ -584,7 +584,6 @@ func TestNodeSensorConfigMapHasRequiredKeys(t *testing.T) {
 		"FALCONCTL_OPT_BACKEND",
 		"FALCON_MODE",
 		"__CS_ENABLE_K8S_METADATA_SERVICE",
-		"API_SERVICE_NAME",
 	}
 	for _, k := range requiredKeys {
 		if _, ok := cm.Data[k]; !ok {
@@ -611,23 +610,6 @@ func TestNodeSensorConfigMapStaticValues(t *testing.T) {
 	}
 	if cm.Data["__CS_ENABLE_K8S_METADATA_SERVICE"] != "true" {
 		t.Errorf("expected __CS_ENABLE_K8S_METADATA_SERVICE=true, got %q", cm.Data["__CS_ENABLE_K8S_METADATA_SERVICE"])
-	}
-}
-
-func TestNodeSensorConfigMapAPIServiceNameIncludesNamespaceInData(t *testing.T) {
-	namespace := "my-namespace"
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: namespace,
-			Image:            "quay.io/crowdstrike/falcon-sensor:latest",
-		},
-	}
-	n := New(nil, cfg)
-	cm := n.configMap()
-
-	expected := pkgcommon.ClusterGuardAPIServiceName + "." + namespace + ".svc"
-	if cm.Data["API_SERVICE_NAME"] != expected {
-		t.Errorf("expected API_SERVICE_NAME=%q, got %q", expected, cm.Data["API_SERVICE_NAME"])
 	}
 }
 

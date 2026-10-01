@@ -140,7 +140,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 				Spec: corev1.PodSpec{
 					ShareProcessNamespace:         &shareProcessNamespace,
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
-					ServiceAccountName:            a.prefix() + "-sa",
+					ServiceAccountName:            pkgcommon.AdmissionModuleServiceAccountName,
 					PriorityClassName:             pkgcommon.FalconPriorityClassName,
 					ImagePullSecrets:              imagePullSecrets,
 					NodeSelector: map[string]string{
@@ -193,7 +193,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 							Name: name + "-tls-certs",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: a.prefix() + "-tls",
+									SecretName: pkgcommon.AdmissionTLSSecretName,
 								},
 							},
 						},
@@ -233,7 +233,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: a.prefix() + "-config",
+											Name: pkgcommon.AdmissionConfigMapName,
 										},
 									},
 								},
@@ -298,7 +298,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: a.prefix() + "-config",
+											Name: pkgcommon.AdmissionConfigMapName,
 										},
 									},
 								},
@@ -388,7 +388,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: a.prefix() + "-config",
+											Name: pkgcommon.AdmissionConfigMapName,
 										},
 									},
 								},

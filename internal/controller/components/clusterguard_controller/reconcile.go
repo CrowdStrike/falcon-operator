@@ -22,16 +22,6 @@ type Config struct {
 	RegistryTLS                  falconv1alpha1.RegistryTLSSpec
 }
 
-const admissionDefaultPrefix = "falcon-clusterguard"
-
-// prefix returns the name prefix to use for owned resources.
-// If NamePrefix is set in config, it is used; otherwise the default is returned.
-func (a *ClusterGuardController) prefix() string {
-	if a.cfg.NamePrefix != "" {
-		return a.cfg.NamePrefix
-	}
-	return admissionDefaultPrefix
-}
 
 // Admission owns the reconciliation of all admission controller sub-resources.
 type ClusterGuardController struct {

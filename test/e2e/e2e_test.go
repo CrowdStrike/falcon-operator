@@ -1927,14 +1927,14 @@ var _ = Describe("falcon", Ordered, func() {
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 			By("deleting the sensor TLS secret to force certificate regeneration")
-			cmd := exec.Command("kubectl", "delete", "secret", "falcon-clusterguard-tls",
+			cmd := exec.Command("kubectl", "delete", "secret", "falcon-cg-controller-tls",
 				"-n", fcgConfig.namespace, "--ignore-not-found")
 			_, err = utils.Run(cmd)
 			ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 			By("waiting for the operator to recreate the TLS secret")
 			EventuallyWithOffset(1, func() error {
-				cmd := exec.Command("kubectl", "get", "secret", "falcon-clusterguard-tls",
+				cmd := exec.Command("kubectl", "get", "secret", "falcon-cg-controller-tls",
 					"-n", fcgConfig.namespace)
 				_, err := utils.Run(cmd)
 				return err

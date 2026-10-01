@@ -35,8 +35,6 @@ func (a *ClusterGuardController) configMap() *corev1.ConfigMap {
 
 	// Add admission-specific configuration
 	data["FALCON_MODE"] = "kac"
-	data["WEBHOOK_PORT"] = pkgcommon.AdmissionWebhookPortStr
-	data["GRPC_PORT"] = pkgcommon.AdmissionGRPCPortStr
 	data["__CS_ADMISSION_CONTROL_ENABLED"] = strconv.FormatBool(cfg.AdmissionControlEnabled == nil || *cfg.AdmissionControlEnabled)
 	data["__CS_WATCH_EVENTS_ENABLED"] = strconv.FormatBool(cfg.GetWatcherEnabled())
 	data["__CS_VISIBILITY_CONFIGMAPS_ENABLED"] = strconv.FormatBool(cfg.GetConfigMapWatcherEnabled())
@@ -48,7 +46,7 @@ func (a *ClusterGuardController) configMap() *corev1.ConfigMap {
 	}
 	data["FALCONCTL_OPT_CID"] = a.cfg.Cid
 
-	return assets.SensorConfigMap(a.prefix()+"-config", a.cfg.InstallNamespace, pkgcommon.AdmissionComponentName, data)
+	return assets.SensorConfigMap(pkgcommon.AdmissionConfigMapName, a.cfg.InstallNamespace, pkgcommon.AdmissionComponentName, data)
 }
 
 // syncConfigMap creates or updates a ConfigMap when its Data has drifted.

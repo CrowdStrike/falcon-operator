@@ -2,7 +2,6 @@ package node_sensor
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 
 	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
@@ -16,8 +15,6 @@ import (
 // configMap builds the ConfigMap for the node sensor.
 // The name is a fixed cluster-wide constant — see rbac.go serviceAccount() for rationale.
 func (n *NodeSensor) configMap() *corev1.ConfigMap {
-	apiServiceName := fmt.Sprintf("%s.%s.svc", pkgcommon.ClusterGuardAPIServiceName, n.cfg.InstallNamespace)
-
 	// Start with sensor environment variables from the Falcon sensor config
 	data := pkgcommon.MakeSensorEnvMap(n.cfg.Falcon)
 
@@ -30,7 +27,6 @@ func (n *NodeSensor) configMap() *corev1.ConfigMap {
 	data["FALCONCTL_OPT_BACKEND"] = "bpf"
 	data["FALCON_MODE"] = "daemonset"
 	data["__CS_ENABLE_K8S_METADATA_SERVICE"] = "true"
-	data["API_SERVICE_NAME"] = apiServiceName
 
 	if n.cfg.NodeSensor.ClusterName != nil {
 		data["FALCON_CLUSTER_NAME"] = *n.cfg.NodeSensor.ClusterName

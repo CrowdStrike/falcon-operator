@@ -24,14 +24,14 @@ func (a *ClusterGuardController) getResourceQuotaPods() int32 {
 
 func (a *ClusterGuardController) resourceQuota() *corev1.ResourceQuota {
 	pods := strconv.Itoa(int(a.getResourceQuotaPods()))
-	return assets.ResourceQuota(a.prefix()+"-quota", a.cfg.InstallNamespace, pkgcommon.AdmissionComponentName, pods)
+	return assets.ResourceQuota(pkgcommon.AdmissionResourceQuotaName, a.cfg.InstallNamespace, pkgcommon.AdmissionComponentName, pods)
 }
 
 func (a *ClusterGuardController) reconcileResourceQuota(ctx context.Context) error {
 	rq := a.resourceQuota()
 	existing := &corev1.ResourceQuota{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, rq, existing,
-		types.NamespacedName{Name: a.prefix() + "-quota", Namespace: a.cfg.InstallNamespace},
+		types.NamespacedName{Name: pkgcommon.AdmissionResourceQuotaName, Namespace: a.cfg.InstallNamespace},
 		"Failed to get FalconClusterGuard ResourceQuota")
 	if !found || err != nil {
 		return err

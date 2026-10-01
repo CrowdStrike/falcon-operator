@@ -15,16 +15,16 @@ import (
 
 // serviceAccount builds the ServiceAccount for the FalconClusterGuard admission controller.
 func (a *ClusterGuardController) serviceAccount() *corev1.ServiceAccount {
-	return assets.ServiceAccount(a.prefix()+"-sa", a.cfg.InstallNamespace, pkgcommon.AdmissionComponentName, a.cfg.ClusterGuardControllerConfig.ServiceAccount.Annotations, a.cfg.ImagePullSecrets)
+	return assets.ServiceAccount(pkgcommon.AdmissionModuleServiceAccountName, a.cfg.InstallNamespace, pkgcommon.AdmissionComponentName, a.cfg.ClusterGuardControllerConfig.ServiceAccount.Annotations, a.cfg.ImagePullSecrets)
 }
 
 // clusterRoleBinding builds the ClusterRoleBinding for the FalconClusterGuard admission controller.
 func (a *ClusterGuardController) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return assets.ClusterRoleBinding(
-		a.prefix()+"-security-crb",
+		pkgcommon.AdmissionClusterRoleBindingName,
 		a.cfg.InstallNamespace,
 		pkgcommon.FCGAdmissionClusterRoleName,
-		a.prefix()+"-sa",
+		pkgcommon.AdmissionModuleServiceAccountName,
 		pkgcommon.AdmissionComponentName,
 		[]rbacv1.Subject{},
 	)
@@ -32,12 +32,12 @@ func (a *ClusterGuardController) clusterRoleBinding() *rbacv1.ClusterRoleBinding
 
 // roleBinding builds the RoleBinding for the FalconClusterGuard admission controller.
 func (a *ClusterGuardController) roleBinding() *rbacv1.RoleBinding {
-	return assets.RoleBinding(a.prefix()+"-rolebinding", a.cfg.InstallNamespace, a.prefix()+"-namespace-role", a.prefix()+"-sa")
+	return assets.RoleBinding(pkgcommon.AdmissionRoleBindingName, a.cfg.InstallNamespace, pkgcommon.AdmissionNamespaceRoleName, pkgcommon.AdmissionModuleServiceAccountName)
 }
 
 // role builds the Role for the FalconClusterGuard admission controller.
 func (a *ClusterGuardController) role() *rbacv1.Role {
-	return assets.Role(a.prefix()+"-namespace-role", a.cfg.InstallNamespace)
+	return assets.Role(pkgcommon.AdmissionNamespaceRoleName, a.cfg.InstallNamespace)
 }
 
 // reconcileServiceAccount reconciles the ServiceAccount for the admission controller.
@@ -45,7 +45,7 @@ func (a *ClusterGuardController) reconcileServiceAccount(ctx context.Context) er
 	sa := a.serviceAccount()
 	existing := &corev1.ServiceAccount{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, sa, existing,
-		types.NamespacedName{Name: a.prefix() + "-sa", Namespace: a.cfg.InstallNamespace},
+		types.NamespacedName{Name: pkgcommon.AdmissionModuleServiceAccountName, Namespace: a.cfg.InstallNamespace},
 		"Failed to get FalconClusterGuard ServiceAccount")
 	if !found || err != nil {
 		return err
@@ -96,7 +96,7 @@ func (a *ClusterGuardController) reconcileClusterRoleBinding(ctx context.Context
 	crb := a.clusterRoleBinding()
 	existing := &rbacv1.ClusterRoleBinding{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, crb, existing,
-		types.NamespacedName{Name: a.prefix() + "-security-crb"},
+		types.NamespacedName{Name: pkgcommon.AdmissionClusterRoleBindingName},
 		"Failed to get FalconClusterGuard ClusterRoleBinding")
 	if !found || err != nil {
 		return err
@@ -120,7 +120,7 @@ func (a *ClusterGuardController) reconcileRoleBinding(ctx context.Context) error
 	rb := a.roleBinding()
 	existing := &rbacv1.RoleBinding{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, rb, existing,
-		types.NamespacedName{Name: a.prefix() + "-rolebinding", Namespace: a.cfg.InstallNamespace},
+		types.NamespacedName{Name: pkgcommon.AdmissionRoleBindingName, Namespace: a.cfg.InstallNamespace},
 		"Failed to get FalconClusterGuard RoleBinding")
 	if !found || err != nil {
 		return err
@@ -144,7 +144,7 @@ func (a *ClusterGuardController) reconcileRole(ctx context.Context) error {
 	role := a.role()
 	existing := &rbacv1.Role{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, role, existing,
-		types.NamespacedName{Name: a.prefix() + "-namespace-role", Namespace: a.cfg.InstallNamespace},
+		types.NamespacedName{Name: pkgcommon.AdmissionNamespaceRoleName, Namespace: a.cfg.InstallNamespace},
 		"Failed to get FalconClusterGuard Role")
 	if !found || err != nil {
 		return err
