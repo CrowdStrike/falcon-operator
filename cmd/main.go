@@ -139,6 +139,7 @@ func main() {
 	var leaseDuration time.Duration
 	var renewDeadline time.Duration
 	var openshiftFlag bool
+	var enableWebhooks bool
 	var webhookServiceName string
 	var webhookConfigName string
 	var webhookCertSecret string
@@ -160,6 +161,7 @@ func main() {
 	flag.DurationVar(&leaseDuration, "lease-duration", defaultLeaseDuration, "The duration that non-leader candidates will wait to force acquire leadership.")
 	flag.DurationVar(&renewDeadline, "renew-deadline", defaultRenewDeadline, "the duration that the acting controlplane will retry refreshing leadership before giving up.")
 	flag.BoolVar(&openshiftFlag, "openshift", false, "If set, the operator will run in OpenShift mode. If not set, OpenShift is auto-detected.")
+	flag.BoolVar(&enableWebhooks, "enable-webhooks", true, "Enable CRD validation webhooks. Set to false to skip cert generation and webhook registration (e.g. when cert infrastructure is unavailable or for rollback scenarios).")
 	flag.StringVar(&webhookServiceName, "webhook-service-name", "falcon-operator-webhook-service", "Name of the Service fronting the operator webhook server (after kustomize namePrefix is applied).")
 	flag.StringVar(&webhookConfigName, "webhook-config-name", "falcon-operator-validating-webhook-configuration", "Name of the ValidatingWebhookConfiguration managed by this operator.")
 	flag.StringVar(&webhookCertSecret, "webhook-cert-secret", webhookcert.CertSecretName, "Name of the Secret containing the webhook TLS certificate. Create this secret manually to provide a custom certificate.")
@@ -311,20 +313,29 @@ func main() {
 		setupLog.Info("cert-manager installation not found")
 	}
 
-	if err := webhookcert.ReconcileCert(
-		context.Background(),
-		ctrl.GetConfigOrDie(),
-		scheme,
-		setupLog,
-		webhookcert.OperatorNamespace(),
-		webhookConfigName,
-		webhookServiceName,
-		webhookcert.DefaultCertDir,
-		webhookCertSecret,
-		openShift,
-	); err != nil {
-		setupLog.Error(err, "failed to reconcile webhook cert")
-		os.Exit(1)
+	if enableWebhooks {
+		if webhookCertSecret != webhookcert.CertSecretName {
+			setupLog.Info("using custom webhook TLS secret", "secret", webhookCertSecret)
+		}
+		if err := webhookcert.ReconcileCert(
+			context.Background(),
+			ctrl.GetConfigOrDie(),
+			scheme,
+			setupLog,
+			webhookcert.OperatorNamespace(),
+			webhookConfigName,
+			webhookServiceName,
+			webhookcert.DefaultCertDir,
+			webhookCertSecret,
+			openShift,
+		); err != nil {
+			setupLog.Error(err, "webhook cert reconciliation failed; webhooks will be disabled for this session", "secret", webhookCertSecret)
+			enableWebhooks = false
+		} else {
+			setupLog.Info("webhook TLS cert reconciled successfully", "certDir", webhookcert.DefaultCertDir, "secret", webhookCertSecret)
+		}
+	} else {
+		setupLog.Info("webhook registration disabled via --enable-webhooks=false; skipping cert reconciliation and webhook setup")
 	}
 
 	ctx := ctrl.SetupSignalHandler()
@@ -385,24 +396,26 @@ func main() {
 	}
 	// +kubebuilder:scaffold:builder
 
-	if err := (&falconv1alpha1.FalconNodeSensorValidator{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "FalconNodeSensor")
-		os.Exit(1)
-	}
+	if enableWebhooks {
+		if err := (&falconv1alpha1.FalconNodeSensorValidator{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "FalconNodeSensor")
+			os.Exit(1)
+		}
 
-	if err := (&falconv1alpha1.FalconAdmissionValidator{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "FalconAdmission")
-		os.Exit(1)
-	}
+		if err := (&falconv1alpha1.FalconAdmissionValidator{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "FalconAdmission")
+			os.Exit(1)
+		}
 
-	if err := (&falconv1alpha1.FalconDeploymentValidator{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "FalconDeployment")
-		os.Exit(1)
-	}
+		if err := (&falconv1alpha1.FalconDeploymentValidator{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "FalconDeployment")
+			os.Exit(1)
+		}
 
-	if err := (&falconv1alpha1.FalconClusterGuardValidator{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "FalconClusterGuard")
-		os.Exit(1)
+		if err := (&falconv1alpha1.FalconClusterGuardValidator{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "FalconClusterGuard")
+			os.Exit(1)
+		}
 	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
