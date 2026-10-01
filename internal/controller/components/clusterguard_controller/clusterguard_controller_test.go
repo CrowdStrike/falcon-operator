@@ -10,7 +10,6 @@ import (
 )
 
 func TestClusterGuardDeploymentReturnsDeployment(t *testing.T) {
-	// Default deployment name is the hardcoded const when NamePrefix is empty
 	name := common.AdmissionDeploymentName
 	namespace := "falcon-clusterguard"
 	imageUri := "quay.io/crowdstrike/falcon-clusterguard:latest"
@@ -41,57 +40,6 @@ func TestClusterGuardDeploymentReturnsDeployment(t *testing.T) {
 	}
 	if dep.Spec.Template.Spec.Containers[0].Image != imageUri {
 		t.Errorf("expected image %q, got %q", imageUri, dep.Spec.Template.Spec.Containers[0].Image)
-	}
-}
-
-func TestClusterGuardDeploymentUsesNamePrefix(t *testing.T) {
-	prefix := "my-custom-guard"
-	namespace := "test-ns"
-	imageUri := "quay.io/crowdstrike/falcon-clusterguard:latest"
-
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: namespace,
-			Image:            imageUri,
-			NamePrefix:       prefix,
-		},
-	})
-	dep := a.Deployment()
-
-	if dep == nil {
-		t.Fatal("expected non-nil Deployment")
-	}
-	if dep.Name != common.AdmissionDeploymentName {
-		t.Errorf("expected deployment name %q, got %q", common.AdmissionDeploymentName, dep.Name)
-	}
-	// SA name should be derived from prefix
-	expectedSA := prefix + "-sa"
-	if dep.Spec.Template.Spec.ServiceAccountName != expectedSA {
-		t.Errorf("expected ServiceAccountName %q, got %q", expectedSA, dep.Spec.Template.Spec.ServiceAccountName)
-	}
-	// TLS volume should reference prefix-derived secret
-	expectedTLSSecretName := prefix + "-tls"
-	foundTLS := false
-	for _, v := range dep.Spec.Template.Spec.Volumes {
-		if v.VolumeSource.Secret != nil && v.VolumeSource.Secret.SecretName == expectedTLSSecretName {
-			foundTLS = true
-		}
-	}
-	if !foundTLS {
-		t.Errorf("expected TLS secret name %q in volumes, not found", expectedTLSSecretName)
-	}
-	// ConfigMap reference should use prefix-derived name
-	expectedCM := prefix + "-config"
-	foundCM := false
-	for _, c := range dep.Spec.Template.Spec.Containers {
-		for _, ef := range c.EnvFrom {
-			if ef.ConfigMapRef != nil && ef.ConfigMapRef.Name == expectedCM {
-				foundCM = true
-			}
-		}
-	}
-	if !foundCM {
-		t.Errorf("expected ConfigMap name %q in container envFrom, not found", expectedCM)
 	}
 }
 
@@ -180,8 +128,6 @@ func TestAdmissionConfigMapHasRequiredKeys(t *testing.T) {
 
 	requiredKeys := []string{
 		"FALCON_MODE",
-		"WEBHOOK_PORT",
-		"GRPC_PORT",
 		"__CS_ADMISSION_CONTROL_ENABLED",
 		"__CS_WATCH_EVENTS_ENABLED",
 		"__CS_SNAPSHOTS_ENABLED",
@@ -196,22 +142,6 @@ func TestAdmissionConfigMapHasRequiredKeys(t *testing.T) {
 
 	if cm.Data["FALCON_MODE"] != "kac" {
 		t.Errorf("expected FALCON_MODE=kac, got %q", cm.Data["FALCON_MODE"])
-	}
-}
-
-func TestAdmissionConfigMapPortValues(t *testing.T) {
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-	})
-	cm := a.configMap()
-
-	if cm.Data["WEBHOOK_PORT"] != common.AdmissionWebhookPortStr {
-		t.Errorf("expected WEBHOOK_PORT=%q, got %q", common.AdmissionWebhookPortStr, cm.Data["WEBHOOK_PORT"])
-	}
-	if cm.Data["GRPC_PORT"] != common.AdmissionGRPCPortStr {
-		t.Errorf("expected GRPC_PORT=%q, got %q", common.AdmissionGRPCPortStr, cm.Data["GRPC_PORT"])
 	}
 }
 
@@ -270,25 +200,6 @@ func TestAdmissionConfigMapCidIsSet(t *testing.T) {
 
 	if cm.Data["FALCONCTL_OPT_CID"] != "asdfasdf00000000000000000000000000000000-ab" {
 		t.Errorf("expected FALCONCTL_OPT_CID to match, got %q", cm.Data["FALCONCTL_OPT_CID"])
-	}
-}
-
-func TestAdmissionConfigMapNameUsesPrefix(t *testing.T) {
-	prefix := "my-guard"
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
-		},
-	})
-	cm := a.configMap()
-
-	expected := prefix + "-config"
-	if cm.Name != expected {
-		t.Errorf("expected ConfigMap name %q, got %q", expected, cm.Name)
-	}
-	if cm.Namespace != "test-ns" {
-		t.Errorf("expected namespace %q, got %q", "test-ns", cm.Namespace)
 	}
 }
 
@@ -381,29 +292,11 @@ func TestAdmissionServiceAccountName(t *testing.T) {
 	if sa == nil {
 		t.Fatal("expected non-nil ServiceAccount")
 	}
-	if sa.Name != "falcon-clusterguard-sa" {
-		t.Errorf("expected name %q, got %q", "falcon-clusterguard-sa", sa.Name)
+	if sa.Name != "falcon-cg-controller-sa" {
+		t.Errorf("expected name %q, got %q", "falcon-cg-controller-sa", sa.Name)
 	}
 	if sa.Namespace != "falcon-clusterguard" {
 		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", sa.Namespace)
-	}
-}
-
-func TestAdmissionServiceAccountNameUsesPrefix(t *testing.T) {
-	prefix := "my-guard"
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
-		},
-	})
-	sa := a.serviceAccount()
-
-	if sa.Name != prefix+"-sa" {
-		t.Errorf("expected name %q, got %q", prefix+"-sa", sa.Name)
-	}
-	if sa.Namespace != "test-ns" {
-		t.Errorf("expected namespace %q, got %q", "test-ns", sa.Namespace)
 	}
 }
 
@@ -460,21 +353,6 @@ func TestAdmissionClusterRoleBindingName(t *testing.T) {
 	}
 }
 
-func TestAdmissionClusterRoleBindingNameUsesPrefix(t *testing.T) {
-	prefix := "my-guard"
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
-		},
-	})
-	crb := a.clusterRoleBinding()
-
-	if crb.Name != prefix+"-security-crb" {
-		t.Errorf("expected name %q, got %q", prefix+"-security-crb", crb.Name)
-	}
-}
-
 func TestAdmissionClusterRoleBindingRoleRef(t *testing.T) {
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
@@ -495,11 +373,9 @@ func TestAdmissionClusterRoleBindingRoleRef(t *testing.T) {
 }
 
 func TestAdmissionClusterRoleBindingSubjectPointsToSA(t *testing.T) {
-	prefix := "my-guard"
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
 		},
 	})
 	crb := a.clusterRoleBinding()
@@ -511,8 +387,8 @@ func TestAdmissionClusterRoleBindingSubjectPointsToSA(t *testing.T) {
 	if subj.Kind != "ServiceAccount" {
 		t.Errorf("expected subject Kind=ServiceAccount, got %q", subj.Kind)
 	}
-	if subj.Name != prefix+"-sa" {
-		t.Errorf("expected subject Name=%q, got %q", prefix+"-sa", subj.Name)
+	if subj.Name != common.AdmissionModuleServiceAccountName {
+		t.Errorf("expected subject Name=%q, got %q", common.AdmissionModuleServiceAccountName, subj.Name)
 	}
 	if subj.Namespace != "test-ns" {
 		t.Errorf("expected subject Namespace=%q, got %q", "test-ns", subj.Namespace)
@@ -540,27 +416,10 @@ func TestAdmissionRoleBindingName(t *testing.T) {
 	}
 }
 
-func TestAdmissionRoleBindingNameUsesPrefix(t *testing.T) {
-	prefix := "my-guard"
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
-		},
-	})
-	rb := a.roleBinding()
-
-	if rb.Name != prefix+"-rolebinding" {
-		t.Errorf("expected name %q, got %q", prefix+"-rolebinding", rb.Name)
-	}
-}
-
 func TestAdmissionRoleBindingRoleRef(t *testing.T) {
-	prefix := "my-guard"
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
 		},
 	})
 	rb := a.roleBinding()
@@ -568,17 +427,15 @@ func TestAdmissionRoleBindingRoleRef(t *testing.T) {
 	if rb.RoleRef.Kind != "Role" {
 		t.Errorf("expected RoleRef.Kind=Role, got %q", rb.RoleRef.Kind)
 	}
-	if rb.RoleRef.Name != prefix+"-namespace-role" {
-		t.Errorf("expected RoleRef.Name=%q, got %q", prefix+"-namespace-role", rb.RoleRef.Name)
+	if rb.RoleRef.Name != common.AdmissionNamespaceRoleName {
+		t.Errorf("expected RoleRef.Name=%q, got %q", common.AdmissionNamespaceRoleName, rb.RoleRef.Name)
 	}
 }
 
 func TestAdmissionRoleBindingSubjectPointsToSA(t *testing.T) {
-	prefix := "my-guard"
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
 		},
 	})
 	rb := a.roleBinding()
@@ -586,8 +443,8 @@ func TestAdmissionRoleBindingSubjectPointsToSA(t *testing.T) {
 	if len(rb.Subjects) != 1 {
 		t.Fatalf("expected 1 subject, got %d", len(rb.Subjects))
 	}
-	if rb.Subjects[0].Name != prefix+"-sa" {
-		t.Errorf("expected subject Name=%q, got %q", prefix+"-sa", rb.Subjects[0].Name)
+	if rb.Subjects[0].Name != common.AdmissionModuleServiceAccountName {
+		t.Errorf("expected subject Name=%q, got %q", common.AdmissionModuleServiceAccountName, rb.Subjects[0].Name)
 	}
 	if rb.Subjects[0].Namespace != "test-ns" {
 		t.Errorf("expected subject Namespace=%q, got %q", "test-ns", rb.Subjects[0].Namespace)
@@ -612,21 +469,6 @@ func TestAdmissionRoleName(t *testing.T) {
 	}
 	if role.Namespace != "falcon-clusterguard" {
 		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", role.Namespace)
-	}
-}
-
-func TestAdmissionRoleNameUsesPrefix(t *testing.T) {
-	prefix := "my-guard"
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
-		},
-	})
-	role := a.role()
-
-	if role.Name != prefix+"-namespace-role" {
-		t.Errorf("expected name %q, got %q", prefix+"-namespace-role", role.Name)
 	}
 }
 
@@ -685,11 +527,9 @@ func TestAdmissionWebhookServiceName(t *testing.T) {
 }
 
 func TestAdmissionWebhookServiceSelectorUsesFalconKAC(t *testing.T) {
-	prefix := "my-guard"
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
 		},
 	})
 	svc := a.webhookService()
@@ -737,11 +577,9 @@ func TestAdmissionAPIServiceName(t *testing.T) {
 }
 
 func TestAdmissionAPIServiceSelectorUsesFalconKAC(t *testing.T) {
-	prefix := "my-guard"
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
 		},
 	})
 	svc := a.apiService()
@@ -815,21 +653,6 @@ func TestResourceQuotaCustomPods(t *testing.T) {
 	}
 	if pods.Value() != int64(custom) {
 		t.Errorf("expected %d pods, got %d", custom, pods.Value())
-	}
-}
-
-func TestResourceQuotaNameUsesPrefix(t *testing.T) {
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-			NamePrefix:       "my-guard",
-		},
-	})
-	rq := a.resourceQuota()
-
-	expected := "my-guard-quota"
-	if rq.Name != expected {
-		t.Errorf("expected name %q, got %q", expected, rq.Name)
 	}
 }
 

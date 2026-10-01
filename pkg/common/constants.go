@@ -71,7 +71,7 @@ const (
 	ClusterGuardSensorPriorityClassName         = "falcon-sensor-priorityclass"
 	ClusterGuardSensorClusterRoleBindingName    = "falcon-sensor-access-binding"
 	ClusterGuardSensorDaemonSetName             = "falcon-sensor"
-	ClusterGuardSensorCleanupServiceAccountName = "crowdstrike-falcon-sa-node-cleanup"
+	ClusterGuardSensorCleanupServiceAccountName = "falcon-node-sensor-sa-node-cleanup"
 	ClusterGuardSensorCleanupDaemonSetName      = "falcon-sensor-node-cleanup"
 
 	// ClusterRoles and Roles created by kustomize
@@ -79,13 +79,14 @@ const (
 	NodeClusterRoleName      = "falcon-operator-node-sensor-role"
 
 	// Admission Sensor Module Vars
-	AdmissionNamespaceRoleName          = "falcon-operator-admission-controller-namespace-role"
-	AdmissionModuleServiceAccountName   = "falcon-clusterguard-sa"
+	AdmissionNamespaceRoleName          = "falcon-clusterguard-namespace-role"
+	AdmissionModuleServiceAccountName   = "falcon-cg-controller-sa"
 	AdmissionDeploymentName             = "falcon-clusterguard-controller"
 	AdmissionConfigMapName              = "falcon-clusterguard-config"
 	AdmissionClusterRoleBindingName     = "falcon-clusterguard-security-crb"
 	AdmissionRoleName                   = "falcon-clusterguard-role"
 	AdmissionRoleBindingName            = "falcon-clusterguard-rolebinding"
+	AdmissionResourceQuotaName          = "falcon-clusterguard-quota"
 	AdmissionServiceApp                 = "falcon-kac"
 	ClusterGuardServiceApp              = "falcon-clusterguard"
 	AdmissionWebhookServiceName         = "webhook"
@@ -96,7 +97,7 @@ const (
 	AdmissionGRPCPortStr                = "50051"
 	AdmissionWatcherHTTPPort            = int32(4080)
 	AdmissionWatcherHTTPPortStr         = "4080"
-	AdmissionTLSSecretName              = "falcon-clusterguard-tls"
+	AdmissionTLSSecretName              = "falcon-cg-controller-tls"
 	AdmissionAPITLSSecretName           = "falcon-api-tls"
 	AdmissionAPICASecretName            = "falcon-api-ca"
 	ClusterGuardSensorTLSSecretName     = "falcon-sensor-tls"
@@ -106,7 +107,7 @@ const (
 	AdmissionComponentName              = "kac"
 
 	// Node Sensor Module Vars
-	ClusterGuardSensorServiceAccountName = "crowdstrike-falcon-sa"
+	ClusterGuardSensorServiceAccountName = "falcon-node-sensor-sa"
 
 	// Shared between Admission and Node Sensor modules
 	ClusterGuardComponentName           = "falcon-clusterguard"
