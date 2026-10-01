@@ -105,8 +105,25 @@ func (r *FalconAdmissionReconciler) GetK8sReader() client.Reader {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *FalconAdmissionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// FalconAdmission is deprecated
+	// FalconAdmission is deprecated. Set a status condition so users know to migrate.
 	if !common.FalconAdmissionEnabled {
+		falconAdmission := &falconv1alpha1.FalconAdmission{}
+		if err := r.Get(ctx, req.NamespacedName, falconAdmission); err != nil {
+			if apierrors.IsNotFound(err) {
+				return ctrl.Result{}, nil
+			}
+			return ctrl.Result{}, err
+		}
+		log := log.FromContext(ctx)
+		log.Info("FalconAdmission is deprecated; migrate to FalconDeployment", "name", req.NamespacedName)
+		if err := k8sutils.ConditionsUpdate(r.Client, ctx, req, log, falconAdmission, &falconAdmission.Status, metav1.Condition{
+			Type:    falconv1alpha1.ConditionDeprecated,
+			Status:  metav1.ConditionTrue,
+			Reason:  falconv1alpha1.ReasonDeprecated,
+			Message: "FalconAdmission is deprecated; migrate to FalconDeployment.",
+		}); err != nil {
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, nil
 	}
 

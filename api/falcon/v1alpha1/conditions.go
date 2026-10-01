@@ -19,6 +19,7 @@ const (
 	ConditionWebhookReady    string = "WebhookReady"
 	ConditionNodeSensorReady string = "NodeSensorReady"
 	ConditionAdmissionReady  string = "AdmissionReady"
+	ConditionDeprecated      string = "Deprecated"
 
 	// Following strings are condition reasons
 
@@ -33,6 +34,7 @@ const (
 	ReasonDeleteFailed     string = "DeleteFailed"
 	ReasonFailed           string = "Failed"
 	ReasonDiscovered       string = "Discovered"
+	ReasonDeprecated       string = "Deprecated"
 )
 
 // FalconCRStatus defines the observed state common to all Falcon custom resources.
