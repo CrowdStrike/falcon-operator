@@ -13771,6 +13771,9 @@ spec:
             drop:
             - ALL
           privileged: false
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
       securityContext:
         fsGroup: 65534
         runAsNonRoot: true
@@ -13778,6 +13781,9 @@ spec:
           type: RuntimeDefault
       serviceAccountName: falcon-operator-controller-manager
       terminationGracePeriodSeconds: 10
+      volumes:
+      - emptyDir: {}
+        name: tmp
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
