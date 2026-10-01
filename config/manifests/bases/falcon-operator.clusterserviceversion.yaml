@@ -296,6 +296,378 @@ spec:
         displayName: Tolerations
         path: admissionConfig.tolerations
       version: v1alpha1
+    - description: FalconClusterGuard is the Schema for the falconclusterguards API
+      displayName: Falcon Cluster Guard
+      kind: FalconClusterGuard
+      name: falconclusterguards.falcon.crowdstrike.com
+      specDescriptors:
+      - description: |-
+          To prevent the Falcon Cluster Guard Controller from being deployed, set this field to:
+          "I understand this disables K8s metadata collection and degrades node sensor visibility"
+          WARNING: Disabling the controller removes Kubernetes metadata collection and degrades node sensor visibility.
+        displayName: Disable Falcon Cluster Guard Controller
+        path: controller.disableClusterGuardController
+      - description: Configure a list of namespaces to ignore admission control.
+        displayName: Ignore Namespace List
+        path: controller.disabledNamespaces.namespaces
+      - description: Define annotations that will be passed down to the Service Account.
+          This is useful for passing along AWS IAM Role or GCP Workload Identity.
+        displayName: Service Account Annotations
+        path: controller.serviceAccount.annotations
+      - description: Validity of the TLS certificate in days. Default is 3650 days.
+        displayName: Falcon Admission Controller TLS Validity Length (days)
+        path: controller.tls.validity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: RollingUpdate is used to specify the strategy used to roll out
+          a deployment.
+        displayName: Falcon Admission Controller deployment update configuration
+        path: controller.updateStrategy.rollingUpdate
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+      - description: CrowdStrike Falcon sensor configuration
+        displayName: Falcon Sensor Configuration
+        path: falcon
+      - description: Falcon Customer ID (CID)
+        displayName: Falcon Customer ID (CID)
+        path: falcon.cid
+      - description: Enable injecting sensitive Falcon values from existing k8s secret
+        displayName: Falcon Secret Enabled
+        path: falconSecret.enabled
+      - description: Falcon OAuth2 API Client ID
+        displayName: Client ID
+        path: falcon_api.client_id
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: UpdatePolicy is the name of a sensor update policy configured
+          and enabled in Falcon UI. It is ignored when Image and/or Version are set.
+        displayName: Falcon Sensor Update Policy
+        path: nodeSensor.advanced.updatePolicy
+      - description: Enabled controls whether the node sensor DaemonSet is deployed.
+          Defaults to true.
+        displayName: Enable Node Sensor
+        path: nodeSensor.enabled
+      - description: Allow pushing to docker registries over HTTPS with failed TLS
+          verification. Note that this does not affect other TLS connections.
+        displayName: Skip Registry TLS Verification
+        path: registry.tls.insecure_skip_verify
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Type specifies whether to use CrowdStrike's registry or a private
+          registry
+        displayName: Registry Type
+        path: registry.type
+      - description: Installation token that prevents unauthorized hosts from being
+          accidentally or maliciously added to your customer ID (CID).
+        displayName: Provisioning Token
+        path: falcon.provisioning_token
+      - description: |-
+          FalconSecret config is used to inject k8s secrets with sensitive data for the FalconAPI.
+          The following Falcon values are supported by k8s secret injection:
+            falcon-client-id
+            falcon-client-secret
+            falcon-cid
+            falcon-provisioning-token
+        displayName: Falcon Platform Secrets Configuration
+        path: falconSecret
+      - description: Namespace where the Falcon k8s secret is located.
+        displayName: Falcon Secret Namespace
+        path: falconSecret.namespace
+      - description: |-
+          FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
+
+
+          When configured, it will pull the sensor from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
+
+
+          If using the API is not desired, the sensor can be manually configured by setting the Image field.
+        displayName: Falcon Platform API Configuration
+        path: falcon_api
+      - description: Falcon OAuth2 API Client Secret
+        displayName: Client Secret
+        path: falcon_api.client_secret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: |-
+          AutoUpdate determines whether to install new versions of the sensor as they become available. Defaults to "off" and is ignored if FalconAPI is not set.
+          Setting this to "force" causes the reconciler to run on every polling cycle, even if a new sensor version is not available.
+          Setting it to "normal" only reconciles when a new version is detected.
+        displayName: Falcon Sensor Automatic Updates
+        path: nodeSensor.advanced.autoUpdate
+      - description: Enables the operator to deploy a PriorityClass instead of rolling
+          your own. Default is false.
+        displayName: Deploy Priority Class to cluster
+        path: nodeSensor.priorityClass.deploy
+      - description: Name of the priority class to use for the DaemonSet.
+        displayName: Name of the Priority Class to use
+        path: nodeSensor.priorityClass.name
+      - description: TLS configures TLS settings for connecting to the container image
+          registry
+        displayName: Registry TLS Configuration
+        path: registry.tls
+      - description: Allow for users to provide a CA Cert Bundle, as either a string
+          or base64 encoded string
+        displayName: Registry CA Certificate Bundle; optionally (double) base64 encoded
+        path: registry.tls.caCertificate
+      - description: Port on which the Falcon Cluster Guard Controller service will
+          listen for requests from the cluster.
+        displayName: Falcon Cluster Guard Controller Service Port
+        path: controller.servicePort
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Disable the Falcon Sensor's use of a proxy.
+        displayName: Disable Falcon Proxy
+        path: falcon.apd
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: SecretName of the existing Falcon k8s secret
+        displayName: Falcon Secret SecretName
+        path: falconSecret.secretName
+      - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
+          the operator will connect and register.
+        displayName: CrowdStrike Falcon Cloud Region
+        path: falcon_api.cloud_region
+      - description: Value of the priority class to use for the DaemonSet. Requires
+          the Deploy field to be set to true.
+        displayName: Priority Class Value
+        path: nodeSensor.priorityClass.value
+      - description: Registry configures the container image registry used for the
+          Cloud Guard image.
+        displayName: Falcon Cloud Guard Registry Configuration
+        path: registry
+      - description: Allow for users to provide a ConfigMap containing a CA Cert Bundle
+          under a key ending in .crt
+        displayName: ConfigMap containing Registry CA Certificate Bundle
+        path: registry.tls.caCertificateConfigMap
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap
+      - description: Port on which the Falcon Cluster Guard Controller container will
+          listen for requests.
+        displayName: Falcon Cluster Guard Controller Container Port
+        path: controller.containerPort
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The application proxy host to use for Falcon sensor proxy configuration.
+        displayName: Falcon Proxy Host
+        path: falcon.aph
+      - description: Falcon Customer ID (CID) Override (optional, default is derived
+          from the API Key pair)
+        displayName: Falcon Customer ID (CID)
+        path: falcon_api.cid
+      - description: Location of the Falcon sensor image. Used for all deployed components.
+          Use only when mirroring the image to a custom repository.
+        displayName: Image
+        path: image
+      - description: Specifies tolerations for custom taints. Defaults to allowing
+          scheduling on all nodes.
+        displayName: Tolerations
+        path: nodeSensor.tolerations
+      - description: Currently ignored and internally set to 1.
+        displayName: Falcon Cluster Guard Controller Replica Count
+        path: controller.replicas
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Port on which the Falcon Cluster Guard Watcher container will
+          listen for health probes.
+        displayName: Falcon Cluster Guard Watcher HTTP Port
+        path: controller.watcherPort
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The application proxy port to use for Falcon sensor proxy configuration.
+        displayName: Falcon Proxy Port
+        path: falcon.app
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - displayName: Image Pull Policy
+        path: imagePullPolicy
+      - description: Specifies node affinity for scheduling the DaemonSet. Defaults
+          to allowing scheduling on all nodes.
+        displayName: Node Affinity
+        path: nodeSensor.nodeAffinity
+      - description: Configure the failure policy for the Falcon Cluster Guard Controller
+          Admission Controller.
+        displayName: Falcon Cluster Guard Controller Admission Controller Failure
+          Policy
+        path: controller.failurePolicy
+      - description: 'Sensor grouping tags are optional, user-defined identifiers
+          that can used to group and filter hosts. Allowed characters: all alphanumerics,
+          ''/'', ''-'', and ''_''.'
+        displayName: Sensor Grouping Tags
+        path: falcon.tags
+      - description: ImagePullSecrets is an optional list of references to secrets
+          used for pulling images across all deployed components.
+        displayName: Image Pull Secrets
+        path: imagePullSecrets
+      - description: Type of DaemonSet update. Can be "RollingUpdate" or "OnDelete".
+          Default is RollingUpdate.
+        displayName: DaemonSet Update Strategy
+        path: nodeSensor.updateStrategy
+      - description: Define annotations that will be passed down to Falcon Cluster
+          Guard Controller  service account. This is useful for passing along AWS
+          IAM Role or GCP Workload Identity.
+        displayName: Service Account Configuration
+        path: controller.serviceAccount
+      - description: Set sensor trace level.
+        displayName: Trace Level
+        path: falcon.trace
+      - description: Kills pod after a specificed amount of time (in seconds). Default
+          is 60 seconds.
+        displayName: Termination Grace Period
+        path: nodeSensor.terminationGracePeriod
+      - description: Version of the sensor to be installed. The latest version will
+          be selected when this version specifier is missing.
+        displayName: Falcon Sensor Version
+        path: version
+      - description: ClusterGuardControllerConfig configures the controller deployed
+          alongside FalconClusterGuard.
+        displayName: Falcon Cluster Guard Controller Configuration
+        path: controller
+      - description: Configure TLS settings for the Falcon Cluster Guard Controller
+          Controller
+        displayName: Falcon Cluster Guard Controller TLS Configuration
+        path: controller.tls
+      - description: Utilize default or Pay-As-You-Go billing.
+        displayName: Billing
+        path: falcon.billing
+      - description: |-
+          Disables the cleanup of the sensor through DaemonSet on the nodes.
+          Disabling might have unintended consequences for certain operations such as sensor downgrading.
+        displayName: Node Cleanup
+        path: nodeSensor.disableCleanup
+      - displayName: Falcon Cluster Guard Controller Client Resources
+        path: controller.resourcesClient
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - displayName: Falcon Cluster Guard Controller Client Resources
+        path: controller.resourcesClientNoWebhook
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: NodeSensor configures the node sensor DaemonSet deployed alongside
+          FalconClusterGuard.
+        displayName: Node Sensor Configuration
+        path: nodeSensor
+      - description: Configure resource requests and limits for the DaemonSet Sensor.
+          Only applies when using the eBPF backend.
+        displayName: Falcon eBPF Sensor Resources
+        path: nodeSensor.resources
+      - displayName: Falcon Cluster Guard Controller Admission Controller Resources
+        path: controller.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Type of Deployment update. Can be "RollingUpdate" or "OnDelete".
+          Default is RollingUpdate.
+        displayName: Deployment Update Strategy
+        path: controller.updateStrategy
+      - description: Enables the use of GKE Autopilot.
+        displayName: GKE Autopilot Settings
+        path: nodeSensor.gke
+      - description: Ignore admission control for a specific set of namespaces.
+        displayName: Ignore Namespace List
+        path: controller.disabledNamespaces
+      - description: Enable priority class for the DaemonSet. This is useful for GKE
+          Autopilot clusters, but can be set for any cluster.
+        displayName: Priority Class
+        path: nodeSensor.priorityClass
+      - description: Determines if Kubernetes resources are watched for cluster visibility.
+        displayName: Enable Resource Watcher
+        path: controller.watcherEnabled
+      - description: Determines if snapshots of Kubernetes resources are periodically
+          taken for cluster visibility.
+        displayName: Enable Resource Snapshots
+        path: controller.snapshotsEnabled
+      - description: Time interval between two snapshots of Kubernetes resources in
+          the cluster.
+        displayName: Time Interval Between Two Snapshots
+        path: controller.snapshotsInterval
+      - description: Determines if the admission controller watches for configMap
+          events.
+        displayName: Enable ConfigMap Event Watcher
+        path: controller.configMapWatcherEnabled
+      - description: Determines if the admission controller webhook is enabled.
+        displayName: Enable Admission Controller
+        path: controller.admissionControlEnabled
+      - displayName: Falcon Cluster Guard Controller Watcher Resources
+        path: controller.resourcesWatcher
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Specifies node affinity for scheduling the Falcon Cluster Guard
+          Controller.
+        displayName: Node Affinity
+        path: controller.nodeAffinity
+      - description: Namespace where Falcon Image Analyzer is installed. Falcon Cluster
+          Guard needs to know this to discover and communicate with IAR.
+        displayName: Falcon Image Analyzer Namespace
+        path: controller.falconImageAnalyzerNamespace
+      - description: Specifies tolerations for scheduling the Falcon Cluster Guard
+          Controller.
+        displayName: Tolerations
+        path: controller.tolerations
+      - description: Cluster Name if Falcon Cluster Guard cannot discover the cluster
+          name. This will be overwritten if Falcon Cluster Guard is able to discover
+          the cluster name.
+        displayName: Falcon Admission Cluster Name
+        path: controller.clusterName
+      - description: |-
+          Minimum TLS version accepted by the webhook server. Valid values are "TLS1.2" and "TLS1.3".
+          When unset the server default is used.
+        displayName: Minimum TLS Version
+        path: controller.tlsVersionMinimum
+      - description: |-
+          Maximum number of pods allowed with the system-cluster-critical priority class.
+          Controls the ResourceQuota for the admission controller namespace. Defaults to 2.
+        displayName: Resource Quota Pods
+        path: controller.resourceQuotaPods
+      - description: |-
+          Advanced configures various options that go against industry practices or are otherwise not recommended for use.
+          Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
+          For more information, please see https://github.com/CrowdStrike/falcon-operator/blob/main/docs/ADVANCED.md.
+        displayName: DaemonSet Advanced Settings
+        path: nodeSensor.advanced
+      - description: Enables the use of GKE Autopilot.
+        displayName: Enabled
+        path: nodeSensor.gke.autopilot
+      - description: Version of the GKE AutoPilot Cleanup DaemonSet for allow list
+          troubleshooting purposes.
+        displayName: Cleanup Allow List Version
+        path: nodeSensor.gke.cleanupAllowListVersion
+      - description: Version of the GKE AutoPilot DaemonSet for allow list troubleshooting
+          purposes.
+        displayName: Deploy Allow List Version
+        path: nodeSensor.gke.deployAllowListVersion
+      - description: Sets the resource limits for the DaemonSet Sensor. Only applies
+          when using the eBPF backend.
+        displayName: Limits
+        path: nodeSensor.resources.limits
+      - description: Minimum allowed is 250m.
+        displayName: CPU
+        path: nodeSensor.resources.limits.cpu
+      - displayName: Ephemeral Storage
+        path: nodeSensor.resources.limits.ephemeral-storage
+      - description: Minimum allowed is 500Mi.
+        displayName: Memory
+        path: nodeSensor.resources.limits.memory
+      - description: Sets the resource requests for the DaemonSet Sensor. Only applies
+          when using the eBPF backend.
+        displayName: Requests
+        path: nodeSensor.resources.requests
+      - description: Minimum allowed is 250m.
+        displayName: CPU
+        path: nodeSensor.resources.requests.cpu
+      - displayName: Ephemeral Storage
+        path: nodeSensor.resources.requests.ephemeral-storage
+      - description: Minimum allowed is 500Mi.
+        displayName: Memory
+        path: nodeSensor.resources.requests.memory
+      - description: Add metadata to the DaemonSet Service Account for IAM roles.
+        displayName: Service Account
+        path: nodeSensor.serviceAccount
+      - description: Define annotations that will be passed down to the Service Account.
+          This is useful for passing along AWS IAM Role or GCP Workload Identity.
+        displayName: Annotations
+        path: nodeSensor.serviceAccount.annotations
+      - displayName: Type
+        path: nodeSensor.updateStrategy.type
+      version: v1alpha1
     - description: FalconContainer is the Schema for the falconcontainers API
       displayName: Falcon Container
       kind: FalconContainer
@@ -572,6 +944,62 @@ spec:
         path: falconAdmission.resourcequota.pods
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:podCount
+      - description: |-
+          To prevent the Falcon Cluster Guard Controller from being deployed, set this field to:
+          "I understand this disables K8s metadata collection and degrades node sensor visibility"
+          WARNING: Disabling the controller removes Kubernetes metadata collection and degrades node sensor visibility.
+        displayName: Disable Falcon Cluster Guard Controller
+        path: falconClusterGuard.controller.disableClusterGuardController
+      - description: Configure a list of namespaces to ignore admission control.
+        displayName: Ignore Namespace List
+        path: falconClusterGuard.controller.disabledNamespaces.namespaces
+      - description: Define annotations that will be passed down to the Service Account.
+          This is useful for passing along AWS IAM Role or GCP Workload Identity.
+        displayName: Service Account Annotations
+        path: falconClusterGuard.controller.serviceAccount.annotations
+      - description: Validity of the TLS certificate in days. Default is 3650 days.
+        displayName: Falcon Admission Controller TLS Validity Length (days)
+        path: falconClusterGuard.controller.tls.validity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: RollingUpdate is used to specify the strategy used to roll out
+          a deployment.
+        displayName: Falcon Admission Controller deployment update configuration
+        path: falconClusterGuard.controller.updateStrategy.rollingUpdate
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+      - description: CrowdStrike Falcon sensor configuration
+        displayName: Falcon Sensor Configuration
+        path: falconClusterGuard.falcon
+      - description: Falcon Customer ID (CID)
+        displayName: Falcon Customer ID (CID)
+        path: falconClusterGuard.falcon.cid
+      - description: Enable injecting sensitive Falcon values from existing k8s secret
+        displayName: Falcon Secret Enabled
+        path: falconClusterGuard.falconSecret.enabled
+      - description: Falcon OAuth2 API Client ID
+        displayName: Client ID
+        path: falconClusterGuard.falcon_api.client_id
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: UpdatePolicy is the name of a sensor update policy configured
+          and enabled in Falcon UI. It is ignored when Image and/or Version are set.
+        displayName: Falcon Sensor Update Policy
+        path: falconClusterGuard.nodeSensor.advanced.updatePolicy
+      - description: Enabled controls whether the node sensor DaemonSet is deployed.
+          Defaults to true.
+        displayName: Enable Node Sensor
+        path: falconClusterGuard.nodeSensor.enabled
+      - description: Allow pushing to docker registries over HTTPS with failed TLS
+          verification. Note that this does not affect other TLS connections.
+        displayName: Skip Registry TLS Verification
+        path: falconClusterGuard.registry.tls.insecure_skip_verify
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Type specifies whether to use CrowdStrike's registry or a private
+          registry
+        displayName: Registry Type
+        path: falconClusterGuard.registry.type
       - description: UpdatePolicy is the name of a sensor update policy configured
           and enabled in Falcon UI. It is ignored when Image and/or Version are set.
         displayName: Falcon Sensor Update Policy
@@ -773,6 +1201,58 @@ spec:
           or base64 encoded string
         displayName: Registry CA Certificate Bundle; optionally (double) base64 encoded
         path: falconAdmission.registry.tls.caCertificate
+      - description: Installation token that prevents unauthorized hosts from being
+          accidentally or maliciously added to your customer ID (CID).
+        displayName: Provisioning Token
+        path: falconClusterGuard.falcon.provisioning_token
+      - description: |-
+          FalconSecret config is used to inject k8s secrets with sensitive data for the FalconAPI.
+          The following Falcon values are supported by k8s secret injection:
+            falcon-client-id
+            falcon-client-secret
+            falcon-cid
+            falcon-provisioning-token
+        displayName: Falcon Platform Secrets Configuration
+        path: falconClusterGuard.falconSecret
+      - description: Namespace where the Falcon k8s secret is located.
+        displayName: Falcon Secret Namespace
+        path: falconClusterGuard.falconSecret.namespace
+      - description: |-
+          FalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
+
+
+          When configured, it will pull the sensor from registry.crowdstrike.com and deploy the appropriate sensor to the cluster.
+
+
+          If using the API is not desired, the sensor can be manually configured by setting the Image field.
+        displayName: Falcon Platform API Configuration
+        path: falconClusterGuard.falcon_api
+      - description: Falcon OAuth2 API Client Secret
+        displayName: Client Secret
+        path: falconClusterGuard.falcon_api.client_secret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: |-
+          AutoUpdate determines whether to install new versions of the sensor as they become available. Defaults to "off" and is ignored if FalconAPI is not set.
+          Setting this to "force" causes the reconciler to run on every polling cycle, even if a new sensor version is not available.
+          Setting it to "normal" only reconciles when a new version is detected.
+        displayName: Falcon Sensor Automatic Updates
+        path: falconClusterGuard.nodeSensor.advanced.autoUpdate
+      - description: Enables the operator to deploy a PriorityClass instead of rolling
+          your own. Default is false.
+        displayName: Deploy Priority Class to cluster
+        path: falconClusterGuard.nodeSensor.priorityClass.deploy
+      - description: Name of the priority class to use for the DaemonSet.
+        displayName: Name of the Priority Class to use
+        path: falconClusterGuard.nodeSensor.priorityClass.name
+      - description: TLS configures TLS settings for connecting to the container image
+          registry
+        displayName: Registry TLS Configuration
+        path: falconClusterGuard.registry.tls
+      - description: Allow for users to provide a CA Cert Bundle, as either a string
+          or base64 encoded string
+        displayName: Registry CA Certificate Bundle; optionally (double) base64 encoded
+        path: falconClusterGuard.registry.tls.caCertificate
       - description: |-
           AutoUpdate determines whether to install new versions of the sensor as they become available. Defaults to "off" and is ignored if FalconAPI is not set.
           Setting this to "force" causes the reconciler to run on every polling cycle, even if a new sensor version is not available.
@@ -925,6 +1405,38 @@ spec:
         path: falconAdmission.registry.tls.caCertificateConfigMap
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap
+      - description: Port on which the Falcon Cluster Guard Controller service will
+          listen for requests from the cluster.
+        displayName: Falcon Cluster Guard Controller Service Port
+        path: falconClusterGuard.controller.servicePort
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Disable the Falcon Sensor's use of a proxy.
+        displayName: Disable Falcon Proxy
+        path: falconClusterGuard.falcon.apd
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: SecretName of the existing Falcon k8s secret
+        displayName: Falcon Secret SecretName
+        path: falconClusterGuard.falconSecret.secretName
+      - description: Cloud Region defines CrowdStrike Falcon Cloud Region to which
+          the operator will connect and register.
+        displayName: CrowdStrike Falcon Cloud Region
+        path: falconClusterGuard.falcon_api.cloud_region
+      - description: Value of the priority class to use for the DaemonSet. Requires
+          the Deploy field to be set to true.
+        displayName: Priority Class Value
+        path: falconClusterGuard.nodeSensor.priorityClass.value
+      - description: Registry configures the container image registry used for the
+          Cloud Guard image.
+        displayName: Falcon Cloud Guard Registry Configuration
+        path: falconClusterGuard.registry
+      - description: Allow for users to provide a ConfigMap containing a CA Cert Bundle
+          under a key ending in .crt
+        displayName: ConfigMap containing Registry CA Certificate Bundle
+        path: falconClusterGuard.registry.tls.caCertificateConfigMap
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ConfigMap
       - description: Disable the Falcon Sensor's use of a proxy.
         displayName: Disable Falcon Proxy
         path: falconContainerSensor.falcon.apd
@@ -1057,6 +1569,27 @@ spec:
           in the namespace.
         displayName: Falcon Admission Controller Resource Quota
         path: falconAdmission.resourcequota
+      - description: Port on which the Falcon Cluster Guard Controller container will
+          listen for requests.
+        displayName: Falcon Cluster Guard Controller Container Port
+        path: falconClusterGuard.controller.containerPort
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The application proxy host to use for Falcon sensor proxy configuration.
+        displayName: Falcon Proxy Host
+        path: falconClusterGuard.falcon.aph
+      - description: Falcon Customer ID (CID) Override (optional, default is derived
+          from the API Key pair)
+        displayName: Falcon Customer ID (CID)
+        path: falconClusterGuard.falcon_api.cid
+      - description: Location of the Falcon sensor image. Used for all deployed components.
+          Use only when mirroring the image to a custom repository.
+        displayName: Image
+        path: falconClusterGuard.image
+      - description: Specifies tolerations for custom taints. Defaults to allowing
+          scheduling on all nodes.
+        displayName: Tolerations
+        path: falconClusterGuard.nodeSensor.tolerations
       - description: The application proxy host to use for Falcon sensor proxy configuration.
         displayName: Falcon Proxy Host
         path: falconContainerSensor.falcon.aph
@@ -1125,6 +1658,28 @@ spec:
         path: falconAdmission.falcon.app
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Currently ignored and internally set to 1.
+        displayName: Falcon Cluster Guard Controller Replica Count
+        path: falconClusterGuard.controller.replicas
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Port on which the Falcon Cluster Guard Watcher container will
+          listen for health probes.
+        displayName: Falcon Cluster Guard Watcher HTTP Port
+        path: falconClusterGuard.controller.watcherPort
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The application proxy port to use for Falcon sensor proxy configuration.
+        displayName: Falcon Proxy Port
+        path: falconClusterGuard.falcon.app
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - displayName: Image Pull Policy
+        path: falconClusterGuard.imagePullPolicy
+      - description: Specifies node affinity for scheduling the DaemonSet. Defaults
+          to allowing scheduling on all nodes.
+        displayName: Node Affinity
+        path: falconClusterGuard.nodeSensor.nodeAffinity
       - description: The application proxy port to use for Falcon sensor proxy configuration.
         displayName: Falcon Proxy Port
         path: falconContainerSensor.falcon.app
@@ -1173,7 +1728,7 @@ spec:
           to allowing scheduling on all nodes.
         displayName: Node Affinity
         path: falconNodeSensor.node.nodeAffinity
-      - description: Determines if Falcon Node Sensor is deployed
+      - description: Determines if Falcon Image Analyzer is deployed
         displayName: Deploy Falcon Image Analyzer
         path: deployImageAnalyzer
       - description: Configure the failure policy for the Falcon Admission Controller.
@@ -1188,6 +1743,24 @@ spec:
           Controller image will be pushed.
         displayName: Falcon Admission Controller Registry Configuration
         path: falconAdmission.registry
+      - description: Configure the failure policy for the Falcon Cluster Guard Controller
+          Admission Controller.
+        displayName: Falcon Cluster Guard Controller Admission Controller Failure
+          Policy
+        path: falconClusterGuard.controller.failurePolicy
+      - description: 'Sensor grouping tags are optional, user-defined identifiers
+          that can used to group and filter hosts. Allowed characters: all alphanumerics,
+          ''/'', ''-'', and ''_''.'
+        displayName: Sensor Grouping Tags
+        path: falconClusterGuard.falcon.tags
+      - description: ImagePullSecrets is an optional list of references to secrets
+          used for pulling images across all deployed components.
+        displayName: Image Pull Secrets
+        path: falconClusterGuard.imagePullSecrets
+      - description: Type of DaemonSet update. Can be "RollingUpdate" or "OnDelete".
+          Default is RollingUpdate.
+        displayName: DaemonSet Update Strategy
+        path: falconClusterGuard.nodeSensor.updateStrategy
       - description: 'Sensor grouping tags are optional, user-defined identifiers
           that can used to group and filter hosts. Allowed characters: all alphanumerics,
           ''/'', ''-'', and ''_''.'
@@ -1243,6 +1816,22 @@ spec:
             falcon-client-secret
         displayName: Falcon Platform Secrets Configuration
         path: falconAdmission.falconSecret
+      - description: Define annotations that will be passed down to Falcon Cluster
+          Guard Controller  service account. This is useful for passing along AWS
+          IAM Role or GCP Workload Identity.
+        displayName: Service Account Configuration
+        path: falconClusterGuard.controller.serviceAccount
+      - description: Set sensor trace level.
+        displayName: Trace Level
+        path: falconClusterGuard.falcon.trace
+      - description: Kills pod after a specificed amount of time (in seconds). Default
+          is 60 seconds.
+        displayName: Termination Grace Period
+        path: falconClusterGuard.nodeSensor.terminationGracePeriod
+      - description: Version of the sensor to be installed. The latest version will
+          be selected when this version specifier is missing.
+        displayName: Falcon Sensor Version
+        path: falconClusterGuard.version
       - description: Set sensor trace level.
         displayName: Trace Level
         path: falconContainerSensor.falcon.trace
@@ -1271,9 +1860,9 @@ spec:
           is 60 seconds.
         displayName: Termination Grace Period
         path: falconNodeSensor.node.terminationGracePeriod
-      - description: Falcon Admission Controller Configuration
-        displayName: Falcon Admission Controller Configuration
-        path: falconAdmission
+      - description: Determines if Falcon Cluster Guard is deployed
+        displayName: Deploy Falcon Cluster Guard
+        path: deployClusterGuard
       - description: Configure TLS setings for the Falcon Admission Controller
         displayName: Falcon Admission Controller TLS Configuration
         path: falconAdmission.admissionConfig.tls
@@ -1285,6 +1874,22 @@ spec:
           API is not used.
         displayName: Falcon Admission Controller Image URI
         path: falconAdmission.image
+      - description: ClusterGuardControllerConfig configures the controller deployed
+          alongside FalconClusterGuard.
+        displayName: Falcon Cluster Guard Controller Configuration
+        path: falconClusterGuard.controller
+      - description: Configure TLS settings for the Falcon Cluster Guard Controller
+          Controller
+        displayName: Falcon Cluster Guard Controller TLS Configuration
+        path: falconClusterGuard.controller.tls
+      - description: Utilize default or Pay-As-You-Go billing.
+        displayName: Billing
+        path: falconClusterGuard.falcon.billing
+      - description: |-
+          Disables the cleanup of the sensor through DaemonSet on the nodes.
+          Disabling might have unintended consequences for certain operations such as sensor downgrading.
+        displayName: Node Cleanup
+        path: falconClusterGuard.nodeSensor.disableCleanup
       - description: Utilize default or Pay-As-You-Go billing.
         displayName: Billing
         path: falconContainerSensor.falcon.billing
@@ -1305,6 +1910,9 @@ spec:
           Disabling might have unintended consequences for certain operations such as sensor downgrading.
         displayName: Node Cleanup
         path: falconNodeSensor.node.disableCleanup
+      - description: Falcon Admission Controller Configuration
+        displayName: Falcon Admission Controller Configuration
+        path: falconAdmission
       - displayName: Falcon Admission Controller Client Resources
         path: falconAdmission.admissionConfig.resourcesClient
         x-descriptors:
@@ -1318,6 +1926,22 @@ spec:
           etc.'
         displayName: Falcon Admission Controller Version
         path: falconAdmission.version
+      - displayName: Falcon Cluster Guard Controller Client Resources
+        path: falconClusterGuard.controller.resourcesClient
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - displayName: Falcon Cluster Guard Controller Client Resources
+        path: falconClusterGuard.controller.resourcesClientNoWebhook
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: NodeSensor configures the node sensor DaemonSet deployed alongside
+          FalconClusterGuard.
+        displayName: Node Sensor Configuration
+        path: falconClusterGuard.nodeSensor
+      - description: Configure resource requests and limits for the DaemonSet Sensor.
+          Only applies when using the eBPF backend.
+        displayName: Falcon eBPF Sensor Resources
+        path: falconClusterGuard.nodeSensor.resources
       - displayName: Falcon Container Additional Environment Variables
         path: falconContainerSensor.injector.additionalEnvironmentVariables
       - description: Set the falcon image analyzer volume mount path.
@@ -1327,9 +1951,6 @@ spec:
           Sensor.
         displayName: Tolerations
         path: falconImageAnalyzer.tolerations
-      - description: Falcon Node Sensor Controller Configuration
-        displayName: Falcon Node Sensor Configuration
-        path: falconNodeSensor
       - description: |-
           Configure resource requests and limits for the DaemonSet Sensor.
           The sensor uses eBPF by default, but falls back to kernel mode on unsupported kernel versions.
@@ -1344,23 +1965,34 @@ spec:
           This will be overwritten if Falcon KAC is able to discover the cluster name.
         displayName: Falcon Admission Cluster Name
         path: falconAdmission.clusterName
+      - displayName: Falcon Cluster Guard Controller Admission Controller Resources
+        path: falconClusterGuard.controller.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
       - displayName: Disable Default Namespace Injection
         path: falconContainerSensor.injector.disableDefaultNamespaceInjection
-      - description: Falcon Image Analyzer Configuration
-        displayName: Falcon Image Analyzer Configuration
-        path: falconImageAnalyzer
       - description: Name of the Kubernetes Cluster.
         displayName: Falcon Image Analyzer Cluster Name
         path: falconImageAnalyzer.imageAnalyzerConfig.clusterName
+      - description: Falcon Node Sensor Controller Configuration
+        displayName: Falcon Node Sensor Configuration
+        path: falconNodeSensor
       - description: Type of Deployment update. Can be "RollingUpdate" or "OnDelete".
           Default is RollingUpdate.
         displayName: Deployment Update Strategy
         path: falconAdmission.admissionConfig.updateStrategy
-      - description: Falcon Container Sensor Configuration
-        displayName: Falcon Container Sensor Configuration
-        path: falconContainerSensor
+      - description: Type of Deployment update. Can be "RollingUpdate" or "OnDelete".
+          Default is RollingUpdate.
+        displayName: Deployment Update Strategy
+        path: falconClusterGuard.controller.updateStrategy
+      - description: Enables the use of GKE Autopilot.
+        displayName: GKE Autopilot Settings
+        path: falconClusterGuard.nodeSensor.gke
       - displayName: Disable Default Pod Injection
         path: falconContainerSensor.injector.disableDefaultPodInjection
+      - description: Falcon Image Analyzer Configuration
+        displayName: Falcon Image Analyzer Configuration
+        path: falconImageAnalyzer
       - description: Exclusions for the Falcon Image Analyzer.
         displayName: Falcon Image Analyzer Exclusions
         path: falconImageAnalyzer.imageAnalyzerConfig.exclusions
@@ -1370,6 +2002,16 @@ spec:
       - description: Ignore admission control for a specific set of namespaces.
         displayName: Ignore Namespace List
         path: falconAdmission.admissionConfig.disabledNamespaces
+      - description: Ignore admission control for a specific set of namespaces.
+        displayName: Ignore Namespace List
+        path: falconClusterGuard.controller.disabledNamespaces
+      - description: Enable priority class for the DaemonSet. This is useful for GKE
+          Autopilot clusters, but can be set for any cluster.
+        displayName: Priority Class
+        path: falconClusterGuard.nodeSensor.priorityClass
+      - description: Falcon Container Sensor Configuration
+        displayName: Falcon Container Sensor Configuration
+        path: falconContainerSensor
       - displayName: Azure Config file path
         path: falconContainerSensor.injector.azureConfigPath
       - description: RegistryConfig for the Falcon Image Analyzer.
@@ -1383,39 +2025,64 @@ spec:
           Pod
         displayName: Deploy Watcher Container
         path: falconAdmission.admissionConfig.deployWatcher
+      - description: Falcon Cluster Guard Configuration
+        displayName: Falcon Cluster Guard Configuration
+        path: falconClusterGuard
       - displayName: Injector replica count
         path: falconContainerSensor.injector.replicas
-      - description: Enable debugging for the Falcon Image Analyzer.
+      - description: |-
+          Enable debugging for the Falcon Image Analyzer.
+          Deprecated: Use LogVerbosity instead. Kept for backwards compatibility.
         displayName: Falcon Image Analyzer Enable Debugging
         path: falconImageAnalyzer.imageAnalyzerConfig.debug
       - description: Determines if Kubernetes resources are watched for cluster visibility.
         displayName: Enable Resource Watcher
         path: falconAdmission.admissionConfig.watcherEnabled
+      - description: Determines if Kubernetes resources are watched for cluster visibility.
+        displayName: Enable Resource Watcher
+        path: falconClusterGuard.controller.watcherEnabled
       - displayName: Enable Alternate Mount Path
         path: falconContainerSensor.injector.alternateMountPath
-      - description: IAR Agent Service configuration for enabling communication between
-          IAR components.
-        displayName: IAR Agent Service Configuration
-        path: falconImageAnalyzer.imageAnalyzerConfig.iarAgentService
-      - description: IAR Agent Service configuration for enabling inter-communication
-          between Image Analyzer and Admission Controller.
-        displayName: KAC Inter-communication Configuration
-        path: falconImageAnalyzer.imageAnalyzerConfig.kac
+      - description: |-
+          Set the log verbosity for the Falcon Image Analyzer. Allowed values are "info", "debug", "warn", "error".
+          Note: imageAnalyzerConfig.debug is deprecated as of IAR 1.0.26. Use "info" for standard logging.
+        displayName: Falcon Image Analyzer Log Verbosity
+        path: falconImageAnalyzer.imageAnalyzerConfig.logVerbosity
       - description: Determines if snapshots of Kubernetes resources are periodically
           taken for cluster visibility.
         displayName: Enable Resource Snapshots
         path: falconAdmission.admissionConfig.snapshotsEnabled
+      - description: Determines if snapshots of Kubernetes resources are periodically
+          taken for cluster visibility.
+        displayName: Enable Resource Snapshots
+        path: falconClusterGuard.controller.snapshotsEnabled
       - description: AITap configures AI Detection and Response (AI-DR) functionality
         displayName: AITap AI-DR Configuration
         path: falconContainerSensor.injector.aitap
+      - description: IAR Agent Service configuration for enabling communication between
+          IAR components.
+        displayName: IAR Agent Service Configuration
+        path: falconImageAnalyzer.imageAnalyzerConfig.iarAgentService
       - description: Time interval between two snapshots of Kubernetes resources in
           the cluster.
         displayName: Time Interval Between Two Snapshots
         path: falconAdmission.admissionConfig.snapshotsInterval
+      - description: Time interval between two snapshots of Kubernetes resources in
+          the cluster.
+        displayName: Time Interval Between Two Snapshots
+        path: falconClusterGuard.controller.snapshotsInterval
+      - description: IAR Agent Service configuration for enabling inter-communication
+          between Image Analyzer and Admission Controller.
+        displayName: KAC Inter-communication Configuration
+        path: falconImageAnalyzer.imageAnalyzerConfig.kac
       - description: Determines if the admission controller watches for configMap
           events
         displayName: Enable ConfigMap Event Watcher
         path: falconAdmission.admissionConfig.configMapWatcherEnabled
+      - description: Determines if the admission controller watches for configMap
+          events.
+        displayName: Enable ConfigMap Event Watcher
+        path: falconClusterGuard.controller.configMapWatcherEnabled
       - description: Determines if the admission controller webhook is enabled
         displayName: Enable Admission Controller
         path: falconAdmission.admissionConfig.admissionControlEnabled
@@ -1423,9 +2090,20 @@ spec:
         path: falconAdmission.admissionConfig.resourcesWatcher
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Determines if the admission controller webhook is enabled.
+        displayName: Enable Admission Controller
+        path: falconClusterGuard.controller.admissionControlEnabled
+      - displayName: Falcon Cluster Guard Controller Watcher Resources
+        path: falconClusterGuard.controller.resourcesWatcher
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
       - description: Specifies node affinity for scheduling the Admission Controller.
         displayName: Node Affinity
         path: falconAdmission.admissionConfig.nodeAffinity
+      - description: Specifies node affinity for scheduling the Falcon Cluster Guard
+          Controller.
+        displayName: Node Affinity
+        path: falconClusterGuard.controller.nodeAffinity
       - description: Namespace where Falcon Image Analyzer is installed. KAC needs
           to know this to discover and communicate with IAR.
         displayName: Falcon Image Analyzer Namespace
@@ -1433,6 +2111,79 @@ spec:
       - description: Specifies tolerations for scheduling the Admission Controller.
         displayName: Tolerations
         path: falconAdmission.admissionConfig.tolerations
+      - description: Namespace where Falcon Image Analyzer is installed. Falcon Cluster
+          Guard needs to know this to discover and communicate with IAR.
+        displayName: Falcon Image Analyzer Namespace
+        path: falconClusterGuard.controller.falconImageAnalyzerNamespace
+      - description: Specifies tolerations for scheduling the Falcon Cluster Guard
+          Controller.
+        displayName: Tolerations
+        path: falconClusterGuard.controller.tolerations
+      - description: Cluster Name if Falcon Cluster Guard cannot discover the cluster
+          name. This will be overwritten if Falcon Cluster Guard is able to discover
+          the cluster name.
+        displayName: Falcon Admission Cluster Name
+        path: falconClusterGuard.controller.clusterName
+      - description: |-
+          Minimum TLS version accepted by the webhook server. Valid values are "TLS1.2" and "TLS1.3".
+          When unset the server default is used.
+        displayName: Minimum TLS Version
+        path: falconClusterGuard.controller.tlsVersionMinimum
+      - description: |-
+          Maximum number of pods allowed with the system-cluster-critical priority class.
+          Controls the ResourceQuota for the admission controller namespace. Defaults to 2.
+        displayName: Resource Quota Pods
+        path: falconClusterGuard.controller.resourceQuotaPods
+      - description: |-
+          Advanced configures various options that go against industry practices or are otherwise not recommended for use.
+          Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
+          For more information, please see https://github.com/CrowdStrike/falcon-operator/blob/main/docs/ADVANCED.md.
+        displayName: DaemonSet Advanced Settings
+        path: falconClusterGuard.nodeSensor.advanced
+      - description: Enables the use of GKE Autopilot.
+        displayName: Enabled
+        path: falconClusterGuard.nodeSensor.gke.autopilot
+      - description: Version of the GKE AutoPilot Cleanup DaemonSet for allow list
+          troubleshooting purposes.
+        displayName: Cleanup Allow List Version
+        path: falconClusterGuard.nodeSensor.gke.cleanupAllowListVersion
+      - description: Version of the GKE AutoPilot DaemonSet for allow list troubleshooting
+          purposes.
+        displayName: Deploy Allow List Version
+        path: falconClusterGuard.nodeSensor.gke.deployAllowListVersion
+      - description: Sets the resource limits for the DaemonSet Sensor. Only applies
+          when using the eBPF backend.
+        displayName: Limits
+        path: falconClusterGuard.nodeSensor.resources.limits
+      - description: Minimum allowed is 250m.
+        displayName: CPU
+        path: falconClusterGuard.nodeSensor.resources.limits.cpu
+      - displayName: Ephemeral Storage
+        path: falconClusterGuard.nodeSensor.resources.limits.ephemeral-storage
+      - description: Minimum allowed is 500Mi.
+        displayName: Memory
+        path: falconClusterGuard.nodeSensor.resources.limits.memory
+      - description: Sets the resource requests for the DaemonSet Sensor. Only applies
+          when using the eBPF backend.
+        displayName: Requests
+        path: falconClusterGuard.nodeSensor.resources.requests
+      - description: Minimum allowed is 250m.
+        displayName: CPU
+        path: falconClusterGuard.nodeSensor.resources.requests.cpu
+      - displayName: Ephemeral Storage
+        path: falconClusterGuard.nodeSensor.resources.requests.ephemeral-storage
+      - description: Minimum allowed is 500Mi.
+        displayName: Memory
+        path: falconClusterGuard.nodeSensor.resources.requests.memory
+      - description: Add metadata to the DaemonSet Service Account for IAM roles.
+        displayName: Service Account
+        path: falconClusterGuard.nodeSensor.serviceAccount
+      - description: Define annotations that will be passed down to the Service Account.
+          This is useful for passing along AWS IAM Role or GCP Workload Identity.
+        displayName: Annotations
+        path: falconClusterGuard.nodeSensor.serviceAccount.annotations
+      - displayName: Type
+        path: falconClusterGuard.nodeSensor.updateStrategy.type
       - description: |-
           Advanced configures various options that go against industry practices or are otherwise not recommended for use.
           Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
@@ -1694,9 +2445,16 @@ spec:
       - description: RegistryConfig for the Falcon Image Analyzer.
         displayName: Falcon Image Analyzer Registry Configuration Options
         path: imageAnalyzerConfig.registryConfig
-      - description: Enable debugging for the Falcon Image Analyzer.
+      - description: |-
+          Enable debugging for the Falcon Image Analyzer.
+          Deprecated: Use LogVerbosity instead. Kept for backwards compatibility.
         displayName: Falcon Image Analyzer Enable Debugging
         path: imageAnalyzerConfig.debug
+      - description: |-
+          Set the log verbosity for the Falcon Image Analyzer. Allowed values are "info", "debug", "warn", "error".
+          Note: imageAnalyzerConfig.debug is deprecated as of IAR 1.0.26. Use "info" for standard logging.
+        displayName: Falcon Image Analyzer Log Verbosity
+        path: imageAnalyzerConfig.logVerbosity
       - description: IAR Agent Service configuration for enabling communication between
           IAR components.
         displayName: IAR Agent Service Configuration

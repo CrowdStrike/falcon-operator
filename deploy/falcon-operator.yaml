@@ -13743,8 +13743,7 @@ spec:
           value: falcon-operator
         - name: OPERATOR_MANIFEST
           value: 1.13.0
-        image: controller:latest
-        imagePullPolicy: Never
+        image: quay.io/crowdstrike/falcon-operator:falcon-clusterguard
         livenessProbe:
           httpGet:
             path: /healthz
