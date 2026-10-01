@@ -189,6 +189,7 @@ func (r *FalconDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *FalconDeploymentReconciler) reconcileAdmissionController(ctx context.Context, log logr.Logger, falconDeployment *falconv1alpha1.FalconDeployment) error {
 	var admissionList falconv1alpha1.FalconAdmissionList
 	existingFalconAdmission := &falconv1alpha1.FalconAdmission{}
+	updated := false
 
 	if err := r.Client.List(ctx, &admissionList); err != nil {
 		return fmt.Errorf("unable to get FalconAdmissionList: %s", err)
@@ -254,6 +255,7 @@ func (r *FalconDeploymentReconciler) reconcileAdmissionController(ctx context.Co
 func (r *FalconDeploymentReconciler) reconcileNodeSensor(ctx context.Context, log logr.Logger, falconDeployment *falconv1alpha1.FalconDeployment) error {
 	var nodeSensorList falconv1alpha1.FalconNodeSensorList
 	existingNodeSensor := &falconv1alpha1.FalconNodeSensor{}
+	updated := false
 
 	if err := r.Client.List(ctx, &nodeSensorList); err != nil {
 		return fmt.Errorf("unable to get FalconNodeSensorList: %s", err)
