@@ -21,6 +21,3 @@ spec:
     trace: none
     tags:
       - clusterguard
-  image: falcon-clusterguard:0.1-0-1.aarch64
-  imagePullPolicy: Never
-  installNamespace: falcon-sensor
