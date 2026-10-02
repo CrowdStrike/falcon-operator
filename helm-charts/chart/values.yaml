@@ -1,0 +1,157 @@
+## Configure the controller manager deployment
+##
+manager:
+  ## Set to false to skip manager installation
+  ##
+  enabled: true
+  replicas: 1
+  image:
+    repository: quay.io/crowdstrike/falcon-operator
+    ## Image tag (defaults to Chart.appVersion if not set)
+    ##
+    tag: "0.0.1-falcon-clusterguard"
+    pullPolicy: Never
+  ## Arguments
+  ##
+  args:
+    - --leader-elect
+  ## Environment variables
+  ##
+  env:
+    - name: WATCH_NAMESPACE
+    - name: POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: OPERATOR_NAME
+      value: falcon-operator
+    - name: OPERATOR_MANIFEST
+      value: 1.13.0
+  ## Env overrides (--set manager.envOverrides.VAR=value)
+  ## Same name in env above: this value takes precedence.
+  ##
+  envOverrides: {}
+  ## Image pull secrets
+  ##
+  # imagePullSecrets:
+  #   - name: myregistrykey
+
+  ## Pod-level security settings
+  ##
+  podSecurityContext:
+    fsGroup: 65534
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  ## Container-level security settings
+  ##
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    privileged: false
+  ## Resource limits and requests
+  ##
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
+  ## Manager pod's affinity
+  ##
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+                  - arm64
+                  - ppc64le
+                  - s390x
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                  - linux
+  ## Manager pod's node selector
+  ##
+  nodeSelector: {}
+  ## Manager pod's tolerations
+  ##
+  tolerations: []
+  ## Deployment strategy
+  ##
+  # strategy:
+  #   type: RollingUpdate
+  #   rollingUpdate:
+  #     maxSurge: 25%
+  #     maxUnavailable: 25%
+
+  ## Priority class name
+  ##
+  # priorityClassName: ""
+
+  ## Topology spread constraints
+  ##
+  # topologySpreadConstraints: []
+
+  ## Termination grace period seconds
+  ##
+  terminationGracePeriodSeconds: 10
+  ## Custom Deployment labels
+  ##
+  # labels: {}
+  ## Custom Deployment annotations
+  ##
+  # annotations: {}
+  ## Custom Pod labels and annotations
+  ##
+  # pod:
+  #   labels: {}
+  #   annotations: {}
+
+  ## Extra volume mounts to add to the manager container
+  ##
+  # extraVolumeMounts:
+  #   - name: my-config
+  #     mountPath: /etc/my-config
+  #     readOnly: true
+
+  ## Extra volumes to add to the manager pod
+  ##
+  # extraVolumes:
+  #   - name: my-config
+  #     configMap:
+  #       name: my-configmap
+
+## ServiceAccount configuration
+##
+serviceAccount:
+  # Install default ServiceAccount provided
+  enabled: true
+  ## Existing ServiceAccount name (only when enabled=false)
+  ##
+  # name: ""
+  ## Custom ServiceAccount annotations
+  ##
+  # annotations: {}
+  ## Custom ServiceAccount labels
+  ##
+  # labels: {}
+
+## Custom Resource Definitions
+##
+crd:
+  # Install CRDs with the chart
+  enabled: true
+  # Keep CRDs when uninstalling
+  keep: false
+## Webhook server configuration
+##
+webhook:
+  enabled: true

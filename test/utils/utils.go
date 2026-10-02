@@ -52,7 +52,6 @@ func InstallPrometheusOperator() error {
 func Run(cmd *exec.Cmd) ([]byte, error) {
 	dir, _ := GetProjectDir()
 	cmd.Dir = dir
-	fmt.Fprintf(GinkgoWriter, "running dir: %s\n", cmd.Dir)
 
 	// To allow make commands be executed from the project directory which is subdir on SDK repo
 	// TODO:(user) You might not need the following code
@@ -62,7 +61,14 @@ func Run(cmd *exec.Cmd) ([]byte, error) {
 
 	cmd.Env = append(os.Environ(), "GO111MODULE=on")
 	command := strings.Join(cmd.Args, " ")
-	fmt.Fprintf(GinkgoWriter, "running: %s\n", command)
+
+	// Only emit the working directory and full command when VERBOSE=true so that
+	// GinkgoWriter output (shown on failure) stays readable by default.
+	if os.Getenv("VERBOSE") == "true" {
+		fmt.Fprintf(GinkgoWriter, "running dir: %s\n", cmd.Dir)
+		fmt.Fprintf(GinkgoWriter, "running: %s\n", command)
+	}
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return output, fmt.Errorf("%s failed with error: (%v) %s", command, err, string(output))

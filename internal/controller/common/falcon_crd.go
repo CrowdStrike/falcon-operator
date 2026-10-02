@@ -3,7 +3,7 @@ package common
 import "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 
 type FalconCRD interface {
-	*v1alpha1.FalconNodeSensor | *v1alpha1.FalconContainer | *v1alpha1.FalconAdmission | *v1alpha1.FalconImageAnalyzer
+	*v1alpha1.FalconNodeSensor | *v1alpha1.FalconContainer | *v1alpha1.FalconAdmission | *v1alpha1.FalconImageAnalyzer | *v1alpha1.FalconClusterGuard
 
 	GetFalconSecretSpec() v1alpha1.FalconSecret
 	GetFalconAPISpec() *v1alpha1.FalconAPI

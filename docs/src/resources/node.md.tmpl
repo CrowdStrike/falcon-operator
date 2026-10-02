@@ -1,5 +1,8 @@
 # Falcon Node Sensor
 
+> [!WARNING]
+> `FalconNodeSensor` is deprecated. Use [`FalconClusterGuard`](clusterguard.md) instead. Creation of new `FalconNodeSensor` resources is blocked by a validating webhook. Existing resources can be deleted and replaced with a `FalconClusterGuard` resource.
+
 ## About Falcon Cloud Workload Protection
 
 Learn more at [product page](https://www.crowdstrike.com/cloud-security-products/falcon-cloud-workload-protection/) and [Linux sensor blog](https://www.crowdstrike.com/blog/tech-center/linux-protection/).

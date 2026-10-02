@@ -52,6 +52,7 @@ const (
 	FalconSidecarSensor       = "container_sensor"
 	FalconAdmissionController = "admission_controller"
 	FalconImageAnalyzer       = "falcon-imageanalyzer"
+	FalconClusterGuard        = "falcon-clusterguard"
 	FalconFinalizer           = "falcon.crowdstrike.com/finalizer"
 	FalconProviderValue       = "crowdstrike"
 	FalconPartOfValue         = "Falcon"
@@ -66,9 +67,57 @@ const (
 	NodeClusterRoleBindingName  = "falcon-operator-node-sensor-rolebinding"
 	ImageServiceAccountName     = "falcon-operator-image-analyzer"
 
+	// ClusterGuard Controller Module Vars
+	ClusterGuardControllerNamespaceRoleName      = "falcon-clusterguard-namespace-role"
+	ClusterGuardControllerServiceAccountName     = "falcon-cg-controller-sa"
+	ClusterGuardControllerDeploymentName         = "falcon-clusterguard-controller"
+	ClusterGuardControllerConfigMapName          = "falcon-clusterguard-config"
+	ClusterGuardControllerClusterRoleBindingName = "falcon-clusterguard-security-crb"
+	ClusterGuardControllerRoleName               = "falcon-clusterguard-role"
+	ClusterGuardControllerRoleBindingName        = "falcon-clusterguard-rolebinding"
+	ClusterGuardControllerResourceQuotaName      = "falcon-clusterguard-quota"
+	ClusterGuardControllerServiceApp             = "falcon-kac"
+	ClusterGuardServiceApp                       = "falcon-clusterguard"
+	ClusterGuardControllerWebhookServiceName     = "webhook"
+	ClusterGuardControllerAPIServiceName         = "api"
+	ClusterGuardControllerWebhookPort            = int32(4443)
+	ClusterGuardControllerWebhookPortStr         = "4443"
+	ClusterGuardControllerGRPCPort               = int32(50051)
+	ClusterGuardControllerGRPCPortStr            = "50051"
+	ClusterGuardControllerWatcherHTTPPort        = int32(4080)
+	ClusterGuardControllerWatcherHTTPPortStr     = "4080"
+	ClusterGuardControllerTLSSecretName          = "falcon-cg-controller-tls"
+	ClusterGuardControllerAPITLSSecretName       = "falcon-api-tls"
+	ClusterGuardControllerAPICASecretName        = "falcon-api-ca"
+	ClusterGuardControllerValidatingWebhookName  = "validating.falcon-clusterguard.crowdstrike.com"
+	ClusterGuardControllerReviewLabelKey         = "falcon-clusterguard.crowdstrike.com/admission-review"
+	ClusterGuardControllerComponentName          = "kac"
+
+	// Node Sensor Module Vars
+	ClusterGuardNodeSensorServiceAccountName        = "falcon-node-sensor-sa"
+	ClusterGuardNodeSensorConfigMapName             = "falcon-sensor-config"
+	ClusterGuardNodeSensorPriorityClassName         = "falcon-sensor-priorityclass"
+	ClusterGuardNodeSensorClusterRoleBindingName    = "falcon-sensor-access-binding"
+	ClusterGuardNodeSensorCleanupServiceAccountName = "falcon-node-sensor-sa-node-cleanup"
+	ClusterGuardNodeSensorTLSSecretName             = "falcon-node-sensor-tls"
+
+	// Shared between Cluster Guard Controller and Node Sensor modules
+	ClusterGuardComponentName           = "falcon-clusterguard"
+	ClusterGuardNodeSensorComponentName = "node_sensor"
+	ClusterGuardAPIServiceName          = "api"
+	ClusterGuardAPICASecretName         = "falcon-api-ca"
+
+	// FCG component ClusterRole names (installed by kustomize, referenced by component CRBs)
+	ClusterGuardControllerClusterRoleName  = "falcon-operator-falcon-clusterguard-resource-reader"
+	ClusterGuardNodeSensorClusterRoleName  = "falcon-operator-falcon-sensor-access-role"
+
 	// GKE Autopilot requires names to have an exact match for WorkloadAllowlists
 	GKEAutoPilotConfigMapName           = "falcon-node-sensor-config"
 	GKEAutoPilotAllowListLabelKey       = "cloud.google.com/matching-allowlist"
 	GKEAutoPilotDeployDSAllowlistPrefix = "crowdstrike-falconsensor-deploy-allowlist"
 	GKEAutoPilotCleanupAllowlistPrefix  = "crowdstrike-falconsensor-cleanup-allowlist"
+
+	// Deprecation Variables
+	FalconAdmissionEnabled  = false
+	FalconNodeSensorEnabled = false
 )

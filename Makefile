@@ -125,8 +125,17 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests generate fmt vet envtest ## Run tests.
+test: manifests generate fmt vet envtest test-migration ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /test/) -coverprofile cover.out
+
+.PHONY: hack-venv
+hack-venv: ## Set up hack/.venv for migration scripts (python3.12 -m venv + requirements.txt).
+	python3.12 -m venv hack/.venv
+	hack/.venv/bin/pip install --quiet -r hack/migration/requirements.txt
+
+.PHONY: test-migration
+test-migration: ## Run migration script tests.
+	hack/.venv/bin/pytest hack/migration/test_migrate_to_clusterguard.py -v
 
 ##@ Testing
 
@@ -214,6 +223,24 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 	$(CONTAINER_TOOL) buildx use project-v3-builder
 	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) $(CONTAINER_BUILD_ARGS) --provenance=false --tag ${IMG} -f Dockerfile.cross .
 	- $(CONTAINER_TOOL) buildx rm project-v3-builder
+	rm Dockerfile.cross
+
+.PHONY: docker-build-multiarch
+docker-build-multiarch: ## Build multiarch docker image and save as OCI tar
+	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
+	$(CONTAINER_TOOL) buildx build --platform=$(PLATFORMS) --output type=oci,dest=./falcon-operator.tar $(CONTAINER_BUILD_ARGS) --provenance=false --tag ${IMG} -f Dockerfile.cross .
+	rm Dockerfile.cross
+
+.PHONY: docker-build-all-arch
+docker-build-all-arch: ## Build docker image for each arch separately and save as loadable tars (e.g. falcon-operator-amd64.tar)
+	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
+	for platform in $$(echo $(PLATFORMS) | tr ',' ' '); do \
+		arch=$$(echo $$platform | cut -d/ -f2); \
+		$(CONTAINER_TOOL) buildx build --platform=$$platform \
+			--output type=docker,dest=./falcon-operator-$$arch.tar \
+			$(CONTAINER_BUILD_ARGS) --provenance=false --tag ${IMG} \
+			-f Dockerfile.cross .; \
+	done
 	rm Dockerfile.cross
 
 ##@ Deployment
@@ -376,6 +403,7 @@ catalog-push: ## Push a catalog image.
 
 .PHONY: non-olm
 non-olm: kustomize ## Generate non-olm deployment manifest
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/non-olm -o deploy/falcon-operator.yaml
 	perl -pi -e 's/FALCON_OPERATOR_MANIFEST_PLACEHOLDER/$(VERSION)/g' deploy/falcon-operator.yaml
 
@@ -423,7 +451,9 @@ HELM_CLUSTERROLE_TEMPLATES = \
 	$(HELM_CHART_DIR)/templates/rbac/image-controller-role.yaml \
 	$(HELM_CHART_DIR)/templates/rbac/manager-role.yaml \
 	$(HELM_CHART_DIR)/templates/rbac/manager-rolebinding.yaml \
-	$(HELM_CHART_DIR)/templates/rbac/node-sensor-role.yaml
+	$(HELM_CHART_DIR)/templates/rbac/node-sensor-role.yaml \
+	$(HELM_CHART_DIR)/templates/rbac/falcon-clusterguard-resource-reader.yaml \
+	$(HELM_CHART_DIR)/templates/rbac/falcon-sensor-access-role.yaml
 
 .PHONY: helm-build
 helm-build: kubebuilder
@@ -432,6 +462,9 @@ helm-build: kubebuilder
 	rm -rf $(HELM_CHART_DIR)/templates/prometheus $(HELM_CHART_DIR)/templates/network-policy
 	rm -f $(HELM_CHART_DIR)/templates/rbac/falcon-FalconDeployment-editor-role.yaml
 	rm -f $(HELM_CHART_DIR)/templates/rbac/falcon-FalconDeployment-viewer-role.yaml
+	rm -f $(HELM_CHART_DIR)/templates/rbac/falcon-falconclusterguard-admin-role.yaml
+	rm -f $(HELM_CHART_DIR)/templates/rbac/falcon-falconclusterguard-editor-role.yaml
+	rm -f $(HELM_CHART_DIR)/templates/rbac/falcon-falconclusterguard-viewer-role.yaml
 	rm -f .github/workflows/test-chart.yml
 	@# Strip rbac.namespaced kind/namespace toggles — keep ClusterRole/ClusterRoleBinding hardcoded
 	@for f in $(HELM_CLUSTERROLE_TEMPLATES); do \
@@ -442,6 +475,15 @@ helm-build: kubebuilder
 			 s/\{\{- if \.Values\.rbac\.namespaced \}\}\n  namespace: \{\{ \.Release\.Namespace \}\}\n\{\{- end \}\}\n//g' \
 			$$f; \
 	done
+	@# Fix webhook service targetPort — kubebuilder parameterizes it as .Values.webhook.port (443) but the manager listens on 9443
+	perl -i -pe 's/targetPort: \{\{ \.Values\.webhook\.port \}\}/targetPort: 9443/' $(HELM_CHART_DIR)/templates/webhook/webhook-service.yaml
+	@# Update manager image tag in values.yaml from the deploy manifest
+	@TAG=$$(grep -m1 'image: ' deploy/falcon-operator.yaml | awk -F: '{print $$NF}'); \
+	perl -i -pe "s|^(    tag: ).*|\$${1}\"$$TAG\"|" $(HELM_CHART_DIR)/values.yaml
+
+.PHONY: helm-package
+helm-package: ## Package the Helm chart into a .tgz archive in the current directory.
+	$(HELM) package $(HELM_CHART_DIR)
 
 .PHONY: install-helm
 install-helm: $(LOCALBIN) ## Install Helm (version specified by HELM_VERSION, or latest if unset).
