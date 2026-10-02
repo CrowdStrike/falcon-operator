@@ -67,16 +67,6 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 		},
 	}
 
-	testNamespaceSelector := &metav1.LabelSelector{
-		MatchExpressions: []metav1.LabelSelectorRequirement{
-			{
-				Key:      "kubernetes.io/metadata.name",
-				Operator: metav1.LabelSelectorOpIn,
-				Values:   []string{"falcon-clusterguard-test"},
-			},
-		},
-	}
-
 	return &arv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: arv1.SchemeGroupVersion.String(),
@@ -159,62 +149,6 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 					},
 					{
 						Operations: []arv1.OperationType{arv1.Create, arv1.Update},
-						Rule: arv1.Rule{
-							APIGroups:   []string{"batch"},
-							APIVersions: []string{"v1"},
-							Resources:   []string{"cronjobs", "jobs"},
-							Scope:       &scope,
-						},
-					},
-				},
-			},
-			{
-				Name:                    "test." + webhookName,
-				AdmissionReviewVersions: []string{"v1"},
-				SideEffects:             &sideEffects,
-				FailurePolicy:           &failurePolicy,
-				MatchPolicy:             &matchPolicy,
-				TimeoutSeconds:          &timeoutSeconds,
-				ClientConfig: arv1.WebhookClientConfig{
-					CABundle: caBundle,
-					Service: &arv1.ServiceReference{
-						Name:      pkgcommon.AdmissionWebhookServiceName,
-						Namespace: namespace,
-						Path:      &path,
-						Port:      &port,
-					},
-				},
-				NamespaceSelector: testNamespaceSelector,
-				Rules: []arv1.RuleWithOperations{
-					{
-						Operations: []arv1.OperationType{arv1.Delete},
-						Rule: arv1.Rule{
-							APIGroups:   []string{""},
-							APIVersions: []string{"v1"},
-							Resources:   []string{"pods", "pods/ephemeralcontainers"},
-							Scope:       &scope,
-						},
-					},
-					{
-						Operations: []arv1.OperationType{arv1.Delete},
-						Rule: arv1.Rule{
-							APIGroups:   []string{""},
-							APIVersions: []string{"v1"},
-							Resources:   []string{"replicationcontrollers", "services"},
-							Scope:       &scope,
-						},
-					},
-					{
-						Operations: []arv1.OperationType{arv1.Delete},
-						Rule: arv1.Rule{
-							APIGroups:   []string{"apps"},
-							APIVersions: []string{"v1"},
-							Resources:   []string{"daemonsets", "deployments", "replicasets", "statefulsets"},
-							Scope:       &scope,
-						},
-					},
-					{
-						Operations: []arv1.OperationType{arv1.Delete},
 						Rule: arv1.Rule{
 							APIGroups:   []string{"batch"},
 							APIVersions: []string{"v1"},
