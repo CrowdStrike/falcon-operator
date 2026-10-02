@@ -15,3 +15,10 @@ spec:
     client_id: PLEASE_FILL_IN
     client_secret: PLEASE_FILL_IN
     cloud_region: autodiscover
+  deployNodeSensor: false
+  deployContainerSensor: false
+  deployClusterGuard: true
+  falconClusterGuard:
+    installNamespace: falcon-sensor
+    image: falcon-clusterguard:0.1-0-1.aarch64
+    imagePullPolicy: Never

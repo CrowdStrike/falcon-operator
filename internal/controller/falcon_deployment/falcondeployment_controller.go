@@ -3,10 +3,13 @@ package falcon
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
+	"time"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -84,7 +87,8 @@ func (r *FalconDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		err := r.statusUpdate(ctx, req, log, falconDeployment, falconv1alpha1.ConditionPending,
 			metav1.ConditionFalse,
 			falconv1alpha1.ReasonReqNotMet,
-			"FalconDeployment progressing")
+			"FalconDeployment progressing",
+			nil)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -120,6 +124,9 @@ func (r *FalconDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	if err = r.reconcileNodeSensor(ctx, log, falconDeployment); err != nil {
+		if strings.Contains(err.Error(), "deletion to complete") {
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
 		return ctrl.Result{}, err
 	}
 
@@ -131,10 +138,38 @@ func (r *FalconDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	if err = r.reconcileClusterGuard(ctx, log, falconDeployment); err != nil {
+		if strings.Contains(err.Error(), "waiting for namespace") {
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	// Set or clear migration condition based on legacy component usage
+	nodeSensorEnabled := falconDeployment.Spec.DeployNodeSensor != nil && *falconDeployment.Spec.DeployNodeSensor
+	admissionEnabled := falconDeployment.Spec.DeployAdmissionController != nil && *falconDeployment.Spec.DeployAdmissionController
+	var migrationCondition *metav1.Condition
+	if nodeSensorEnabled || admissionEnabled {
+		var parts []string
+		if nodeSensorEnabled {
+			parts = append(parts, "deployNodeSensor")
+		}
+		if admissionEnabled {
+			parts = append(parts, "deployAdmissionController")
+		}
+		migrationCondition = &metav1.Condition{
+			Type:    "MigrationRequired",
+			Status:  metav1.ConditionTrue,
+			Reason:  "LegacyComponentsEnabled",
+			Message: strings.Join(parts, " and ") + " are deprecated and will be removed in a future release. Migrate to FalconClusterGuard (spec.deployClusterGuard: true).",
+		}
+	}
+
 	err = r.statusUpdate(ctx, req, log, falconDeployment, falconv1alpha1.ConditionSuccess,
 		metav1.ConditionTrue,
 		falconv1alpha1.ReasonInstallSucceeded,
-		"FalconDeployment installation completed")
+		"FalconDeployment installation completed",
+		migrationCondition)
 
 	return ctrl.Result{}, err
 }
@@ -144,6 +179,7 @@ func (r *FalconDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&falconv1alpha1.FalconDeployment{}).
 		Owns(&falconv1alpha1.FalconAdmission{}).
+		Owns(&falconv1alpha1.FalconClusterGuard{}).
 		Owns(&falconv1alpha1.FalconContainer{}).
 		Owns(&falconv1alpha1.FalconImageAnalyzer{}).
 		Owns(&falconv1alpha1.FalconNodeSensor{}).
@@ -354,7 +390,6 @@ func (r *FalconDeploymentReconciler) reconcileContainerSensor(ctx context.Contex
 	if err := r.Client.List(ctx, &containerSensorList); err != nil {
 		return fmt.Errorf("unable to get FalconContainerList: %s", err)
 	}
-
 	if len(containerSensorList.Items) != 0 {
 		existingContainerSensor.ObjectMeta = metav1.ObjectMeta{
 			Name:      "falcon-container-sensor",
@@ -412,11 +447,93 @@ func (r *FalconDeploymentReconciler) reconcileContainerSensor(ctx context.Contex
 	return nil
 }
 
-func (r *FalconDeploymentReconciler) statusUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconDeployment *falconv1alpha1.FalconDeployment, condType string, status metav1.ConditionStatus, reason string, message string) error {
+func (r *FalconDeploymentReconciler) reconcileClusterGuard(ctx context.Context, log logr.Logger, falconDeployment *falconv1alpha1.FalconDeployment) error {
+	var clusterGuardList falconv1alpha1.FalconClusterGuardList
+	existingClusterGuard := &falconv1alpha1.FalconClusterGuard{}
+	updated := false
+
+	if err := r.Client.List(ctx, &clusterGuardList); err != nil {
+		return fmt.Errorf("unable to get FalconClusterGuardList: %s", err)
+	}
+
+	if len(clusterGuardList.Items) != 0 {
+		existingClusterGuard.ObjectMeta = metav1.ObjectMeta{
+			Name:      "falcon-clusterguard",
+			Namespace: clusterGuardList.Items[0].GetNamespace(),
+		}
+	}
+
+	if *falconDeployment.Spec.DeployClusterGuard {
+		installNamespace := falconDeployment.Spec.FalconClusterGuard.InstallNamespace
+		if installNamespace == "" {
+			installNamespace = "falcon-system"
+		}
+		ns := &corev1.Namespace{}
+		if err := r.Reader.Get(ctx, types.NamespacedName{Name: installNamespace}, ns); err == nil && ns.DeletionTimestamp != nil {
+			return fmt.Errorf("waiting for namespace %s to finish deleting before deploying FalconClusterGuard", installNamespace)
+		} else if err != nil && !apierrors.IsNotFound(err) {
+			return err
+		}
+
+		newClusterGuard := &falconv1alpha1.FalconClusterGuard{}
+		newClusterGuard.Spec.FalconAPI = falconDeployment.Spec.FalconAPI
+		newClusterGuard.Spec.FalconSecret = falconDeployment.Spec.FalconSecret
+		newClusterGuard.ObjectMeta = metav1.ObjectMeta{
+			Name:      "falcon-clusterguard",
+			Namespace: falconDeployment.Spec.FalconClusterGuard.InstallNamespace,
+		}
+
+		if err := mergo.Merge(&newClusterGuard.Spec, falconDeployment.Spec.FalconClusterGuard, mergo.WithOverride); err != nil {
+			return fmt.Errorf("unable to merge specs for FalconClusterGuard: %v", err)
+		}
+
+		if len(clusterGuardList.Items) == 0 {
+			if err := ctrl.SetControllerReference(falconDeployment, newClusterGuard, r.Scheme); err != nil {
+				return fmt.Errorf("unable to set controller reference for %s: %v", newClusterGuard.Name, err)
+			}
+			return r.create(ctx, log, falconDeployment, newClusterGuard)
+		}
+
+		err := r.Client.Get(ctx, types.NamespacedName{Name: existingClusterGuard.Name, Namespace: existingClusterGuard.Namespace}, existingClusterGuard)
+		if err != nil {
+			log.Error(err, "Failed to get FalconClusterGuard resource")
+			return err
+		}
+
+		if !reflect.DeepEqual(newClusterGuard.Spec, existingClusterGuard.Spec) {
+			existingClusterGuard.Spec = newClusterGuard.Spec
+			updated = true
+		}
+
+		if updated {
+			if err := r.update(ctx, log, falconDeployment, existingClusterGuard); err != nil {
+				return err
+			}
+		}
+	} else if len(clusterGuardList.Items) != 0 {
+		err := r.Client.Get(ctx, types.NamespacedName{Name: existingClusterGuard.Name, Namespace: existingClusterGuard.Namespace}, existingClusterGuard)
+		if err != nil {
+			log.Error(err, "Failed to get FalconClusterGuard resource")
+			return err
+		}
+		return r.delete(ctx, log, falconDeployment, existingClusterGuard)
+	}
+
+	return nil
+}
+
+func (r *FalconDeploymentReconciler) statusUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconDeployment *falconv1alpha1.FalconDeployment, condType string, status metav1.ConditionStatus, reason string, message string, migration *metav1.Condition) error {
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		err := r.Get(ctx, req.NamespacedName, falconDeployment)
 		if err != nil {
 			return err
+		}
+
+		if migration != nil {
+			migration.ObservedGeneration = falconDeployment.GetGeneration()
+			meta.SetStatusCondition(&falconDeployment.Status.Conditions, *migration)
+		} else {
+			meta.RemoveStatusCondition(&falconDeployment.Status.Conditions, "MigrationRequired")
 		}
 
 		meta.SetStatusCondition(&falconDeployment.Status.Conditions, metav1.Condition{
@@ -458,6 +575,9 @@ func (r *FalconDeploymentReconciler) create(ctx context.Context, log logr.Logger
 		}
 
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			if err := r.Get(ctx, client.ObjectKeyFromObject(falconDeployment), falconDeployment); err != nil {
+				return err
+			}
 			meta.SetStatusCondition(&falconDeployment.Status.Conditions, metav1.Condition{
 				Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
 				Status:  metav1.ConditionTrue,
@@ -481,7 +601,15 @@ func (r *FalconDeploymentReconciler) update(ctx context.Context, log logr.Logger
 		namespace := t.GetNamespace()
 		gvk := t.GetObjectKind().GroupVersionKind()
 		log.Info(fmt.Sprintf("Updating %s %s in namespace %s", gvk.Kind, name, namespace))
-		err := r.Client.Update(ctx, t)
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			// Re-fetch to get the latest ResourceVersion; keep the spec already set on t.
+			current := t.DeepCopyObject().(client.Object)
+			if fetchErr := r.Client.Get(ctx, client.ObjectKeyFromObject(t), current); fetchErr != nil {
+				return fetchErr
+			}
+			t.SetResourceVersion(current.GetResourceVersion())
+			return r.Client.Update(ctx, t)
+		})
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				log.Info(fmt.Sprintf("%s %s does not exist in namespace %s", gvk.Kind, name, namespace))
@@ -490,6 +618,9 @@ func (r *FalconDeploymentReconciler) update(ctx context.Context, log logr.Logger
 		}
 
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			if err := r.Get(ctx, client.ObjectKeyFromObject(falconDeployment), falconDeployment); err != nil {
+				return err
+			}
 			meta.SetStatusCondition(&falconDeployment.Status.Conditions, metav1.Condition{
 				Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
 				Status:  metav1.ConditionTrue,
@@ -522,6 +653,9 @@ func (r *FalconDeploymentReconciler) delete(ctx context.Context, log logr.Logger
 		}
 
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			if err := r.Get(ctx, client.ObjectKeyFromObject(falconDeployment), falconDeployment); err != nil {
+				return err
+			}
 			meta.SetStatusCondition(&falconDeployment.Status.Conditions, metav1.Condition{
 				Type:    fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:]),
 				Status:  metav1.ConditionTrue,

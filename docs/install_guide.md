@@ -281,3 +281,63 @@ spec:
   startingCSV: falcon-operator.v1.7.0
 ```
 You can find more information on configuring environment variables for your operator subscription in the OLM docs: https://github.com/operator-framework/operator-lifecycle-manager/blob/master/doc/design/subscription-config.md
+
+#### Disabling CRD Validation Webhooks
+
+The operator registers admission webhooks that validate CRD resources before they are accepted by Kubernetes. These webhooks require a valid TLS certificate, which the operator generates automatically on startup.
+
+If cert generation fails (e.g. due to insufficient RBAC permissions or missing cert infrastructure), the operator will log the error, disable the webhooks, and continue running. Existing custom resources will remain functional because all webhook failure policies are set to `Ignore`.
+
+You can also proactively disable webhooks using the `--enable-webhooks=false` flag. This is useful when:
+- Cert generation is failing due to RBAC or infrastructure issues and you need the operator to remain functional
+- Troubleshooting — temporarily removing the admission layer to isolate whether a webhook is causing an issue
+
+> [!WARNING]
+> Disabling webhooks means CRD validation is skipped. Invalid custom resource configurations will not be rejected at admission time and may cause runtime failures.
+
+For **non-OLM installations**, edit the `deploy/falcon-operator.yaml` file:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        args:
+          - --leader-elect
+          - --enable-webhooks=false
+```
+
+For **OLM installations**, edit the ClusterServiceVersion file:
+
+```yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+spec:
+  install:
+    spec:
+      deployments:
+      - name: falcon-operator-controller-manager
+        spec:
+          template:
+            spec:
+              containers:
+              - name: manager
+                args:
+                  - --leader-elect
+                  - --enable-webhooks=false
+```
+
+For **OpenShift installations**, use the `ARGS` environment variable in the Subscription:
+
+```yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+spec:
+  config:
+    env:
+    - name: ARGS
+      value: "--enable-webhooks=false"
+```

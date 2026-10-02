@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -20,10 +21,11 @@ import (
 // It defines the basic metadata and namespace information needed for installation.
 // Ensure that fields are set to values that match the manifests found in the config/samples directory.
 type crConfig struct {
-	kind          string
-	namespace     string // InstallNamespace for the Spec
-	metadataName  string // The name of the resource expected in metadata.name
-	componentName string // Component name in the metadata.labels
+	kind               string
+	namespace          string // InstallNamespace for the Spec
+	metadataName       string // The name of the resource expected in metadata.name
+	componentName      string // Component name in the metadata.labels
+	nodeSensorDisabled bool   // Set to true when nodeSensor.enabled=false to skip DaemonSetReady check
 }
 type crOperation struct {
 	command string
@@ -63,6 +65,18 @@ var (
 		namespace:    namespace,
 		metadataName: "falcon-deployment",
 	}
+	fcgConfig = crConfig{
+		kind:          "FalconClusterGuard",
+		namespace:     "falcon-sensor",
+		metadataName:  "falcon-clusterguard",
+		componentName: "falcon-clusterguard",
+	}
+	fcgNodeConfig = crConfig{
+		kind:          "FalconClusterGuard",
+		namespace:     "falcon-sensor",
+		metadataName:  "falcon-clusterguard",
+		componentName: "node_sensor",
+	}
 	projectDir, _ = utils.GetProjectDir()
 	crApply       = crOperation{command: "apply", action: "creating"}
 	crDelete      = crOperation{command: "delete", action: "deleting"}
@@ -77,29 +91,42 @@ func (cr crConfig) validateCrStatus() {
 			"-n", cr.namespace,
 		)
 		status, err := utils.Run(cmd)
-		fmt.Println("Success:", string(status))
+		if os.Getenv("VERBOSE") == "true" {
+			fmt.Fprintf(GinkgoWriter, "Success: %s\n", string(status))
+		}
 		ExpectWithOffset(2, err).NotTo(HaveOccurred())
 		if string(status) != "True" {
 			return fmt.Errorf("Success condition status should be True, got: %s", status)
 		}
 
-		// Check resource-specific condition (DaemonSetReady or DeploymentReady)
-		var conditionType string
-		if cr.kind == "FalconNodeSensor" {
-			conditionType = "DaemonSetReady"
-		} else {
-			conditionType = "DeploymentReady"
+		// Check resource-specific condition (DaemonSetReady, DeploymentReady, or both for FalconClusterGuard)
+		var conditionTypes []string
+		switch cr.kind {
+		case "FalconNodeSensor":
+			conditionTypes = []string{"DaemonSetReady"}
+		case "FalconClusterGuard":
+			if cr.nodeSensorDisabled {
+				conditionTypes = []string{"DeploymentReady"}
+			} else {
+				conditionTypes = []string{"DeploymentReady", "DaemonSetReady"}
+			}
+		default:
+			conditionTypes = []string{"DeploymentReady"}
 		}
 
-		cmd = exec.Command("kubectl", "get", strings.ToLower(cr.kind),
-			cr.metadataName, "-o", fmt.Sprintf("jsonpath={.status.conditions[?(@.type==\"%s\")].status}", conditionType),
-			"-n", cr.namespace,
-		)
-		status, err = utils.Run(cmd)
-		fmt.Printf("%s: %s\n", conditionType, string(status))
-		ExpectWithOffset(2, err).NotTo(HaveOccurred())
-		if string(status) != "True" {
-			return fmt.Errorf("%s condition status should be True, got: %s", conditionType, status)
+		for _, conditionType := range conditionTypes {
+			cmd = exec.Command("kubectl", "get", strings.ToLower(cr.kind),
+				cr.metadataName, "-o", fmt.Sprintf("jsonpath={.status.conditions[?(@.type==\"%s\")].status}", conditionType),
+				"-n", cr.namespace,
+			)
+			status, err = utils.Run(cmd)
+			if os.Getenv("VERBOSE") == "true" {
+				fmt.Fprintf(GinkgoWriter, "%s: %s\n", conditionType, string(status))
+			}
+			ExpectWithOffset(2, err).NotTo(HaveOccurred())
+			if string(status) != "True" {
+				return fmt.Errorf("%s condition status should be True, got: %s", conditionType, status)
+			}
 		}
 
 		// For DaemonSets with init containers, verify primary container is running
@@ -124,7 +151,9 @@ func (cr crConfig) validateCrStatus() {
 			if !strings.Contains(string(containerReady), "true") {
 				return fmt.Errorf("primary container should be ready, got: %s", containerReady)
 			}
-			fmt.Println("Primary container: ready")
+			if os.Getenv("VERBOSE") == "true" {
+				fmt.Fprintf(GinkgoWriter, "Primary container: ready\n")
+			}
 		}
 
 		return nil
@@ -162,7 +191,9 @@ func (cr crConfig) validateRunningStatus(running bool) {
 			"-o", "jsonpath={.items[*].status}", "-n", cr.namespace,
 		)
 		status, err := utils.Run(cmd)
-		fmt.Println(string(status))
+		if os.Getenv("VERBOSE") == "true" {
+			fmt.Fprintf(GinkgoWriter, "pod status: %s\n", string(status))
+		}
 		ExpectWithOffset(2, err).NotTo(HaveOccurred())
 		if (!running && len(status) > 0) || (running && !strings.Contains(string(status), "\"phase\":\"Running\"")) {
 			return fmt.Errorf("%s pod in %s status", cr.metadataName, status)

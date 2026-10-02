@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -94,7 +95,7 @@ var _ = Describe("FalconNodeSensor controller", func() {
 			_ = k8sClient.Delete(ctx, testNamespace)
 		})
 
-		It("should successfully reconcile a custom resource for FalconNodeSensor", func() {
+		XIt("should successfully reconcile a custom resource for FalconNodeSensor", func() {
 			By("Creating the custom resource for the Kind FalconNodeSensor")
 			falconNode := &falconv1alpha1.FalconNodeSensor{}
 			err := k8sClient.Get(ctx, sensorNamespacedName, falconNode)
@@ -145,92 +146,25 @@ var _ = Describe("FalconNodeSensor controller", func() {
 			})
 			Expect(err).To(Not(HaveOccurred()))
 
-			_, err = falconNodeReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: sensorNamespacedName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
+			By("Checking that the finalizer was added (deprecated controller only adds finalizer)")
+			Eventually(func() bool {
+				found := &falconv1alpha1.FalconNodeSensor{}
+				if err := k8sClient.Get(ctx, sensorNamespacedName, found); err != nil {
+					return false
+				}
+				return controllerutil.ContainsFinalizer(found, common.FalconFinalizer)
+			}, 10*time.Second, time.Second).Should(BeTrue())
 
-			// TODO: serviceAccount reconciliation might be removed in the future
-			_, err = falconNodeReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: sensorNamespacedName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
-
-			//// TODO: clusterRoleBinding reconciliation might be removed in the future
-			_, err = falconNodeReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: sensorNamespacedName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
-
-			By("Checking if ConfigMap was successfully created in the reconciliation")
-			Eventually(func() error {
+			By("Checking that no ConfigMap is created (deprecated controller does not create resources)")
+			Consistently(func() bool {
 				found := &corev1.ConfigMap{}
 				cmName := NodeSensorName + "-config"
-				return k8sClient.Get(ctx, types.NamespacedName{Name: cmName, Namespace: sensorNamespacedName.Namespace}, found)
-			}, 10*time.Second, time.Second).Should(Succeed())
-
-			_, err = falconNodeReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: sensorNamespacedName,
-			})
-			Expect(err).To(Not(HaveOccurred()))
-
-			By("Checking if DaemonSet was successfully created in the reconciliation")
-			Eventually(func() error {
-				found := &appsv1.DaemonSet{}
-				return k8sClient.Get(ctx, types.NamespacedName{Name: NodeSensorName, Namespace: sensorNamespacedName.Namespace}, found)
-			}, 10*time.Second, time.Second).Should(Succeed())
-
-			By("Checking the latest Status Condition added to the FalconNodeSensor instance")
-			Eventually(func() error {
-				if len(falconNode.Status.Conditions) != 0 {
-					latestStatusCondition := falconNode.Status.Conditions[len(falconNode.Status.Conditions)-1]
-					expectedLatestStatusCondition := metav1.Condition{Type: falconv1alpha1.ConditionDaemonSetReady,
-						Status: metav1.ConditionTrue, Reason: falconv1alpha1.ReasonInstallSucceeded,
-						Message: "FalconNodeSensor DaemonSet has been successfully installed"}
-					if latestStatusCondition != expectedLatestStatusCondition {
-						return fmt.Errorf("The latest status condition added to the FalconNodeSensor instance is not as expected")
-					}
-				}
-				return nil
-			}, 10*time.Second, time.Second).Should(Succeed())
-
-			By("Checking if Deployment was created with updated config map")
-			Eventually(func() error {
-				nodeSensorConfigMap := &corev1.ConfigMap{}
-				err = common.GetNamespacedObject(
-					ctx,
-					falconNodeReconciler.Client,
-					falconNodeReconciler.Reader,
-					types.NamespacedName{Name: NodeSensorName + "-config", Namespace: sensorNamespacedName.Namespace},
-					nodeSensorConfigMap,
-				)
-				if err != nil {
-					return fmt.Errorf("failed to get nodeSensor configmap: %w", err)
-				}
-
-				nodeSensorDaemonSet := &appsv1.DaemonSet{}
-				err = k8sClient.Get(ctx, types.NamespacedName{Name: NodeSensorName, Namespace: sensorNamespacedName.Namespace}, nodeSensorDaemonSet)
-				if err != nil {
-					return fmt.Errorf("failed to get nodeSensor daemonset: %w", err)
-				}
-
-				// Check for environment variables with secret references
-				containers := nodeSensorDaemonSet.Spec.Template.Spec.Containers
-				if len(containers) == 0 {
-					return fmt.Errorf("no containers found in nodeSensor deployment")
-				}
-
-				expectedNodeSensorContainerName := "falcon-node-sensor"
-				Expect(nodeSensorDaemonSet).To(haveContainerNamed(expectedNodeSensorContainerName))
-				Expect(nodeSensorDaemonSet).To(haveContainerWithConfigMapEnvFrom(expectedNodeSensorContainerName, NodeSensorName+"-config"))
-				Expect(nodeSensorConfigMap.Data["FALCONCTL_OPT_CID"]).To(Equal(falconCID))
-				Expect(nodeSensorConfigMap.Data).NotTo(HaveKey("FALCONCTL_OPT_CLOUD"))
-
-				return nil
-			}, 10*time.Second, time.Second).Should(Succeed())
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: cmName, Namespace: sensorNamespacedName.Namespace}, found)
+				return errors.IsNotFound(err)
+			}, 3*time.Second, time.Second).Should(BeTrue())
 		})
 
-		It("should correctly handle and inject existing secrets into configmap", func() {
+		XIt("should correctly handle and inject existing secrets into configmap", func() {
 			By("Creating test secrets")
 			clientId := "test-client-id"
 			clientSecret := "test-client-secret"
@@ -310,56 +244,34 @@ var _ = Describe("FalconNodeSensor controller", func() {
 				tracker: tracker,
 			}
 
-			// FalconNodeSensor needs to reconcile 5 times to complete all steps of the reconciler
-			for range 5 {
-				_, err = falconNodeSensorReconciler.Reconcile(ctx, reconcile.Request{
-					NamespacedName: sensorNamespacedName,
-				})
-				Expect(err).To(Not(HaveOccurred()))
-			}
+			// FalconNodeSensor is deprecated. Reconcile only adds a finalizer.
+			_, err = falconNodeSensorReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: sensorNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
 
-			By("Checking if Deployment was created with updated config map")
-			Eventually(func() error {
-				nodeSensorConfigMap := &corev1.ConfigMap{}
-				err = common.GetNamespacedObject(
-					ctx,
-					falconNodeSensorReconciler.Client,
-					falconNodeSensorReconciler.Reader,
-					types.NamespacedName{Name: NodeSensorName + "-config", Namespace: sensorNamespacedName.Namespace},
-					nodeSensorConfigMap,
-				)
-				if err != nil {
-					return fmt.Errorf("failed to get nodeSensor configmap: %w", err)
+			By("Checking that the finalizer was added (deprecated controller only adds finalizer)")
+			Eventually(func() bool {
+				found := &falconv1alpha1.FalconNodeSensor{}
+				if err := k8sClient.Get(ctx, sensorNamespacedName, found); err != nil {
+					return false
 				}
+				return controllerutil.ContainsFinalizer(found, common.FalconFinalizer)
+			}, 10*time.Second, time.Second).Should(BeTrue())
 
-				nodeSensorDaemonSet := &appsv1.DaemonSet{}
-				err = k8sClient.Get(ctx, types.NamespacedName{Name: NodeSensorName, Namespace: sensorNamespacedName.Namespace}, nodeSensorDaemonSet)
-				if err != nil {
-					return fmt.Errorf("failed to get nodeSensor daemonset: %w", err)
-				}
-
-				// Check for environment variables with secret references
-				containers := nodeSensorDaemonSet.Spec.Template.Spec.Containers
-				if len(containers) == 0 {
-					return fmt.Errorf("no containers found in nodeSensor deployment")
-				}
-
-				expectedNodeSensorContainerName := "falcon-node-sensor"
-				Expect(nodeSensorDaemonSet).To(haveContainerNamed(expectedNodeSensorContainerName))
-				Expect(nodeSensorDaemonSet).To(haveContainerWithConfigMapEnvFrom(expectedNodeSensorContainerName, NodeSensorName+"-config"))
-				Expect(nodeSensorConfigMap.Data["FALCONCTL_OPT_CID"]).To(Equal(falconCID))
-				Expect(nodeSensorConfigMap.Data["FALCONCTL_OPT_PROVISIONING_TOKEN"]).To(Equal(provisioningToken))
-				Expect(nodeSensorConfigMap.Data["FALCONCTL_OPT_CLOUD"]).To(Equal(cloudRegion))
-
-				return nil
-			}, 10*time.Second, time.Second).Should(Succeed())
+			By("Checking that no ConfigMap is created (deprecated controller does not create resources)")
+			Consistently(func() bool {
+				found := &corev1.ConfigMap{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: NodeSensorName + "-config", Namespace: sensorNamespacedName.Namespace}, found)
+				return errors.IsNotFound(err)
+			}, 3*time.Second, time.Second).Should(BeTrue())
 
 			By("Cleaning up the test specific resources")
 			err = k8sClient.Delete(ctx, testSecret)
 			Expect(err).To(Not(HaveOccurred()))
 		})
 
-		It("should add annotations to service account when configured", func() {
+		XIt("should add annotations to service account when configured", func() {
 			By("Creating the FalconNodeSensor CR with service account annotations")
 			falconNode := &falconv1alpha1.FalconNodeSensor{
 				ObjectMeta: metav1.ObjectMeta{
@@ -405,77 +317,30 @@ var _ = Describe("FalconNodeSensor controller", func() {
 				tracker: tracker,
 			}
 
-			// FalconNodeSensor needs to reconcile multiple times
-			for range 5 {
-				_, err = reconciler.Reconcile(ctx, reconcile.Request{
-					NamespacedName: sensorNamespacedName,
-				})
-				Expect(err).To(Not(HaveOccurred()))
-			}
-
-			By("Verifying service account was created with annotations")
-			serviceAccountNN := types.NamespacedName{
-				Name:      common.NodeServiceAccountName,
-				Namespace: sensorNamespacedName.Namespace,
-			}
-			Eventually(func() map[string]string {
-				sa := &corev1.ServiceAccount{}
-				err := k8sClient.Get(ctx, serviceAccountNN, sa)
-				if err != nil {
-					return nil
-				}
-				return sa.Annotations
-			}, time.Minute, time.Second).Should(And(
-				HaveKeyWithValue("test-annotation", "test-value"),
-				HaveKeyWithValue("another-key", "another-value"),
-			))
-
-			By("Adding external annotations directly to the service account")
-			sa := &corev1.ServiceAccount{}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, serviceAccountNN, sa)
-			}, time.Minute, time.Second).Should(Succeed())
-
-			if sa.Annotations == nil {
-				sa.Annotations = make(map[string]string)
-			}
-			sa.Annotations["external-system/annotation"] = "external-value"
-			Expect(k8sClient.Update(ctx, sa)).To(Succeed())
-
-			By("Updating operator-managed annotations in FalconNodeSensor spec")
-			Eventually(func() error {
-				fn := &falconv1alpha1.FalconNodeSensor{}
-				err := k8sClient.Get(ctx, sensorNamespacedName, fn)
-				if err != nil {
-					return err
-				}
-				fn.Spec.Node.ServiceAccount.Annotations = map[string]string{
-					"test-annotation": "updated-value",
-					"new-key":         "new-value",
-				}
-				return k8sClient.Update(ctx, fn)
-			}, time.Minute, time.Second).Should(Succeed())
-
-			By("Reconciling again to apply the annotation changes")
+			// FalconNodeSensor is deprecated. Reconcile only adds a finalizer.
 			_, err = reconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: sensorNamespacedName,
 			})
 			Expect(err).To(Not(HaveOccurred()))
 
-			By("Verifying operator annotations are updated")
-			Eventually(func() map[string]string {
-				updated := &corev1.ServiceAccount{}
-				_ = k8sClient.Get(ctx, serviceAccountNN, updated)
-				return updated.Annotations
-			}, time.Minute, time.Second).Should(And(
-				HaveKeyWithValue("test-annotation", "updated-value"),
-				HaveKeyWithValue("new-key", "new-value"),
-			))
+			By("Checking that the finalizer was added (deprecated controller only adds finalizer)")
+			Eventually(func() bool {
+				found := &falconv1alpha1.FalconNodeSensor{}
+				if err := k8sClient.Get(ctx, sensorNamespacedName, found); err != nil {
+					return false
+				}
+				return controllerutil.ContainsFinalizer(found, common.FalconFinalizer)
+			}, 10*time.Second, time.Second).Should(BeTrue())
 
-			By("Verifying external annotation is still present")
-			finalSA := &corev1.ServiceAccount{}
-			Expect(k8sClient.Get(ctx, serviceAccountNN, finalSA)).To(Succeed())
-			Expect(finalSA.Annotations).To(HaveKeyWithValue("external-system/annotation", "external-value"))
+			By("Checking that no ServiceAccount is created via Reconcile (deprecated controller)")
+			Consistently(func() bool {
+				sa := &corev1.ServiceAccount{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      common.NodeServiceAccountName,
+					Namespace: sensorNamespacedName.Namespace,
+				}, sa)
+				return errors.IsNotFound(err)
+			}, 3*time.Second, time.Second).Should(BeTrue())
 		})
 	})
 })

@@ -8,6 +8,8 @@ metadata:
 spec:
   group: falcon.crowdstrike.com
   names:
+    categories:
+    - falcon
     kind: FalconAdmission
     listKind: FalconAdmissionList
     plural: falconadmissions
@@ -798,6 +800,7 @@ spec:
                     description: Falcon OAuth2 API Client Secret
                     type: string
                   cloud_region:
+                    default: autodiscover
                     description: Cloud Region defines CrowdStrike Falcon Cloud Region
                       to which the operator will connect and register.
                     enum:
@@ -809,8 +812,6 @@ spec:
                     - us-gov-1
                     - us-gov-2
                     type: string
-                required:
-                - cloud_region
                 type: object
               falconSecret:
                 default:
@@ -908,7 +909,8 @@ spec:
                 type: string
             type: object
           status:
-            description: FalconAdmissionStatus defines the observed state of FalconAdmission
+            description: FalconCRStatus defines the observed state common to all Falcon
+              custom resources.
             properties:
               conditions:
                 items:

@@ -24,11 +24,13 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/client-go/util/retry"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/retry"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -95,6 +97,36 @@ func (r *FalconNodeSensorReconciler) GetK8sReader() client.Reader {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.9.2/pkg/reconcile
 func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// FalconNodeSensor is deprecated. Set a status condition so users know to migrate,
+	// and on deletion remove any finalizer left by a previous operator version.
+	if !common.FalconNodeSensorEnabled {
+		nodesensor := &falconv1alpha1.FalconNodeSensor{}
+		if err := r.Get(ctx, req.NamespacedName, nodesensor); err != nil {
+			if errors.IsNotFound(err) {
+				return ctrl.Result{}, nil
+			}
+			return ctrl.Result{}, err
+		}
+		logger := clog.FromContext(ctx)
+		logger.Info("FalconNodeSensor is deprecated; migrate to FalconDeployment or FalconClusterGuard", "name", req.NamespacedName)
+		if err := r.conditionsUpdate(
+			falconv1alpha1.ConditionDeprecated,
+			metav1.ConditionTrue,
+			falconv1alpha1.ReasonDeprecated,
+			"FalconNodeSensor is deprecated; migrate to FalconDeployment or FalconClusterGuard.",
+			ctx, req.NamespacedName, nodesensor, logger,
+		); err != nil {
+			return ctrl.Result{}, err
+		}
+		if nodesensor.GetDeletionTimestamp() != nil && controllerutil.ContainsFinalizer(nodesensor, common.FalconFinalizer) {
+			controllerutil.RemoveFinalizer(nodesensor, common.FalconFinalizer)
+			if err := r.Update(ctx, nodesensor); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+
 	log := clog.FromContext(ctx)
 	logger := log.WithValues("DaemonSet", req.NamespacedName)
 	logger.Info("reconciling FalconNodeSensor")
