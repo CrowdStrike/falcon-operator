@@ -112,6 +112,17 @@ type FalconClusterGuardNodeSpec struct {
 	// When running on an unmanaged K8S cluster, set a cluster name. When running on managed, K8S cluster name is resolved cloud-side
 	// +kubebuilder:validation:Pattern="^[0-9a-zA-Z]{1}[0-9a-zA-Z_-]{1,99}$"
 	ClusterName *string `json:"clusterName,omitempty"`
+
+	// Guardian configures the guardian proxy sidecar on the node sensor DaemonSet.
+	// +kubebuilder:default={}
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Guardian Proxy Configuration",order=13
+	Guardian FalconClusterGuardGuardian `json:"guardian,omitempty"`
+
+	// DNSConfig defines DNS parameters for the node sensor pods, applied to podSpec.dnsConfig.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="DNS Config",order=14
+	DNSConfig *corev1.PodDNSConfig `json:"dnsConfig,omitempty"`
 }
 
 // FalconClusterGuardController defines configuration for the admission controller deployed by FalconClusterGuard.
@@ -571,4 +582,37 @@ type FalconClusterGuardControllerNamespace struct {
 	// Configure a list of namespaces to ignore admission control.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=1
 	Namespaces []string `json:"namespaces,omitempty"`
+}
+
+// FalconClusterGuardGuardianProxy defines configuration for the guardian proxy on the node sensor.
+type FalconClusterGuardGuardianProxy struct {
+	// Enables the guardian proxy sidecar on the node sensor DaemonSet.
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Guardian Proxy",order=1
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Port on which the guardian proxy listens.
+	// +kubebuilder:default=48080
+	// +kubebuilder:validation:Minimum=1024
+	// +kubebuilder:validation:Maximum=65535
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Guardian Proxy Port",order=2,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	Port *int32 `json:"port,omitempty"`
+
+	// Name of the TLS secret to mount into the node sensor for the guardian proxy.
+	// +kubebuilder:default=falcon-proxy-tls
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Guardian Proxy TLS Secret Name",order=3
+	TLSSecretName string `json:"tlsSecretName,omitempty"`
+}
+
+// IsEnabled returns true if the guardian proxy is enabled.
+func (p *FalconClusterGuardGuardianProxy) IsEnabled() bool {
+	return p.Enabled != nil && *p.Enabled
+}
+
+// FalconClusterGuardGuardian groups guardian-related configuration for the node sensor.
+type FalconClusterGuardGuardian struct {
+	// Proxy configures the guardian proxy sidecar.
+	// +kubebuilder:default={}
+	// +optional
+	Proxy FalconClusterGuardGuardianProxy `json:"proxy,omitempty"`
 }

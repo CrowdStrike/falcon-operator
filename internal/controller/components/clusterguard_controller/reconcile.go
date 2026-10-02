@@ -22,7 +22,6 @@ type Config struct {
 	RegistryTLS                  falconv1alpha1.RegistryTLSSpec
 }
 
-
 // Admission owns the reconciliation of all admission controller sub-resources.
 type ClusterGuardController struct {
 	r   k8sutils.Reconciler

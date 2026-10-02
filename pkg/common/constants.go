@@ -108,6 +108,11 @@ const (
 
 	// Node Sensor Module Vars
 	ClusterGuardSensorServiceAccountName = "falcon-node-sensor-sa"
+	ClusterGuardProxyServiceName         = "falcon-proxy"
+	ClusterGuardProxyPortName            = "proxy"
+	ClusterGuardProxyTLSVolumeName       = "proxy-tls"
+	ClusterGuardProxyServicePort         = int32(80)
+	ClusterGuardProxyMountPath           = "/run/secrets/proxy"
 
 	// Shared between Admission and Node Sensor modules
 	ClusterGuardComponentName           = "falcon-clusterguard"

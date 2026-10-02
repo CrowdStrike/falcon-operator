@@ -1248,3 +1248,225 @@ func TestDSManageAutoPilotLabelsCleanupAppearsInCleanupDaemonSet(t *testing.T) {
 			podLabels[pkgcommon.GKEAutoPilotAllowListLabelKey])
 	}
 }
+
+// Guardian proxy builder tests
+
+func TestProxyServiceBuilderName(t *testing.T) {
+	n := New(nil, Config{BaseConfig: components.BaseConfig{InstallNamespace: "falcon-clusterguard"}})
+	svc := n.proxyService()
+
+	if svc.Name != pkgcommon.ClusterGuardProxyServiceName {
+		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardProxyServiceName, svc.Name)
+	}
+	if svc.Namespace != "falcon-clusterguard" {
+		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", svc.Namespace)
+	}
+}
+
+func TestProxyServiceBuilderInternalTrafficPolicyLocal(t *testing.T) {
+	n := New(nil, Config{BaseConfig: components.BaseConfig{InstallNamespace: "falcon-clusterguard"}})
+	svc := n.proxyService()
+
+	if svc.Spec.InternalTrafficPolicy == nil {
+		t.Fatal("expected non-nil InternalTrafficPolicy")
+	}
+	if *svc.Spec.InternalTrafficPolicy != corev1.ServiceInternalTrafficPolicyLocal {
+		t.Errorf("expected InternalTrafficPolicy=Local, got %q", *svc.Spec.InternalTrafficPolicy)
+	}
+}
+
+func TestProxyServiceBuilderSelectorUsesComponentLabel(t *testing.T) {
+	n := New(nil, Config{BaseConfig: components.BaseConfig{InstallNamespace: "falcon-clusterguard"}})
+	svc := n.proxyService()
+
+	if svc.Spec.Selector[pkgcommon.KubernetesComponentKey] != pkgcommon.ClusterGuardNodeSensorComponentName {
+		t.Errorf("expected selector %s=%s, got %q",
+			pkgcommon.KubernetesComponentKey, pkgcommon.ClusterGuardNodeSensorComponentName,
+			svc.Spec.Selector[pkgcommon.KubernetesComponentKey])
+	}
+}
+
+func TestProxyServiceBuilderPortMapsTo80(t *testing.T) {
+	n := New(nil, Config{BaseConfig: components.BaseConfig{InstallNamespace: "falcon-clusterguard"}})
+	svc := n.proxyService()
+
+	if len(svc.Spec.Ports) != 1 {
+		t.Fatalf("expected 1 port, got %d", len(svc.Spec.Ports))
+	}
+	p := svc.Spec.Ports[0]
+	if p.Name != pkgcommon.ClusterGuardProxyPortName {
+		t.Errorf("expected port name %q, got %q", pkgcommon.ClusterGuardProxyPortName, p.Name)
+	}
+	if p.Port != pkgcommon.ClusterGuardProxyServicePort {
+		t.Errorf("expected port %d, got %d", pkgcommon.ClusterGuardProxyServicePort, p.Port)
+	}
+	if p.TargetPort.String() != pkgcommon.ClusterGuardProxyPortName {
+		t.Errorf("expected targetPort %q, got %q", pkgcommon.ClusterGuardProxyPortName, p.TargetPort.String())
+	}
+}
+
+func TestDaemonSetProxyDisabledByDefaultNoPortOrVolume(t *testing.T) {
+	n := New(nil, Config{BaseConfig: components.BaseConfig{
+		InstallNamespace: "falcon-clusterguard",
+		Image:            "quay.io/crowdstrike/falcon-sensor:latest",
+	}})
+	ds := n.daemonSet()
+
+	for _, p := range ds.Spec.Template.Spec.Containers[0].Ports {
+		if p.Name == pkgcommon.ClusterGuardProxyPortName {
+			t.Error("proxy port should not be present when proxy is disabled")
+		}
+	}
+	for _, v := range ds.Spec.Template.Spec.Volumes {
+		if v.Name == pkgcommon.ClusterGuardProxyTLSVolumeName {
+			t.Error("proxy-tls volume should not be present when proxy is disabled")
+		}
+	}
+	for _, vm := range ds.Spec.Template.Spec.Containers[0].VolumeMounts {
+		if vm.MountPath == pkgcommon.ClusterGuardProxyMountPath {
+			t.Error("proxy volumemount should not be present when proxy is disabled")
+		}
+	}
+}
+
+func TestDaemonSetProxyEnabledAddsPortVolumeMount(t *testing.T) {
+	enabled := true
+	port := int32(48080)
+	n := New(nil, Config{
+		BaseConfig: components.BaseConfig{
+			InstallNamespace: "falcon-clusterguard",
+			Image:            "quay.io/crowdstrike/falcon-sensor:latest",
+		},
+		NodeSensor: falconv1alpha1.FalconClusterGuardNodeSpec{
+			Guardian: falconv1alpha1.FalconClusterGuardGuardian{
+				Proxy: falconv1alpha1.FalconClusterGuardGuardianProxy{
+					Enabled: &enabled,
+					Port:    &port,
+				},
+			},
+		},
+	})
+	ds := n.daemonSet()
+
+	// Container port
+	foundPort := false
+	for _, p := range ds.Spec.Template.Spec.Containers[0].Ports {
+		if p.Name == pkgcommon.ClusterGuardProxyPortName {
+			foundPort = true
+			if p.ContainerPort != port {
+				t.Errorf("expected containerPort %d, got %d", port, p.ContainerPort)
+			}
+			if p.Protocol != corev1.ProtocolTCP {
+				t.Errorf("expected protocol TCP, got %q", p.Protocol)
+			}
+		}
+	}
+	if !foundPort {
+		t.Error("expected proxy container port to be present when proxy is enabled")
+	}
+
+	// Volume with optional: true
+	foundVol := false
+	for _, v := range ds.Spec.Template.Spec.Volumes {
+		if v.Name == pkgcommon.ClusterGuardProxyTLSVolumeName {
+			foundVol = true
+			if v.VolumeSource.Secret == nil {
+				t.Fatal("expected secret volume source for proxy-tls")
+			}
+			if v.VolumeSource.Secret.Optional == nil || !*v.VolumeSource.Secret.Optional {
+				t.Error("expected proxy-tls volume to have Optional=true")
+			}
+		}
+	}
+	if !foundVol {
+		t.Error("expected proxy-tls volume to be present when proxy is enabled")
+	}
+
+	// VolumeMount
+	foundMount := false
+	for _, vm := range ds.Spec.Template.Spec.Containers[0].VolumeMounts {
+		if vm.Name == pkgcommon.ClusterGuardProxyTLSVolumeName {
+			foundMount = true
+			if vm.MountPath != pkgcommon.ClusterGuardProxyMountPath {
+				t.Errorf("expected mountPath %q, got %q", pkgcommon.ClusterGuardProxyMountPath, vm.MountPath)
+			}
+			if !vm.ReadOnly {
+				t.Error("expected proxy volumemount to be ReadOnly")
+			}
+		}
+	}
+	if !foundMount {
+		t.Error("expected proxy volumemount to be present when proxy is enabled")
+	}
+}
+
+func TestDaemonSetProxyEnabledCustomTLSSecretName(t *testing.T) {
+	enabled := true
+	port := int32(48080)
+	n := New(nil, Config{
+		BaseConfig: components.BaseConfig{
+			InstallNamespace: "falcon-clusterguard",
+			Image:            "quay.io/crowdstrike/falcon-sensor:latest",
+		},
+		NodeSensor: falconv1alpha1.FalconClusterGuardNodeSpec{
+			Guardian: falconv1alpha1.FalconClusterGuardGuardian{
+				Proxy: falconv1alpha1.FalconClusterGuardGuardianProxy{
+					Enabled:       &enabled,
+					Port:          &port,
+					TLSSecretName: "my-custom-tls",
+				},
+			},
+		},
+	})
+	ds := n.daemonSet()
+
+	for _, v := range ds.Spec.Template.Spec.Volumes {
+		if v.Name == pkgcommon.ClusterGuardProxyTLSVolumeName {
+			if v.VolumeSource.Secret.SecretName != "my-custom-tls" {
+				t.Errorf("expected secret name %q, got %q", "my-custom-tls", v.VolumeSource.Secret.SecretName)
+			}
+			return
+		}
+	}
+	t.Error("proxy-tls volume not found")
+}
+
+// DNSConfig builder tests
+
+func TestDaemonSetNilDNSConfigNotApplied(t *testing.T) {
+	n := New(nil, Config{BaseConfig: components.BaseConfig{
+		InstallNamespace: "falcon-clusterguard",
+		Image:            "quay.io/crowdstrike/falcon-sensor:latest",
+	}})
+	ds := n.daemonSet()
+
+	if ds.Spec.Template.Spec.DNSConfig != nil {
+		t.Error("expected nil DNSConfig when not configured")
+	}
+}
+
+func TestDaemonSetDNSConfigApplied(t *testing.T) {
+	n := New(nil, Config{
+		BaseConfig: components.BaseConfig{
+			InstallNamespace: "falcon-clusterguard",
+			Image:            "quay.io/crowdstrike/falcon-sensor:latest",
+		},
+		NodeSensor: falconv1alpha1.FalconClusterGuardNodeSpec{
+			DNSConfig: &corev1.PodDNSConfig{
+				Nameservers: []string{"8.8.8.8"},
+				Searches:    []string{"my.domain.local"},
+			},
+		},
+	})
+	ds := n.daemonSet()
+
+	if ds.Spec.Template.Spec.DNSConfig == nil {
+		t.Fatal("expected non-nil DNSConfig")
+	}
+	if len(ds.Spec.Template.Spec.DNSConfig.Nameservers) != 1 || ds.Spec.Template.Spec.DNSConfig.Nameservers[0] != "8.8.8.8" {
+		t.Errorf("expected nameserver 8.8.8.8, got %v", ds.Spec.Template.Spec.DNSConfig.Nameservers)
+	}
+	if len(ds.Spec.Template.Spec.DNSConfig.Searches) != 1 || ds.Spec.Template.Spec.DNSConfig.Searches[0] != "my.domain.local" {
+		t.Errorf("expected search my.domain.local, got %v", ds.Spec.Template.Spec.DNSConfig.Searches)
+	}
+}

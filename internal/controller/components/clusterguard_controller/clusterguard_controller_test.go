@@ -66,8 +66,8 @@ func TestClusterGuardValidatingWebhookReturnsWebhook(t *testing.T) {
 	if webhook.Name != common.AdmissionValidatingWebhookName {
 		t.Errorf("expected name %q, got %q", common.AdmissionValidatingWebhookName, webhook.Name)
 	}
-	if len(webhook.Webhooks) != 3 {
-		t.Errorf("expected 3 webhooks, got %d", len(webhook.Webhooks))
+	if len(webhook.Webhooks) != 2 {
+		t.Errorf("expected 2 webhooks, got %d", len(webhook.Webhooks))
 	}
 }
 

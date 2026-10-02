@@ -188,7 +188,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2026-10-01T14:25:11Z"
+    createdAt: "2026-10-02T17:42:17Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -205,6 +205,11 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+    operatorframework.io/arch.s390x: supported
+    operatorframework.io/os.linux: supported
   name: falcon-operator.v1.13.0
   namespace: placeholder
 spec:
@@ -526,6 +531,9 @@ spec:
           Defaults to true.
         displayName: Enable Node Sensor
         path: nodeSensor.enabled
+      - description: Enables the guardian proxy sidecar on the node sensor DaemonSet.
+        displayName: Enable Guardian Proxy
+        path: nodeSensor.guardian.proxy.enabled
       - description: Allow pushing to docker registries over HTTPS with failed TLS
           verification. Note that this does not affect other TLS connections.
         displayName: Skip Registry TLS Verification
@@ -573,6 +581,11 @@ spec:
           Setting it to "normal" only reconciles when a new version is detected.
         displayName: Falcon Sensor Automatic Updates
         path: nodeSensor.advanced.autoUpdate
+      - description: Port on which the guardian proxy listens.
+        displayName: Guardian Proxy Port
+        path: nodeSensor.guardian.proxy.port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
       - description: Enables the operator to deploy a PriorityClass instead of rolling
           your own. Default is false.
         displayName: Deploy Priority Class to cluster
@@ -606,6 +619,10 @@ spec:
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falcon_api.cloud_region
+      - description: Name of the TLS secret to mount into the node sensor for the
+          guardian proxy.
+        displayName: Guardian Proxy TLS Secret Name
+        path: nodeSensor.guardian.proxy.tlsSecretName
       - description: Value of the priority class to use for the DaemonSet. Requires
           the Deploy field to be set to true.
         displayName: Priority Class Value
@@ -747,9 +764,17 @@ spec:
           Autopilot clusters, but can be set for any cluster.
         displayName: Priority Class
         path: nodeSensor.priorityClass
+      - description: Guardian configures the guardian proxy sidecar on the node sensor
+          DaemonSet.
+        displayName: Guardian Proxy Configuration
+        path: nodeSensor.guardian
       - description: Determines if Kubernetes resources are watched for cluster visibility.
         displayName: Enable Resource Watcher
         path: controller.watcherEnabled
+      - description: DNSConfig defines DNS parameters for the node sensor pods, applied
+          to podSpec.dnsConfig.
+        displayName: DNS Config
+        path: nodeSensor.dnsConfig
       - description: Determines if snapshots of Kubernetes resources are periodically
           taken for cluster visibility.
         displayName: Enable Resource Snapshots
@@ -1169,6 +1194,9 @@ spec:
           Defaults to true.
         displayName: Enable Node Sensor
         path: falconClusterGuard.nodeSensor.enabled
+      - description: Enables the guardian proxy sidecar on the node sensor DaemonSet.
+        displayName: Enable Guardian Proxy
+        path: falconClusterGuard.nodeSensor.guardian.proxy.enabled
       - description: Allow pushing to docker registries over HTTPS with failed TLS
           verification. Note that this does not affect other TLS connections.
         displayName: Skip Registry TLS Verification
@@ -1417,6 +1445,11 @@ spec:
           Setting it to "normal" only reconciles when a new version is detected.
         displayName: Falcon Sensor Automatic Updates
         path: falconClusterGuard.nodeSensor.advanced.autoUpdate
+      - description: Port on which the guardian proxy listens.
+        displayName: Guardian Proxy Port
+        path: falconClusterGuard.nodeSensor.guardian.proxy.port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
       - description: Enables the operator to deploy a PriorityClass instead of rolling
           your own. Default is false.
         displayName: Deploy Priority Class to cluster
@@ -1602,6 +1635,10 @@ spec:
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falconClusterGuard.falcon_api.cloud_region
+      - description: Name of the TLS secret to mount into the node sensor for the
+          guardian proxy.
+        displayName: Guardian Proxy TLS Secret Name
+        path: falconClusterGuard.nodeSensor.guardian.proxy.tlsSecretName
       - description: Value of the priority class to use for the DaemonSet. Requires
           the Deploy field to be set to true.
         displayName: Priority Class Value
@@ -2207,6 +2244,10 @@ spec:
       - description: Falcon Cluster Guard Configuration
         displayName: Falcon Cluster Guard Configuration
         path: falconClusterGuard
+      - description: Guardian configures the guardian proxy sidecar on the node sensor
+          DaemonSet.
+        displayName: Guardian Proxy Configuration
+        path: falconClusterGuard.nodeSensor.guardian
       - displayName: Injector replica count
         path: falconContainerSensor.injector.replicas
       - description: |-
@@ -2220,6 +2261,10 @@ spec:
       - description: Determines if Kubernetes resources are watched for cluster visibility.
         displayName: Enable Resource Watcher
         path: falconClusterGuard.controller.watcherEnabled
+      - description: DNSConfig defines DNS parameters for the node sensor pods, applied
+          to podSpec.dnsConfig.
+        displayName: DNS Config
+        path: falconClusterGuard.nodeSensor.dnsConfig
       - displayName: Enable Alternate Mount Path
         path: falconContainerSensor.injector.alternateMountPath
       - description: |-
@@ -3229,7 +3274,7 @@ spec:
                   value: falcon-operator
                 - name: OPERATOR_MANIFEST
                   value: 1.13.0
-                image: quay.io/crowdstrike/falcon-operator:0.0.1-falcon-clusterguard
+                image: quay.io/crowdstrike/falcon-operator:0.0.1-falcon-guardian
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -3322,11 +3367,6 @@ spec:
   keywords:
   - security
   - runtime-protection
-  labels:
-    operatorframework.io/arch.amd64: supported
-    operatorframework.io/arch.arm64: supported
-    operatorframework.io/arch.s390x: supported
-    operatorframework.io/os.linux: supported
   links:
   - name: Falcon Operator
     url: https://github.com/CrowdStrike/falcon-operator

@@ -93,6 +93,9 @@ func (n *NodeSensor) Reconcile(ctx context.Context) (ctrl.Result, error) {
 	if err := n.reconcileClusterRoleBinding(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
+	if err := n.reconcileProxyService(ctx); err != nil {
+		return ctrl.Result{}, err
+	}
 	if err := n.reconcileDaemonSet(ctx); err != nil {
 		return ctrl.Result{}, err
 	}

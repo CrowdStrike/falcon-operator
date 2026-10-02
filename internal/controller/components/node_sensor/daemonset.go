@@ -49,8 +49,11 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 		tolerations = *nodeSpec.Tolerations
 	}
 
-	updateStrategy := appsv1.DaemonSetUpdateStrategy{Type: appsv1.RollingUpdateDaemonSetStrategyType}
-	if nodeSpec.DSUpdateStrategy.Type == appsv1.RollingUpdateDaemonSetStrategyType || nodeSpec.DSUpdateStrategy.Type == "" {
+	var updateStrategy appsv1.DaemonSetUpdateStrategy
+	switch nodeSpec.DSUpdateStrategy.Type {
+	case appsv1.OnDeleteDaemonSetStrategyType:
+		updateStrategy = appsv1.DaemonSetUpdateStrategy{Type: appsv1.OnDeleteDaemonSetStrategyType}
+	default: // RollingUpdate or ""
 		rollingUpdateSettings := appsv1.RollingUpdateDaemonSet{}
 		if nodeSpec.DSUpdateStrategy.RollingUpdate.MaxSurge != nil {
 			rollingUpdateSettings.MaxSurge = nodeSpec.DSUpdateStrategy.RollingUpdate.MaxSurge
@@ -62,8 +65,6 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 			Type:          appsv1.RollingUpdateDaemonSetStrategyType,
 			RollingUpdate: &rollingUpdateSettings,
 		}
-	} else if nodeSpec.DSUpdateStrategy.Type == appsv1.OnDeleteDaemonSetStrategyType {
-		updateStrategy = appsv1.DaemonSetUpdateStrategy{Type: appsv1.OnDeleteDaemonSetStrategyType}
 	}
 
 	containerResources := n.dsResources()
@@ -153,6 +154,40 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 	if nodeSpec.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution != nil ||
 		len(nodeSpec.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution) > 0 {
 		podSpec.Affinity = &corev1.Affinity{NodeAffinity: &nodeSpec.NodeAffinity}
+	}
+
+	if nodeSpec.DNSConfig != nil {
+		podSpec.DNSConfig = nodeSpec.DNSConfig
+	}
+
+	if nodeSpec.Guardian.Proxy.IsEnabled() {
+		proxyPort := int32(48080)
+		if nodeSpec.Guardian.Proxy.Port != nil {
+			proxyPort = *nodeSpec.Guardian.Proxy.Port
+		}
+		tlsSecretName := nodeSpec.Guardian.Proxy.TLSSecretName
+		if tlsSecretName == "" {
+			tlsSecretName = pkgcommon.ClusterGuardProxyServiceName + "-tls"
+		}
+		optional := true
+		podSpec.Containers[0].Ports = append(podSpec.Containers[0].Ports, corev1.ContainerPort{
+			Name:          pkgcommon.ClusterGuardProxyPortName,
+			ContainerPort: proxyPort,
+			Protocol:      corev1.ProtocolTCP,
+		})
+		podSpec.Volumes = append(podSpec.Volumes, corev1.Volume{
+			Name: pkgcommon.ClusterGuardProxyTLSVolumeName,
+			VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
+				SecretName:  tlsSecretName,
+				DefaultMode: &secretDefaultMode,
+				Optional:    &optional,
+			}},
+		})
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, corev1.VolumeMount{
+			Name:      pkgcommon.ClusterGuardProxyTLSVolumeName,
+			MountPath: pkgcommon.ClusterGuardProxyMountPath,
+			ReadOnly:  true,
+		})
 	}
 
 	return &appsv1.DaemonSet{
@@ -541,6 +576,15 @@ func (n *NodeSensor) reconcileDaemonSet(ctx context.Context) error {
 			updated = true
 		}
 
+		// DNSConfig
+		if !equality.Semantic.DeepEqual(ds.Spec.Template.Spec.DNSConfig, existing.Spec.Template.Spec.DNSConfig) {
+			n.r.GetLog().V(1).Info("Updating FalconClusterGuard sensor DaemonSet: DNSConfig changed",
+				"old", existing.Spec.Template.Spec.DNSConfig,
+				"new", ds.Spec.Template.Spec.DNSConfig)
+			existing.Spec.Template.Spec.DNSConfig = ds.Spec.Template.Spec.DNSConfig
+			updated = true
+		}
+
 		// Pod template labels (GKE Autopilot allowlist labels and standard CR labels)
 		if !equality.Semantic.DeepEqual(ds.Spec.Template.Labels, existing.Spec.Template.Labels) {
 			n.r.GetLog().V(1).Info("Updating FalconClusterGuard sensor DaemonSet: pod template labels changed")
@@ -611,6 +655,12 @@ func (n *NodeSensor) reconcileDaemonSet(ctx context.Context) error {
 			if !equality.Semantic.DeepEqual(existingC.VolumeMounts, specC.VolumeMounts) {
 				n.r.GetLog().V(1).Info("Updating FalconClusterGuard sensor DaemonSet: Container VolumeMounts changed")
 				existingC.VolumeMounts = specC.VolumeMounts
+				updated = true
+			}
+			if !equality.Semantic.DeepEqual(existingC.Ports, specC.Ports) {
+				n.r.GetLog().V(1).Info("Updating FalconClusterGuard sensor DaemonSet: Container Ports changed",
+					"old", existingC.Ports, "new", specC.Ports)
+				existingC.Ports = specC.Ports
 				updated = true
 			}
 			if !equality.Semantic.DeepEqual(existingC.Resources, specC.Resources) {
