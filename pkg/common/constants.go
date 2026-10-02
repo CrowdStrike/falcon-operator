@@ -67,57 +67,49 @@ const (
 	NodeClusterRoleBindingName  = "falcon-operator-node-sensor-rolebinding"
 	ImageServiceAccountName     = "falcon-operator-image-analyzer"
 
-	ClusterGuardSensorConfigMapName             = "falcon-sensor-config"
-	ClusterGuardSensorPriorityClassName         = "falcon-sensor-priorityclass"
-	ClusterGuardSensorClusterRoleBindingName    = "falcon-sensor-access-binding"
-	ClusterGuardSensorDaemonSetName             = "falcon-sensor"
-	ClusterGuardSensorCleanupServiceAccountName = "falcon-node-sensor-sa-node-cleanup"
-	ClusterGuardSensorCleanupDaemonSetName      = "falcon-sensor-node-cleanup"
-
-	// ClusterRoles and Roles created by kustomize
-	AdmissionClusterRoleName = "falcon-operator-admission-controller-role"
-	NodeClusterRoleName      = "falcon-operator-node-sensor-role"
-
-	// Admission Sensor Module Vars
-	AdmissionNamespaceRoleName          = "falcon-clusterguard-namespace-role"
-	AdmissionModuleServiceAccountName   = "falcon-cg-controller-sa"
-	AdmissionDeploymentName             = "falcon-clusterguard-controller"
-	AdmissionConfigMapName              = "falcon-clusterguard-config"
-	AdmissionClusterRoleBindingName     = "falcon-clusterguard-security-crb"
-	AdmissionRoleName                   = "falcon-clusterguard-role"
-	AdmissionRoleBindingName            = "falcon-clusterguard-rolebinding"
-	AdmissionResourceQuotaName          = "falcon-clusterguard-quota"
-	AdmissionServiceApp                 = "falcon-kac"
-	ClusterGuardServiceApp              = "falcon-clusterguard"
-	AdmissionWebhookServiceName         = "webhook"
-	AdmissionAPIServiceName             = "api"
-	AdmissionWebhookPort                = int32(4443)
-	AdmissionWebhookPortStr             = "4443"
-	AdmissionGRPCPort                   = int32(50051)
-	AdmissionGRPCPortStr                = "50051"
-	AdmissionWatcherHTTPPort            = int32(4080)
-	AdmissionWatcherHTTPPortStr         = "4080"
-	AdmissionTLSSecretName              = "falcon-cg-controller-tls"
-	AdmissionAPITLSSecretName           = "falcon-api-tls"
-	AdmissionAPICASecretName            = "falcon-api-ca"
-	ClusterGuardSensorTLSSecretName     = "falcon-sensor-tls"
-	ClusterGuardNodeSensorTLSSecretName = "falcon-node-sensor-tls"
-	AdmissionValidatingWebhookName      = "validating.falcon-clusterguard.crowdstrike.com"
-	AdmissionReviewLabelKey             = "falcon-clusterguard.crowdstrike.com/admission-review"
-	AdmissionComponentName              = "kac"
+	// ClusterGuard Controller Module Vars
+	ClusterGuardControllerNamespaceRoleName      = "falcon-clusterguard-namespace-role"
+	ClusterGuardControllerServiceAccountName     = "falcon-cg-controller-sa"
+	ClusterGuardControllerDeploymentName         = "falcon-clusterguard-controller"
+	ClusterGuardControllerConfigMapName          = "falcon-clusterguard-config"
+	ClusterGuardControllerClusterRoleBindingName = "falcon-clusterguard-security-crb"
+	ClusterGuardControllerRoleName               = "falcon-clusterguard-role"
+	ClusterGuardControllerRoleBindingName        = "falcon-clusterguard-rolebinding"
+	ClusterGuardControllerResourceQuotaName      = "falcon-clusterguard-quota"
+	ClusterGuardControllerServiceApp             = "falcon-kac"
+	ClusterGuardServiceApp                       = "falcon-clusterguard"
+	ClusterGuardControllerWebhookServiceName     = "webhook"
+	ClusterGuardControllerAPIServiceName         = "api"
+	ClusterGuardControllerWebhookPort            = int32(4443)
+	ClusterGuardControllerWebhookPortStr         = "4443"
+	ClusterGuardControllerGRPCPort               = int32(50051)
+	ClusterGuardControllerGRPCPortStr            = "50051"
+	ClusterGuardControllerWatcherHTTPPort        = int32(4080)
+	ClusterGuardControllerWatcherHTTPPortStr     = "4080"
+	ClusterGuardControllerTLSSecretName          = "falcon-cg-controller-tls"
+	ClusterGuardControllerAPITLSSecretName       = "falcon-api-tls"
+	ClusterGuardControllerAPICASecretName        = "falcon-api-ca"
+	ClusterGuardControllerValidatingWebhookName  = "validating.falcon-clusterguard.crowdstrike.com"
+	ClusterGuardControllerReviewLabelKey         = "falcon-clusterguard.crowdstrike.com/admission-review"
+	ClusterGuardControllerComponentName          = "kac"
 
 	// Node Sensor Module Vars
-	ClusterGuardSensorServiceAccountName = "falcon-node-sensor-sa"
+	ClusterGuardNodeSensorServiceAccountName        = "falcon-node-sensor-sa"
+	ClusterGuardNodeSensorConfigMapName             = "falcon-sensor-config"
+	ClusterGuardNodeSensorPriorityClassName         = "falcon-sensor-priorityclass"
+	ClusterGuardNodeSensorClusterRoleBindingName    = "falcon-sensor-access-binding"
+	ClusterGuardNodeSensorCleanupServiceAccountName = "falcon-node-sensor-sa-node-cleanup"
+	ClusterGuardNodeSensorTLSSecretName             = "falcon-node-sensor-tls"
 
-	// Shared between Admission and Node Sensor modules
+	// Shared between Cluster Guard Controller and Node Sensor modules
 	ClusterGuardComponentName           = "falcon-clusterguard"
 	ClusterGuardNodeSensorComponentName = "node_sensor"
 	ClusterGuardAPIServiceName          = "api"
 	ClusterGuardAPICASecretName         = "falcon-api-ca"
 
 	// FCG component ClusterRole names (installed by kustomize, referenced by component CRBs)
-	FCGAdmissionClusterRoleName       = "falcon-operator-falcon-clusterguard-resource-reader"
-	ClusterGuardSensorClusterRoleName = "falcon-operator-falcon-sensor-access-role"
+	ClusterGuardControllerClusterRoleName  = "falcon-operator-falcon-clusterguard-resource-reader"
+	ClusterGuardNodeSensorClusterRoleName  = "falcon-operator-falcon-sensor-access-role"
 
 	// GKE Autopilot requires names to have an exact match for WorkloadAllowlists
 	GKEAutoPilotConfigMapName           = "falcon-node-sensor-config"

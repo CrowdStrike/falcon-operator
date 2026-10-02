@@ -28,9 +28,9 @@ func (r *FalconClusterGuardReconciler) reconcileAPITLSSecrets(
 	namespace := fcg.Spec.InstallNamespace
 
 	existingAPI := &corev1.Secret{}
-	errAPI := pkgcommon.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: pkgcommon.AdmissionAPITLSSecretName, Namespace: namespace}, existingAPI)
+	errAPI := pkgcommon.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: pkgcommon.ClusterGuardControllerAPITLSSecretName, Namespace: namespace}, existingAPI)
 	existingCA := &corev1.Secret{}
-	errCA := pkgcommon.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: pkgcommon.AdmissionAPICASecretName, Namespace: namespace}, existingCA)
+	errCA := pkgcommon.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: pkgcommon.ClusterGuardControllerAPICASecretName, Namespace: namespace}, existingCA)
 	existingSensor := &corev1.Secret{}
 	errSensor := pkgcommon.GetNamespacedObject(ctx, r.Client, r.Reader, types.NamespacedName{Name: pkgcommon.ClusterGuardNodeSensorTLSSecretName, Namespace: namespace}, existingSensor)
 	if errAPI == nil && errCA == nil && errSensor == nil {
@@ -46,7 +46,7 @@ func (r *FalconClusterGuardReconciler) reconcileAPITLSSecrets(
 		return err
 	}
 
-	apiSvcName := fmt.Sprintf("%s.%s.svc", pkgcommon.AdmissionAPIServiceName, namespace)
+	apiSvcName := fmt.Sprintf("%s.%s.svc", pkgcommon.ClusterGuardControllerAPIServiceName, namespace)
 	serverCert, serverKey, err := tls.FCGSignCert(ca, caKey, 3650, tls.FCGCertInfo{
 		CommonName:  apiSvcName,
 		DNSNames:    []string{apiSvcName, fmt.Sprintf("%s.cluster.local", apiSvcName)},
@@ -70,7 +70,7 @@ func (r *FalconClusterGuardReconciler) reconcileAPITLSSecrets(
 
 	status := &fcg.Status
 	if apierrors.IsNotFound(errAPI) {
-		s := assets.Secret(pkgcommon.AdmissionAPITLSSecretName, namespace, pkgcommon.AdmissionComponentName,
+		s := assets.Secret(pkgcommon.ClusterGuardControllerAPITLSSecretName, namespace, pkgcommon.ClusterGuardControllerComponentName,
 			map[string][]byte{"tls.crt": serverCert, "tls.key": serverKey}, corev1.SecretTypeTLS)
 		if err := k8sutils.Create(r, r.RuntimeScheme, ctx, req, r.log, fcg, status, s); err != nil {
 			return err
@@ -81,7 +81,7 @@ func (r *FalconClusterGuardReconciler) reconcileAPITLSSecrets(
 	}
 
 	if apierrors.IsNotFound(errCA) {
-		s := assets.Secret(pkgcommon.AdmissionAPICASecretName, namespace, pkgcommon.AdmissionComponentName,
+		s := assets.Secret(pkgcommon.ClusterGuardControllerAPICASecretName, namespace, pkgcommon.ClusterGuardControllerComponentName,
 			map[string][]byte{"ca.crt": ca}, corev1.SecretTypeOpaque)
 		if err := k8sutils.Create(r, r.RuntimeScheme, ctx, req, r.log, fcg, status, s); err != nil {
 			return err
@@ -92,7 +92,7 @@ func (r *FalconClusterGuardReconciler) reconcileAPITLSSecrets(
 	}
 
 	if apierrors.IsNotFound(errSensor) {
-		s := assets.Secret(pkgcommon.ClusterGuardNodeSensorTLSSecretName, namespace, pkgcommon.AdmissionComponentName,
+		s := assets.Secret(pkgcommon.ClusterGuardNodeSensorTLSSecretName, namespace, pkgcommon.ClusterGuardControllerComponentName,
 			map[string][]byte{"tls.crt": clientCert, "tls.key": clientKey}, corev1.SecretTypeTLS)
 		if err := k8sutils.Create(r, r.RuntimeScheme, ctx, req, r.log, fcg, status, s); err != nil {
 			return err

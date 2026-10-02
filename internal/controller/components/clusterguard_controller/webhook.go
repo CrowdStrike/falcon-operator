@@ -27,7 +27,7 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 	timeoutSeconds := int32(10)
 	excludeOp := metav1.LabelSelectorOpNotIn
 	scope := arv1.AllScopes
-	webhookName := pkgcommon.AdmissionValidatingWebhookName
+	webhookName := pkgcommon.ClusterGuardControllerValidatingWebhookName
 	path := "/validate"
 	port := int32(443)
 	if a.cfg.ClusterGuardControllerConfig.Port != nil {
@@ -60,7 +60,7 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 				Values:   excludedNamespaces,
 			},
 			{
-				Key:      pkgcommon.AdmissionReviewLabelKey,
+				Key:      pkgcommon.ClusterGuardControllerReviewLabelKey,
 				Operator: metav1.LabelSelectorOpNotIn,
 				Values:   []string{"disabled"},
 			},
@@ -87,7 +87,7 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 			Labels: map[string]string{
 				"app":                            pkgcommon.ClusterGuardComponentName,
 				pkgcommon.KubernetesNameKey:      pkgcommon.ClusterGuardComponentName,
-				pkgcommon.KubernetesComponentKey: pkgcommon.AdmissionComponentName,
+				pkgcommon.KubernetesComponentKey: pkgcommon.ClusterGuardControllerComponentName,
 				pkgcommon.FalconProviderKey:      pkgcommon.FalconProviderValue,
 			},
 		},
@@ -102,7 +102,7 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 				ClientConfig: arv1.WebhookClientConfig{
 					CABundle: caBundle,
 					Service: &arv1.ServiceReference{
-						Name:      pkgcommon.AdmissionWebhookServiceName,
+						Name:      pkgcommon.ClusterGuardControllerWebhookServiceName,
 						Namespace: namespace,
 						Path:      &path,
 						Port:      &port,
@@ -131,7 +131,7 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 				ClientConfig: arv1.WebhookClientConfig{
 					CABundle: caBundle,
 					Service: &arv1.ServiceReference{
-						Name:      pkgcommon.AdmissionWebhookServiceName,
+						Name:      pkgcommon.ClusterGuardControllerWebhookServiceName,
 						Namespace: namespace,
 						Path:      &path,
 						Port:      &port,
@@ -178,7 +178,7 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 				ClientConfig: arv1.WebhookClientConfig{
 					CABundle: caBundle,
 					Service: &arv1.ServiceReference{
-						Name:      pkgcommon.AdmissionWebhookServiceName,
+						Name:      pkgcommon.ClusterGuardControllerWebhookServiceName,
 						Namespace: namespace,
 						Path:      &path,
 						Port:      &port,
@@ -276,7 +276,7 @@ func (a *ClusterGuardController) reconcileValidatingWebhook(ctx context.Context,
 	webhook := a.ValidatingWebhook(caBundle)
 	existing := &arv1.ValidatingWebhookConfiguration{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, webhook, existing,
-		types.NamespacedName{Name: pkgcommon.AdmissionValidatingWebhookName},
+		types.NamespacedName{Name: pkgcommon.ClusterGuardControllerValidatingWebhookName},
 		"Failed to get FalconClusterGuard ValidatingWebhookConfiguration")
 	if !found || err != nil {
 		return false, err
@@ -303,7 +303,7 @@ func (a *ClusterGuardController) reconcileValidatingWebhook(ctx context.Context,
 	if needsUpdate {
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			if err := pkgcommon.GetNamespacedObject(ctx, a.r, a.r.GetK8sReader(),
-				types.NamespacedName{Name: pkgcommon.AdmissionValidatingWebhookName},
+				types.NamespacedName{Name: pkgcommon.ClusterGuardControllerValidatingWebhookName},
 				existing); err != nil {
 				return err
 			}

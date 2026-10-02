@@ -23,7 +23,7 @@ import (
 // Deployment builds the Deployment for FalconClusterGuard with 3 containers:
 // falcon-ac (admission controller), falcon-client (webhook), and falcon-watcher (event watcher + gRPC API).
 func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
-	name := pkgcommon.AdmissionDeploymentName
+	name := pkgcommon.ClusterGuardControllerDeploymentName
 	namespace := a.cfg.InstallNamespace
 	imageUri := a.cfg.Image
 	imagePullPolicy := a.cfg.ImagePullPolicy
@@ -42,7 +42,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 		a.r.GetLog().V(1).Info("Ignoring Replicas setting: only 1 replica is currently supported")
 	}
 
-	containerPort := pkgcommon.AdmissionWebhookPort
+	containerPort := pkgcommon.ClusterGuardControllerWebhookPort
 	if a.cfg.ClusterGuardControllerConfig.ContainerPort != nil {
 		containerPort = *a.cfg.ClusterGuardControllerConfig.ContainerPort
 	}
@@ -100,13 +100,13 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 	}
 
 	selectorLabels := map[string]string{
-		"app": pkgcommon.AdmissionServiceApp,
+		"app": pkgcommon.ClusterGuardControllerServiceApp,
 	}
 
 	crLabels := pkgcommon.CRLabels("deployment", name, pkgcommon.ClusterGuardComponentName)
 	maps.Copy(crLabels, selectorLabels)
 
-	apiServiceName := fmt.Sprintf("%s.%s.svc", pkgcommon.AdmissionAPIServiceName, namespace)
+	apiServiceName := fmt.Sprintf("%s.%s.svc", pkgcommon.ClusterGuardControllerAPIServiceName, namespace)
 
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -140,7 +140,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 				Spec: corev1.PodSpec{
 					ShareProcessNamespace:         &shareProcessNamespace,
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
-					ServiceAccountName:            pkgcommon.AdmissionModuleServiceAccountName,
+					ServiceAccountName:            pkgcommon.ClusterGuardControllerServiceAccountName,
 					PriorityClassName:             pkgcommon.FalconPriorityClassName,
 					ImagePullSecrets:              imagePullSecrets,
 					NodeSelector: map[string]string{
@@ -193,7 +193,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 							Name: name + "-tls-certs",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: pkgcommon.AdmissionTLSSecretName,
+									SecretName: pkgcommon.ClusterGuardControllerTLSSecretName,
 								},
 							},
 						},
@@ -201,7 +201,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 							Name: "api-tls-certs",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: pkgcommon.AdmissionAPITLSSecretName,
+									SecretName: pkgcommon.ClusterGuardControllerAPITLSSecretName,
 								},
 							},
 						},
@@ -209,7 +209,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 							Name: "falcon-api-ca",
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
-									SecretName: pkgcommon.AdmissionAPICASecretName,
+									SecretName: pkgcommon.ClusterGuardControllerAPICASecretName,
 								},
 							},
 						},
@@ -233,7 +233,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: pkgcommon.AdmissionConfigMapName,
+											Name: pkgcommon.ClusterGuardControllerConfigMapName,
 										},
 									},
 								},
@@ -298,7 +298,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: pkgcommon.AdmissionConfigMapName,
+											Name: pkgcommon.ClusterGuardControllerConfigMapName,
 										},
 									},
 								},
@@ -353,12 +353,12 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 							Resources: resourcesWatcher,
 							Ports: []corev1.ContainerPort{
 								{
-									ContainerPort: pkgcommon.AdmissionWatcherHTTPPort,
+									ContainerPort: pkgcommon.ClusterGuardControllerWatcherHTTPPort,
 									Name:          "watcher-health",
 									Protocol:      corev1.ProtocolTCP,
 								},
 								{
-									ContainerPort: pkgcommon.AdmissionGRPCPort,
+									ContainerPort: pkgcommon.ClusterGuardControllerGRPCPort,
 									Name:          "grpc-port",
 									Protocol:      corev1.ProtocolTCP,
 								},
@@ -388,7 +388,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 								{
 									ConfigMapRef: &corev1.ConfigMapEnvSource{
 										LocalObjectReference: corev1.LocalObjectReference{
-											Name: pkgcommon.AdmissionConfigMapName,
+											Name: pkgcommon.ClusterGuardControllerConfigMapName,
 										},
 									},
 								},
@@ -404,7 +404,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   pkgcommon.FalconAdmissionClientStartupProbePath,
-										Port:   intstr.FromInt32(pkgcommon.AdmissionWatcherHTTPPort),
+										Port:   intstr.FromInt32(pkgcommon.ClusterGuardControllerWatcherHTTPPort),
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
@@ -418,7 +418,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   pkgcommon.FalconAdmissionClientLivenessProbePath,
-										Port:   intstr.FromInt32(pkgcommon.AdmissionWatcherHTTPPort),
+										Port:   intstr.FromInt32(pkgcommon.ClusterGuardControllerWatcherHTTPPort),
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
@@ -448,7 +448,7 @@ func (a *ClusterGuardController) reconcileDeployment(ctx context.Context) error 
 
 	existing := &appsv1.Deployment{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, dep, existing,
-		types.NamespacedName{Name: pkgcommon.AdmissionDeploymentName, Namespace: a.cfg.InstallNamespace},
+		types.NamespacedName{Name: pkgcommon.ClusterGuardControllerDeploymentName, Namespace: a.cfg.InstallNamespace},
 		"Failed to get FalconClusterGuard Deployment")
 	if !found || err != nil {
 		return err
@@ -456,7 +456,7 @@ func (a *ClusterGuardController) reconcileDeployment(ctx context.Context) error 
 
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		if err := pkgcommon.GetNamespacedObject(ctx, a.r, a.r.GetK8sReader(),
-			types.NamespacedName{Name: pkgcommon.AdmissionDeploymentName, Namespace: a.cfg.InstallNamespace},
+			types.NamespacedName{Name: pkgcommon.ClusterGuardControllerDeploymentName, Namespace: a.cfg.InstallNamespace},
 			existing); err != nil {
 			return err
 		}
@@ -642,7 +642,7 @@ func (a *ClusterGuardController) triggerRollingDeployment(ctx context.Context) e
 	const configVersionAnnotation = "falcon.config.version"
 	existing := &appsv1.Deployment{}
 	if err := pkgcommon.GetNamespacedObject(ctx, a.r, a.r.GetK8sReader(),
-		types.NamespacedName{Name: pkgcommon.AdmissionDeploymentName, Namespace: a.cfg.InstallNamespace},
+		types.NamespacedName{Name: pkgcommon.ClusterGuardControllerDeploymentName, Namespace: a.cfg.InstallNamespace},
 		existing); err != nil {
 		a.r.GetLog().Error(err, "Failed to get FalconClusterGuard Deployment for rolling restart")
 		return err
