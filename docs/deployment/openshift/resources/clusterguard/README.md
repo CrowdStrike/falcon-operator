@@ -116,9 +116,65 @@ spec:
 | nodeSensor.version                          | (optional) Reserved for future use. In FalconClusterGuard, sensor version is controlled by the top-level `version` field which applies to both components. This field has no effect.            |
 | nodeSensor.advanced.autoUpdate              | (optional) Reserved for future use. Automatic sensor update tracking is not yet implemented for FalconClusterGuard. Use the top-level `version` field to pin a specific sensor version.         |
 | nodeSensor.advanced.updatePolicy            | (optional) Reserved for future use. Sensor update policies are not yet implemented for FalconClusterGuard. Use the top-level `version` field to pin a specific sensor version.                  |
+| nodeSensor.guardian.proxy.enabled           | (optional) Enable the Guardian Local Proxy sidecar on the node sensor DaemonSet. When enabled, creates a `falcon-proxy` Service with `internalTrafficPolicy: Local`. Default is `false`.       |
+| nodeSensor.guardian.proxy.port              | (optional) Container port the guardian proxy listens on. Must be in range 1024–65535. Default is `48080`.                                                                                       |
+| nodeSensor.guardian.proxy.tlsSecretName     | (optional) Name of a Secret containing CA certificate(s) for upstream TLS verification. Mounted as `optional: true` — the pod starts even if the Secret does not exist. Default is `falcon-proxy-tls`. |
+| nodeSensor.dnsConfig                        | (optional) Additional DNS parameters appended to the node sensor pod spec (`podSpec.dnsConfig`). Useful for adding custom nameservers or search domains when `hostNetwork: true` forces `dnsPolicy: ClusterFirstWithHostNet`. |
 
 > [!IMPORTANT]
 > nodeSensor.tolerations will be appended to the existing tolerations for the daemonset. Removing tolerations from an existing daemonset requires a redeploy of the FalconClusterGuard manifest.
+
+#### Guardian Local Proxy
+
+When `nodeSensor.guardian.proxy.enabled: true`, the operator:
+
+1. Exposes a named `proxy` port (default `48080`) on the sensor container.
+2. Creates a `falcon-proxy` Service with `internalTrafficPolicy: Local` so traffic is always routed to the proxy pod on the **same node** — no cross-node hops.
+
+```yaml
+spec:
+  nodeSensor:
+    guardian:
+      proxy:
+        enabled: true
+        port: 48080
+```
+
+If the proxy needs to verify TLS certificates for upstream endpoints, create a Secret containing the CA bundle and reference it via `nodeSensor.guardian.proxy.tlsSecretName`:
+
+```bash
+oc create secret generic falcon-proxy-tls \
+  -n falcon-system \
+  --from-file=ca.crt=/path/to/ca.crt
+```
+
+```yaml
+spec:
+  nodeSensor:
+    guardian:
+      proxy:
+        enabled: true
+        tlsSecretName: falcon-proxy-tls
+```
+
+The Secret is declared `optional: true`, so the pod will start even if the Secret does not exist — the proxy simply runs without a custom CA bundle.
+
+#### Custom DNS for the Node Sensor
+
+The node sensor pod runs with `hostNetwork: true`, which forces `dnsPolicy: ClusterFirstWithHostNet`. This is not configurable. If you need additional DNS search domains or custom nameservers for the sensor pod, use `nodeSensor.dnsConfig`:
+
+```yaml
+spec:
+  nodeSensor:
+    dnsConfig:
+      nameservers:
+        - "10.0.0.53"
+      searches:
+        - "corp.internal"
+      options:
+        - name: ndots
+          value: "2"
+```
 
 #### Falcon Sensor Settings
 | Spec                      | Description                                                                                                                                                                                                                  |
