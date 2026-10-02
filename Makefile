@@ -451,7 +451,9 @@ HELM_CLUSTERROLE_TEMPLATES = \
 	$(HELM_CHART_DIR)/templates/rbac/image-controller-role.yaml \
 	$(HELM_CHART_DIR)/templates/rbac/manager-role.yaml \
 	$(HELM_CHART_DIR)/templates/rbac/manager-rolebinding.yaml \
-	$(HELM_CHART_DIR)/templates/rbac/node-sensor-role.yaml
+	$(HELM_CHART_DIR)/templates/rbac/node-sensor-role.yaml \
+	$(HELM_CHART_DIR)/templates/rbac/falcon-clusterguard-resource-reader.yaml \
+	$(HELM_CHART_DIR)/templates/rbac/falcon-sensor-access-role.yaml
 
 .PHONY: helm-build
 helm-build: kubebuilder
@@ -473,9 +475,11 @@ helm-build: kubebuilder
 			 s/\{\{- if \.Values\.rbac\.namespaced \}\}\n  namespace: \{\{ \.Release\.Namespace \}\}\n\{\{- end \}\}\n//g' \
 			$$f; \
 	done
+	@# Fix webhook service targetPort — kubebuilder parameterizes it as .Values.webhook.port (443) but the manager listens on 9443
+	perl -i -pe 's/targetPort: \{\{ \.Values\.webhook\.port \}\}/targetPort: 9443/' $(HELM_CHART_DIR)/templates/webhook/webhook-service.yaml
 	@# Update manager image tag in values.yaml from the deploy manifest
 	@TAG=$$(grep -m1 'image: ' deploy/falcon-operator.yaml | awk -F: '{print $$NF}'); \
-	yq -i ".manager.image.tag = \"$$TAG\"" $(HELM_CHART_DIR)/values.yaml
+	perl -i -pe "s|^(    tag: ).*|\$${1}\"$$TAG\"|" $(HELM_CHART_DIR)/values.yaml
 
 .PHONY: helm-package
 helm-package: ## Package the Helm chart into a .tgz archive in the current directory.
