@@ -83,7 +83,7 @@ func (a *ClusterGuardController) Reconcile(ctx context.Context) (ctrl.Result, er
 
 	if configUpdated || clusterNameConfigUpdated || webhookServiceUpdated || apiServiceUpdated || webhookUpdated {
 		pod, err := k8sutils.GetReadyPod(a.r.GetK8sReader(), ctx, a.cfg.InstallNamespace,
-			client.MatchingLabels{"app": pkgcommon.AdmissionServiceApp})
+			client.MatchingLabels{"app": pkgcommon.ClusterGuardControllerServiceApp})
 		if err != nil && err != k8sutils.ErrNoWebhookServicePodReady {
 			log.Error(err, "Failed to find Ready FalconClusterGuard pod")
 			return ctrl.Result{}, err

@@ -24,7 +24,7 @@ func (n *NodeSensor) reconcilePriorityClass(ctx context.Context) error {
 
 	name := pc.Name
 	if name == "" {
-		name = pkgcommon.ClusterGuardSensorPriorityClassName
+		name = pkgcommon.ClusterGuardNodeSensorPriorityClassName
 	}
 
 	desired := assets.PriorityClass(name, pc.Value)

@@ -110,7 +110,7 @@ func TestClusterGuardSensorDaemonSetUsesNamePrefix(t *testing.T) {
 		t.Errorf("expected DaemonSet name %q, got %q", expectedName, ds.Name)
 	}
 	// SA name is fixed regardless of prefix
-	expectedSA := pkgcommon.ClusterGuardSensorServiceAccountName
+	expectedSA := pkgcommon.ClusterGuardNodeSensorServiceAccountName
 	if ds.Spec.Template.Spec.ServiceAccountName != expectedSA {
 		t.Errorf("expected ServiceAccountName %q, got %q", expectedSA, ds.Spec.Template.Spec.ServiceAccountName)
 	}
@@ -470,7 +470,7 @@ func TestNodeSensorConfigMapNameWithPrefix(t *testing.T) {
 	n := New(nil, cfg)
 	ds := n.daemonSet()
 
-	expectedCM := pkgcommon.ClusterGuardSensorConfigMapName
+	expectedCM := pkgcommon.ClusterGuardNodeSensorConfigMapName
 	found := false
 	for _, ef := range ds.Spec.Template.Spec.Containers[0].EnvFrom {
 		if ef.ConfigMapRef != nil && ef.ConfigMapRef.Name == expectedCM {
@@ -640,8 +640,8 @@ func TestNodeSensorConfigMapNameUsesPrefix(t *testing.T) {
 	n := New(nil, cfg)
 	cm := n.configMap()
 
-	if cm.Name != pkgcommon.ClusterGuardSensorConfigMapName {
-		t.Errorf("expected ConfigMap name %q, got %q", pkgcommon.ClusterGuardSensorConfigMapName, cm.Name)
+	if cm.Name != pkgcommon.ClusterGuardNodeSensorConfigMapName {
+		t.Errorf("expected ConfigMap name %q, got %q", pkgcommon.ClusterGuardNodeSensorConfigMapName, cm.Name)
 	}
 	if cm.Namespace != "test-ns" {
 		t.Errorf("expected namespace %q, got %q", "test-ns", cm.Namespace)
@@ -677,8 +677,8 @@ func TestNodeSensorServiceAccountName(t *testing.T) {
 	if sa == nil {
 		t.Fatal("expected non-nil ServiceAccount")
 	}
-	if sa.Name != pkgcommon.ClusterGuardSensorServiceAccountName {
-		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardSensorServiceAccountName, sa.Name)
+	if sa.Name != pkgcommon.ClusterGuardNodeSensorServiceAccountName {
+		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardNodeSensorServiceAccountName, sa.Name)
 	}
 	if sa.Namespace != "falcon-clusterguard" {
 		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", sa.Namespace)
@@ -697,8 +697,8 @@ func TestNodeSensorServiceAccountNameUsesPrefix(t *testing.T) {
 	sa := n.serviceAccount()
 
 	// SA name is always the fixed constant regardless of prefix
-	if sa.Name != pkgcommon.ClusterGuardSensorServiceAccountName {
-		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardSensorServiceAccountName, sa.Name)
+	if sa.Name != pkgcommon.ClusterGuardNodeSensorServiceAccountName {
+		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardNodeSensorServiceAccountName, sa.Name)
 	}
 	if sa.Namespace != "test-ns" {
 		t.Errorf("expected namespace %q, got %q", "test-ns", sa.Namespace)
@@ -756,8 +756,8 @@ func TestNodeSensorClusterRoleBindingName(t *testing.T) {
 	if crb == nil {
 		t.Fatal("expected non-nil ClusterRoleBinding")
 	}
-	if crb.Name != pkgcommon.ClusterGuardSensorClusterRoleBindingName {
-		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardSensorClusterRoleBindingName, crb.Name)
+	if crb.Name != pkgcommon.ClusterGuardNodeSensorClusterRoleBindingName {
+		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardNodeSensorClusterRoleBindingName, crb.Name)
 	}
 }
 
@@ -772,8 +772,8 @@ func TestNodeSensorClusterRoleBindingNameUsesPrefix(t *testing.T) {
 	n := New(nil, cfg)
 	crb := n.clusterRoleBinding()
 
-	if crb.Name != pkgcommon.ClusterGuardSensorClusterRoleBindingName {
-		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardSensorClusterRoleBindingName, crb.Name)
+	if crb.Name != pkgcommon.ClusterGuardNodeSensorClusterRoleBindingName {
+		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardNodeSensorClusterRoleBindingName, crb.Name)
 	}
 }
 
@@ -789,8 +789,8 @@ func TestNodeSensorClusterRoleBindingRoleRef(t *testing.T) {
 	if crb.RoleRef.Kind != "ClusterRole" {
 		t.Errorf("expected RoleRef.Kind=ClusterRole, got %q", crb.RoleRef.Kind)
 	}
-	if crb.RoleRef.Name != pkgcommon.ClusterGuardSensorClusterRoleName {
-		t.Errorf("expected RoleRef.Name=%q, got %q", pkgcommon.ClusterGuardSensorClusterRoleName, crb.RoleRef.Name)
+	if crb.RoleRef.Name != pkgcommon.ClusterGuardNodeSensorClusterRoleName {
+		t.Errorf("expected RoleRef.Name=%q, got %q", pkgcommon.ClusterGuardNodeSensorClusterRoleName, crb.RoleRef.Name)
 	}
 	if crb.RoleRef.APIGroup != "rbac.authorization.k8s.io" {
 		t.Errorf("expected RoleRef.APIGroup=rbac.authorization.k8s.io, got %q", crb.RoleRef.APIGroup)
@@ -815,8 +815,8 @@ func TestNodeSensorClusterRoleBindingSubjectPointsToSA(t *testing.T) {
 	if subj.Kind != "ServiceAccount" {
 		t.Errorf("expected subject Kind=ServiceAccount, got %q", subj.Kind)
 	}
-	if subj.Name != pkgcommon.ClusterGuardSensorServiceAccountName {
-		t.Errorf("expected subject Name=%q, got %q", pkgcommon.ClusterGuardSensorServiceAccountName, subj.Name)
+	if subj.Name != pkgcommon.ClusterGuardNodeSensorServiceAccountName {
+		t.Errorf("expected subject Name=%q, got %q", pkgcommon.ClusterGuardNodeSensorServiceAccountName, subj.Name)
 	}
 	if subj.Namespace != "test-ns" {
 		t.Errorf("expected subject Namespace=%q, got %q", "test-ns", subj.Namespace)
@@ -837,8 +837,8 @@ func TestNodeSensorCleanupServiceAccountName(t *testing.T) {
 	if sa == nil {
 		t.Fatal("expected non-nil cleanup ServiceAccount")
 	}
-	if sa.Name != pkgcommon.ClusterGuardSensorCleanupServiceAccountName {
-		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardSensorCleanupServiceAccountName, sa.Name)
+	if sa.Name != pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName {
+		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName, sa.Name)
 	}
 	if sa.Namespace != "falcon-clusterguard" {
 		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", sa.Namespace)
@@ -857,8 +857,8 @@ func TestNodeSensorCleanupServiceAccountNameUsesPrefix(t *testing.T) {
 	sa := n.cleanupServiceAccount()
 
 	// Cleanup SA name is always the fixed constant regardless of prefix
-	if sa.Name != pkgcommon.ClusterGuardSensorCleanupServiceAccountName {
-		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardSensorCleanupServiceAccountName, sa.Name)
+	if sa.Name != pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName {
+		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName, sa.Name)
 	}
 }
 

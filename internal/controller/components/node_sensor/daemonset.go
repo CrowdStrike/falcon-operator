@@ -72,7 +72,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 
 	secretDefaultMode := int32(420)
 	podSpec := corev1.PodSpec{
-		ServiceAccountName:            pkgcommon.ClusterGuardSensorServiceAccountName,
+		ServiceAccountName:            pkgcommon.ClusterGuardNodeSensorServiceAccountName,
 		TerminationGracePeriodSeconds: &terminationGracePeriod,
 		PriorityClassName:             n.cfg.NodeSensor.PriorityClass.Name,
 		HostNetwork:                   true,
@@ -226,7 +226,7 @@ func (n *NodeSensor) cleanupDaemonSet() *appsv1.DaemonSet {
 					},
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName:            pkgcommon.ClusterGuardSensorCleanupServiceAccountName,
+					ServiceAccountName:            pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName,
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
 					HostPID:                       true,
 					NodeSelector: map[string]string{
@@ -409,7 +409,7 @@ func (n *NodeSensor) configMapName() string {
 	if n.cfg.NodeSensor.GKE.Enabled != nil && *n.cfg.NodeSensor.GKE.Enabled {
 		return pkgcommon.GKEAutoPilotConfigMapName
 	}
-	return pkgcommon.ClusterGuardSensorConfigMapName
+	return pkgcommon.ClusterGuardNodeSensorConfigMapName
 }
 
 // isInitReadOnlyRootFilesystem returns whether init container should have read-only root filesystem
@@ -682,7 +682,7 @@ func (n *NodeSensor) reconcileDaemonSet(ctx context.Context) error {
 func (n *NodeSensor) reconcileCleanupServiceAccount(ctx context.Context) error {
 	sa := n.cleanupServiceAccount()
 	_, err := k8sutils.GetOrCreate(ctx, n.r, n.cfg.Request, n.cfg.Owner, n.cfg.Status, sa, &corev1.ServiceAccount{},
-		types.NamespacedName{Name: pkgcommon.ClusterGuardSensorCleanupServiceAccountName, Namespace: n.cfg.InstallNamespace},
+		types.NamespacedName{Name: pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName, Namespace: n.cfg.InstallNamespace},
 		"Failed to get FalconClusterGuard sensor cleanup ServiceAccount")
 	return err
 }

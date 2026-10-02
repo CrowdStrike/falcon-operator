@@ -403,6 +403,7 @@ catalog-push: ## Push a catalog image.
 
 .PHONY: non-olm
 non-olm: kustomize ## Generate non-olm deployment manifest
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/non-olm -o deploy/falcon-operator.yaml
 	perl -pi -e 's/FALCON_OPERATOR_MANIFEST_PLACEHOLDER/$(VERSION)/g' deploy/falcon-operator.yaml
 
@@ -472,6 +473,9 @@ helm-build: kubebuilder
 			 s/\{\{- if \.Values\.rbac\.namespaced \}\}\n  namespace: \{\{ \.Release\.Namespace \}\}\n\{\{- end \}\}\n//g' \
 			$$f; \
 	done
+	@# Update manager image tag in values.yaml from the deploy manifest
+	@TAG=$$(grep -m1 'image: ' deploy/falcon-operator.yaml | awk -F: '{print $$NF}'); \
+	yq -i ".manager.image.tag = \"$$TAG\"" $(HELM_CHART_DIR)/values.yaml
 
 .PHONY: helm-package
 helm-package: ## Package the Helm chart into a .tgz archive in the current directory.

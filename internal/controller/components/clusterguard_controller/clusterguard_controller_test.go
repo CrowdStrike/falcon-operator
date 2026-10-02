@@ -10,7 +10,7 @@ import (
 )
 
 func TestClusterGuardDeploymentReturnsDeployment(t *testing.T) {
-	name := common.AdmissionDeploymentName
+	name := common.ClusterGuardControllerDeploymentName
 	namespace := "falcon-clusterguard"
 	imageUri := "quay.io/crowdstrike/falcon-clusterguard:latest"
 	imagePullPolicy := corev1.PullIfNotPresent
@@ -63,8 +63,8 @@ func TestClusterGuardValidatingWebhookReturnsWebhook(t *testing.T) {
 	if webhook == nil {
 		t.Fatal("expected non-nil ValidatingWebhookConfiguration")
 	}
-	if webhook.Name != common.AdmissionValidatingWebhookName {
-		t.Errorf("expected name %q, got %q", common.AdmissionValidatingWebhookName, webhook.Name)
+	if webhook.Name != common.ClusterGuardControllerValidatingWebhookName {
+		t.Errorf("expected name %q, got %q", common.ClusterGuardControllerValidatingWebhookName, webhook.Name)
 	}
 	if len(webhook.Webhooks) != 3 {
 		t.Errorf("expected 3 webhooks, got %d", len(webhook.Webhooks))
@@ -364,8 +364,8 @@ func TestAdmissionClusterRoleBindingRoleRef(t *testing.T) {
 	if crb.RoleRef.Kind != "ClusterRole" {
 		t.Errorf("expected RoleRef.Kind=ClusterRole, got %q", crb.RoleRef.Kind)
 	}
-	if crb.RoleRef.Name != common.FCGAdmissionClusterRoleName {
-		t.Errorf("expected RoleRef.Name=%q, got %q", common.FCGAdmissionClusterRoleName, crb.RoleRef.Name)
+	if crb.RoleRef.Name != common.ClusterGuardControllerClusterRoleName {
+		t.Errorf("expected RoleRef.Name=%q, got %q", common.ClusterGuardControllerClusterRoleName, crb.RoleRef.Name)
 	}
 	if crb.RoleRef.APIGroup != "rbac.authorization.k8s.io" {
 		t.Errorf("expected RoleRef.APIGroup=rbac.authorization.k8s.io, got %q", crb.RoleRef.APIGroup)
@@ -387,8 +387,8 @@ func TestAdmissionClusterRoleBindingSubjectPointsToSA(t *testing.T) {
 	if subj.Kind != "ServiceAccount" {
 		t.Errorf("expected subject Kind=ServiceAccount, got %q", subj.Kind)
 	}
-	if subj.Name != common.AdmissionModuleServiceAccountName {
-		t.Errorf("expected subject Name=%q, got %q", common.AdmissionModuleServiceAccountName, subj.Name)
+	if subj.Name != common.ClusterGuardControllerServiceAccountName {
+		t.Errorf("expected subject Name=%q, got %q", common.ClusterGuardControllerServiceAccountName, subj.Name)
 	}
 	if subj.Namespace != "test-ns" {
 		t.Errorf("expected subject Namespace=%q, got %q", "test-ns", subj.Namespace)
@@ -427,8 +427,8 @@ func TestAdmissionRoleBindingRoleRef(t *testing.T) {
 	if rb.RoleRef.Kind != "Role" {
 		t.Errorf("expected RoleRef.Kind=Role, got %q", rb.RoleRef.Kind)
 	}
-	if rb.RoleRef.Name != common.AdmissionNamespaceRoleName {
-		t.Errorf("expected RoleRef.Name=%q, got %q", common.AdmissionNamespaceRoleName, rb.RoleRef.Name)
+	if rb.RoleRef.Name != common.ClusterGuardControllerNamespaceRoleName {
+		t.Errorf("expected RoleRef.Name=%q, got %q", common.ClusterGuardControllerNamespaceRoleName, rb.RoleRef.Name)
 	}
 }
 
@@ -443,8 +443,8 @@ func TestAdmissionRoleBindingSubjectPointsToSA(t *testing.T) {
 	if len(rb.Subjects) != 1 {
 		t.Fatalf("expected 1 subject, got %d", len(rb.Subjects))
 	}
-	if rb.Subjects[0].Name != common.AdmissionModuleServiceAccountName {
-		t.Errorf("expected subject Name=%q, got %q", common.AdmissionModuleServiceAccountName, rb.Subjects[0].Name)
+	if rb.Subjects[0].Name != common.ClusterGuardControllerServiceAccountName {
+		t.Errorf("expected subject Name=%q, got %q", common.ClusterGuardControllerServiceAccountName, rb.Subjects[0].Name)
 	}
 	if rb.Subjects[0].Namespace != "test-ns" {
 		t.Errorf("expected subject Namespace=%q, got %q", "test-ns", rb.Subjects[0].Namespace)
@@ -518,8 +518,8 @@ func TestAdmissionWebhookServiceName(t *testing.T) {
 	if svc == nil {
 		t.Fatal("expected non-nil Service")
 	}
-	if svc.Name != common.AdmissionWebhookServiceName {
-		t.Errorf("expected name %q, got %q", common.AdmissionWebhookServiceName, svc.Name)
+	if svc.Name != common.ClusterGuardControllerWebhookServiceName {
+		t.Errorf("expected name %q, got %q", common.ClusterGuardControllerWebhookServiceName, svc.Name)
 	}
 	if svc.Namespace != "falcon-clusterguard" {
 		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", svc.Namespace)
@@ -534,8 +534,8 @@ func TestAdmissionWebhookServiceSelectorUsesFalconKAC(t *testing.T) {
 	})
 	svc := a.webhookService()
 
-	if svc.Spec.Selector["app"] != common.AdmissionServiceApp {
-		t.Errorf("expected selector app=%q, got %q", common.AdmissionServiceApp, svc.Spec.Selector["app"])
+	if svc.Spec.Selector["app"] != common.ClusterGuardControllerServiceApp {
+		t.Errorf("expected selector app=%q, got %q", common.ClusterGuardControllerServiceApp, svc.Spec.Selector["app"])
 	}
 }
 
@@ -568,8 +568,8 @@ func TestAdmissionAPIServiceName(t *testing.T) {
 	if svc == nil {
 		t.Fatal("expected non-nil Service")
 	}
-	if svc.Name != common.AdmissionAPIServiceName {
-		t.Errorf("expected name %q, got %q", common.AdmissionAPIServiceName, svc.Name)
+	if svc.Name != common.ClusterGuardControllerAPIServiceName {
+		t.Errorf("expected name %q, got %q", common.ClusterGuardControllerAPIServiceName, svc.Name)
 	}
 	if svc.Namespace != "falcon-clusterguard" {
 		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", svc.Namespace)
@@ -584,8 +584,8 @@ func TestAdmissionAPIServiceSelectorUsesFalconKAC(t *testing.T) {
 	})
 	svc := a.apiService()
 
-	if svc.Spec.Selector["app"] != common.AdmissionServiceApp {
-		t.Errorf("expected selector app=%q, got %q", common.AdmissionServiceApp, svc.Spec.Selector["app"])
+	if svc.Spec.Selector["app"] != common.ClusterGuardControllerServiceApp {
+		t.Errorf("expected selector app=%q, got %q", common.ClusterGuardControllerServiceApp, svc.Spec.Selector["app"])
 	}
 }
 

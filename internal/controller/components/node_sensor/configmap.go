@@ -37,7 +37,7 @@ func (n *NodeSensor) configMap() *corev1.ConfigMap {
 		data["FALCONCTL_OPT_CID"] = n.cfg.Cid
 	}
 
-	return assets.SensorConfigMap(pkgcommon.ClusterGuardSensorConfigMapName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, data)
+	return assets.SensorConfigMap(pkgcommon.ClusterGuardNodeSensorConfigMapName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, data)
 }
 
 // syncConfigMap creates or updates a ConfigMap when its Data has drifted.

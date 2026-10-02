@@ -17,9 +17,9 @@ import (
 func (a *ClusterGuardController) reconcileTLSSecret(ctx context.Context) (*corev1.Secret, error) {
 	existing := &corev1.Secret{}
 	namespace := a.cfg.InstallNamespace
-	err := pkgcommon.GetNamespacedObject(ctx, a.r, a.r.GetK8sReader(), types.NamespacedName{Name: pkgcommon.AdmissionTLSSecretName, Namespace: namespace}, existing)
+	err := pkgcommon.GetNamespacedObject(ctx, a.r, a.r.GetK8sReader(), types.NamespacedName{Name: pkgcommon.ClusterGuardControllerTLSSecretName, Namespace: namespace}, existing)
 	if err != nil && apierrors.IsNotFound(err) {
-		svcName := fmt.Sprintf("%s.%s.svc", pkgcommon.AdmissionWebhookServiceName, namespace)
+		svcName := fmt.Sprintf("%s.%s.svc", pkgcommon.ClusterGuardControllerWebhookServiceName, namespace)
 		altDNSNames := []string{
 			svcName,
 			fmt.Sprintf("%s.cluster.local", svcName),
@@ -34,9 +34,9 @@ func (a *ClusterGuardController) reconcileTLSSecret(ctx context.Context) (*corev
 			a.r.GetLog().Error(err, "Failed to generate FalconClusterGuard TLS certificates")
 			return &corev1.Secret{}, err
 		}
-		secretLabels := pkgcommon.CRLabels("secret", pkgcommon.AdmissionTLSSecretName, pkgcommon.AdmissionComponentName)
-		secretLabels["app"] = pkgcommon.AdmissionServiceApp
-		tlsSecret := assets.SecretWithCustomLabels(pkgcommon.AdmissionTLSSecretName, namespace,
+		secretLabels := pkgcommon.CRLabels("secret", pkgcommon.ClusterGuardControllerTLSSecretName, pkgcommon.ClusterGuardControllerComponentName)
+		secretLabels["app"] = pkgcommon.ClusterGuardControllerServiceApp
+		tlsSecret := assets.SecretWithCustomLabels(pkgcommon.ClusterGuardControllerTLSSecretName, namespace,
 			map[string][]byte{"tls.crt": cert, "tls.key": key, "ca.crt": ca}, corev1.SecretTypeTLS, secretLabels)
 		if err := k8sutils.Create(a.r, a.r.GetScheme(), ctx, a.cfg.Request, a.r.GetLog(), a.cfg.Owner, a.cfg.Status, tlsSecret); err != nil {
 			return &corev1.Secret{}, err
