@@ -36,6 +36,7 @@ Field mapping notes:
     node.priorityClass          -> falconClusterGuard.nodeSensor.priorityClass
     node.advanced               -> falconClusterGuard.nodeSensor.advanced
     node.clusterName            -> falconClusterGuard.nodeSensor.clusterName
+    node.version                -> (no equivalent, skipped)
     internal                    -> (no equivalent, skipped with warning)
 
   deployNodeSensor:
@@ -59,9 +60,22 @@ Field mapping notes:
     admissionConfig.watcherEnabled         -> falconClusterGuard.controller.watcherEnabled
     admissionConfig.snapshotsEnabled       -> falconClusterGuard.controller.snapshotsEnabled
     admissionConfig.snapshotsInterval      -> falconClusterGuard.controller.snapshotsInterval
-    admissionConfig.admissionControlEnabled -> falconClusterGuard.controller.admissionControlEnabled
-    admissionConfig.configMapWatcherEnabled -> falconClusterGuard.controller.configMapWatcherEnabled
-    resourcequota                          -> (no equivalent, skipped with warning)
+    admissionConfig.admissionControlEnabled  -> falconClusterGuard.controller.admissionControlEnabled
+    admissionConfig.configMapWatcherEnabled  -> falconClusterGuard.controller.configMapWatcherEnabled
+    admissionConfig.imagePullPolicy          -> falconClusterGuard.imagePullPolicy              (skipped if already set)
+    admissionConfig.imagePullSecrets         -> falconClusterGuard.imagePullSecrets             (skipped if already set)
+    admissionConfig.falconImageAnalyzerNamespace -> falconClusterGuard.controller.falconImageAnalyzerNamespace
+    admissionConfig.replicas                 -> falconClusterGuard.controller.replicas
+    admissionConfig.nodeAffinity             -> falconClusterGuard.controller.nodeAffinity
+    admissionConfig.tolerations              -> falconClusterGuard.controller.tolerations
+    admissionConfig.updateStrategy           -> falconClusterGuard.controller.updateStrategy
+    admissionConfig.resources                -> falconClusterGuard.controller.resources
+    admissionConfig.resourcesClient          -> falconClusterGuard.controller.resourcesClient
+    admissionConfig.resourcesClientNoWebhook -> falconClusterGuard.controller.resourcesClientNoWebhook
+    admissionConfig.resourcesWatcher         -> falconClusterGuard.controller.resourcesWatcher
+    admissionConfig.deployWatcher            -> (no equivalent, skipped)
+    version                                  -> (no equivalent, skipped)
+    resourcequota                            -> (no equivalent, skipped with warning)
 
 Usage:
   python3 hack/migration/migrate_to_clusterguard.py node-sensor.yaml admission.yaml -o falcon-deployment.yaml

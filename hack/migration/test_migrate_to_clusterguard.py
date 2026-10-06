@@ -586,6 +586,103 @@ def test_admission_config_configmap_watcher_enabled():
     assert spec["falconClusterGuard"]["controller"]["configMapWatcherEnabled"] is False
 
 
+def test_admission_config_falcon_image_analyzer_namespace():
+    spec, _ = run("""\
+  falconAdmission:
+    admissionConfig:
+      falconImageAnalyzerNamespace: falcon-iar
+""")
+    assert spec["falconClusterGuard"]["controller"]["falconImageAnalyzerNamespace"] == "falcon-iar"
+
+
+def test_admission_config_replicas():
+    spec, _ = run("""\
+  falconAdmission:
+    admissionConfig:
+      replicas: 3
+""")
+    assert spec["falconClusterGuard"]["controller"]["replicas"] == 3
+
+
+def test_admission_config_node_affinity():
+    spec, _ = run("""\
+  falconAdmission:
+    admissionConfig:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms: []
+""")
+    assert "nodeAffinity" in spec["falconClusterGuard"]["controller"]
+
+
+def test_admission_config_tolerations():
+    spec, _ = run("""\
+  falconAdmission:
+    admissionConfig:
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+""")
+    tols = spec["falconClusterGuard"]["controller"]["tolerations"]
+    assert tols[0]["key"] == "node-role.kubernetes.io/master"
+
+
+def test_admission_config_update_strategy():
+    spec, _ = run("""\
+  falconAdmission:
+    admissionConfig:
+      updateStrategy:
+        rollingUpdate:
+          maxUnavailable: 1
+""")
+    assert "updateStrategy" in spec["falconClusterGuard"]["controller"]
+
+
+def test_admission_config_resources():
+    spec, _ = run("""\
+  falconAdmission:
+    admissionConfig:
+      resources:
+        limits:
+          cpu: 500m
+""")
+    assert spec["falconClusterGuard"]["controller"]["resources"]["limits"]["cpu"] == "500m"
+
+
+def test_admission_config_resources_client():
+    spec, _ = run("""\
+  falconAdmission:
+    admissionConfig:
+      resourcesClient:
+        limits:
+          memory: 256Mi
+""")
+    assert spec["falconClusterGuard"]["controller"]["resourcesClient"]["limits"]["memory"] == "256Mi"
+
+
+def test_admission_config_resources_client_no_webhook():
+    spec, _ = run("""\
+  falconAdmission:
+    admissionConfig:
+      resourcesClientNoWebhook:
+        limits:
+          cpu: 250m
+""")
+    assert spec["falconClusterGuard"]["controller"]["resourcesClientNoWebhook"]["limits"]["cpu"] == "250m"
+
+
+def test_admission_config_resources_watcher():
+    spec, _ = run("""\
+  falconAdmission:
+    admissionConfig:
+      resourcesWatcher:
+        requests:
+          memory: 128Mi
+""")
+    assert spec["falconClusterGuard"]["controller"]["resourcesWatcher"]["requests"]["memory"] == "128Mi"
+
+
 # ── conflict resolution ───────────────────────────────────────────────────────
 
 def test_node_sensor_wins_install_namespace_conflict():
@@ -923,6 +1020,47 @@ def test_both_overrides_applied_together():
     assert fcg["image"] == "my-image:1.0"
     assert fcg["registry"]["type"] == "private"
     assert fcg["imagePullPolicy"] == "Never"
+
+
+def test_apply_overrides_admission_control_false():
+    fd_doc = _make_fd_doc("")
+    crs = {"FalconNodeSensor": _make_cr_spec("installNamespace: ns")}
+    result = assemble(fd_doc, crs, "falcon", [])
+    apply_overrides(result, None, None, admission_control=False)
+    assert result["spec"]["falconClusterGuard"]["controller"]["admissionControlEnabled"] is False
+
+
+def test_apply_overrides_admission_control_true():
+    fd_doc = _make_fd_doc("")
+    crs = {"FalconNodeSensor": _make_cr_spec("installNamespace: ns")}
+    result = assemble(fd_doc, crs, "falcon", [])
+    apply_overrides(result, None, None, admission_control=True)
+    assert result["spec"]["falconClusterGuard"]["controller"]["admissionControlEnabled"] is True
+
+
+def test_apply_overrides_admission_control_overrides_migrated():
+    """CLI --admission-control wins over value already migrated from admissionConfig."""
+    fd_doc = _make_fd_doc("")
+    crs = {"FalconAdmission": _make_cr_spec("admissionConfig:\n  admissionControlEnabled: true")}
+    result = assemble(fd_doc, crs, "falcon", [])
+    apply_overrides(result, None, None, admission_control=False)
+    assert result["spec"]["falconClusterGuard"]["controller"]["admissionControlEnabled"] is False
+
+
+def test_apply_overrides_image_analyzer_true():
+    fd_doc = _make_fd_doc("")
+    crs = {"FalconNodeSensor": _make_cr_spec("installNamespace: ns")}
+    result = assemble(fd_doc, crs, "falcon", [])
+    apply_overrides(result, None, None, image_analyzer=True)
+    assert result["spec"]["deployImageAnalyzer"] is True
+
+
+def test_apply_overrides_image_analyzer_false():
+    fd_doc = _make_fd_doc("")
+    crs = {"FalconImageAnalyzer": _make_cr_spec("installNamespace: ns")}
+    result = assemble(fd_doc, crs, "falcon", [])
+    apply_overrides(result, None, None, image_analyzer=False)
+    assert result["spec"]["deployImageAnalyzer"] is False
 
 
 # ── main() ───────────────────────────────────────────────────────────────────

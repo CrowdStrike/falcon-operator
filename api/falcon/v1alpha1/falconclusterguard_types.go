@@ -527,7 +527,7 @@ type FalconClusterGuardPriorityClassConfig struct {
 	Value *int32 `json:"value,omitempty"`
 }
 
-// --- Admission controller types ---
+// --- Cluster Guard controller types ---
 
 // FalconClusterGuardControllerServiceAccount defines service account metadata for the admission controller.
 type FalconClusterGuardControllerServiceAccount struct {
