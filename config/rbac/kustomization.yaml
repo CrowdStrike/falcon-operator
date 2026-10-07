@@ -26,6 +26,7 @@ resources:
 - falconclusterguard_admission_clusterrole.yaml
 - falconclusterguard_namespace_role.yaml
 - falconclusterguard_sensor_clusterrole.yaml
+- falconclusterguard_image_analyzer_clusterrole.yaml
 # For each CRD, "Editor" and "Viewer" roles are scaffolded by
 # default, aiding admins in cluster management. Those roles are
 # not used by the Project itself. You can comment the following lines

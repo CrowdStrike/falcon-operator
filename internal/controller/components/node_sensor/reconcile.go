@@ -12,14 +12,14 @@ import (
 	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	schedulingv1 "k8s.io/api/scheduling/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type Config struct {
@@ -46,41 +46,9 @@ func New(r k8sutils.Reconciler, cfg Config) *NodeSensor {
 	return &NodeSensor{r: r, cfg: cfg}
 }
 
+// Reconcile runs all node sensor reconciliation steps in order.
+// The FalconFinalizer is managed by the FalconClusterGuard controller, which calls Finalize on CR deletion.
 func (n *NodeSensor) Reconcile(ctx context.Context) (ctrl.Result, error) {
-	log := n.r.GetLog()
-
-	if n.cfg.Owner.GetDeletionTimestamp() != nil {
-		if controllerutil.ContainsFinalizer(n.cfg.Owner, pkgcommon.FalconFinalizer) {
-			log.Info("FalconClusterGuard is being deleted, running finalization logic")
-			if n.cfg.NodeSensor.NodeCleanup != nil && *n.cfg.NodeSensor.NodeCleanup {
-				log.Info("Skipping node cleanup because it is disabled", "disableCleanup", *n.cfg.NodeSensor.NodeCleanup)
-			} else {
-				done, err := n.finalize(ctx)
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-				if !done {
-					return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-				}
-			}
-			controllerutil.RemoveFinalizer(n.cfg.Owner, pkgcommon.FalconFinalizer)
-			if err := n.r.Update(ctx, n.cfg.Owner); err != nil {
-				return ctrl.Result{}, err
-			}
-			log.Info("Successfully finalized FalconClusterGuard")
-		}
-		return ctrl.Result{}, nil
-	}
-
-	if !controllerutil.ContainsFinalizer(n.cfg.Owner, pkgcommon.FalconFinalizer) {
-		controllerutil.AddFinalizer(n.cfg.Owner, pkgcommon.FalconFinalizer)
-		if err := n.r.Update(ctx, n.cfg.Owner); err != nil {
-			log.Error(err, "Unable to add finalizer to FalconClusterGuard")
-			return ctrl.Result{}, err
-		}
-		log.Info("Added finalizer to FalconClusterGuard")
-	}
-
 	if err := n.reconcileServiceAccount(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -100,29 +68,98 @@ func (n *NodeSensor) Reconcile(ctx context.Context) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	meta.SetStatusCondition(&n.cfg.Status.Conditions, metav1.Condition{
+	return ctrl.Result{}, k8sutils.ConditionsUpdate(n.r, ctx, n.cfg.Request, n.r.GetLog(), n.cfg.Owner, n.cfg.Status, metav1.Condition{
 		Type:               falconv1alpha1.ConditionNodeSensorReady,
 		Status:             metav1.ConditionTrue,
 		Reason:             falconv1alpha1.ReasonInstallSucceeded,
 		Message:            "Node sensor DaemonSet is ready",
 		ObservedGeneration: n.cfg.Owner.GetGeneration(),
 	})
+}
 
+// skipNodeCleanup reports whether the user disabled removal of /opt/CrowdStrike from the nodes.
+func (n *NodeSensor) skipNodeCleanup() bool {
+	return n.cfg.NodeSensor.NodeCleanup != nil && *n.cfg.NodeSensor.NodeCleanup
+}
+
+func (n *NodeSensor) sensorDaemonSetRef() *appsv1.DaemonSet {
+	return &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: n.prefix() + "-sensor", Namespace: n.cfg.InstallNamespace}}
+}
+
+func (n *NodeSensor) cleanupDaemonSetRef() *appsv1.DaemonSet {
+	return &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: n.prefix() + "-sensor-cleanup", Namespace: n.cfg.InstallNamespace}}
+}
+
+// Finalize runs node cleanup while the FalconClusterGuard is being deleted.
+// It requeues until the cleanup DaemonSet has run on every node; the remaining resources are garbage collected.
+func (n *NodeSensor) Finalize(ctx context.Context) (ctrl.Result, error) {
+	if n.skipNodeCleanup() {
+		n.r.GetLog().Info("Skipping node cleanup because it is disabled", "disableCleanup", true)
+		return ctrl.Result{}, nil
+	}
+	done, err := n.finalize(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !done {
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
 	return ctrl.Result{}, nil
+}
+
+// Cleanup removes the node sensor when the component is disabled.
+// If the sensor DaemonSet (or an in-progress cleanup DaemonSet) exists, node cleanup runs first and
+// Cleanup requeues until it finishes. It is a no-op once the resources are gone.
+func (n *NodeSensor) Cleanup(ctx context.Context) (ctrl.Result, error) {
+	sensorDS, err := components.GetOwned(ctx, n.r, n.cfg.Owner, n.sensorDaemonSetRef())
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	cleanupDS, err := components.GetOwned(ctx, n.r, n.cfg.Owner, n.cleanupDaemonSetRef())
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if sensorDS || cleanupDS {
+		if n.skipNodeCleanup() {
+			if err := components.DeleteOwned(ctx, n.r, n.cfg.Owner, n.sensorDaemonSetRef(), n.cleanupDaemonSetRef()); err != nil {
+				return ctrl.Result{}, err
+			}
+		} else if result, err := n.Finalize(ctx); err != nil || result.RequeueAfter > 0 {
+			return result, err
+		}
+	}
+
+	ns := n.cfg.InstallNamespace
+	objs := []client.Object{
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorConfigMapName, Namespace: ns}},
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.GKEAutoPilotConfigMapName, Namespace: ns}},
+		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorClusterRoleBindingName}},
+		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorServiceAccountName, Namespace: ns}},
+		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName, Namespace: ns}},
+		&schedulingv1.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorPriorityClassName}},
+	}
+	if pc := n.cfg.NodeSensor.PriorityClass.Name; pc != "" && pc != pkgcommon.ClusterGuardNodeSensorPriorityClassName {
+		objs = append(objs, &schedulingv1.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: pc}})
+	}
+	if err := components.DeleteOwned(ctx, n.r, n.cfg.Owner, objs...); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, k8sutils.ConditionsRemove(n.r, ctx, n.cfg.Request, n.r.GetLog(), n.cfg.Owner, n.cfg.Status,
+		falconv1alpha1.ConditionNodeSensorReady)
 }
 
 // Safe to call on every reconcile — delete and DaemonSet creation are idempotent.
 func (n *NodeSensor) finalize(ctx context.Context) (bool, error) {
 	dsCleanupName := n.prefix() + "-sensor-cleanup"
 
-	n.r.GetLog().Info("Deleting main sensor DaemonSet")
-	if err := n.r.Delete(ctx, &appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{Name: n.prefix() + "-sensor", Namespace: n.cfg.InstallNamespace},
-	}); err != nil && !apierrors.IsNotFound(err) {
-		n.r.GetLog().Error(err, "Failed to delete main sensor DaemonSet")
+	if err := components.DeleteOwned(ctx, n.r, n.cfg.Owner, n.sensorDaemonSetRef()); err != nil {
 		return false, err
 	}
 
+	if err := n.reconcileCleanupServiceAccount(ctx); err != nil {
+		return false, err
+	}
 	if err := n.reconcileCleanupDaemonSet(ctx); err != nil {
 		return false, err
 	}
@@ -188,9 +225,7 @@ func (n *NodeSensor) finalize(ctx context.Context) (bool, error) {
 	}
 
 	n.r.GetLog().Info("All cleanup pods completed, deleting cleanup DaemonSet")
-	if err := n.r.Delete(ctx, &appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{Name: dsCleanupName, Namespace: n.cfg.InstallNamespace},
-	}); err != nil && !apierrors.IsNotFound(err) {
+	if err := components.DeleteOwned(ctx, n.r, n.cfg.Owner, n.cleanupDaemonSetRef()); err != nil {
 		return false, err
 	}
 

@@ -204,6 +204,13 @@ func (n *NodeSensor) cleanupDaemonSet() *appsv1.DaemonSet {
 	allowPrivilegeEscalation := true
 	disallowPrivilegeEscalation := false
 
+	// Match the sensor DaemonSet so cleanup runs on every node the sensor ran on,
+	// and can pull the image without relying on the cleanup ServiceAccount.
+	tolerations := []corev1.Toleration{}
+	if n.cfg.NodeSensor.Tolerations != nil {
+		tolerations = *n.cfg.NodeSensor.Tolerations
+	}
+
 	return &appsv1.DaemonSet{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: appsv1.SchemeGroupVersion.String(),
@@ -229,6 +236,8 @@ func (n *NodeSensor) cleanupDaemonSet() *appsv1.DaemonSet {
 					ServiceAccountName:            pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName,
 					TerminationGracePeriodSeconds: &terminationGracePeriod,
 					HostPID:                       true,
+					Tolerations:                   tolerations,
+					ImagePullSecrets:              n.cfg.ImagePullSecrets,
 					NodeSelector: map[string]string{
 						"kubernetes.io/os": "linux",
 					},

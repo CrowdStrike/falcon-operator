@@ -77,6 +77,10 @@ func (a *ClusterGuardController) reconcileServiceAccount(ctx context.Context) er
 		}
 	}
 
+	if a.cfg.OpenShift {
+		sa.ImagePullSecrets = k8sutils.PreserveOpenShiftPullSecrets(sa.ImagePullSecrets, existing.ImagePullSecrets)
+	}
+
 	if !reflect.DeepEqual(sa.ImagePullSecrets, existing.ImagePullSecrets) {
 		a.r.GetLog().V(1).Info("Updating FalconClusterGuard ServiceAccount: ImagePullSecrets changed",
 			"old", existing.ImagePullSecrets,

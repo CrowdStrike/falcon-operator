@@ -416,6 +416,11 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "FalconClusterGuard")
 			os.Exit(1)
 		}
+
+		if err := (&falconv1alpha1.FalconImageAnalyzerValidator{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "FalconImageAnalyzer")
+			os.Exit(1)
+		}
 	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

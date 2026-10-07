@@ -822,6 +822,174 @@ func admissionDepVolumeMounts(name string, registryCAConfigMapName string, conta
 	return volumeMounts
 }
 
+// ImageAnalyzerDeploymentFromConfig returns a Deployment for the FCG-managed Image Analyzer component.
+// It accepts flat fields instead of a full FalconImageAnalyzer CR so it can be used by the FCG component.
+func ImageAnalyzerDeploymentFromConfig(
+	name string,
+	namespace string,
+	component string,
+	imageUri string,
+	imagePullPolicy corev1.PullPolicy,
+	imagePullSecrets []corev1.LocalObjectReference,
+	serviceAccountName string,
+	configMapName string,
+	tlsSecretName string,
+	spec falconv1alpha1.FalconClusterGuardImageAnalyzerSpec,
+) *appsv1.Deployment {
+	labels := common.CRLabels("deployment", name, component)
+	var replicaCount int32 = 1
+	hostPathFile := corev1.HostPathFile
+	var rootUid int64 = 0
+	privileged := false
+	allowPrivilegeEscalation := false
+	resources := &corev1.ResourceRequirements{}
+	if spec.Resources != nil {
+		resources = spec.Resources
+	}
+
+	volumeSizeLimit := spec.VolumeSizeLimit
+	if volumeSizeLimit == "" {
+		volumeSizeLimit = "20Gi"
+	}
+	volumeMountPath := spec.VolumeMountPath
+	if volumeMountPath == "" {
+		volumeMountPath = "/tmp"
+	}
+	sizeLimit := resource.MustParse(volumeSizeLimit)
+
+	volumes := []corev1.Volume{
+		{
+			Name: "tmp-volume",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					SizeLimit: &sizeLimit,
+				},
+			},
+		},
+		{
+			Name: tlsSecretName + "-certs",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: tlsSecretName,
+				},
+			},
+		},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "tmp-volume",
+			MountPath: volumeMountPath,
+		},
+		{
+			Name:      tlsSecretName + "-certs",
+			MountPath: "/run/secrets/tls",
+			ReadOnly:  true,
+		},
+	}
+
+	if spec.AzureConfigPath != "" {
+		volumes = append(volumes, corev1.Volume{
+			Name: "azure-config",
+			VolumeSource: corev1.VolumeSource{
+				HostPath: &corev1.HostPathVolumeSource{
+					Path: spec.AzureConfigPath,
+					Type: &hostPathFile,
+				},
+			},
+		})
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "azure-config",
+			MountPath: "/etc/kubernetes/azure.json",
+		})
+	}
+
+	rollingUpdate := appsv1.RollingUpdateDeployment{}
+	if spec.DepUpdateStrategy.RollingUpdate.MaxSurge != nil {
+		rollingUpdate.MaxSurge = spec.DepUpdateStrategy.RollingUpdate.MaxSurge
+	}
+	if spec.DepUpdateStrategy.RollingUpdate.MaxUnavailable != nil {
+		rollingUpdate.MaxUnavailable = spec.DepUpdateStrategy.RollingUpdate.MaxUnavailable
+	}
+
+	return &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: appsv1.SchemeGroupVersion.String(),
+			Kind:       "Deployment",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicaCount,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Strategy: appsv1.DeploymentStrategy{
+				Type:          appsv1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &rollingUpdate,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+					Annotations: map[string]string{
+						common.FalconContainerInjection: "disabled",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Affinity:           getNodeAffinity(spec.NodeAffinity),
+					ServiceAccountName: serviceAccountName,
+					NodeSelector:       common.NodeSelector,
+					PriorityClassName:  spec.PriorityClass.Name,
+					Tolerations:        spec.Tolerations,
+					ImagePullSecrets:   imagePullSecrets,
+					Volumes:            volumes,
+					Containers: []corev1.Container{
+						{
+							Name:            "falcon-image-analyzer",
+							Image:           imageUri,
+							ImagePullPolicy: imagePullPolicy,
+							Args:            []string{"-runmode", "watcher"},
+							SecurityContext: &corev1.SecurityContext{
+								RunAsUser:                &rootUid,
+								Privileged:               &privileged,
+								AllowPrivilegeEscalation: &allowPrivilegeEscalation,
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+								SeccompProfile: &corev1.SeccompProfile{
+									Type: corev1.SeccompProfileTypeRuntimeDefault,
+								},
+							},
+							Resources: *resources,
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: spec.IARAgentService.Port,
+									Name:          common.FalconImageAnalyzerAgentServicePortName,
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+							Env: common.OperatorMetaEnvVars(),
+							EnvFrom: []corev1.EnvFromSource{
+								{
+									ConfigMapRef: &corev1.ConfigMapEnvSource{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: configMapName,
+										},
+									},
+								},
+							},
+							VolumeMounts: volumeMounts,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func imageAnalyzerDepUpdateStrategy(imageAnalyzer *falconv1alpha1.FalconImageAnalyzer) appsv1.DeploymentStrategy {
 	rollingUpdateSettings := appsv1.RollingUpdateDeployment{}
 

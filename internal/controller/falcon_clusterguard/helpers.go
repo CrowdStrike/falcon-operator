@@ -12,7 +12,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func (r *FalconClusterGuardReconciler) injectFalconSecretData(ctx context.Context, fcg *falconv1alpha1.FalconClusterGuard) error {
@@ -45,5 +48,41 @@ func (r *FalconClusterGuardReconciler) reconcileImagePullSecret(ctx context.Cont
 		existing.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Secret"))
 		return k8sutils.Update(r.Client, ctx, req, r.log, fcg, &fcg.Status, existing)
 	}
+	return nil
+}
+
+// setFinalizer adds (present=true) or removes (present=false) the FalconFinalizer on the CR.
+// It patches only metadata.finalizers on a freshly fetched copy, so in-memory spec changes such as
+// injected FalconSecret credentials are never written back to the CR.
+func (r *FalconClusterGuardReconciler) setFinalizer(ctx context.Context, fcg *falconv1alpha1.FalconClusterGuard, present bool) error {
+	if controllerutil.ContainsFinalizer(fcg, common.FalconFinalizer) == present {
+		return nil
+	}
+
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latest := &falconv1alpha1.FalconClusterGuard{}
+		if err := r.Get(ctx, client.ObjectKeyFromObject(fcg), latest); err != nil {
+			return err
+		}
+		patchBase := latest.DeepCopy()
+		var changed bool
+		if present {
+			changed = controllerutil.AddFinalizer(latest, common.FalconFinalizer)
+		} else {
+			changed = controllerutil.RemoveFinalizer(latest, common.FalconFinalizer)
+		}
+		if changed {
+			if err := r.Patch(ctx, latest, client.MergeFromWithOptions(patchBase, client.MergeFromWithOptimisticLock{})); err != nil {
+				return err
+			}
+		}
+		fcg.SetFinalizers(latest.GetFinalizers())
+		return nil
+	})
+	if err != nil {
+		r.log.Error(err, "Failed to update FalconClusterGuard finalizers", "finalizer", common.FalconFinalizer, "present", present)
+		return err
+	}
+	r.log.Info("Updated FalconClusterGuard finalizers", "finalizer", common.FalconFinalizer, "present", present)
 	return nil
 }

@@ -8,7 +8,6 @@ import (
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/internal/controller/components"
 	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,8 +19,10 @@ type Config struct {
 	ClusterGuardControllerConfig falconv1alpha1.FalconClusterGuardController
 	ClusterName                  *string
 	RegistryTLS                  falconv1alpha1.RegistryTLSSpec
+	// ImageAnalyzerEnabled indicates IAR is deployed by FalconClusterGuard in InstallNamespace,
+	// which overrides ClusterGuardControllerConfig.FalconImageAnalyzerNamespace.
+	ImageAnalyzerEnabled bool
 }
-
 
 // Admission owns the reconciliation of all admission controller sub-resources.
 type ClusterGuardController struct {
@@ -95,13 +96,11 @@ func (a *ClusterGuardController) Reconcile(ctx context.Context) (ctrl.Result, er
 		return ctrl.Result{}, a.triggerRollingDeployment(ctx)
 	}
 
-	meta.SetStatusCondition(&a.cfg.Status.Conditions, metav1.Condition{
+	return ctrl.Result{}, k8sutils.ConditionsUpdate(a.r, ctx, a.cfg.Request, log, a.cfg.Owner, a.cfg.Status, metav1.Condition{
 		Type:               falconv1alpha1.ConditionAdmissionReady,
 		Status:             metav1.ConditionTrue,
 		Reason:             falconv1alpha1.ReasonInstallSucceeded,
 		Message:            "Admission controller is ready",
 		ObservedGeneration: a.cfg.Owner.GetGeneration(),
 	})
-
-	return ctrl.Result{}, nil
 }

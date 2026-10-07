@@ -688,13 +688,25 @@ func (a *ClusterGuardController) falconClientEnv() []corev1.EnvVar {
 			},
 		},
 	}
-	if a.cfg.ClusterGuardControllerConfig.FalconImageAnalyzerNamespace != nil {
+	if ns := a.imageAnalyzerNamespace(); ns != "" {
 		env = append(env, corev1.EnvVar{
 			Name:  "__CS_IAR_NAMESPACE",
-			Value: *a.cfg.ClusterGuardControllerConfig.FalconImageAnalyzerNamespace,
+			Value: ns,
 		})
 	}
 	return append(env, pkgcommon.OperatorMetaEnvVars()...)
+}
+
+// imageAnalyzerNamespace returns the namespace the admission controller uses to discover IAR.
+// When FalconClusterGuard deploys IAR, it is always co-located in InstallNamespace.
+func (a *ClusterGuardController) imageAnalyzerNamespace() string {
+	if a.cfg.ImageAnalyzerEnabled {
+		return a.cfg.InstallNamespace
+	}
+	if a.cfg.ClusterGuardControllerConfig.FalconImageAnalyzerNamespace != nil {
+		return *a.cfg.ClusterGuardControllerConfig.FalconImageAnalyzerNamespace
+	}
+	return ""
 }
 
 // admissionNodeAffinity returns the node affinity for the admission deployment.

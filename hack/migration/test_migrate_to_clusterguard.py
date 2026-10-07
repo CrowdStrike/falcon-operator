@@ -14,7 +14,8 @@ from ruamel.yaml.comments import CommentedMap
 
 sys.path.insert(0, os.path.dirname(__file__))
 from migrate_to_clusterguard import (
-    migrate, migrate_node_sensor, migrate_admission, load_files, assemble, apply_overrides, main,
+    migrate, migrate_node_sensor, migrate_admission, migrate_image_analyzer,
+    load_files, assemble, apply_overrides, main,
 )
 
 
@@ -1052,7 +1053,7 @@ def test_apply_overrides_image_analyzer_true():
     crs = {"FalconNodeSensor": _make_cr_spec("installNamespace: ns")}
     result = assemble(fd_doc, crs, "falcon", [])
     apply_overrides(result, None, None, image_analyzer=True)
-    assert result["spec"]["deployImageAnalyzer"] is True
+    assert result["spec"]["falconClusterGuard"]["imageAnalyzer"]["enabled"] is True
 
 
 def test_apply_overrides_image_analyzer_false():
@@ -1060,7 +1061,325 @@ def test_apply_overrides_image_analyzer_false():
     crs = {"FalconImageAnalyzer": _make_cr_spec("installNamespace: ns")}
     result = assemble(fd_doc, crs, "falcon", [])
     apply_overrides(result, None, None, image_analyzer=False)
+    assert result["spec"]["falconClusterGuard"]["imageAnalyzer"]["enabled"] is False
+
+
+# ── image analyzer migration ─────────────────────────────────────────────────
+
+def _run_with_iar(spec_yaml: str = "") -> tuple[CommentedMap, list]:
+    """Helper: build a FD with falconImageAnalyzer and run migrate()."""
+    doc = make_deployment(spec_yaml)
+    warnings = []
+    migrate(doc, warnings)
+    return doc["spec"], warnings
+
+
+def test_deploy_image_analyzer_set_false_after_migration():
+    spec, _ = _run_with_iar("  deployImageAnalyzer: true\n  falconImageAnalyzer:\n    installNamespace: ns")
+    assert spec["deployImageAnalyzer"] is False
+
+
+def test_image_analyzer_enabled_true_when_deploy_flag_was_true():
+    spec, _ = _run_with_iar("  deployImageAnalyzer: true\n  falconImageAnalyzer:\n    installNamespace: ns")
+    assert spec["falconClusterGuard"]["imageAnalyzer"]["enabled"] is True
+
+
+def test_image_analyzer_enabled_true_when_inferred_from_sub_spec():
+    spec, _ = _run_with_iar("  falconImageAnalyzer:\n    installNamespace: ns")
+    assert spec["falconClusterGuard"]["imageAnalyzer"]["enabled"] is True
+
+
+def test_image_analyzer_enabled_not_set_when_deploy_flag_false():
+    spec, _ = _run_with_iar("  deployImageAnalyzer: false")
+    assert spec["falconClusterGuard"].get("imageAnalyzer", {}).get("enabled") is not True
+
+
+def test_image_analyzer_sub_spec_removed_from_fd_after_migration():
+    spec, _ = _run_with_iar("  falconImageAnalyzer:\n    installNamespace: ns")
+    assert "falconImageAnalyzer" not in spec
+
+
+# migrate_image_analyzer: top-level promotions
+
+def test_image_analyzer_install_namespace_promoted():
+    spec, _ = _run_with_iar("  deployImageAnalyzer: true\n  falconImageAnalyzer:\n    installNamespace: falcon-iar")
+    assert spec["falconClusterGuard"]["installNamespace"] == "falcon-iar"
+
+
+def test_image_analyzer_falcon_api_promoted():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    falcon_api:\n"
+        "      client_id: iar-client\n"
+    )
+    assert spec["falconClusterGuard"]["falcon_api"]["client_id"] == "iar-client"
+
+
+def test_image_analyzer_falcon_api_does_not_overwrite_node_sensor():
+    spec, _ = _run_with_iar(
+        "  deployNodeSensor: true\n"
+        "  falconNodeSensor:\n"
+        "    falcon_api:\n"
+        "      client_id: node-client\n"
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    falcon_api:\n"
+        "      client_id: iar-client\n"
+    )
+    assert spec["falconClusterGuard"]["falcon_api"]["client_id"] == "node-client"
+
+
+def test_image_analyzer_image_skipped_with_warning():
+    spec, warnings = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    image: my-registry/iar:latest\n"
+    )
+    assert "image" not in spec["falconClusterGuard"]
+    assert any("falconImageAnalyzer.image" in w for w in warnings)
+
+
+def test_image_analyzer_version_skipped_with_warning():
+    _, warnings = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    version: 1.2.3\n"
+    )
+    assert any("version" in w for w in warnings)
+
+
+def test_image_analyzer_node_affinity_in_image_analyzer():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    nodeAffinity:\n"
+        "      requiredDuringSchedulingIgnoredDuringExecution:\n"
+        "        nodeSelectorTerms: []\n"
+    )
+    assert "nodeAffinity" in spec["falconClusterGuard"]["imageAnalyzer"]
+
+
+def test_image_analyzer_tolerations_in_image_analyzer():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    tolerations:\n"
+        "      - key: node-role.kubernetes.io/master\n"
+        "        operator: Exists\n"
+    )
+    tols = spec["falconClusterGuard"]["imageAnalyzer"]["tolerations"]
+    assert tols[0]["key"] == "node-role.kubernetes.io/master"
+
+
+def test_image_analyzer_registry_crowdstrike_translated():
+    spec, warnings = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    registry:\n"
+        "      type: crowdstrike\n"
+    )
+    assert spec["falconClusterGuard"]["registry"]["type"] == "crowdstrike"
+    assert not any("mapped to" in w for w in warnings)
+
+
+def test_image_analyzer_registry_ecr_mapped_to_private():
+    spec, warnings = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    registry:\n"
+        "      type: ecr\n"
+    )
+    assert spec["falconClusterGuard"]["registry"]["type"] == "private"
+    assert any("ecr" in w and "mapped to 'private'" in w for w in warnings)
+
+
+# migrate_image_analyzer: imageAnalyzerConfig sub-fields
+
+def test_image_analyzer_config_image_pull_policy_promoted_to_fcg():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    imageAnalyzerConfig:\n"
+        "      imagePullPolicy: Always\n"
+    )
+    assert spec["falconClusterGuard"]["imagePullPolicy"] == "Always"
+    assert "imagePullPolicy" not in spec["falconClusterGuard"].get("imageAnalyzer", {})
+
+
+def test_image_analyzer_config_image_pull_secrets_promoted_to_fcg():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    imageAnalyzerConfig:\n"
+        "      imagePullSecrets:\n"
+        "        - name: iar-secret\n"
+    )
+    assert spec["falconClusterGuard"]["imagePullSecrets"][0]["name"] == "iar-secret"
+    assert "imagePullSecrets" not in spec["falconClusterGuard"].get("imageAnalyzer", {})
+
+
+def test_image_analyzer_config_service_account():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    imageAnalyzerConfig:\n"
+        "      serviceAccount:\n"
+        "        annotations:\n"
+        "          eks.amazonaws.com/role-arn: arn:aws:iam::123:role/role\n"
+    )
+    assert "serviceAccount" in spec["falconClusterGuard"]["imageAnalyzer"]
+
+
+def test_image_analyzer_config_resources():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    imageAnalyzerConfig:\n"
+        "      resources:\n"
+        "        limits:\n"
+        "          cpu: 500m\n"
+    )
+    assert spec["falconClusterGuard"]["imageAnalyzer"]["resources"]["limits"]["cpu"] == "500m"
+
+
+def test_image_analyzer_config_azure_config_path():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    imageAnalyzerConfig:\n"
+        "      azureConfigPath: /etc/kubernetes/azure.json\n"
+    )
+    assert spec["falconClusterGuard"]["imageAnalyzer"]["azureConfigPath"] == "/etc/kubernetes/azure.json"
+
+
+def test_image_analyzer_config_cluster_name():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    imageAnalyzerConfig:\n"
+        "      clusterName: my-cluster\n"
+    )
+    assert spec["falconClusterGuard"]["imageAnalyzer"]["clusterName"] == "my-cluster"
+
+
+def test_image_analyzer_config_size_limit():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    imageAnalyzerConfig:\n"
+        "      sizeLimit: 50Gi\n"
+    )
+    assert spec["falconClusterGuard"]["imageAnalyzer"]["sizeLimit"] == "50Gi"
+
+
+def test_image_analyzer_config_exclusions():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    imageAnalyzerConfig:\n"
+        "      exclusions:\n"
+        "        namespaces:\n"
+        "          - kube-system\n"
+    )
+    assert "kube-system" in spec["falconClusterGuard"]["imageAnalyzer"]["exclusions"]["namespaces"]
+
+
+def test_image_analyzer_config_debug():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    imageAnalyzerConfig:\n"
+        "      debug: true\n"
+    )
+    assert spec["falconClusterGuard"]["imageAnalyzer"]["debug"] is True
+
+
+def test_image_analyzer_config_log_verbosity():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    imageAnalyzerConfig:\n"
+        "      logVerbosity: debug\n"
+    )
+    assert spec["falconClusterGuard"]["imageAnalyzer"]["logVerbosity"] == "debug"
+
+
+def test_image_analyzer_config_iar_agent_service():
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    imageAnalyzerConfig:\n"
+        "      iarAgentService:\n"
+        "        port: 8080\n"
+    )
+    assert "iarAgentService" in spec["falconClusterGuard"]["imageAnalyzer"]
+
+
+def test_image_analyzer_config_kac_skipped_with_warning():
+    _, warnings = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    imageAnalyzerConfig:\n"
+        "      kac:\n"
+        "        namespace: falcon-kac\n"
+    )
+    assert any("kac" in w and "no equivalent" in w for w in warnings)
+
+
+def test_image_analyzer_config_pull_policy_does_not_overwrite_node_sensor():
+    spec, _ = _run_with_iar(
+        "  deployNodeSensor: true\n"
+        "  falconNodeSensor:\n"
+        "    node:\n"
+        "      imagePullPolicy: IfNotPresent\n"
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    imageAnalyzerConfig:\n"
+        "      imagePullPolicy: Always\n"
+    )
+    assert spec["falconClusterGuard"]["imagePullPolicy"] == "IfNotPresent"
+
+
+# apply_overrides: image_analyzer override wins over migrated enabled
+
+def test_apply_overrides_image_analyzer_overrides_migrated():
+    """CLI --image-analyzer false wins over IAR config already migrated."""
+    fd_doc = _make_fd_doc("")
+    crs = {"FalconImageAnalyzer": _make_cr_spec(
+        "installNamespace: ns\nimageAnalyzerConfig:\n  clusterName: my-cluster"
+    )}
+    result = assemble(fd_doc, crs, "falcon", [])
+    # IAR was enabled (inferred from sub-spec), so enabled=True
+    assert result["spec"]["falconClusterGuard"]["imageAnalyzer"]["enabled"] is True
+    apply_overrides(result, None, None, image_analyzer=False)
+    assert result["spec"]["falconClusterGuard"]["imageAnalyzer"]["enabled"] is False
+
+
+# assemble: standalone FalconImageAnalyzer CR
+
+def test_assemble_standalone_iar_cr_migrated_to_fcg():
+    crs = {"FalconImageAnalyzer": _make_cr_spec(
+        "installNamespace: falcon-iar\n"
+        "imageAnalyzerConfig:\n"
+        "  clusterName: my-cluster\n"
+        "  sizeLimit: 30Gi\n"
+    )}
+    warnings = []
+    result = assemble(None, crs, "falcon", warnings)
+    fcg = result["spec"]["falconClusterGuard"]
+    assert fcg["installNamespace"] == "falcon-iar"
+    assert fcg["imageAnalyzer"]["clusterName"] == "my-cluster"
+    assert fcg["imageAnalyzer"]["sizeLimit"] == "30Gi"
+    assert fcg["imageAnalyzer"]["enabled"] is True
     assert result["spec"]["deployImageAnalyzer"] is False
+
+
+def test_assemble_standalone_iar_deploy_flag_false_disables_enabled():
+    """deployImageAnalyzer: false in the FD disables even if IAR sub-spec is present."""
+    fd_doc = _make_fd_doc("  deployImageAnalyzer: false\n  falconImageAnalyzer:\n    installNamespace: ns")
+    result = assemble(fd_doc, {}, "falcon", [])
+    assert result["spec"]["falconClusterGuard"].get("imageAnalyzer", {}).get("enabled") is not True
 
 
 # ── main() ───────────────────────────────────────────────────────────────────
@@ -1255,3 +1574,39 @@ def test_e2e_no_yaml_anchors():
     output = buf.getvalue()
     assert "&id" not in output
     assert "*id" not in output
+
+
+def test_e2e_scenario4_standalone_iar_cr():
+    """Scenario 1 variant: FalconImageAnalyzer standalone CR migrates into falconClusterGuard.imageAnalyzer."""
+    crs = {
+        "FalconNodeSensor": _make_cr_spec(
+            "installNamespace: falcon-system\n"
+            "falcon_api:\n  client_id: abc\n"
+            "node:\n  backend: bpf\n"
+        ),
+        "FalconAdmission": _make_cr_spec(
+            "admissionConfig:\n  failurePolicy: Ignore\n"
+        ),
+        "FalconImageAnalyzer": _make_cr_spec(
+            "imageAnalyzerConfig:\n"
+            "  clusterName: my-cluster\n"
+            "  sizeLimit: 30Gi\n"
+            "  debug: true\n"
+        ),
+    }
+    warnings = []
+    result = assemble(None, crs, "falcon", warnings)
+    spec = result["spec"]
+    fcg = spec["falconClusterGuard"]
+
+    assert spec["deployClusterGuard"] is True
+    assert spec["deployNodeSensor"] is False
+    assert spec["deployAdmissionController"] is False
+    assert spec["deployImageAnalyzer"] is False
+    assert fcg["installNamespace"] == "falcon-system"
+    assert fcg["nodeSensor"]["backend"] == "bpf"
+    assert fcg["controller"]["failurePolicy"] == "Ignore"
+    assert fcg["imageAnalyzer"]["enabled"] is True
+    assert fcg["imageAnalyzer"]["clusterName"] == "my-cluster"
+    assert fcg["imageAnalyzer"]["sizeLimit"] == "30Gi"
+    assert fcg["imageAnalyzer"]["debug"] is True

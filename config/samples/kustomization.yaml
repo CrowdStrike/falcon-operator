@@ -6,4 +6,5 @@ resources:
 - falcon_v1alpha1_falconimageanalyzer.yaml
 - falcon_v1alpha1_falcondeployment-node-sensor.yaml
 - falcon_v1alpha1_falconclusterguard.yaml
+- falcon_v1alpha1_falconclusterguard-with-image-analyzer.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

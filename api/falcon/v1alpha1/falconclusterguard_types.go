@@ -194,6 +194,7 @@ type FalconClusterGuardController struct {
 	ConfigMapWatcherEnabled *bool `json:"configMapWatcherEnabled,omitempty"`
 
 	// Namespace where Falcon Image Analyzer is installed. Falcon Cluster Guard needs to know this to discover and communicate with IAR.
+	// Ignored when imageAnalyzer is enabled, since the Falcon Cluster Guard managed IAR always runs in installNamespace.
 	// +kubebuilder:default:="falcon-iar"
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Namespace",order=20
 	FalconImageAnalyzerNamespace *string `json:"falconImageAnalyzerNamespace,omitempty"`
@@ -364,6 +365,11 @@ type FalconClusterGuardSpec struct {
 	// +kubebuilder:default={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Node Sensor Configuration",order=9
 	NodeSensor FalconClusterGuardNodeSpec `json:"nodeSensor,omitempty"`
+
+	// ImageAnalyzer configures the Image Analyzer Deployment deployed alongside FalconClusterGuard.
+	// +kubebuilder:default={}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Image Analyzer Configuration",order=10
+	ImageAnalyzer FalconClusterGuardImageAnalyzerSpec `json:"imageAnalyzer,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -571,4 +577,74 @@ type FalconClusterGuardControllerNamespace struct {
 	// Configure a list of namespaces to ignore admission control.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Ignore Namespace List",order=1
 	Namespaces []string `json:"namespaces,omitempty"`
+}
+
+// FalconClusterGuardImageAnalyzerSpec configures the Image Analyzer Deployment managed by FalconClusterGuard.
+// Image, InstallNamespace, ImagePullPolicy, and ImagePullSecrets are inherited from FalconClusterGuardSpec.
+type FalconClusterGuardImageAnalyzerSpec struct {
+	// Enabled controls whether the Image Analyzer Deployment is deployed.
+	// +kubebuilder:default:=false
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Specifies node affinity for scheduling the Image Analyzer Deployment.
+	// +optional
+	NodeAffinity *corev1.NodeAffinity `json:"nodeAffinity,omitempty"`
+
+	// Specifies tolerations for scheduling the Image Analyzer Deployment.
+	// +kubebuilder:default:={}
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+
+	// Define annotations for the Image Analyzer service account.
+	ServiceAccount FalconImageAnalyzerServiceAccount `json:"serviceAccount,omitempty"`
+
+	// Configure resource requests and limits for the Image Analyzer container.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// Path to the Azure config file on the node. Set only when running on AKS.
+	AzureConfigPath string `json:"azureConfigPath,omitempty"`
+
+	// Enable priority class for the Image Analyzer Deployment.
+	PriorityClass FalconImageAnalyzerPriorityClass `json:"priorityClass,omitempty"`
+
+	// Type of Deployment update strategy.
+	// +kubebuilder:default:={}
+	DepUpdateStrategy FalconImageAnalyzerUpdateStrategy `json:"updateStrategy,omitempty"`
+
+	// Set the Image Analyzer volume size limit.
+	// +kubebuilder:default:="20Gi"
+	VolumeSizeLimit string `json:"sizeLimit,omitempty"`
+
+	// Set the Image Analyzer volume mount path.
+	// +kubebuilder:default:="/tmp"
+	VolumeMountPath string `json:"mountPath,omitempty"`
+
+	// Name of the Kubernetes Cluster. Used for grouping in the Falcon console.
+	ClusterName string `json:"clusterName,omitempty"`
+
+	// Exclusions for the Image Analyzer.
+	// +kubebuilder:default:={}
+	Exclusions Exclusions `json:"exclusions,omitempty"`
+
+	// RegistryConfig for the Image Analyzer.
+	// +kubebuilder:default:={}
+	RegistryConfig RegistryConfig `json:"registryConfig,omitempty"`
+
+	// Enable debugging for the Image Analyzer.
+	// +kubebuilder:default:=false
+	EnableDebug bool `json:"debug,omitempty"`
+
+	// Set the log verbosity for the Image Analyzer.
+	// +kubebuilder:default:=info
+	// +kubebuilder:validation:Enum=info;debug;warn;error
+	LogVerbosity string `json:"logVerbosity,omitempty"`
+
+	// IAR Agent Service configuration.
+	// +kubebuilder:default:={}
+	IARAgentService FalconImageAnalyzerAgentServiceSpec `json:"iarAgentService,omitempty"`
+}
+
+// IsEnabled returns true when the Image Analyzer component should be reconciled.
+func (s *FalconClusterGuardImageAnalyzerSpec) IsEnabled() bool {
+	return s.Enabled != nil && *s.Enabled
 }

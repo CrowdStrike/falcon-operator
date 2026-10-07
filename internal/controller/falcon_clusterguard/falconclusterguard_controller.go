@@ -12,6 +12,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/internal/controller/common/image"
 	"github.com/crowdstrike/falcon-operator/internal/controller/components"
 	"github.com/crowdstrike/falcon-operator/internal/controller/components/clusterguard_controller"
+	"github.com/crowdstrike/falcon-operator/internal/controller/components/image_analyzer"
 	"github.com/crowdstrike/falcon-operator/internal/controller/components/node_sensor"
 	"github.com/crowdstrike/falcon-operator/internal/controller/predicates"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
@@ -31,6 +32,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
@@ -102,6 +104,7 @@ func (r *FalconClusterGuardReconciler) GetLog() logr.Logger {
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs=create;get;list;update;watch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles,verbs=create;get;list;update;watch;delete
 //+kubebuilder:rbac:groups="coordination.k8s.io",resources=leases,verbs=get;list;watch;create;update;delete
+//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -254,38 +257,87 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		ImagePullSecrets: imagePullSecrets,
 		Cid:              r.cid,
 		Falcon:           falconClusterGuard.Spec.Falcon,
+		OpenShift:        r.OpenShift,
+	}
+
+	// Build every component config before any of them runs: status updates re-fetch the CR into
+	// falconClusterGuard, which drops data injected from the FalconSecret.
+	admission := clusterguard_controller.New(r, clusterguard_controller.Config{
+		BaseConfig:                   base,
+		ClusterGuardControllerConfig: falconClusterGuard.Spec.ClusterGuardControllerConfig,
+		ClusterName:                  falconClusterGuard.GetClusterName(),
+		RegistryTLS:                  falconClusterGuard.Spec.Registry.TLS,
+		ImageAnalyzerEnabled:         falconClusterGuard.Spec.ImageAnalyzer.IsEnabled(),
+	})
+	nodeSensor := node_sensor.New(r, node_sensor.Config{
+		BaseConfig: base,
+		FalconAPI:  falconClusterGuard.Spec.FalconAPI,
+		NodeSensor: falconClusterGuard.Spec.NodeSensor,
+	})
+	imageAnalyzer := image_analyzer.New(r, image_analyzer.Config{
+		BaseConfig:        base,
+		ImageAnalyzerSpec: falconClusterGuard.Spec.ImageAnalyzer,
+		FalconAPI:         falconClusterGuard.Spec.FalconAPI,
+	})
+	admissionEnabled := falconClusterGuard.Spec.ClusterGuardControllerConfig.IsEnabled()
+	nodeSensorEnabled := falconClusterGuard.Spec.NodeSensor.IsEnabled()
+	imageAnalyzerEnabled := falconClusterGuard.Spec.ImageAnalyzer.IsEnabled()
+
+	if falconClusterGuard.GetDeletionTimestamp() != nil {
+		if !controllerutil.ContainsFinalizer(falconClusterGuard, common.FalconFinalizer) {
+			return ctrl.Result{}, nil
+		}
+		r.log.Info("FalconClusterGuard is being deleted, running finalization logic")
+		finalize := nodeSensor.Cleanup
+		if nodeSensorEnabled {
+			finalize = nodeSensor.Finalize
+		}
+		if result, err := finalize(ctx); err != nil || result.RequeueAfter > 0 {
+			return result, err
+		}
+		// Removing the finalizer lets the API server delete the CR, so no status update follows.
+		return ctrl.Result{}, r.setFinalizer(ctx, falconClusterGuard, false)
+	}
+
+	// The finalizer guarantees node cleanup runs before the CR, and with it the sensor DaemonSet, is deleted.
+	if nodeSensorEnabled {
+		if err := r.setFinalizer(ctx, falconClusterGuard, true); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	if err := r.reconcileAPITLSSecrets(ctx, req, falconClusterGuard); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if falconClusterGuard.Spec.ClusterGuardControllerConfig.IsEnabled() {
-		if result, err := clusterguard_controller.New(r, clusterguard_controller.Config{
-			BaseConfig:                   base,
-			ClusterGuardControllerConfig: falconClusterGuard.Spec.ClusterGuardControllerConfig,
-			ClusterName:                  falconClusterGuard.GetClusterName(),
-			RegistryTLS:                  falconClusterGuard.Spec.Registry.TLS,
-		}).Reconcile(ctx); err != nil || result.RequeueAfter > 0 {
+	// Disabled components are cleaned up in place; Cleanup is a no-op once their resources are gone.
+	if admissionEnabled {
+		if result, err := admission.Reconcile(ctx); err != nil || result.RequeueAfter > 0 {
 			return result, err
+		}
+	} else if err := admission.Cleanup(ctx); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if nodeSensorEnabled {
+		if result, err := nodeSensor.Reconcile(ctx); err != nil || result.RequeueAfter > 0 {
+			return result, err
+		}
+	} else {
+		if result, err := nodeSensor.Cleanup(ctx); err != nil || result.RequeueAfter > 0 {
+			return result, err
+		}
+		if err := r.setFinalizer(ctx, falconClusterGuard, false); err != nil {
+			return ctrl.Result{}, err
 		}
 	}
 
-	if falconClusterGuard.Spec.NodeSensor.IsEnabled() {
-		if result, err := node_sensor.New(r, node_sensor.Config{
-			BaseConfig: base,
-			FalconAPI:  falconClusterGuard.Spec.FalconAPI,
-			NodeSensor: falconClusterGuard.Spec.NodeSensor,
-		}).Reconcile(ctx); err != nil || result.RequeueAfter > 0 {
+	if imageAnalyzerEnabled {
+		if result, err := imageAnalyzer.Reconcile(ctx); err != nil || result.RequeueAfter > 0 {
 			return result, err
 		}
-	}
-
-	// The node sensor component removes the finalizer as its last finalization
-	// step, which triggers immediate CR deletion. Do not attempt a status update
-	// on an object that is no longer in the API server.
-	if falconClusterGuard.GetDeletionTimestamp() != nil {
-		return ctrl.Result{}, nil
+	} else if err := imageAnalyzer.Cleanup(ctx); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	if err := commonctrl.StatusUpdate(ctx, r.Client, r.Status(), req, r.log, falconClusterGuard,

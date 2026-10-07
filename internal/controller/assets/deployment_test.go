@@ -16,6 +16,182 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// TestImageAnalyzerDeploymentFromConfig tests ImageAnalyzerDeploymentFromConfig
+func TestImageAnalyzerDeploymentFromConfig_Basic(t *testing.T) {
+	name := "falcon-fcg-image-analyzer"
+	namespace := "falcon-clusterguard"
+	component := "fcg-iar"
+	imageUri := "quay.io/crowdstrike/falcon-iar:latest"
+	imagePullPolicy := corev1.PullIfNotPresent
+
+	dep := ImageAnalyzerDeploymentFromConfig(
+		name, namespace, component, imageUri, imagePullPolicy,
+		nil, "fcg-iar-sa", "fcg-iar-config", "fcg-iar-tls",
+		falconv1alpha1.FalconClusterGuardImageAnalyzerSpec{},
+	)
+
+	if dep == nil {
+		t.Fatal("expected non-nil Deployment")
+	}
+	if dep.Name != name {
+		t.Errorf("expected name %q, got %q", name, dep.Name)
+	}
+	if dep.Namespace != namespace {
+		t.Errorf("expected namespace %q, got %q", namespace, dep.Namespace)
+	}
+	if *dep.Spec.Replicas != 1 {
+		t.Errorf("expected 1 replica, got %d", *dep.Spec.Replicas)
+	}
+	if len(dep.Spec.Template.Spec.Containers) != 1 {
+		t.Errorf("expected 1 container, got %d", len(dep.Spec.Template.Spec.Containers))
+	}
+	if dep.Spec.Template.Spec.Containers[0].Image != imageUri {
+		t.Errorf("expected image %q, got %q", imageUri, dep.Spec.Template.Spec.Containers[0].Image)
+	}
+	if dep.Spec.Template.Spec.ServiceAccountName != "fcg-iar-sa" {
+		t.Errorf("expected serviceAccountName %q, got %q", "fcg-iar-sa", dep.Spec.Template.Spec.ServiceAccountName)
+	}
+}
+
+func TestImageAnalyzerDeploymentFromConfig_DefaultVolumeSize(t *testing.T) {
+	dep := ImageAnalyzerDeploymentFromConfig(
+		"n", "ns", "c", "img", corev1.PullAlways,
+		nil, "sa", "cm", "tls",
+		falconv1alpha1.FalconClusterGuardImageAnalyzerSpec{},
+	)
+
+	var tmpVol *corev1.Volume
+	for i := range dep.Spec.Template.Spec.Volumes {
+		if dep.Spec.Template.Spec.Volumes[i].Name == "tmp-volume" {
+			tmpVol = &dep.Spec.Template.Spec.Volumes[i]
+			break
+		}
+	}
+	if tmpVol == nil {
+		t.Fatal("expected tmp-volume volume")
+	}
+	if tmpVol.EmptyDir == nil || tmpVol.EmptyDir.SizeLimit == nil {
+		t.Fatal("expected tmp-volume to have a SizeLimit")
+	}
+	if tmpVol.EmptyDir.SizeLimit.String() != "20Gi" {
+		t.Errorf("expected default SizeLimit=20Gi, got %q", tmpVol.EmptyDir.SizeLimit.String())
+	}
+}
+
+func TestImageAnalyzerDeploymentFromConfig_CustomVolumeSize(t *testing.T) {
+	dep := ImageAnalyzerDeploymentFromConfig(
+		"n", "ns", "c", "img", corev1.PullAlways,
+		nil, "sa", "cm", "tls",
+		falconv1alpha1.FalconClusterGuardImageAnalyzerSpec{VolumeSizeLimit: "50Gi"},
+	)
+
+	for _, vol := range dep.Spec.Template.Spec.Volumes {
+		if vol.Name == "tmp-volume" {
+			if vol.EmptyDir.SizeLimit.String() != "50Gi" {
+				t.Errorf("expected SizeLimit=50Gi, got %q", vol.EmptyDir.SizeLimit.String())
+			}
+			return
+		}
+	}
+	t.Fatal("tmp-volume not found")
+}
+
+func TestImageAnalyzerDeploymentFromConfig_AzureConfigVolume(t *testing.T) {
+	dep := ImageAnalyzerDeploymentFromConfig(
+		"n", "ns", "c", "img", corev1.PullAlways,
+		nil, "sa", "cm", "tls",
+		falconv1alpha1.FalconClusterGuardImageAnalyzerSpec{AzureConfigPath: "/etc/kubernetes/azure.json"},
+	)
+
+	foundVol := false
+	for _, vol := range dep.Spec.Template.Spec.Volumes {
+		if vol.Name == "azure-config" {
+			foundVol = true
+			if vol.HostPath == nil || vol.HostPath.Path != "/etc/kubernetes/azure.json" {
+				t.Errorf("expected azure-config HostPath=/etc/kubernetes/azure.json, got %v", vol.HostPath)
+			}
+			break
+		}
+	}
+	if !foundVol {
+		t.Error("expected azure-config volume when AzureConfigPath is set")
+	}
+
+	foundMount := false
+	for _, vm := range dep.Spec.Template.Spec.Containers[0].VolumeMounts {
+		if vm.Name == "azure-config" {
+			foundMount = true
+			break
+		}
+	}
+	if !foundMount {
+		t.Error("expected azure-config VolumeMount when AzureConfigPath is set")
+	}
+}
+
+func TestImageAnalyzerDeploymentFromConfig_NoAzureVolumeWhenPathEmpty(t *testing.T) {
+	dep := ImageAnalyzerDeploymentFromConfig(
+		"n", "ns", "c", "img", corev1.PullAlways,
+		nil, "sa", "cm", "tls",
+		falconv1alpha1.FalconClusterGuardImageAnalyzerSpec{},
+	)
+
+	for _, vol := range dep.Spec.Template.Spec.Volumes {
+		if vol.Name == "azure-config" {
+			t.Error("expected no azure-config volume when AzureConfigPath is empty")
+		}
+	}
+}
+
+func TestImageAnalyzerDeploymentFromConfig_RollingUpdateStrategy(t *testing.T) {
+	maxSurge := intstr.FromInt(2)
+	maxUnavailable := intstr.FromInt(1)
+	dep := ImageAnalyzerDeploymentFromConfig(
+		"n", "ns", "c", "img", corev1.PullAlways,
+		nil, "sa", "cm", "tls",
+		falconv1alpha1.FalconClusterGuardImageAnalyzerSpec{
+			DepUpdateStrategy: falconv1alpha1.FalconImageAnalyzerUpdateStrategy{
+				RollingUpdate: falconv1alpha1.FalconImageAnalyzerRollingUpdate{
+					MaxSurge:       &maxSurge,
+					MaxUnavailable: &maxUnavailable,
+				},
+			},
+		},
+	)
+
+	strategy := dep.Spec.Strategy
+	if strategy.Type != appsv1.RollingUpdateDeploymentStrategyType {
+		t.Errorf("expected RollingUpdate strategy, got %q", strategy.Type)
+	}
+	if strategy.RollingUpdate == nil {
+		t.Fatal("expected non-nil RollingUpdate settings")
+	}
+	if strategy.RollingUpdate.MaxSurge == nil || strategy.RollingUpdate.MaxSurge.IntVal != 2 {
+		t.Errorf("expected MaxSurge=2, got %v", strategy.RollingUpdate.MaxSurge)
+	}
+	if strategy.RollingUpdate.MaxUnavailable == nil || strategy.RollingUpdate.MaxUnavailable.IntVal != 1 {
+		t.Errorf("expected MaxUnavailable=1, got %v", strategy.RollingUpdate.MaxUnavailable)
+	}
+}
+
+func TestImageAnalyzerDeploymentFromConfig_Resources(t *testing.T) {
+	res := corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU: resource.MustParse("100m"),
+		},
+	}
+	dep := ImageAnalyzerDeploymentFromConfig(
+		"n", "ns", "c", "img", corev1.PullAlways,
+		nil, "sa", "cm", "tls",
+		falconv1alpha1.FalconClusterGuardImageAnalyzerSpec{Resources: &res},
+	)
+
+	got := dep.Spec.Template.Spec.Containers[0].Resources
+	if got.Requests[corev1.ResourceCPU] != res.Requests[corev1.ResourceCPU] {
+		t.Errorf("expected CPU request %v, got %v", res.Requests[corev1.ResourceCPU], got.Requests[corev1.ResourceCPU])
+	}
+}
+
 // TestDeployment tests the Deployment function
 func TestSideCarDeployment(t *testing.T) {
 	falconContainer := &falconv1alpha1.FalconContainer{}

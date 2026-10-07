@@ -1,0 +1,59 @@
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconClusterGuard
+metadata:
+  labels:
+    crowdstrike.com/component: sample
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: falcon-clusterguard
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: falconclusterguard
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
+  name: falcon-clusterguard
+spec:
+  falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
+    cloud_region: autodiscover
+  registry:
+    type: private
+  image: falcon-clusterguard:0.1-0-1.aarch64
+  imagePullPolicy: Never
+  falcon:
+    trace: debug
+    tags:
+      - clusterguard
+  imageAnalyzer:
+    enabled: true
+    # Name of this cluster as it will appear in the Falcon console.
+    clusterName: my-cluster
+    # Temporary volume size used for image analysis. Defaults to 20Gi.
+    sizeLimit: "20Gi"
+    # Temporary volume mount path. Defaults to /tmp.
+    mountPath: "/tmp"
+    # Log verbosity: info, debug, warn, error.
+    logVerbosity: info
+    # Annotate the service account for cloud IAM roles (AWS IRSA or GCP Workload Identity).
+    # serviceAccount:
+    #   annotations:
+    #     eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/iam-role-name
+    #     iam.gke.io/gcp-service-account: $GCP_SERVICE_ACCOUNT@$GCP_PROJECT_ID.iam.gserviceaccount.com
+    # Exclude namespaces or registries from image analysis.
+    # exclusions:
+    #   namespaces:
+    #     - kube-system
+    #     - kube-public
+    #   registries:
+    #     - my-internal-registry.example.com
+    # Provide registry credentials for pulling images from private registries.
+    # registryConfig:
+    #   credentials:
+    #     - namespace: my-namespace
+    #       secretName: my-registry-secret
+    #   autoDiscoverCredentials: true
+    # Path to Azure config file. Required only on AKS.
+    # azureConfigPath: "/etc/kubernetes/azure.json"
+    # IAR Agent Service configuration.
+    # iarAgentService:
+    #   port: 8001
+    #   certExpiration: 100

@@ -1055,9 +1055,9 @@ spec:
                         type: string
                       falconImageAnalyzerNamespace:
                         default: falcon-iar
-                        description: Namespace where Falcon Image Analyzer is installed.
-                          Falcon Cluster Guard needs to know this to discover and
-                          communicate with IAR.
+                        description: |-
+                          Namespace where Falcon Image Analyzer is installed. Falcon Cluster Guard needs to know this to discover and communicate with IAR.
+                          Ignored when imageAnalyzer is enabled, since the Falcon Cluster Guard managed IAR always runs in installNamespace.
                         type: string
                       nodeAffinity:
                         description: Specifies node affinity for scheduling the Falcon
@@ -1791,6 +1791,464 @@ spec:
                       custom repository.
                     pattern: ^.*:.*$
                     type: string
+                  imageAnalyzer:
+                    default: {}
+                    description: ImageAnalyzer configures the Image Analyzer Deployment
+                      deployed alongside FalconClusterGuard.
+                    properties:
+                      azureConfigPath:
+                        description: Path to the Azure config file on the node. Set
+                          only when running on AKS.
+                        type: string
+                      clusterName:
+                        description: Name of the Kubernetes Cluster. Used for grouping
+                          in the Falcon console.
+                        type: string
+                      debug:
+                        default: false
+                        description: Enable debugging for the Image Analyzer.
+                        type: boolean
+                      enabled:
+                        default: false
+                        description: Enabled controls whether the Image Analyzer Deployment
+                          is deployed.
+                        type: boolean
+                      exclusions:
+                        default: {}
+                        description: Exclusions for the Image Analyzer.
+                        properties:
+                          imageNames:
+                            description: Configure a list of image names for Image
+                              Analyzer to ignore.
+                            items:
+                              type: string
+                            type: array
+                          namespaces:
+                            description: Configure a list of namespaces for Image
+                              Analyzer to ignore.
+                            items:
+                              type: string
+                            type: array
+                          registries:
+                            description: Configure a list of registries for the Falcon
+                              Image Analyzer to ignore.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      iarAgentService:
+                        default: {}
+                        description: IAR Agent Service configuration.
+                        properties:
+                          certExpiration:
+                            default: 3650
+                            description: Certificate validity duration in number of
+                              days.
+                            type: integer
+                          domainName:
+                            description: |-
+                              For custom DNS configurations when .svc requires a domain for services.
+                              For example if service.my-namespace.svc doesn't resolve and the cluster uses
+                              service.my-namespace.svc.testing.io, you would add testing.io as the value below.
+                            type: string
+                          port:
+                            default: 8001
+                            description: HTTPS Port for the IAR Agent Service.
+                            format: int32
+                            type: integer
+                        type: object
+                      logVerbosity:
+                        default: info
+                        description: Set the log verbosity for the Image Analyzer.
+                        enum:
+                        - info
+                        - debug
+                        - warn
+                        - error
+                        type: string
+                      mountPath:
+                        default: /tmp
+                        description: Set the Image Analyzer volume mount path.
+                        type: string
+                      nodeAffinity:
+                        description: Specifies node affinity for scheduling the Image
+                          Analyzer Deployment.
+                        properties:
+                          preferredDuringSchedulingIgnoredDuringExecution:
+                            description: |-
+                              The scheduler will prefer to schedule pods to nodes that satisfy
+                              the affinity expressions specified by this field, but it may choose
+                              a node that violates one or more of the expressions. The node that is
+                              most preferred is the one with the greatest sum of weights, i.e.
+                              for each node that meets all of the scheduling requirements (resource
+                              request, requiredDuringScheduling affinity expressions, etc.),
+                              compute a sum by iterating through the elements of this field and adding
+                              "weight" to the sum if the node matches the corresponding matchExpressions; the
+                              node(s) with the highest sum are the most preferred.
+                            items:
+                              description: |-
+                                An empty preferred scheduling term matches all objects with implicit weight 0
+                                (i.e. it's a no-op). A null preferred scheduling term matches no objects (i.e. is also a no-op).
+                              properties:
+                                preference:
+                                  description: A node selector term, associated with
+                                    the corresponding weight.
+                                  properties:
+                                    matchExpressions:
+                                      description: A list of node selector requirements
+                                        by node's labels.
+                                      items:
+                                        description: |-
+                                          A node selector requirement is a selector that contains values, a key, and an operator
+                                          that relates the key and values.
+                                        properties:
+                                          key:
+                                            description: The label key that the selector
+                                              applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              An array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. If the operator is Gt or Lt, the values
+                                              array must have a single element, which will be interpreted as an integer.
+                                              This array is replaced during a strategic merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                    matchFields:
+                                      description: A list of node selector requirements
+                                        by node's fields.
+                                      items:
+                                        description: |-
+                                          A node selector requirement is a selector that contains values, a key, and an operator
+                                          that relates the key and values.
+                                        properties:
+                                          key:
+                                            description: The label key that the selector
+                                              applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              An array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. If the operator is Gt or Lt, the values
+                                              array must have a single element, which will be interpreted as an integer.
+                                              This array is replaced during a strategic merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                weight:
+                                  description: Weight associated with matching the
+                                    corresponding nodeSelectorTerm, in the range 1-100.
+                                  format: int32
+                                  type: integer
+                              required:
+                              - preference
+                              - weight
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          requiredDuringSchedulingIgnoredDuringExecution:
+                            description: |-
+                              If the affinity requirements specified by this field are not met at
+                              scheduling time, the pod will not be scheduled onto the node.
+                              If the affinity requirements specified by this field cease to be met
+                              at some point during pod execution (e.g. due to an update), the system
+                              may or may not try to eventually evict the pod from its node.
+                            properties:
+                              nodeSelectorTerms:
+                                description: Required. A list of node selector terms.
+                                  The terms are ORed.
+                                items:
+                                  description: |-
+                                    A null or empty node selector term matches no objects. The requirements of
+                                    them are ANDed.
+                                    The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
+                                  properties:
+                                    matchExpressions:
+                                      description: A list of node selector requirements
+                                        by node's labels.
+                                      items:
+                                        description: |-
+                                          A node selector requirement is a selector that contains values, a key, and an operator
+                                          that relates the key and values.
+                                        properties:
+                                          key:
+                                            description: The label key that the selector
+                                              applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              An array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. If the operator is Gt or Lt, the values
+                                              array must have a single element, which will be interpreted as an integer.
+                                              This array is replaced during a strategic merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                    matchFields:
+                                      description: A list of node selector requirements
+                                        by node's fields.
+                                      items:
+                                        description: |-
+                                          A node selector requirement is a selector that contains values, a key, and an operator
+                                          that relates the key and values.
+                                        properties:
+                                          key:
+                                            description: The label key that the selector
+                                              applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              Represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              An array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. If the operator is Gt or Lt, the values
+                                              array must have a single element, which will be interpreted as an integer.
+                                              This array is replaced during a strategic merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            required:
+                            - nodeSelectorTerms
+                            type: object
+                            x-kubernetes-map-type: atomic
+                        type: object
+                      priorityClass:
+                        description: Enable priority class for the Image Analyzer
+                          Deployment.
+                        properties:
+                          name:
+                            description: Name of the priority class to use.
+                            type: string
+                        type: object
+                      registryConfig:
+                        default: {}
+                        description: RegistryConfig for the Image Analyzer.
+                        properties:
+                          autoDiscoverCredentials:
+                            default: true
+                            description: Enable auto-discovery of registry credentials
+                              from secrets in the cluster.
+                            type: boolean
+                          credentials:
+                            description: If necessary, configure the registry credentials
+                              for the Falcon Image Analyzer.
+                            items:
+                              properties:
+                                namespace:
+                                  description: Namespace where the registry container
+                                    secret is located.
+                                  type: string
+                                secretName:
+                                  description: Name of the registry container secret.
+                                  type: string
+                              type: object
+                            type: array
+                        type: object
+                      resources:
+                        description: Configure resource requests and limits for the
+                          Image Analyzer container.
+                        properties:
+                          claims:
+                            description: |-
+                              Claims lists the names of resources, defined in spec.resourceClaims,
+                              that are used by this container.
+
+                              This field depends on the
+                              DynamicResourceAllocation feature gate.
+
+                              This field is immutable. It can only be set for containers.
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name must match the name of one entry in pod.spec.resourceClaims of
+                                    the Pod where this field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                                request:
+                                  description: |-
+                                    Request is the name chosen for a request in the referenced claim.
+                                    If empty, everything from the claim is made available, otherwise
+                                    only the result of this request.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Limits describes the maximum amount of compute resources allowed.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Requests describes the minimum amount of compute resources required.
+                              If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                              otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                        type: object
+                      serviceAccount:
+                        description: Define annotations for the Image Analyzer service
+                          account.
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: Define annotations that will be passed down
+                              to the Service Account. This is useful for passing along
+                              AWS IAM Role or GCP Workload Identity.
+                            type: object
+                        type: object
+                      sizeLimit:
+                        default: 20Gi
+                        description: Set the Image Analyzer volume size limit.
+                        type: string
+                      tolerations:
+                        default: []
+                        description: Specifies tolerations for scheduling the Image
+                          Analyzer Deployment.
+                        items:
+                          description: |-
+                            The pod this Toleration is attached to tolerates any taint that matches
+                            the triple <key,value,effect> using the matching operator <operator>.
+                          properties:
+                            effect:
+                              description: |-
+                                Effect indicates the taint effect to match. Empty means match all taint effects.
+                                When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                              type: string
+                            key:
+                              description: |-
+                                Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                              type: string
+                            operator:
+                              description: |-
+                                Operator represents a key's relationship to the value.
+                                Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
+                                Exists is equivalent to wildcard for value, so that a pod can
+                                tolerate all taints of a particular category.
+                                Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).
+                              type: string
+                            tolerationSeconds:
+                              description: |-
+                                TolerationSeconds represents the period of time the toleration (which must be
+                                of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                negative values will be treated as 0 (evict immediately) by the system.
+                              format: int64
+                              type: integer
+                            value:
+                              description: |-
+                                Value is the taint value the toleration matches to.
+                                If the operator is Exists, the value should be empty, otherwise just a regular string.
+                              type: string
+                          type: object
+                        type: array
+                      updateStrategy:
+                        default: {}
+                        description: Type of Deployment update strategy.
+                        properties:
+                          rollingUpdate:
+                            default: {}
+                            description: RollingUpdate is used to specify the strategy
+                              used to roll out a deployment
+                            properties:
+                              maxSurge:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                default: 1
+                                description: |-
+                                  The maximum number of pods that can be scheduled above the desired number of pods.
+                                  Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
+                                x-kubernetes-int-or-string: true
+                              maxUnavailable:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                default: 0
+                                description: |-
+                                  The maximum number of pods that can be unavailable during the update.
+                                  Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
+                                x-kubernetes-int-or-string: true
+                            type: object
+                        type: object
+                    type: object
                   imagePullPolicy:
                     default: IfNotPresent
                     description: PullPolicy describes a policy for if/when to pull

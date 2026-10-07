@@ -19,4 +19,5 @@ type BaseConfig struct {
 	NamePrefix       string
 	Cid              string
 	Falcon           falconv1alpha1.FalconSensor
+	OpenShift        bool
 }

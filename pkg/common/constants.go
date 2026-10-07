@@ -108,8 +108,18 @@ const (
 	ClusterGuardAPICASecretName         = "falcon-api-ca"
 
 	// FCG component ClusterRole names (installed by kustomize, referenced by component CRBs)
-	ClusterGuardControllerClusterRoleName  = "falcon-operator-falcon-clusterguard-resource-reader"
-	ClusterGuardNodeSensorClusterRoleName  = "falcon-operator-falcon-sensor-access-role"
+	ClusterGuardControllerClusterRoleName = "falcon-operator-falcon-clusterguard-resource-reader"
+	ClusterGuardNodeSensorClusterRoleName = "falcon-operator-falcon-sensor-access-role"
+
+	// FCG-owned Image Analyzer module constants
+	FCGImageAnalyzerServiceAccountName = "falcon-fcg-iar-sa"
+	FCGImageAnalyzerConfigMapName      = "falcon-fcg-iar-config"
+	FCGImageAnalyzerDeploymentName     = "falcon-fcg-image-analyzer"
+	FCGImageAnalyzerTLSSecretName      = "falcon-fcg-iar-tls"
+	FCGImageAnalyzerCRBName            = "falcon-fcg-iar-crb"
+	// "falcon-operator-" namePrefix from config/default/kustomization.yaml is applied at deploy time
+	FCGImageAnalyzerClusterRoleName = "falcon-operator-falcon-image-analyzer-role"
+	FCGImageAnalyzerComponentName   = "fcg-iar"
 
 	// GKE Autopilot requires names to have an exact match for WorkloadAllowlists
 	GKEAutoPilotConfigMapName           = "falcon-node-sensor-config"

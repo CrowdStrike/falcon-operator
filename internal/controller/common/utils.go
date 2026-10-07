@@ -250,6 +250,30 @@ func ConditionsUpdate(r client.Client, ctx context.Context, req ctrl.Request, lo
 	return nil
 }
 
+// ConditionsRemove removes the condition of the given type from the CR status if it is present.
+func ConditionsRemove(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *falconv1alpha1.FalconCRStatus, condType string) error {
+	if meta.FindStatusCondition(falconStatus.Conditions, condType) == nil {
+		return nil
+	}
+	fgvk := falconObject.GetObjectKind().GroupVersionKind()
+
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		if err := r.Get(ctx, req.NamespacedName, falconObject); err != nil {
+			log.Error(err, fmt.Sprintf("Failed to re-fetch %s for status update", fgvk.Kind))
+			return err
+		}
+		if !meta.RemoveStatusCondition(&falconStatus.Conditions, condType) {
+			return nil
+		}
+		return r.Status().Update(ctx, falconObject)
+	})
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update %s status", fgvk.Kind))
+		return err
+	}
+	return nil
+}
+
 func CheckRunningPodLabels(r client.Reader, ctx context.Context, namespace string, matchingLabels client.MatchingLabels) (bool, error) {
 	podList := &corev1.PodList{}
 
@@ -405,6 +429,23 @@ func GetOrCreate(ctx context.Context, r Reconciler, req ctrl.Request, owner clie
 		return false, err
 	}
 	return true, nil
+}
+
+// PreserveOpenShiftPullSecrets appends OpenShift-managed image pull secrets found on the existing
+// ServiceAccount to the desired list. OpenShift automatically adds secrets with the patterns
+// <serviceaccount-name>-dockercfg-<random> (legacy) and <serviceaccount-name>-dockerconfigjson-<random>;
+// removing them causes OpenShift to re-add them, resulting in an endless update loop.
+func PreserveOpenShiftPullSecrets(desired, existing []corev1.LocalObjectReference) []corev1.LocalObjectReference {
+	merged := slices.Clone(desired)
+	for _, s := range existing {
+		if !strings.Contains(s.Name, "-dockercfg-") && !strings.Contains(s.Name, "-dockerconfigjson-") {
+			continue
+		}
+		if !slices.Contains(merged, s) {
+			merged = append(merged, s)
+		}
+	}
+	return merged
 }
 
 // ReconcileNamespace ensures the given namespace exists, creating it if necessary.

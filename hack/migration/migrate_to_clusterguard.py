@@ -77,6 +77,37 @@ Field mapping notes:
     version                                  -> (no equivalent, skipped)
     resourcequota                            -> (no equivalent, skipped with warning)
 
+  falconImageAnalyzer:
+    installNamespace                     -> falconClusterGuard.installNamespace                   (skipped if already set)
+    falcon_api                           -> falconClusterGuard.falcon_api                         (skipped if already set)
+    falcon                               -> falconClusterGuard.falcon                             (skipped if already set)
+    falconSecret                         -> falconClusterGuard.falconSecret                       (skipped if already set)
+    image                                -> (no equivalent, skipped with warning — FCG uses a single shared image)
+    registry                             -> falconClusterGuard.registry                           (skipped if already set, type differs — verify manually)
+    version                              -> (no equivalent, skipped with warning)
+    nodeAffinity                         -> falconClusterGuard.imageAnalyzer.nodeAffinity
+    tolerations                          -> falconClusterGuard.imageAnalyzer.tolerations
+    imageAnalyzerConfig.imagePullPolicy  -> falconClusterGuard.imagePullPolicy                   (skipped if already set)
+    imageAnalyzerConfig.imagePullSecrets -> falconClusterGuard.imagePullSecrets                  (skipped if already set)
+    imageAnalyzerConfig.serviceAccount   -> falconClusterGuard.imageAnalyzer.serviceAccount
+    imageAnalyzerConfig.resources        -> falconClusterGuard.imageAnalyzer.resources
+    imageAnalyzerConfig.azureConfigPath  -> falconClusterGuard.imageAnalyzer.azureConfigPath
+    imageAnalyzerConfig.priorityClass    -> falconClusterGuard.imageAnalyzer.priorityClass
+    imageAnalyzerConfig.updateStrategy   -> falconClusterGuard.imageAnalyzer.updateStrategy
+    imageAnalyzerConfig.sizeLimit        -> falconClusterGuard.imageAnalyzer.sizeLimit
+    imageAnalyzerConfig.mountPath        -> falconClusterGuard.imageAnalyzer.mountPath
+    imageAnalyzerConfig.clusterName      -> falconClusterGuard.imageAnalyzer.clusterName
+    imageAnalyzerConfig.exclusions       -> falconClusterGuard.imageAnalyzer.exclusions
+    imageAnalyzerConfig.registryConfig   -> falconClusterGuard.imageAnalyzer.registryConfig
+    imageAnalyzerConfig.debug            -> falconClusterGuard.imageAnalyzer.debug
+    imageAnalyzerConfig.logVerbosity     -> falconClusterGuard.imageAnalyzer.logVerbosity
+    imageAnalyzerConfig.iarAgentService  -> falconClusterGuard.imageAnalyzer.iarAgentService
+    imageAnalyzerConfig.kac              -> (no equivalent, skipped with warning)
+
+  deployImageAnalyzer:
+    true (or inferred from sub-spec)  -> falconClusterGuard.imageAnalyzer.enabled = true; spec.deployImageAnalyzer = false
+    false (or absent)                 -> falconClusterGuard.imageAnalyzer.enabled is left unset (defaults to false)
+
 Usage:
   python3 hack/migration/migrate_to_clusterguard.py node-sensor.yaml admission.yaml -o falcon-deployment.yaml
   python3 hack/migration/migrate_to_clusterguard.py falcon-deployment.yaml -o migrated.yaml
@@ -294,6 +325,62 @@ def migrate_admission(admission: CommentedMap, fcg: CommentedMap, warnings: list
         _copy(ac_src, field, ac_dst)
 
 
+def migrate_image_analyzer(image_analyzer: CommentedMap, fcg: CommentedMap, warnings: list) -> None:
+    # Top-level fields that promote to FCG spec (first-wins, don't overwrite earlier CRDs)
+    for field in ("installNamespace", "falcon_api", "falcon", "falconSecret"):
+        _copy(image_analyzer, field, fcg, overwrite=False)
+
+    # The standalone IAR image is not the FCG image; FCG runs all components from one shared image.
+    if image_analyzer.get("image"):
+        warnings.append(
+            "falconImageAnalyzer.image has no equivalent in FalconClusterGuard and was skipped "
+            "(FCG uses a single shared image; set spec.falconClusterGuard.image if needed)"
+        )
+
+    if image_analyzer.get("registry"):
+        _translate_registry(image_analyzer["registry"], fcg, warnings)
+
+    if image_analyzer.get("version"):
+        warnings.append("falconImageAnalyzer.version has no equivalent in FalconClusterGuard and was skipped")
+
+    ia_dst = fcg.setdefault("imageAnalyzer", CommentedMap())
+
+    for field in ("nodeAffinity", "tolerations"):
+        _copy(image_analyzer, field, ia_dst)
+
+    iac_src = image_analyzer.get("imageAnalyzerConfig")
+    if not iac_src:
+        return
+
+    # These imageAnalyzerConfig fields promote to FCG top-level
+    for field in ("imagePullPolicy", "imagePullSecrets"):
+        _copy(iac_src, field, fcg, overwrite=False)
+
+    # These stay in imageAnalyzer
+    for field in (
+        "serviceAccount",
+        "resources",
+        "azureConfigPath",
+        "priorityClass",
+        "updateStrategy",
+        "sizeLimit",
+        "mountPath",
+        "clusterName",
+        "exclusions",
+        "registryConfig",
+        "debug",
+        "logVerbosity",
+        "iarAgentService",
+    ):
+        _copy(iac_src, field, ia_dst)
+
+    if iac_src.get("kac"):
+        warnings.append(
+            "falconImageAnalyzer.imageAnalyzerConfig.kac has no equivalent in FalconClusterGuard "
+            "and was skipped (KAC coordination is managed internally by FCG)"
+        )
+
+
 def load_files(file_paths: list[str], warnings: list[str]) -> tuple[CommentedMap | None, dict[str, CommentedMap]]:
     _yaml = YAML()
     _yaml.preserve_quotes = True
@@ -455,7 +542,8 @@ def apply_overrides(fd_doc: CommentedMap, fcg_image_override: str | None,
         ac["admissionControlEnabled"] = admission_control
 
     if image_analyzer is not None:
-        spec["deployImageAnalyzer"] = image_analyzer
+        ia = fcg.setdefault("imageAnalyzer", CommentedMap())
+        ia["enabled"] = image_analyzer
 
 
 def _group_deploy_flags(spec: CommentedMap) -> None:
@@ -484,9 +572,13 @@ def migrate(doc: CommentedMap, warnings: list) -> None:
         doc["spec"] = spec
 
     node_sensor_enabled = spec.get("deployNodeSensor") is not False
+    image_analyzer_enabled = spec.get("deployImageAnalyzer") is True or (
+        spec.get("deployImageAnalyzer") is None and bool(spec.get("falconImageAnalyzer"))
+    )
 
     spec["deployNodeSensor"] = False
     spec["deployAdmissionController"] = False
+    spec["deployImageAnalyzer"] = False
 
     fcg = spec.setdefault("falconClusterGuard", CommentedMap())
 
@@ -504,12 +596,19 @@ def migrate(doc: CommentedMap, warnings: list) -> None:
         migrate_admission(admission, fcg, warnings)
         del spec["falconAdmission"]
 
-    # If falconImageAnalyzer or falconContainerSensor config exists and was not explicitly
-    # disabled, keep the deploy flag enabled. --image-analyzer false can still override.
-    for sub_key, deploy_flag in (("falconImageAnalyzer", "deployImageAnalyzer"),
-                                  ("falconContainerSensor", "deployContainerSensor")):
-        if spec.get(sub_key) and spec.get(deploy_flag) is not False:
-            spec[deploy_flag] = True
+    image_analyzer = spec.get("falconImageAnalyzer")
+    if image_analyzer:
+        migrate_image_analyzer(image_analyzer, fcg, warnings)
+        del spec["falconImageAnalyzer"]
+
+    if image_analyzer_enabled:
+        ia = fcg.setdefault("imageAnalyzer", CommentedMap())
+        ia["enabled"] = True
+
+    # FalconContainerSensor config: keep deployContainerSensor enabled if config exists
+    # and it was not explicitly disabled.
+    if spec.get("falconContainerSensor") and spec.get("deployContainerSensor") is not False:
+        spec["deployContainerSensor"] = True
 
     _group_deploy_flags(spec)
 
@@ -699,7 +798,7 @@ def print_migration_preview(fd_doc: CommentedMap, output_path: str) -> None:
         enabled = bool(spec.get(flag))
         mark = "✓" if enabled else "✗"
         state = "enabled" if enabled else "disabled"
-        note = "  (replaced by FalconClusterGuard)" if flag in ("deployAdmissionController", "deployNodeSensor") and not enabled else ""
+        note = "  (replaced by FalconClusterGuard)" if flag in ("deployAdmissionController", "deployNodeSensor", "deployImageAnalyzer") and not enabled else ""
         print(f"    {mark}  {label:<30}  {state}{note}")
 
     fcg = spec.get("falconClusterGuard") or CommentedMap()
@@ -824,7 +923,7 @@ def run_wizard(
         "FalconNodeSensor":     "migrates to falconClusterGuard.nodeSensor",
         "FalconAdmission":      "migrates to falconClusterGuard.controller",
         "FalconContainerSensor":"preserved in falconContainerSensor",
-        "FalconImageAnalyzer":  "preserved in falconImageAnalyzer",
+        "FalconImageAnalyzer":  "migrates to falconClusterGuard.imageAnalyzer",
     }
     print()
     for comp, enabled in _comp_states.items():
