@@ -1,10 +1,10 @@
 # Falcon Cluster Guard
 
 ## About FalconClusterGuard Custom Resource (CR)
-Falcon Operator introduces the FalconClusterGuard Custom Resource (CR) to the cluster. The resource is meant to install, configure, and uninstall Falcon Cluster Guard on the cluster. FalconClusterGuard combines the capabilities of the Falcon Kubernetes Admission Controller and the Falcon Linux Node Sensor into a single resource, deploying both a Deployment (for admission control and cluster visibility) and a DaemonSet (for node-level protection) from a single manifest.
+Falcon Operator introduces the FalconClusterGuard Custom Resource (CR) to the cluster. The resource is meant to install, configure, and uninstall Falcon Cluster Guard on the cluster. FalconClusterGuard combines the capabilities of the Falcon Kubernetes Admission Controller, the Falcon Linux Node Sensor, and the Falcon Image Analyzer into a single resource, deploying a Deployment (for admission control and cluster visibility), a DaemonSet (for node-level protection), and optionally an Image Analyzer Deployment (for image assessment at runtime) from a single manifest.
 
 > [!IMPORTANT]
-> `FalconNodeSensor` and `FalconAdmission` are deprecated. New deployments should use `FalconClusterGuard` instead. Existing `FalconNodeSensor` and `FalconAdmission` resources can be deleted and replaced with a `FalconClusterGuard` resource. Creation of new `FalconNodeSensor` resources and creation or update of `FalconAdmission` resources are blocked by a validating webhook.
+> `FalconNodeSensor`, `FalconAdmission`, and `FalconImageAnalyzer` are deprecated. New deployments should use `FalconClusterGuard` instead. Existing `FalconNodeSensor`, `FalconAdmission`, and `FalconImageAnalyzer` resources can be deleted and replaced with a `FalconClusterGuard` resource. Creation of new `FalconNodeSensor` resources and creation or update of `FalconAdmission` and `FalconImageAnalyzer` resources are blocked by a validating webhook.
 
 ### FalconClusterGuard CR Configuration using CrowdStrike API Keys
 To start the FalconClusterGuard installation using CrowdStrike API Keys to allow the operator to determine your Falcon Customer ID (CID) as well as pull down the CrowdStrike Falcon Cluster Guard image, please create the following FalconClusterGuard resource to your cluster.
@@ -13,6 +13,10 @@ To start the FalconClusterGuard installation using CrowdStrike API Keys to allow
 > You will need to provide CrowdStrike API Keys and CrowdStrike cloud region for the installation. It is recommended to establish new API credentials for the installation at https://falcon.crowdstrike.com/support/api-clients-and-keys, required permissions are:
 > * Falcon Images Download: **Read**
 > * Sensor Download: **Read**
+>
+> When the Image Analyzer is enabled (`imageAnalyzer.enabled: true`), the following permissions are also required:
+> * Falcon Container CLI: **Write**
+> * Falcon Container Image: **Read/Write**
 
 Example:
 
@@ -32,6 +36,25 @@ spec:
     cloud_region: autodiscover
   registry:
     type: crowdstrike
+```
+
+To also deploy the Falcon Image Analyzer, enable it under `imageAnalyzer`:
+
+```yaml
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconClusterGuard
+metadata:
+  name: falcon-clusterguard
+spec:
+  falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
+    cloud_region: autodiscover
+  registry:
+    type: crowdstrike
+  imageAnalyzer:
+    enabled: true
+    clusterName: PLEASE_FILL_IN
 ```
 
 ### FalconClusterGuard Reference Manual
@@ -119,6 +142,36 @@ spec:
 
 > [!IMPORTANT]
 > nodeSensor.tolerations will be appended to the existing tolerations for the daemonset. Removing tolerations from an existing daemonset requires a redeploy of the FalconClusterGuard manifest.
+
+#### Image Analyzer Configuration Settings
+The Image Analyzer runs in `installNamespace` and uses the top-level `image`, `version`, `registry`, `imagePullPolicy`, and `imagePullSecrets` settings shared by all Falcon Cluster Guard components.
+
+| Spec                                                  | Description                                                                                                                                                                                      |
+|:------------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| imageAnalyzer.enabled                                 | (optional) Controls whether the Image Analyzer Deployment is deployed. Default is `false`. Setting it to `false` on an existing resource removes the Image Analyzer resources.                  |
+| imageAnalyzer.clusterName                             | (optional) Name of the cluster as it will appear in the Falcon console.                                                                                                                         |
+| imageAnalyzer.nodeAffinity                            | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity. AMD64 and ARM64 architectures are supported by default.        |
+| imageAnalyzer.tolerations                             | (optional) Specify tolerations for scheduling the Image Analyzer pods. See https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ for examples. Note: Tolerations can be added or updated through the operator, but removing tolerations from the spec requires manual deletion from the deployment to distinguish user-defined tolerations from those automatically added by Kubernetes. |
+| imageAnalyzer.serviceAccount.annotations             | (optional) Configure annotations for the Image Analyzer service account (e.g. for IAM role association). Note: Annotations can be added or updated through the operator, but removing existing annotations requires manual intervention. |
+| imageAnalyzer.resources                               | (optional) Configure the resources of the Image Analyzer container.                                                                                                                             |
+| imageAnalyzer.updateStrategy                          | (optional) Configure the Deployment update strategy of the Image Analyzer.                                                                                                                      |
+| imageAnalyzer.priorityClass.name                      | (optional) Name of an existing PriorityClass to use for the Image Analyzer pods; set to avoid pod evictions due to resource limits.                                                             |
+| imageAnalyzer.azureConfigPath                         | (optional) Path to the Azure config file on the node. Required only on AKS.                                                                                                                     |
+| imageAnalyzer.sizeLimit                               | (optional) Configure the size limit of the temp storage space for scanning. Default is `20Gi`.                                                                                                  |
+| imageAnalyzer.mountPath                               | (optional) Configure the location of the temp storage space for scanning. Default is `/tmp`.                                                                                                    |
+| imageAnalyzer.logVerbosity                            | (optional) Set the log verbosity level. Allowed values: `info`, `debug`, `warn`, `error`. Default is `info`.                                                                                    |
+| imageAnalyzer.debug                                   | (optional) **Deprecated** as of IAR 1.0.26. Use `imageAnalyzer.logVerbosity` instead. Set to `true` for debug level log.                                                                       |
+| imageAnalyzer.exclusions.registries                   | (optional) List of registries to exclude. All images in the listed registries will be excluded.                                                                                                 |
+| imageAnalyzer.exclusions.namespaces                   | (optional) List of namespaces to exclude. All pods in the listed namespaces will be excluded.                                                                                                   |
+| imageAnalyzer.exclusions.imageNames                   | (optional) List of fully qualified image names to exclude.                                                                                                                                       |
+| imageAnalyzer.registryConfig.credentials              | (optional) Registry secrets in the form of a list of maps. e.g.<pre>- namespace: ns1<br>&nbsp;&nbsp;secretName: mysecretname</pre>To scan OpenShift control plane components, specify the cluster's pull secret: <pre>- namespace: openshift-config<br>&nbsp;&nbsp;secretName: pull-secret</pre> |
+| imageAnalyzer.registryConfig.autoDiscoverCredentials | (optional) Enable auto-discovery of registry credentials from secrets in the cluster. Default is `true`.                                                                                        |
+| imageAnalyzer.iarAgentService.port                    | (optional) HTTPS port for the IAR Agent Service. Default is `8001`.                                                                                                                             |
+| imageAnalyzer.iarAgentService.certExpiration          | (optional) Certificate validity duration in days. Default is `3650`.                                                                                                                            |
+| imageAnalyzer.iarAgentService.domainName              | (optional) Custom DNS domain for services when .svc requires a domain (e.g., if service.my-namespace.svc doesn't resolve and the cluster uses service.my-namespace.svc.testing.io, add testing.io). |
+
+> [!NOTE]
+> When `imageAnalyzer.enabled` is `true`, the Cluster Guard Controller communicates with the Image Analyzer in `installNamespace` and `controller.falconImageAnalyzerNamespace` is ignored. Do not run a standalone `FalconImageAnalyzer` alongside the Image Analyzer managed by FalconClusterGuard.
 
 #### Falcon Sensor Settings
 | Spec                      | Description                                                                                                                                                                                                                  |
@@ -226,6 +279,11 @@ To install Falcon Cluster Guard, run the following command to install the Falcon
 oc create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconclusterguard.yaml --edit=true
 ```
 
+To install Falcon Cluster Guard with the Image Analyzer enabled, use the following sample instead:
+```sh
+oc create -f https://raw.githubusercontent.com/crowdstrike/falcon-operator/main/config/samples/falcon_v1alpha1_falconclusterguard-with-image-analyzer.yaml --edit=true
+```
+
 ### Uninstall Steps
 To uninstall Falcon Cluster Guard simply remove the FalconClusterGuard resource. The operator will uninstall Falcon Cluster Guard from the cluster.
 
@@ -269,6 +327,16 @@ To upgrade the sensor version, simply add and/or update the `version` field in t
 - To review the logs of the node sensor DaemonSet:
   ```sh
   oc logs -n falcon-sensor -l "crowdstrike.com/component=node_sensor"
+  ```
+
+- To review the logs of the Image Analyzer:
+  ```sh
+  oc logs -n falcon-system -l "crowdstrike.com/component=fcg-iar"
+  ```
+
+- Each enabled component reports its readiness as a status condition on the FalconClusterGuard resource (`AdmissionReady`, `NodeSensorReady`, and `ImageAnalyzerReady`). The condition is removed when its component is disabled:
+  ```sh
+  oc get falconclusterguard -o jsonpath='{range .items[].status.conditions[*]}{.type}={.status}{"\n"}{end}'
   ```
 
 - To review the currently deployed version of the operator:
