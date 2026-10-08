@@ -453,7 +453,8 @@ HELM_CLUSTERROLE_TEMPLATES = \
 	$(HELM_CHART_DIR)/templates/rbac/manager-rolebinding.yaml \
 	$(HELM_CHART_DIR)/templates/rbac/node-sensor-role.yaml \
 	$(HELM_CHART_DIR)/templates/rbac/falcon-clusterguard-resource-reader.yaml \
-	$(HELM_CHART_DIR)/templates/rbac/falcon-sensor-access-role.yaml
+	$(HELM_CHART_DIR)/templates/rbac/falcon-sensor-access-role.yaml \
+	$(HELM_CHART_DIR)/templates/rbac/falcon-image-analyzer-role.yaml
 
 .PHONY: helm-build
 helm-build: kubebuilder

@@ -70,6 +70,26 @@ webhooks:
     service:
       name: {{ include "falcon-operator.resourceName" (dict "suffix" "webhook-service" "context" $) }}
       namespace: {{ .Release.Namespace }}
+      path: /validate-falcon-crowdstrike-com-v1alpha1-falconimageanalyzer
+  failurePolicy: Ignore
+  name: vfalconimageanalyzer.kb.io
+  rules:
+  - apiGroups:
+    - falcon.crowdstrike.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - falconimageanalyzers
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "falcon-operator.resourceName" (dict "suffix" "webhook-service" "context" $) }}
+      namespace: {{ .Release.Namespace }}
       path: /validate-falcon-crowdstrike-com-v1alpha1-falconnodesensor
   failurePolicy: Ignore
   name: vfalconnodesensor.kb.io

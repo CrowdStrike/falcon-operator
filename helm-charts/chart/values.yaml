@@ -10,7 +10,6 @@ manager:
     ## Image tag (defaults to Chart.appVersion if not set)
     ##
     tag: "0.0.1-falcon-clusterguard"
-    pullPolicy: Never
   ## Arguments
   ##
   args:
