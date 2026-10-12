@@ -173,7 +173,7 @@ func SideCarDeployment(name string, namespace string, component string, imageUri
 							TopologyKey:       "kubernetes.io/hostname",
 							WhenUnsatisfiable: corev1.ScheduleAnyway,
 							LabelSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{common.FalconInstanceNameKey: name},
+								MatchLabels: map[string]string{common.FalconInstanceKey: name},
 							},
 						},
 					},
@@ -759,7 +759,7 @@ func AdmissionDeployment(name string, namespace string, component string, imageU
 							TopologyKey:       "kubernetes.io/hostname",
 							WhenUnsatisfiable: corev1.ScheduleAnyway,
 							LabelSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{common.FalconInstanceNameKey: name},
+								MatchLabels: map[string]string{common.FalconInstanceKey: name},
 							},
 						},
 					},
