@@ -165,7 +165,12 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
-  name: falcon-operator.v1.15.0
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+    operatorframework.io/arch.s390x: supported
+    operatorframework.io/os.linux: supported
+  name: falcon-operator.v1.16.0-rc1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -2437,8 +2442,8 @@ spec:
                 - name: OPERATOR_NAME
                   value: falcon-operator
                 - name: OPERATOR_MANIFEST
-                  value: 1.15.0
-                image: quay.io/crowdstrike/falcon-operator:1.15.0
+                  value: 1.16.0-rc1
+                image: quay.io/crowdstrike/falcon-operator:1.16.0-rc1
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -2522,11 +2527,6 @@ spec:
   keywords:
   - security
   - runtime-protection
-  labels:
-    operatorframework.io/arch.amd64: supported
-    operatorframework.io/arch.arm64: supported
-    operatorframework.io/arch.s390x: supported
-    operatorframework.io/os.linux: supported
   links:
   - name: Falcon Operator
     url: https://github.com/CrowdStrike/falcon-operator
@@ -2541,4 +2541,4 @@ spec:
   skips:
   - falcon-operator.v1.3.0
   - falcon-operator.v1.12.0
-  version: 1.15.0
+  version: 1.16.0-rc1
