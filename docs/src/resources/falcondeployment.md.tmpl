@@ -76,6 +76,8 @@ The additional configurations for each component are mapped to the Spec for each
 * [Falcon Kubernetes Admission Controller Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/admission/README.md)
 * [Falcon Image Assessment at Runtime Agent Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/imageanalyzer/README.md)
 
+Each component chooses its image in the order described in the "Image selection order" section of its custom resource documentation. In disconnected or `oc mirror` environments, set the `image` in the CR spec to your mirrored sensor image. Falcon Image Analyzer is unique because it always requires Falcon API credentials and never uses the operator bundled image.
+
 #### Falcon Secret Settings
 | Spec                    | Description                                                                                    |
 |:------------------------|:-----------------------------------------------------------------------------------------------|

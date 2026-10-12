@@ -20,8 +20,9 @@ import (
 type FalconAPI struct {
 	// Cloud Region defines CrowdStrike Falcon Cloud Region to which the operator will connect and register.
 	// +kubebuilder:validation:Enum=autodiscover;us-1;us-2;us-3;eu-1;us-gov-1;us-gov-2
+	// +kubebuilder:default=autodiscover
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="CrowdStrike Falcon Cloud Region",order=3
-	CloudRegion string `json:"cloud_region"`
+	CloudRegion string `json:"cloud_region,omitempty"`
 
 	// Falcon OAuth2 API Client ID
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Client ID",order=1,xDescriptors="urn:alm:descriptor:com.tectonic.ui:password"
@@ -39,6 +40,16 @@ type FalconAPI struct {
 	// Specifies the hostname of the API endpoint to use. If blank, the public Falcon API endpoint is used.
 	// Intentionally not exported as a resource property.
 	HostOverride string `json:"-"`
+}
+
+// Controllers use this as the gate for RELATED_IMAGE_* isolation mode:
+// env var set + !IsConfigured → air-gapped cluster, use the bundled image directly;
+// env var set + IsConfigured  → connected cluster, ignore the env var and call the API.
+func (fa *FalconAPI) IsConfigured(fs FalconSecret) bool {
+	if fa == nil {
+		return fs.Enabled
+	}
+	return (fa.ClientId != "" && fa.ClientSecret != "") || fs.Enabled
 }
 
 // RegistryTLSSpec configures TLS for registry pushing
@@ -105,6 +116,9 @@ func (fa *FalconAPI) ApiConfigWithSecret(
 	falconSecret FalconSecret,
 ) (*falcon.ApiConfig, error) {
 	if !falconSecret.Enabled {
+		if fa == nil {
+			return &falcon.ApiConfig{}, internalErrors.ErrNilFalconAPIConfiguration
+		}
 		return fa.ApiConfig(), nil
 	}
 

@@ -2,12 +2,14 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"testing"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	internalErrors "github.com/crowdstrike/falcon-operator/internal/errors"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
@@ -221,6 +223,74 @@ func TestGetFalconImage(t *testing.T) {
 	}
 	if want != got {
 		t.Errorf("getFalconImage() = %s, want %s", got, want)
+	}
+}
+
+// TestNewConfigCache_EmptyFalconAPI verifies that a non-nil but uncredentialed FalconAPI
+// does not populate falconApiConfig, preserving the isolated-environment RELATED_IMAGE path.
+func TestNewConfigCache_EmptyFalconAPI_DoesNotSetApiConfig(t *testing.T) {
+	node := &falconv1alpha1.FalconNodeSensor{}
+	node.Spec.FalconAPI = &falconv1alpha1.FalconAPI{}
+	node.Spec.Falcon.CID = &falconCID
+
+	cache, err := NewConfigCache(context.Background(), node)
+	if err != nil {
+		t.Fatalf("NewConfigCache() unexpected error: %v", err)
+	}
+	if cache.falconApiConfig != nil {
+		t.Errorf("NewConfigCache() falconApiConfig = %v, want nil for uncredentialed FalconAPI", cache.falconApiConfig)
+	}
+}
+
+// TestNewConfigCache_NoCredentialsNoCID_ReturnsError verifies that a FalconAPI without
+// credentials and no CID returns an error instead of panicking on a nil API config.
+func TestNewConfigCache_NoCredentialsNoCID_ReturnsError(t *testing.T) {
+	node := &falconv1alpha1.FalconNodeSensor{}
+	node.Spec.FalconAPI = &falconv1alpha1.FalconAPI{ClientId: "client-id-only"}
+
+	_, err := NewConfigCache(context.Background(), node)
+	if !errors.Is(err, internalErrors.ErrMissingCIDWithoutFalconAPI) {
+		t.Errorf("NewConfigCache() error = %v, want %v", err, internalErrors.ErrMissingCIDWithoutFalconAPI)
+	}
+}
+
+// TestNewConfigCache_UncredentialedFalconAPICID_UsesCID verifies that falcon_api.cid is used
+// even when FalconAPI has no credentials.
+func TestNewConfigCache_UncredentialedFalconAPICID_UsesCID(t *testing.T) {
+	node := &falconv1alpha1.FalconNodeSensor{}
+	node.Spec.FalconAPI = &falconv1alpha1.FalconAPI{CID: &falconCID}
+
+	cache, err := NewConfigCache(context.Background(), node)
+	if err != nil {
+		t.Fatalf("NewConfigCache() unexpected error: %v", err)
+	}
+	if cache.cid != falconCID {
+		t.Errorf("NewConfigCache() cid = %q, want %q", cache.cid, falconCID)
+	}
+	if cache.falconApiConfig != nil {
+		t.Errorf("NewConfigCache() falconApiConfig = %v, want nil for uncredentialed FalconAPI", cache.falconApiConfig)
+	}
+}
+
+// TestGetFalconImage_EmptyFalconAPI_UsesRelatedImage verifies that when FalconAPI is set
+// but has no credentials and RELATED_IMAGE_NODE_SENSOR is present, the bundled image is used.
+func TestGetFalconImage_EmptyFalconAPI_UsesRelatedImage(t *testing.T) {
+	if err := os.Setenv("RELATED_IMAGE_NODE_SENSOR", "bundled-node-image:latest"); err != nil {
+		t.Fatalf("Setenv error: %v", err)
+	}
+	t.Cleanup(func() { os.Unsetenv("RELATED_IMAGE_NODE_SENSOR") })
+
+	node := &falconv1alpha1.FalconNodeSensor{}
+	node.Spec.FalconAPI = &falconv1alpha1.FalconAPI{}
+
+	testCache := &ConfigCache{nodesensor: node, falconApiConfig: nil}
+
+	got, err := testCache.getFalconImage(context.Background(), node)
+	if err != nil {
+		t.Fatalf("getFalconImage() unexpected error: %v", err)
+	}
+	if got != "bundled-node-image:latest" {
+		t.Errorf("getFalconImage() = %q, want %q", got, "bundled-node-image:latest")
 	}
 }
 

@@ -147,6 +147,11 @@ Example:
 image: myprivateregistry.internal.lan/falcon-image-analyzer/falcon-imageanalyzer:1.0.9
 ```
 
+{{ template "imageselection.tmpl" (dict "Kind" "FalconImageAnalyzer" "ImageField" "image" "VersionField" "version" "EnvVar" "RELATED_IMAGE_IMAGE_ANALYZER") }}
+
+> [!IMPORTANT]
+> Falcon Image Analyzer always requires Falcon API credentials, so the operator bundled image is never used for FalconImageAnalyzer. In disconnected or `oc mirror` environments, you must set `image` to the Falcon Image Analyzer image in your mirror registry.
+
 ### Install Steps
 To install Falcon Image Analyzer, run the following command to install the FalconImageAnalyzer CR:
 ```sh
