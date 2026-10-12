@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/crowdstrike/falcon-operator/test/utils"
 	//nolint:golint
@@ -14,6 +15,7 @@ import (
 	//nolint:golint
 	//nolint:revive
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/types"
 )
 
 // crConfig holds the configuration parameters for each CRD.
@@ -225,4 +227,80 @@ func (cr crConfig) validateOperatorEnvVars() {
 	}
 
 	EventuallyWithOffset(1, validateEnvInPod, defaultTimeout, defaultPollPeriod).Should(Succeed())
+}
+
+// workloadKind returns the kind of workload the operator creates for the CR
+func (cr crConfig) workloadKind() string {
+	if cr.kind == "FalconNodeSensor" {
+		return "daemonset"
+	}
+	return "deployment"
+}
+
+// workloadImages returns the init container and container images of the Deployment or DaemonSet
+// the operator created for the CR
+func (cr crConfig) workloadImages() ([]string, error) {
+	cmd := exec.Command("kubectl", "get", cr.workloadKind(),
+		"-n", cr.namespace,
+		"-l", fmt.Sprintf("crowdstrike.com/component=%s", cr.componentName),
+		"-o", "jsonpath={.items[*].spec.template.spec.initContainers[*].image} {.items[*].spec.template.spec.containers[*].image}",
+	)
+	output, err := utils.Run(cmd)
+	return strings.Fields(string(output)), err
+}
+
+// validateWorkloadImage waits until every container in the CR's Deployment or DaemonSet uses an image matching imageMatcher
+func (cr crConfig) validateWorkloadImage(imageMatcher types.GomegaMatcher) {
+	By(fmt.Sprintf("validating the %s %s container images", cr.kind, cr.workloadKind()))
+	validateImages := func(g Gomega) {
+		images, err := cr.workloadImages()
+		g.Expect(err).NotTo(HaveOccurred())
+		fmt.Printf("%s images: %v\n", cr.workloadKind(), images)
+		g.Expect(images).NotTo(BeEmpty())
+		g.Expect(images).To(HaveEach(imageMatcher))
+	}
+	EventuallyWithOffset(1, validateImages, defaultTimeout, defaultPollPeriod).Should(Succeed())
+}
+
+// validateNotDeployed checks over duration that the operator neither creates the CR's Deployment
+// or DaemonSet nor reports the Success condition
+func (cr crConfig) validateNotDeployed(duration time.Duration) {
+	By(fmt.Sprintf("validating that %s is not deployed for %v", cr.kind, duration))
+	notDeployed := func(g Gomega) {
+		images, err := cr.workloadImages()
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(images).To(BeEmpty())
+
+		cmd := exec.Command("kubectl", "get", strings.ToLower(cr.kind),
+			cr.metadataName, "-o", "jsonpath={.status.conditions[?(@.type==\"Success\")].status}",
+			"-n", cr.namespace,
+		)
+		status, err := utils.Run(cmd)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(string(status)).NotTo(Equal("True"))
+	}
+	ConsistentlyWithOffset(1, notDeployed, duration, defaultPollPeriod).Should(Succeed())
+}
+
+// deleteCrInstance deletes the CR by name, if it exists, and waits until its install namespace no longer exists
+func (cr crConfig) deleteCrInstance() {
+	By(fmt.Sprintf("deleting %s %s", cr.kind, cr.metadataName))
+	cmd := exec.Command("kubectl", "delete", strings.ToLower(cr.kind), cr.metadataName,
+		"-n", cr.namespace, "--ignore-not-found=true", "--timeout=120s")
+	_, err := utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	By(fmt.Sprintf("waiting for %s namespace to be fully deleted", cr.namespace))
+	namespaceDeleted := func() error {
+		cmd := exec.Command("kubectl", "get", "namespace", cr.namespace, "--ignore-not-found=true", "-o", "name")
+		output, err := utils.Run(cmd)
+		if err != nil {
+			return err
+		}
+		if strings.TrimSpace(string(output)) != "" {
+			return fmt.Errorf("namespace %s still exists", cr.namespace)
+		}
+		return nil
+	}
+	EventuallyWithOffset(1, namespaceDeleted, 5*time.Minute, defaultPollPeriod).Should(Succeed())
 }
