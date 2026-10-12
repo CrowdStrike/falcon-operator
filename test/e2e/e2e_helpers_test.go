@@ -94,3 +94,111 @@ func validateNoReconcileLoop(controllerPodName, namespace, kind string, duration
 			kind, reconcileCount, duration, threshold))
 	}
 }
+
+// operatorDeploymentName returns the name of the operator Deployment in the operator namespace
+func operatorDeploymentName() string {
+	cmd := exec.Command("kubectl", "get", "deployment", "-l", "control-plane=controller-manager",
+		"-n", namespace, "-o", "jsonpath={.items[0].metadata.name}")
+	output, err := utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	name := strings.TrimSpace(string(output))
+	ExpectWithOffset(1, name).NotTo(BeEmpty(), "operator Deployment not found in namespace %s", namespace)
+	return name
+}
+
+// isOperatorManagedByOLM reports whether OLM owns the operator Deployment. OLM reverts direct changes
+// to the Deployment, so env vars cannot be changed with kubectl set env.
+func isOperatorManagedByOLM(deployment string) bool {
+	cmd := exec.Command("kubectl", "get", "deployment", deployment, "-n", namespace,
+		"-o", "jsonpath={.metadata.labels.olm\\.owner}")
+	output, err := utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	return strings.TrimSpace(string(output)) != ""
+}
+
+// getOperatorEnv returns the value of an env var on the operator manager container, or "" if it is not set
+func getOperatorEnv(deployment, name string) string {
+	cmd := exec.Command("kubectl", "get", "deployment", deployment, "-n", namespace,
+		"-o", fmt.Sprintf("jsonpath={.spec.template.spec.containers[?(@.name==\"manager\")].env[?(@.name==\"%s\")].value}", name))
+	output, err := utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	return strings.TrimSpace(string(output))
+}
+
+// setOperatorEnv sets an env var on the operator manager container, or removes it when value is "",
+// then waits for the new operator pod to be running and updates controllerPodName
+func setOperatorEnv(deployment, name, value string) {
+	envArg := fmt.Sprintf("%s=%s", name, value)
+	if value == "" {
+		envArg = name + "-"
+	}
+
+	By(fmt.Sprintf("setting %s on the operator Deployment", envArg))
+	cmd := exec.Command("kubectl", "set", "env", "deployment/"+deployment, "-n", namespace, "-c", "manager", envArg)
+	_, err := utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	cmd = exec.Command("kubectl", "rollout", "status", "deployment/"+deployment, "-n", namespace, "--timeout=180s")
+	_, err = utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	waitForControllerPod()
+}
+
+// waitForControllerPod waits for a single running operator pod and stores its name in controllerPodName
+func waitForControllerPod() {
+	getControllerPod := func(g Gomega) {
+		cmd := exec.Command("kubectl", "get",
+			"pods", "-l", "control-plane=controller-manager",
+			"-o", "go-template={{ range .items }}{{ if not .metadata.deletionTimestamp }}{{ .metadata.name }}"+
+				"{{ \"\\n\" }}{{ end }}{{ end }}",
+			"-n", namespace,
+		)
+		podOutput, err := utils.Run(cmd)
+		g.Expect(err).NotTo(HaveOccurred())
+		podNames := utils.GetNonEmptyLines(string(podOutput))
+		g.Expect(podNames).To(HaveLen(1))
+
+		cmd = exec.Command("kubectl", "get", "pods", podNames[0], "-o", "jsonpath={.status.phase}", "-n", namespace)
+		status, err := utils.Run(cmd)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(string(status)).To(Equal("Running"))
+
+		controllerPodName = podNames[0]
+	}
+	EventuallyWithOffset(1, getControllerPod, defaultTimeout, defaultPollPeriod).Should(Succeed())
+}
+
+// validateOperatorLogError waits until the operator logs contain expectedError and checks that the
+// operator has not recovered from a panic while reconciling
+func validateOperatorLogError(expectedError string) {
+	By(fmt.Sprintf("validating that the operator logs %q without panicking", expectedError))
+	validateLogs := func(g Gomega) {
+		cmd := exec.Command("kubectl", "logs", controllerPodName, "-n", namespace, "-c", "manager", "--tail=-1")
+		output, err := utils.Run(cmd)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(string(output)).NotTo(ContainSubstring("Observed a panic"))
+		g.Expect(string(output)).To(ContainSubstring(expectedError))
+	}
+	EventuallyWithOffset(1, validateLogs, defaultTimeout, defaultPollPeriod).Should(Succeed())
+}
+
+// useBundledImage sets the RELATED_IMAGE_* env var on the operator, as the OpenShift OLM bundle does, and
+// returns the image and a function that restores the env var. Under OLM, the bundle's value is used instead.
+// Restore it from an AfterAll, not DeferCleanup, which runs after the suite's AfterAll undeploys the operator.
+func useBundledImage(envVar, fakeImage string) (string, func()) {
+	deployment := operatorDeploymentName()
+	original := getOperatorEnv(deployment, envVar)
+
+	if isOperatorManagedByOLM(deployment) {
+		if original == "" {
+			Skip(fmt.Sprintf("operator is managed by OLM and the bundle does not set %s", envVar))
+		}
+		return original, func() {}
+	}
+
+	setOperatorEnv(deployment, envVar, fakeImage)
+	return fakeImage, func() {
+		setOperatorEnv(deployment, envVar, original)
+	}
+}
