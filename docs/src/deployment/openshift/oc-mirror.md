@@ -63,38 +63,32 @@ $ ./falcon-container-sensor-pull.sh -t falcon-sensor --get-pull-token | base64 -
 
 CrowdStrike sensors, and therefore container images, are historically tied to the region your Falcon CID (tenant) is deployed into (e.g. us-1, eu-1). The Falcon operator contains references to us-1 only for publishing purposes. You need to instruct `oc mirror` to ignore these default references, and instead pull your region-specific images instead.
 
-> [!NOTE]
-> As of September 2025, sensors and container images are becoming _unified_ and regionless. You should mirror the unified images as they become available.
->
-> - `falcon-sensor` is unified as of 7.31 ([tech alert](https://supportportal.crowdstrike.com/s/article/Tech-Alert-60-day-notice-Unified-installer-image-for-Falcon-sensor-for-Linux))
-> - `falcon-kac` is unified as of 7.33 ([tech alert](https://supportportal.crowdstrike.com/s/article/Tech-Alert-Unified-installer-image-for-Falcon-Kubernetes-Admission-Controller))
-
 **Prerequisite:** Prepare your `ImageSetConfiguration` file as necessary for your environment. The example below is just a reference for where to make changes specific to this operator. It will not match your environment's specific configuration.
 
 1. Add the Falcon operator to `operators`
 1. Add the default us-1 images to `blockedImages`
-1. Add your regional images to `additionalImages`
+1. Add your desired images to `additionalImages`
 
 ```yaml
 kind: ImageSetConfiguration
 apiVersion: mirror.openshift.io/v2alpha1
 mirror:
   operators:
-    - catalog: registry.redhat.io/redhat/certified-operator-index:v4.20
+    - catalog: registry.redhat.io/redhat/certified-operator-index:v4.22
       packages:
       - name: falcon-operator
         channels:
         - name: certified-1.0
-          minVersion: 1.8.0
+          minVersion: 1.15.0
   blockedImages:
     - name: registry.crowdstrike.com/falcon-container/us-1
     - name: registry.crowdstrike.com/falcon-imageanalyzer/us-1
     - name: registry.crowdstrike.com/falcon-sensor/us-1
     - name: registry.crowdstrike.com/falcon-kac/us-1
   additionalImages:
-    - name: registry.crowdstrike.com/falcon-sensor/us-2/release/falcon-sensor:7.30.0-18306-1.falcon-linux.Release.US-2
-    - name: registry.crowdstrike.com/falcon-kac/us-2/release/falcon-kac:7.30.0-2801.Release.US-2
-    - name: registry.crowdstrike.com/falcon-imageanalyzer/us-2/release/falcon-imageanalyzer:1.0.20
+    - name: registry.crowdstrike.com/falcon-sensor/release/falcon-sensor:8.10.0-19403-1
+    - name: registry.crowdstrike.com/falcon-kac/release/falcon-kac:8.11.0-4003
+    - name: registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer:1.0.27
 ```
 
 ## Use Mirrored Images
