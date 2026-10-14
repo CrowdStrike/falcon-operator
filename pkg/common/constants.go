@@ -100,6 +100,11 @@ const (
 	ClusterGuardNodeSensorClusterRoleBindingName    = "falcon-sensor-access-binding"
 	ClusterGuardNodeSensorCleanupServiceAccountName = "falcon-node-sensor-sa-node-cleanup"
 	ClusterGuardNodeSensorTLSSecretName             = "falcon-node-sensor-tls"
+	ClusterGuardProxyServiceName                    = "falcon-proxy"
+	ClusterGuardProxyPortName                       = "proxy"
+	ClusterGuardProxyTLSVolumeName                  = "proxy-tls"
+	ClusterGuardProxyServicePort                    = int32(80)
+	ClusterGuardProxyMountPath                      = "/run/secrets/proxy"
 
 	// Shared between Cluster Guard Controller and Node Sensor modules
 	ClusterGuardComponentName           = "falcon-clusterguard"

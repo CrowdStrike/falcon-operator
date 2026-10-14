@@ -404,3 +404,156 @@ func TestReconcileDaemonSet_ConfigMapChecksumAnnotation_Stable(t *testing.T) {
 			checksum, ds.Spec.Template.Annotations["checksum/config"])
 	}
 }
+
+// TestReconcileProxyService_SkipWhenDisabled verifies that reconcileProxyService is a no-op
+// when guardian proxy is disabled.
+func TestReconcileProxyService_SkipWhenDisabled(t *testing.T) {
+	ns := "falcon-clusterguard"
+	owner := ownerCR()
+	r := newFakeReconciler(owner)
+	n := New(r, baseConfig(ns, owner))
+
+	ctx := context.Background()
+	if err := n.reconcileProxyService(ctx); err != nil {
+		t.Fatalf("reconcileProxyService() error: %v", err)
+	}
+
+	svc := &corev1.Service{}
+	if err := r.Get(ctx, types.NamespacedName{Name: pkgcommon.ClusterGuardProxyServiceName, Namespace: ns}, svc); err == nil {
+		t.Error("expected no proxy Service when proxy is disabled, but one was created")
+	}
+}
+
+// TestReconcileProxyService_CreateWhenEnabled verifies that reconcileProxyService creates
+// the falcon-proxy Service when the guardian proxy is enabled.
+func TestReconcileProxyService_CreateWhenEnabled(t *testing.T) {
+	ns := "falcon-clusterguard"
+	owner := ownerCR()
+	r := newFakeReconciler(owner)
+
+	enabled := true
+	port := int32(48080)
+	cfg := baseConfig(ns, owner)
+	cfg.NodeSensor.Guardian.Proxy.Enabled = &enabled
+	cfg.NodeSensor.Guardian.Proxy.Port = &port
+	n := New(r, cfg)
+
+	ctx := context.Background()
+	if err := n.reconcileProxyService(ctx); err != nil {
+		t.Fatalf("reconcileProxyService() error: %v", err)
+	}
+
+	svc := &corev1.Service{}
+	if err := r.Get(ctx, types.NamespacedName{Name: pkgcommon.ClusterGuardProxyServiceName, Namespace: ns}, svc); err != nil {
+		t.Fatalf("expected falcon-proxy Service to exist: %v", err)
+	}
+	if svc.Spec.InternalTrafficPolicy == nil || *svc.Spec.InternalTrafficPolicy != corev1.ServiceInternalTrafficPolicyLocal {
+		t.Error("expected InternalTrafficPolicy=Local on proxy Service")
+	}
+}
+
+// TestReconcileProxyService_Idempotent verifies that a second call does not fail or
+// change the resource version (no spurious update).
+func TestReconcileProxyService_Idempotent(t *testing.T) {
+	ns := "falcon-clusterguard"
+	owner := ownerCR()
+	r := newFakeReconciler(owner)
+
+	enabled := true
+	port := int32(48080)
+	cfg := baseConfig(ns, owner)
+	cfg.NodeSensor.Guardian.Proxy.Enabled = &enabled
+	cfg.NodeSensor.Guardian.Proxy.Port = &port
+	n := New(r, cfg)
+
+	ctx := context.Background()
+	if err := n.reconcileProxyService(ctx); err != nil {
+		t.Fatalf("first reconcileProxyService() error: %v", err)
+	}
+	first := &corev1.Service{}
+	_ = r.Get(ctx, types.NamespacedName{Name: pkgcommon.ClusterGuardProxyServiceName, Namespace: ns}, first)
+
+	if err := n.reconcileProxyService(ctx); err != nil {
+		t.Fatalf("second reconcileProxyService() error: %v", err)
+	}
+	second := &corev1.Service{}
+	_ = r.Get(ctx, types.NamespacedName{Name: pkgcommon.ClusterGuardProxyServiceName, Namespace: ns}, second)
+
+	if first.ResourceVersion != second.ResourceVersion {
+		t.Errorf("expected no update on second reconcile: rv %q → %q",
+			first.ResourceVersion, second.ResourceVersion)
+	}
+}
+
+// TestReconcileDaemonSet_DNSConfig verifies that setting DNSConfig applies it to the
+// live DaemonSet, and that removing it clears it.
+func TestReconcileDaemonSet_DNSConfig(t *testing.T) {
+	ns := "falcon-clusterguard"
+	owner := ownerCR()
+	r := newFakeReconciler(owner)
+	n := New(r, baseConfig(ns, owner))
+	reconcileAndGet(t, n, r, ns, "falcon-sensor")
+
+	// Add DNSConfig
+	cfg2 := baseConfig(ns, owner)
+	cfg2.NodeSensor.DNSConfig = &corev1.PodDNSConfig{
+		Nameservers: []string{"8.8.8.8"},
+	}
+	n2 := New(r, cfg2)
+	ds := reconcileAndGet(t, n2, r, ns, "falcon-sensor")
+
+	if ds.Spec.Template.Spec.DNSConfig == nil {
+		t.Fatal("expected DNSConfig to be applied")
+	}
+	if len(ds.Spec.Template.Spec.DNSConfig.Nameservers) != 1 || ds.Spec.Template.Spec.DNSConfig.Nameservers[0] != "8.8.8.8" {
+		t.Errorf("expected nameserver 8.8.8.8, got %v", ds.Spec.Template.Spec.DNSConfig.Nameservers)
+	}
+}
+
+// TestReconcileDaemonSet_ProxyPortAndVolume verifies that enabling the guardian proxy
+// causes the proxy port, volume, and volumemount to appear on the live DaemonSet.
+func TestReconcileDaemonSet_ProxyPortAndVolume(t *testing.T) {
+	ns := "falcon-clusterguard"
+	owner := ownerCR()
+	r := newFakeReconciler(owner)
+	n := New(r, baseConfig(ns, owner))
+	reconcileAndGet(t, n, r, ns, "falcon-sensor")
+
+	enabled := true
+	port := int32(48080)
+	cfg2 := baseConfig(ns, owner)
+	cfg2.NodeSensor.Guardian.Proxy.Enabled = &enabled
+	cfg2.NodeSensor.Guardian.Proxy.Port = &port
+	n2 := New(r, cfg2)
+	ds := reconcileAndGet(t, n2, r, ns, "falcon-sensor")
+
+	foundPort := false
+	for _, p := range ds.Spec.Template.Spec.Containers[0].Ports {
+		if p.Name == pkgcommon.ClusterGuardProxyPortName && p.ContainerPort == port {
+			foundPort = true
+		}
+	}
+	if !foundPort {
+		t.Error("expected proxy container port after enabling guardian proxy")
+	}
+
+	foundVol := false
+	for _, v := range ds.Spec.Template.Spec.Volumes {
+		if v.Name == pkgcommon.ClusterGuardProxyTLSVolumeName {
+			foundVol = true
+		}
+	}
+	if !foundVol {
+		t.Error("expected proxy-tls volume after enabling guardian proxy")
+	}
+
+	foundMount := false
+	for _, vm := range ds.Spec.Template.Spec.Containers[0].VolumeMounts {
+		if vm.Name == pkgcommon.ClusterGuardProxyTLSVolumeName {
+			foundMount = true
+		}
+	}
+	if !foundMount {
+		t.Error("expected proxy-tls volumemount after enabling guardian proxy")
+	}
+}

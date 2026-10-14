@@ -1872,6 +1872,51 @@ spec:
                           Disables the cleanup of the sensor through DaemonSet on the nodes.
                           Disabling might have unintended consequences for certain operations such as sensor downgrading.
                         type: boolean
+                      dnsConfig:
+                        description: DNSConfig defines DNS parameters for the node
+                          sensor pods, applied to podSpec.dnsConfig.
+                        properties:
+                          nameservers:
+                            description: |-
+                              A list of DNS name server IP addresses.
+                              This will be appended to the base nameservers generated from DNSPolicy.
+                              Duplicated nameservers will be removed.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          options:
+                            description: |-
+                              A list of DNS resolver options.
+                              This will be merged with the base options generated from DNSPolicy.
+                              Duplicated entries will be removed. Resolution options given in Options
+                              will override those that appear in the base DNSPolicy.
+                            items:
+                              description: PodDNSConfigOption defines DNS resolver
+                                options of a pod.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name is this DNS resolver option's name.
+                                    Required.
+                                  type: string
+                                value:
+                                  description: Value is this DNS resolver option's
+                                    value.
+                                  type: string
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          searches:
+                            description: |-
+                              A list of DNS search domains for host-name lookup.
+                              This will be appended to the base search paths generated from DNSPolicy.
+                              Duplicated search paths will be removed.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                        type: object
                       enabled:
                         default: true
                         description: Enabled controls whether the node sensor DaemonSet
@@ -1895,6 +1940,34 @@ spec:
                               allow list troubleshooting purposes.
                             pattern: ^v[0-9]+\.[0-9]+\.[0-9]+$
                             type: string
+                        type: object
+                      guardian:
+                        default: {}
+                        description: Guardian configures the guardian proxy sidecar
+                          on the node sensor DaemonSet.
+                        properties:
+                          proxy:
+                            default: {}
+                            description: Proxy configures the guardian proxy sidecar.
+                            properties:
+                              enabled:
+                                default: false
+                                description: Enables the guardian proxy sidecar on
+                                  the node sensor DaemonSet.
+                                type: boolean
+                              port:
+                                default: 48080
+                                description: Port on which the guardian proxy listens.
+                                format: int32
+                                maximum: 65535
+                                minimum: 1024
+                                type: integer
+                              tlsSecretName:
+                                default: falcon-proxy-tls
+                                description: Name of the TLS secret to mount into
+                                  the node sensor for the guardian proxy.
+                                type: string
+                            type: object
                         type: object
                       nodeAffinity:
                         description: Specifies node affinity for scheduling the DaemonSet.
