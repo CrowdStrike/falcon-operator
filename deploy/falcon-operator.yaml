@@ -2478,8 +2478,8 @@ spec:
                               node sensor DaemonSet.
                             type: boolean
                           port:
-                            default: 48080
                             description: Port on which the guardian proxy listens.
+                              Required when the guardian proxy is enabled.
                             format: int32
                             maximum: 65535
                             minimum: 1024
@@ -2490,6 +2490,9 @@ spec:
                               node sensor for the guardian proxy.
                             type: string
                         type: object
+                        x-kubernetes-validations:
+                        - message: port is required when the guardian proxy is enabled
+                          rule: '!has(self.enabled) || !self.enabled || has(self.port)'
                     type: object
                   nodeAffinity:
                     description: Specifies node affinity for scheduling the DaemonSet.
@@ -8032,8 +8035,8 @@ spec:
                                   the node sensor DaemonSet.
                                 type: boolean
                               port:
-                                default: 48080
                                 description: Port on which the guardian proxy listens.
+                                  Required when the guardian proxy is enabled.
                                 format: int32
                                 maximum: 65535
                                 minimum: 1024
@@ -8044,6 +8047,10 @@ spec:
                                   the node sensor for the guardian proxy.
                                 type: string
                             type: object
+                            x-kubernetes-validations:
+                            - message: port is required when the guardian proxy is
+                                enabled
+                              rule: '!has(self.enabled) || !self.enabled || has(self.port)'
                         type: object
                       nodeAffinity:
                         description: Specifies node affinity for scheduling the DaemonSet.

@@ -661,14 +661,14 @@ func (s *FalconClusterGuardImageAnalyzerSpec) IsEnabled() bool {
 }
 
 // FalconClusterGuardGuardianProxy defines configuration for the guardian proxy on the node sensor.
+// +kubebuilder:validation:XValidation:rule="!has(self.enabled) || !self.enabled || has(self.port)",message="port is required when the guardian proxy is enabled"
 type FalconClusterGuardGuardianProxy struct {
 	// Enables the guardian proxy sidecar on the node sensor DaemonSet.
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Guardian Proxy",order=1
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// Port on which the guardian proxy listens.
-	// +kubebuilder:default=48080
+	// Port on which the guardian proxy listens. Required when the guardian proxy is enabled.
 	// +kubebuilder:validation:Minimum=1024
 	// +kubebuilder:validation:Maximum=65535
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Guardian Proxy Port",order=2,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}

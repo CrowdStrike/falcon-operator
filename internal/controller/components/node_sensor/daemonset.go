@@ -161,10 +161,8 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 	}
 
 	if nodeSpec.Guardian.Proxy.IsEnabled() {
-		proxyPort := int32(48080)
-		if nodeSpec.Guardian.Proxy.Port != nil {
-			proxyPort = *nodeSpec.Guardian.Proxy.Port
-		}
+		// Port is guaranteed by CRD validation when the proxy is enabled.
+		proxyPort := *nodeSpec.Guardian.Proxy.Port
 		tlsSecretName := nodeSpec.Guardian.Proxy.TLSSecretName
 		if tlsSecretName == "" {
 			tlsSecretName = pkgcommon.ClusterGuardProxyServiceName + "-tls"

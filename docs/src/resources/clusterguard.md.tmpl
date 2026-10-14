@@ -140,7 +140,7 @@ spec:
 | nodeSensor.advanced.autoUpdate              | (optional) Reserved for future use. Automatic sensor update tracking is not yet implemented for FalconClusterGuard. Use the top-level `version` field to pin a specific sensor version.         |
 | nodeSensor.advanced.updatePolicy            | (optional) Reserved for future use. Sensor update policies are not yet implemented for FalconClusterGuard. Use the top-level `version` field to pin a specific sensor version.                  |
 | nodeSensor.guardian.proxy.enabled           | (optional) Enable the Guardian Local Proxy sidecar on the node sensor DaemonSet. When enabled, creates a `falcon-proxy` Service with `internalTrafficPolicy: Local`. Default is `false`.       |
-| nodeSensor.guardian.proxy.port              | (optional) Container port the guardian proxy listens on. Must be in range 1024–65535. Default is `48080`.                                                                                       |
+| nodeSensor.guardian.proxy.port              | (required when `nodeSensor.guardian.proxy.enabled` is `true`) Container port the guardian proxy listens on. Must be in range 1024–65535.                                                          |
 | nodeSensor.guardian.proxy.tlsSecretName     | (optional) Name of a Secret containing CA certificate(s) for upstream TLS verification. Mounted as `optional: true` — the pod starts even if the Secret does not exist. Default is `falcon-proxy-tls`. |
 | nodeSensor.dnsConfig                        | (optional) Additional DNS parameters appended to the node sensor pod spec (`podSpec.dnsConfig`). Useful for adding custom nameservers or search domains when `hostNetwork: true` forces `dnsPolicy: ClusterFirstWithHostNet`. |
 
@@ -180,7 +180,7 @@ The Image Analyzer runs in `installNamespace` and uses the top-level `image`, `v
 
 When `nodeSensor.guardian.proxy.enabled: true`, the operator:
 
-1. Exposes a named `proxy` port (default `48080`) on the sensor container.
+1. Exposes a named `proxy` port (set by the required `nodeSensor.guardian.proxy.port` field) on the sensor container.
 2. Creates a `falcon-proxy` Service with `internalTrafficPolicy: Local` so traffic is always routed to the proxy pod on the **same node** — no cross-node hops.
 
 ```yaml

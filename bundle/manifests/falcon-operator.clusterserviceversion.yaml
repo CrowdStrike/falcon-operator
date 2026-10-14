@@ -188,7 +188,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
     containerImage: quay.io/crowdstrike/falcon-operator
-    createdAt: "2026-10-02T17:42:17Z"
+    createdAt: "2026-10-14T22:51:24Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -523,6 +523,30 @@ spec:
         path: falcon_api.client_id
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:password
+      - description: Configure a list of registries for the Falcon Image Analyzer
+          to ignore.
+        displayName: Exclusions List
+        path: imageAnalyzer.exclusions.registries
+      - description: HTTPS Port for the IAR Agent Service.
+        displayName: Falcon Image Analyzer Agent Service HTTPS Port
+        path: imageAnalyzer.iarAgentService.port
+      - description: Name of the priority class to use.
+        displayName: Name of the Priority Class to use
+        path: imageAnalyzer.priorityClass.name
+      - description: If necessary, configure the registry credentials for the Falcon
+          Image Analyzer.
+        displayName: Registry Credentials
+        path: imageAnalyzer.registryConfig.credentials
+      - description: Define annotations that will be passed down to the Service Account.
+          This is useful for passing along AWS IAM Role or GCP Workload Identity.
+        displayName: Service Account Annotations
+        path: imageAnalyzer.serviceAccount.annotations
+      - description: RollingUpdate is used to specify the strategy used to roll out
+          a deployment
+        displayName: Falcon Image Analyzer deployment update configuration
+        path: imageAnalyzer.updateStrategy.rollingUpdate
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:updateStrategy
       - description: UpdatePolicy is the name of a sensor update policy configured
           and enabled in Falcon UI. It is ignored when Image and/or Version are set.
         displayName: Falcon Sensor Update Policy
@@ -575,13 +599,21 @@ spec:
         path: falcon_api.client_secret
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:password
+      - description: Configure a list of namespaces for Image Analyzer to ignore.
+        displayName: Ignore Namespace List
+        path: imageAnalyzer.exclusions.namespaces
+      - description: Enable auto-discovery of registry credentials from secrets in
+          the cluster.
+        displayName: Auto Discover Registry Credentials
+        path: imageAnalyzer.registryConfig.autoDiscoverCredentials
       - description: |-
           AutoUpdate determines whether to install new versions of the sensor as they become available. Defaults to "off" and is ignored if FalconAPI is not set.
           Setting this to "force" causes the reconciler to run on every polling cycle, even if a new sensor version is not available.
           Setting it to "normal" only reconciles when a new version is detected.
         displayName: Falcon Sensor Automatic Updates
         path: nodeSensor.advanced.autoUpdate
-      - description: Port on which the guardian proxy listens.
+      - description: Port on which the guardian proxy listens. Required when the guardian
+          proxy is enabled.
         displayName: Guardian Proxy Port
         path: nodeSensor.guardian.proxy.port
         x-descriptors:
@@ -619,6 +651,12 @@ spec:
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falcon_api.cloud_region
+      - description: Configure a list of image names for Image Analyzer to ignore.
+        displayName: Ignore Images List
+        path: imageAnalyzer.exclusions.imageNames
+      - description: Certificate validity duration in number of days.
+        displayName: Falcon Image Analyzer TLS Certificate Expiration (days)
+        path: imageAnalyzer.iarAgentService.certExpiration
       - description: Name of the TLS secret to mount into the node sensor for the
           guardian proxy.
         displayName: Guardian Proxy TLS Secret Name
@@ -654,6 +692,12 @@ spec:
           Use only when mirroring the image to a custom repository.
         displayName: Image
         path: image
+      - description: |-
+          For custom DNS configurations when .svc requires a domain for services.
+          For example if service.my-namespace.svc doesn't resolve and the cluster uses
+          service.my-namespace.svc.testing.io, you would add testing.io as the value below.
+        displayName: Domain Name
+        path: imageAnalyzer.iarAgentService.domainName
       - description: Specifies tolerations for custom taints. Defaults to allowing
           scheduling on all nodes.
         displayName: Tolerations
@@ -750,6 +794,10 @@ spec:
         path: controller.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: ImageAnalyzer configures the Image Analyzer Deployment deployed
+          alongside FalconClusterGuard.
+        displayName: Image Analyzer Configuration
+        path: imageAnalyzer
       - description: Type of Deployment update. Can be "RollingUpdate" or "OnDelete".
           Default is RollingUpdate.
         displayName: Deployment Update Strategy
@@ -798,8 +846,9 @@ spec:
           Controller.
         displayName: Node Affinity
         path: controller.nodeAffinity
-      - description: Namespace where Falcon Image Analyzer is installed. Falcon Cluster
-          Guard needs to know this to discover and communicate with IAR.
+      - description: |-
+          Namespace where Falcon Image Analyzer is installed. Falcon Cluster Guard needs to know this to discover and communicate with IAR.
+          Ignored when imageAnalyzer is enabled, since the Falcon Cluster Guard managed IAR always runs in installNamespace.
         displayName: Falcon Image Analyzer Namespace
         path: controller.falconImageAnalyzerNamespace
       - description: Specifies tolerations for scheduling the Falcon Cluster Guard
@@ -821,6 +870,12 @@ spec:
           Controls the ResourceQuota for the admission controller namespace. Defaults to 2.
         displayName: Resource Quota Pods
         path: controller.resourceQuotaPods
+      - description: Configure resource requests and limits for the Image Analyzer
+          container.
+        displayName: Resources
+        path: imageAnalyzer.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
       - description: |-
           Advanced configures various options that go against industry practices or are otherwise not recommended for use.
           Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
@@ -1186,6 +1241,30 @@ spec:
         path: falconClusterGuard.falcon_api.client_id
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:password
+      - description: Configure a list of registries for the Falcon Image Analyzer
+          to ignore.
+        displayName: Exclusions List
+        path: falconClusterGuard.imageAnalyzer.exclusions.registries
+      - description: HTTPS Port for the IAR Agent Service.
+        displayName: Falcon Image Analyzer Agent Service HTTPS Port
+        path: falconClusterGuard.imageAnalyzer.iarAgentService.port
+      - description: Name of the priority class to use.
+        displayName: Name of the Priority Class to use
+        path: falconClusterGuard.imageAnalyzer.priorityClass.name
+      - description: If necessary, configure the registry credentials for the Falcon
+          Image Analyzer.
+        displayName: Registry Credentials
+        path: falconClusterGuard.imageAnalyzer.registryConfig.credentials
+      - description: Define annotations that will be passed down to the Service Account.
+          This is useful for passing along AWS IAM Role or GCP Workload Identity.
+        displayName: Service Account Annotations
+        path: falconClusterGuard.imageAnalyzer.serviceAccount.annotations
+      - description: RollingUpdate is used to specify the strategy used to roll out
+          a deployment
+        displayName: Falcon Image Analyzer deployment update configuration
+        path: falconClusterGuard.imageAnalyzer.updateStrategy.rollingUpdate
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:updateStrategy
       - description: UpdatePolicy is the name of a sensor update policy configured
           and enabled in Falcon UI. It is ignored when Image and/or Version are set.
         displayName: Falcon Sensor Update Policy
@@ -1439,13 +1518,21 @@ spec:
         path: falconClusterGuard.falcon_api.client_secret
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:password
+      - description: Configure a list of namespaces for Image Analyzer to ignore.
+        displayName: Ignore Namespace List
+        path: falconClusterGuard.imageAnalyzer.exclusions.namespaces
+      - description: Enable auto-discovery of registry credentials from secrets in
+          the cluster.
+        displayName: Auto Discover Registry Credentials
+        path: falconClusterGuard.imageAnalyzer.registryConfig.autoDiscoverCredentials
       - description: |-
           AutoUpdate determines whether to install new versions of the sensor as they become available. Defaults to "off" and is ignored if FalconAPI is not set.
           Setting this to "force" causes the reconciler to run on every polling cycle, even if a new sensor version is not available.
           Setting it to "normal" only reconciles when a new version is detected.
         displayName: Falcon Sensor Automatic Updates
         path: falconClusterGuard.nodeSensor.advanced.autoUpdate
-      - description: Port on which the guardian proxy listens.
+      - description: Port on which the guardian proxy listens. Required when the guardian
+          proxy is enabled.
         displayName: Guardian Proxy Port
         path: falconClusterGuard.nodeSensor.guardian.proxy.port
         x-descriptors:
@@ -1635,6 +1722,12 @@ spec:
           the operator will connect and register.
         displayName: CrowdStrike Falcon Cloud Region
         path: falconClusterGuard.falcon_api.cloud_region
+      - description: Configure a list of image names for Image Analyzer to ignore.
+        displayName: Ignore Images List
+        path: falconClusterGuard.imageAnalyzer.exclusions.imageNames
+      - description: Certificate validity duration in number of days.
+        displayName: Falcon Image Analyzer TLS Certificate Expiration (days)
+        path: falconClusterGuard.imageAnalyzer.iarAgentService.certExpiration
       - description: Name of the TLS secret to mount into the node sensor for the
           guardian proxy.
         displayName: Guardian Proxy TLS Secret Name
@@ -1802,6 +1895,12 @@ spec:
           Use only when mirroring the image to a custom repository.
         displayName: Image
         path: falconClusterGuard.image
+      - description: |-
+          For custom DNS configurations when .svc requires a domain for services.
+          For example if service.my-namespace.svc doesn't resolve and the cluster uses
+          service.my-namespace.svc.testing.io, you would add testing.io as the value below.
+        displayName: Domain Name
+        path: falconClusterGuard.imageAnalyzer.iarAgentService.domainName
       - description: Specifies tolerations for custom taints. Defaults to allowing
           scheduling on all nodes.
         displayName: Tolerations
@@ -2185,6 +2284,10 @@ spec:
         path: falconClusterGuard.controller.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: ImageAnalyzer configures the Image Analyzer Deployment deployed
+          alongside FalconClusterGuard.
+        displayName: Image Analyzer Configuration
+        path: falconClusterGuard.imageAnalyzer
       - displayName: Disable Default Namespace Injection
         path: falconContainerSensor.injector.disableDefaultNamespaceInjection
       - description: Name of the Kubernetes Cluster.
@@ -2335,8 +2438,9 @@ spec:
       - description: Specifies tolerations for scheduling the Admission Controller.
         displayName: Tolerations
         path: falconAdmission.admissionConfig.tolerations
-      - description: Namespace where Falcon Image Analyzer is installed. Falcon Cluster
-          Guard needs to know this to discover and communicate with IAR.
+      - description: |-
+          Namespace where Falcon Image Analyzer is installed. Falcon Cluster Guard needs to know this to discover and communicate with IAR.
+          Ignored when imageAnalyzer is enabled, since the Falcon Cluster Guard managed IAR always runs in installNamespace.
         displayName: Falcon Image Analyzer Namespace
         path: falconClusterGuard.controller.falconImageAnalyzerNamespace
       - description: Specifies tolerations for scheduling the Falcon Cluster Guard
@@ -2358,6 +2462,12 @@ spec:
           Controls the ResourceQuota for the admission controller namespace. Defaults to 2.
         displayName: Resource Quota Pods
         path: falconClusterGuard.controller.resourceQuotaPods
+      - description: Configure resource requests and limits for the Image Analyzer
+          container.
+        displayName: Resources
+        path: falconClusterGuard.imageAnalyzer.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
       - description: |-
           Advanced configures various options that go against industry practices or are otherwise not recommended for use.
           Adjusting these settings may result in incorrect or undesirable behavior. Proceed at your own risk.
@@ -3443,6 +3553,26 @@ spec:
     targetPort: 9443
     type: ValidatingAdmissionWebhook
     webhookPath: /validate-falcon-crowdstrike-com-v1alpha1-falcondeployment
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: falcon-operator-controller-manager
+    failurePolicy: Ignore
+    generateName: vfalconimageanalyzer.kb.io
+    rules:
+    - apiGroups:
+      - falcon.crowdstrike.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - falconimageanalyzers
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-falcon-crowdstrike-com-v1alpha1-falconimageanalyzer
   - admissionReviewVersions:
     - v1
     containerPort: 443

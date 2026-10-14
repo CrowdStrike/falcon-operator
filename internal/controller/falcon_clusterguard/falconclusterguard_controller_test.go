@@ -69,4 +69,47 @@ var _ = Describe("FalconClusterGuard Controller", func() {
 			Expect(err.Error()).To(ContainSubstring("cannot resolve CID"))
 		})
 	})
+
+	Context("When validating the guardian proxy configuration", func() {
+		ctx := context.Background()
+
+		newClusterGuard := func(name string, proxy falconv1alpha1.FalconClusterGuardGuardianProxy) *falconv1alpha1.FalconClusterGuard {
+			resource := &falconv1alpha1.FalconClusterGuard{
+				ObjectMeta: metav1.ObjectMeta{Name: name},
+			}
+			resource.Spec.NodeSensor.Guardian.Proxy = proxy
+			return resource
+		}
+
+		It("should reject an enabled proxy without a port", func() {
+			enabled := true
+			resource := newClusterGuard("guardian-proxy-no-port", falconv1alpha1.FalconClusterGuardGuardianProxy{
+				Enabled: &enabled,
+			})
+			err := k8sClient.Create(ctx, resource)
+			Expect(err).To(HaveOccurred())
+			Expect(errors.IsInvalid(err)).To(BeTrue())
+			Expect(err.Error()).To(ContainSubstring("port is required when the guardian proxy is enabled"))
+		})
+
+		It("should accept an enabled proxy with a port", func() {
+			enabled := true
+			port := int32(48080)
+			resource := newClusterGuard("guardian-proxy-with-port", falconv1alpha1.FalconClusterGuardGuardianProxy{
+				Enabled: &enabled,
+				Port:    &port,
+			})
+			Expect(k8sClient.Create(ctx, resource)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
+		})
+
+		It("should accept a disabled proxy without a port", func() {
+			enabled := false
+			resource := newClusterGuard("guardian-proxy-disabled", falconv1alpha1.FalconClusterGuardGuardianProxy{
+				Enabled: &enabled,
+			})
+			Expect(k8sClient.Create(ctx, resource)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
+		})
+	})
 })
