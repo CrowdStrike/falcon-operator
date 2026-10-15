@@ -17,3 +17,10 @@ spec:
     cloud_region: autodiscover
   deployNodeSensor: false
   deployContainerSensor: true
+  deployClusterGuard: true
+  falconClusterGuard:
+    installNamespace: falcon-sensor
+    image: falcon-clusterguard:0.1-0-1.aarch64
+    imagePullPolicy: Never
+    nodeSensor:
+      enabled: false

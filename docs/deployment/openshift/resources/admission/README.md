@@ -1,5 +1,8 @@
 # Falcon Admission Controller
 
+> [!WARNING]
+> `FalconAdmission` is deprecated. Use [`FalconClusterGuard`](clusterguard.md) instead. Creation of new `FalconAdmission` resources and updates to existing ones are blocked by a validating webhook. Existing resources can be deleted and replaced with a `FalconClusterGuard` resource.
+
 ## About FalconAdmission Custom Resource (CR)
 Falcon Operator introduces the FalconAdmission Custom Resource (CR) to the cluster. The resource is meant to install, configure, and uninstall the Falcon Admission Controller on the cluster.
 

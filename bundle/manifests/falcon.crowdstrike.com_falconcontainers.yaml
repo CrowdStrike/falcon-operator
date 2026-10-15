@@ -8,6 +8,8 @@ metadata:
 spec:
   group: falcon.crowdstrike.com
   names:
+    categories:
+    - falcon
     kind: FalconContainer
     listKind: FalconContainerList
     plural: falconcontainers
@@ -138,6 +140,7 @@ spec:
                     description: Falcon OAuth2 API Client Secret
                     type: string
                   cloud_region:
+                    default: autodiscover
                     description: Cloud Region defines CrowdStrike Falcon Cloud Region
                       to which the operator will connect and register.
                     enum:
@@ -149,8 +152,6 @@ spec:
                     - us-gov-1
                     - us-gov-2
                     type: string
-                required:
-                - cloud_region
                 type: object
               falconSecret:
                 default:
