@@ -14871,7 +14871,7 @@ spec:
           value: falcon-operator
         - name: OPERATOR_MANIFEST
           value: 1.13.0
-        image: quay.io/crowdstrike/falcon-operator:0.0.1-falcon-guardian
+        image: quay.io/crowdstrike/falcon-operator:0.0.1-falcon-clusterguard
         livenessProbe:
           httpGet:
             path: /healthz
