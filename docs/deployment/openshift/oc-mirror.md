@@ -10,7 +10,7 @@ This guide will only cover the requirements for using `oc mirror` with the Falco
 During the course of a cluster deployment with `oc mirror`, there are three important steps to enable the Falcon operator to be mirrored:
 
 1. Ensure your pull secret file contains credentials for the CrowdStrike registry.
-2. Configure your `ImageSetConfiguration` to mirror region-specific container images.
+2. Configure your `ImageSetConfiguration` to mirror your desired container image tags.
 3. Upon sensor deployment, reference your mirrored images.
 
 > [!NOTE]
@@ -61,7 +61,7 @@ $ ./falcon-container-sensor-pull.sh -t falcon-sensor --get-pull-token | base64 -
 
 ## Update `ImageSetConfiguration` File
 
-CrowdStrike sensors, and therefore container images, are historically tied to the region your Falcon CID (tenant) is deployed into (e.g. us-1, eu-1). The Falcon operator contains references to us-1 only for publishing purposes. You need to instruct `oc mirror` to ignore these default references, and instead pull your region-specific images instead.
+CrowdStrike sensors, and therefore container images, were historically tied to the region your Falcon CID (tenant) is deployed into (e.g. us-1, eu-1). Today, all images are _regionless_. Because of this, the Falcon operator contains references to us-1 _and_ regionless images. You need to instruct `oc mirror` to ignore the default us-1 references, and optionally pull your desired regionless image tags instead.
 
 **Prerequisite:** Prepare your `ImageSetConfiguration` file as necessary for your environment. The example below is just a reference for where to make changes specific to this operator. It will not match your environment's specific configuration.
 
