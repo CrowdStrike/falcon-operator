@@ -75,10 +75,52 @@ spec:
 | version                   | (optional) Enforce particular Falcon Cluster Guard version to be installed (example: "7.33", "7.33.0", "7.33.0-1409")                                                                          |
 | imagePullPolicy           | (optional) Override the default image pull policy of IfNotPresent                                                                                                                               |
 | imagePullSecrets          | (optional) List of references to secrets to use for pulling the image                                                                                                                           |
-| registry.type                       | Specifies the source registry for the Falcon Cluster Guard image. Use `crowdstrike` to have the operator create an image pull secret for the CrowdStrike registry (default). Use `private` when the image is hosted in a private registry and image pull credentials are managed separately via `imagePullSecrets`. |
+| registry.type                       | Specifies the source registry for the Falcon Cluster Guard image. Use `crowdstrike` to have the operator create an image pull secret for the CrowdStrike registry and, when `image` is not set and Falcon API credentials are configured, discover the image (default). Use `private` when the image is hosted in a private registry and image pull credentials are managed separately via `imagePullSecrets`. |
 | registry.tls.insecure_skip_verify   | (optional) Skip TLS verification when connecting to the container image registry                                                                                                              |
 | registry.tls.caCertificate          | (optional) A string containing an optionally base64-encoded Certificate Authority Chain for connecting to a registry with a self-signed TLS certificate                                       |
 | registry.tls.caCertificateConfigMap | (optional) The name of a ConfigMap containing CA Certificate Authority Chains under keys ending in ".tls" for connecting to a registry with a self-signed TLS certificate (ignored when registry.tls.caCertificate is set) |
+
+#### Image selection order
+The Falcon Cluster Guard image used by all components is chosen in the following order:
+
+1. `image`, when set.
+2. When `registry.type` is `crowdstrike` and Falcon API credentials (`falcon_api.client_id` and `falcon_api.client_secret`, or `falconSecret`) are configured, the newest tag in the CrowdStrike registry matching `version` is discovered. When `version` is not set, the newest tag is used.
+3. Otherwise, the operator bundled image (`RELATED_IMAGE_CLUSTER_GUARD`) is used when set. If it is not set, `image` is required.
+
+Falcon API credentials alone do not enable discovery, since they are also required at runtime (for example by the Image Analyzer) when the image is hosted in a private registry. With `registry.type: private`, set `image` to the image in your registry.
+
+Once a tag is discovered, it is kept until `version` changes, so newer tags are not picked up automatically. Changing `internal.buildStage` discovers the tag again from the new repository. Switching from a discovered image to `image` or the operator bundled image discards the discovered tag, so it is discovered again if discovery is enabled later.
+
+#### Using the operator bundled image
+To use the operator bundled image while keeping Falcon API credentials configured (for example, when the Image Analyzer is enabled), set `registry.type` to `private` and leave `image` unset:
+
+```yaml
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconClusterGuard
+metadata:
+  name: falcon-clusterguard
+spec:
+  falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
+    cloud_region: autodiscover
+  registry:
+    type: private
+  imageAnalyzer:
+    enabled: true
+```
+
+- The `RELATED_IMAGE_CLUSTER_GUARD` environment variable must be set on the operator Deployment; otherwise `image` is required.
+- All components, including the Image Analyzer, use this image. `RELATED_IMAGE_IMAGE_ANALYZER` is only used by the standalone `FalconImageAnalyzer` resource.
+- The operator does not create a CrowdStrike registry pull secret, so the image must be pullable with `imagePullSecrets`, the cluster's global pull secret, or a registry mirror (for example, an `ImageDigestMirrorSet` in disconnected OpenShift clusters).
+- `version` and `internal.buildStage` are ignored, since they only apply to discovery.
+
+#### Internal Settings
+These settings are for internal CrowdStrike testing only.
+
+| Spec                      | Description                                                                                                                                                                                     |
+|:--------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| internal.buildStage       | (optional) CrowdStrike registry build stage used to discover the Falcon Cluster Guard image (`release` or `stage`). Default is `release`. Only used when the image is discovered from the CrowdStrike registry: `image` is not set, `registry.type` is `crowdstrike`, and Falcon API credentials are configured. |
 
 #### Cluster Guard Controller Configuration Settings
 | Spec                                              | Description                                                                                                                                                                                                  |

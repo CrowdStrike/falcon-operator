@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -184,31 +183,40 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	imgCfg := image.Config{
-		Image:              falconClusterGuard.Spec.Image,
-		FalconAPI:          falconClusterGuard.Spec.FalconAPI,
-		FalconSecret:       falconClusterGuard.Spec.FalconSecret,
-		Version:            falconClusterGuard.Spec.Version,
-		RelatedImageEnvVar: "RELATED_IMAGE_CLUSTER_GUARD",
+		Image:               falconClusterGuard.Spec.Image,
+		FalconAPI:           falconClusterGuard.Spec.FalconAPI,
+		FalconSecret:        falconClusterGuard.Spec.FalconSecret,
+		Version:             falconClusterGuard.Spec.Version,
+		RelatedImageEnvVar:  "RELATED_IMAGE_CLUSTER_GUARD",
+		BuildStage:          string(falconClusterGuard.Spec.Internal.GetBuildStage()),
+		CrowdStrikeRegistry: falconClusterGuard.Spec.Registry.Type == falconv1alpha1.RegistryTypeFalconClusterGuardCrowdStrike,
 	}
 
 	// Image being set will override other image-based settings.
-	// When a related image is set (e.g. by OLM in disconnected OpenShift environments), it takes
-	// precedence over registry discovery. To pin a specific version, set Spec.Image explicitly.
+	// When registry.type is crowdstrike and Falcon API credentials are configured, the image is discovered from the
+	// CrowdStrike registry. Otherwise a related image (e.g. set by OLM in disconnected OpenShift environments) is used.
+	// To pin a specific version, set Spec.Image explicitly.
 	var imageURI string
-	if falconClusterGuard.Spec.Image != "" || os.Getenv(imgCfg.RelatedImageEnvVar) != "" {
+	if !image.Discover(imgCfg) {
+		if cleared, err := r.clearDiscoveredImage(ctx, falconClusterGuard); err != nil || cleared {
+			return ctrl.Result{RequeueAfter: time.Second}, err
+		}
 		var err error
 		imageURI, err = image.URI(ctx, r, imgCfg, &falconClusterGuard.Status, falconClusterGuard)
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Cloud Guard Image version: %v", err)
+			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Cluster Guard Image version: %v", err)
 		}
 	} else {
 		if !meta.IsStatusConditionPresentAndEqual(falconClusterGuard.Status.Conditions, falconv1alpha1.ConditionImageReady, metav1.ConditionTrue) {
+			// Without a discovered image, any tag in status came from image or a related image; discard it so the
+			// version lock does not pin the registry image to it.
+			falconClusterGuard.Status.Sensor = nil
 			uri, err := image.URI(ctx, r, imgCfg, &falconClusterGuard.Status, falconClusterGuard)
 			if err != nil {
 				time.Sleep(5 * time.Second)
 				return ctrl.Result{RequeueAfter: 5 * time.Second}, fmt.Errorf("Cannot find Falcon Registry URI: %s", err)
 			}
-			r.log.Info("Skipping push of Falcon Cloud Guard image to local registry. Remote CrowdStrike registry will be used.")
+			r.log.Info("Skipping push of Falcon Cluster Guard image to local registry. Remote CrowdStrike registry will be used.")
 			meta.SetStatusCondition(&falconClusterGuard.Status.Conditions, metav1.Condition{
 				Status:             metav1.ConditionTrue,
 				Reason:             falconv1alpha1.ReasonDiscovered,
@@ -226,6 +234,9 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if err != nil {
 			time.Sleep(5 * time.Second)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, err
+		}
+		if updated, err := r.syncDiscoveredImage(ctx, falconClusterGuard, imageURI); err != nil || updated {
+			return ctrl.Result{RequeueAfter: time.Second}, err
 		}
 	}
 

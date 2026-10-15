@@ -1350,9 +1350,23 @@ spec:
                 type: array
               installNamespace:
                 default: falcon-system
-                description: InstallNamespace is the namespace where the Falcon Cloud
+                description: InstallNamespace is the namespace where the Falcon Cluster
                   Guard resources will be deployed
                 type: string
+              internal:
+                description: FalconClusterGuardInternal configures settings used for
+                  internal CrowdStrike testing only
+                properties:
+                  buildStage:
+                    default: release
+                    description: |-
+                      BuildStage selects the CrowdStrike registry build stage used when discovering the Cluster Guard image.
+                      Only used when the image is discovered from the CrowdStrike registry: image is not set, registry.type is crowdstrike, and Falcon API credentials are configured.
+                    enum:
+                    - release
+                    - stage
+                    type: string
+                type: object
               nodeSensor:
                 default: {}
                 description: NodeSensor configures the node sensor DaemonSet deployed
@@ -1895,7 +1909,7 @@ spec:
                 default:
                   type: crowdstrike
                 description: Registry configures the container image registry used
-                  for the Cloud Guard image.
+                  for the Cluster Guard image.
                 properties:
                   tls:
                     description: TLS configures TLS settings for connecting to the

@@ -482,8 +482,8 @@ spec:
         displayName: Priority Class Value
         path: nodeSensor.priorityClass.value
       - description: Registry configures the container image registry used for the
-          Cloud Guard image.
-        displayName: Falcon Cloud Guard Registry Configuration
+          Cluster Guard image.
+        displayName: Falcon Cluster Guard Registry Configuration
         path: registry
       - description: Allow for users to provide a ConfigMap containing a CA Cert Bundle
           under a key ending in .crt
@@ -1553,8 +1553,8 @@ spec:
         displayName: Priority Class Value
         path: falconClusterGuard.nodeSensor.priorityClass.value
       - description: Registry configures the container image registry used for the
-          Cloud Guard image.
-        displayName: Falcon Cloud Guard Registry Configuration
+          Cluster Guard image.
+        displayName: Falcon Cluster Guard Registry Configuration
         path: falconClusterGuard.registry
       - description: Allow for users to provide a ConfigMap containing a CA Cert Bundle
           under a key ending in .crt

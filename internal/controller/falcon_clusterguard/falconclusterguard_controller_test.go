@@ -112,4 +112,37 @@ var _ = Describe("FalconClusterGuard Controller", func() {
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
 	})
+
+	Context("When validating the internal build stage", func() {
+		ctx := context.Background()
+
+		It("should default the build stage to release", func() {
+			resource := &falconv1alpha1.FalconClusterGuard{
+				ObjectMeta: metav1.ObjectMeta{Name: "build-stage-default"},
+			}
+			Expect(k8sClient.Create(ctx, resource)).To(Succeed())
+			Expect(resource.Spec.Internal.BuildStage).To(Equal(falconv1alpha1.BuildStageRelease))
+			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
+		})
+
+		It("should accept the stage build stage", func() {
+			resource := &falconv1alpha1.FalconClusterGuard{
+				ObjectMeta: metav1.ObjectMeta{Name: "build-stage-stage"},
+			}
+			resource.Spec.Internal.BuildStage = falconv1alpha1.BuildStageStage
+			Expect(k8sClient.Create(ctx, resource)).To(Succeed())
+			Expect(resource.Spec.Internal.BuildStage).To(Equal(falconv1alpha1.BuildStageStage))
+			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
+		})
+
+		It("should reject an unknown build stage", func() {
+			resource := &falconv1alpha1.FalconClusterGuard{
+				ObjectMeta: metav1.ObjectMeta{Name: "build-stage-unknown"},
+			}
+			resource.Spec.Internal.BuildStage = "nightly"
+			err := k8sClient.Create(ctx, resource)
+			Expect(err).To(HaveOccurred())
+			Expect(errors.IsInvalid(err)).To(BeTrue())
+		})
+	})
 })

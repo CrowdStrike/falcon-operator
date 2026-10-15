@@ -20,7 +20,7 @@ const (
 	DisableClusterGuardControllerAck = "I understand this disables K8s metadata collection and degrades node sensor visibility"
 )
 
-// FalconClusterGuardRegistryType specifies the type of registry used for Cloud Guard images
+// FalconClusterGuardRegistryType specifies the type of registry used for Cluster Guard images
 type FalconClusterGuardRegistryType string
 
 const (
@@ -30,7 +30,7 @@ const (
 	RegistryTypeFalconClusterGuardPrivate FalconClusterGuardRegistryType = "private"
 )
 
-// FalconClusterGuardRegistrySpec configures the registry source for Cloud Guard images
+// FalconClusterGuardRegistrySpec configures the registry source for Cluster Guard images
 type FalconClusterGuardRegistrySpec struct {
 	// Type specifies whether to use CrowdStrike's registry or a private registry
 	// +kubebuilder:default=crowdstrike
@@ -42,6 +42,35 @@ type FalconClusterGuardRegistrySpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Registry TLS Configuration",order=2
 	TLS RegistryTLSSpec `json:"tls,omitempty"`
+}
+
+// FalconBuildStage specifies the CrowdStrike registry build stage to pull images from
+// +kubebuilder:validation:Enum=release;stage
+type FalconBuildStage string
+
+const (
+	// BuildStageRelease pulls images from the release build stage (default)
+	BuildStageRelease FalconBuildStage = "release"
+	// BuildStageStage pulls images from the stage build stage
+	BuildStageStage FalconBuildStage = "stage"
+)
+
+// FalconClusterGuardInternal configures settings used for internal CrowdStrike testing only
+type FalconClusterGuardInternal struct {
+	// BuildStage selects the CrowdStrike registry build stage used when discovering the Cluster Guard image.
+	// Only used when the image is discovered from the CrowdStrike registry: image is not set, registry.type is crowdstrike, and Falcon API credentials are configured.
+	// +kubebuilder:default=release
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Build Stage",order=1
+	// +optional
+	BuildStage FalconBuildStage `json:"buildStage,omitempty"`
+}
+
+// GetBuildStage returns the configured build stage, defaulting to release.
+func (i FalconClusterGuardInternal) GetBuildStage() FalconBuildStage {
+	if i.BuildStage == "" {
+		return BuildStageRelease
+	}
+	return i.BuildStage
 }
 
 // FalconClusterGuardNodeSpec defines configuration for the node sensor DaemonSet deployed by FalconClusterGuard.
@@ -313,7 +342,7 @@ func (s *FalconClusterGuardController) GetConfigMapWatcherEnabled() bool {
 
 // FalconClusterGuardSpec defines the desired state of FalconClusterGuard
 type FalconClusterGuardSpec struct {
-	// InstallNamespace is the namespace where the Falcon Cloud Guard resources will be deployed
+	// InstallNamespace is the namespace where the Falcon Cluster Guard resources will be deployed
 	// +kubebuilder:default:=falcon-system
 	// +optional
 	InstallNamespace string `json:"installNamespace,omitempty"`
@@ -342,9 +371,9 @@ type FalconClusterGuardSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform Secrets Configuration",order=2
 	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
 
-	// Registry configures the container image registry used for the Cloud Guard image.
+	// Registry configures the container image registry used for the Cluster Guard image.
 	// +kubebuilder:default={"type":"crowdstrike"}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cloud Guard Registry Configuration",order=3
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Registry Configuration",order=3
 	// +optional
 	Registry FalconClusterGuardRegistrySpec `json:"registry,omitempty"`
 
@@ -381,6 +410,10 @@ type FalconClusterGuardSpec struct {
 	// +kubebuilder:default={}
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Image Analyzer Configuration",order=10
 	ImageAnalyzer FalconClusterGuardImageAnalyzerSpec `json:"imageAnalyzer,omitempty"`
+
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Configurations used for internal testing",order=11
+	// +optional
+	Internal FalconClusterGuardInternal `json:"internal,omitempty"`
 }
 
 // +kubebuilder:object:root=true
