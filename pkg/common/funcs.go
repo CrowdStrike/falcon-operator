@@ -3,22 +3,23 @@ package common
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/crowdstrike/falcon-operator/version"
 	"github.com/operator-framework/operator-lib/proxy"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	k8sversion "k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	corev1 "k8s.io/api/core/v1"
 )
 
 func InitContainerArgs() []string {
@@ -184,7 +185,7 @@ func UpdateEnvVars(envVars []corev1.EnvVar, updateEnvVars []corev1.EnvVar) []cor
 
 // MergeEnvVars merges specific env vars from env B into env A
 func MergeEnvVars(envA, envB []corev1.EnvVar, envVarsToMerge []string) []corev1.EnvVar {
-	if envVarsToMerge == nil || len(envVarsToMerge) == 0 {
+	if len(envVarsToMerge) == 0 {
 		return envA
 	}
 
@@ -251,4 +252,21 @@ func OperatorMetaEnvVars() []corev1.EnvVar {
 			Value: version.Get(),
 		},
 	}
+}
+
+// ConfigMapChecksum returns a short SHA-256 hex digest of a ConfigMap's Data.
+// Write this into spec.template.metadata.annotations["checksum/config"] so that
+// ConfigMap content changes cause a pod template change, triggering a DaemonSet
+// (or Deployment) rerollout. The keys are sorted before hashing for stability.
+func ConfigMapChecksum(cm *corev1.ConfigMap) string {
+	h := sha256.New()
+	keys := make([]string, 0, len(cm.Data))
+	for k := range cm.Data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		fmt.Fprintf(h, "%s=%s\n", k, cm.Data[k])
+	}
+	return fmt.Sprintf("%x", h.Sum(nil))[:16]
 }

@@ -407,3 +407,57 @@ func TestMergeEnvVars(t *testing.T) {
 		})
 	}
 }
+
+func TestConfigMapChecksum(t *testing.T) {
+	cm := func(data map[string]string) *corev1.ConfigMap {
+		return &corev1.ConfigMap{Data: data}
+	}
+
+	t.Run("returns 16-char hex string", func(t *testing.T) {
+		got := ConfigMapChecksum(cm(map[string]string{"KEY": "VALUE"}))
+		if len(got) != 16 {
+			t.Errorf("expected 16 chars, got %d: %q", len(got), got)
+		}
+	})
+
+	t.Run("same data produces same checksum", func(t *testing.T) {
+		a := ConfigMapChecksum(cm(map[string]string{"A": "1", "B": "2"}))
+		b := ConfigMapChecksum(cm(map[string]string{"A": "1", "B": "2"}))
+		if a != b {
+			t.Errorf("expected identical checksums, got %q and %q", a, b)
+		}
+	})
+
+	t.Run("key insertion order does not affect checksum", func(t *testing.T) {
+		// Go maps have random iteration order; build two maps with same pairs
+		a := ConfigMapChecksum(cm(map[string]string{"A": "1", "B": "2"}))
+		b := ConfigMapChecksum(cm(map[string]string{"B": "2", "A": "1"}))
+		if a != b {
+			t.Errorf("expected order-independent checksums, got %q and %q", a, b)
+		}
+	})
+
+	t.Run("changed value produces different checksum", func(t *testing.T) {
+		a := ConfigMapChecksum(cm(map[string]string{"KEY": "old"}))
+		b := ConfigMapChecksum(cm(map[string]string{"KEY": "new"}))
+		if a == b {
+			t.Errorf("expected different checksums for different values, both %q", a)
+		}
+	})
+
+	t.Run("added key produces different checksum", func(t *testing.T) {
+		a := ConfigMapChecksum(cm(map[string]string{"A": "1"}))
+		b := ConfigMapChecksum(cm(map[string]string{"A": "1", "B": "2"}))
+		if a == b {
+			t.Errorf("expected different checksums when key added, both %q", a)
+		}
+	})
+
+	t.Run("empty configmap returns stable checksum", func(t *testing.T) {
+		a := ConfigMapChecksum(cm(map[string]string{}))
+		b := ConfigMapChecksum(cm(map[string]string{}))
+		if a != b {
+			t.Errorf("expected stable checksum for empty ConfigMap, got %q and %q", a, b)
+		}
+	})
+}

@@ -81,6 +81,11 @@ func Role(name string, namespace string) *rbacv1.Role {
 				Resources: []string{"leases"},
 				Verbs:     []string{"get", "list", "watch", "create", "update", "delete"},
 			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"secrets"},
+				Verbs:     []string{"create", "get", "update", "delete"},
+			},
 		},
 	}
 }
