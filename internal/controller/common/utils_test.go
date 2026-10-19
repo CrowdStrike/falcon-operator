@@ -209,3 +209,27 @@ func TestLogMessage(t *testing.T) {
 		t.Errorf("logMessage() mismatch (-want +got):\n%s", diff)
 	}
 }
+
+func TestPreserveOpenShiftPullSecrets(t *testing.T) {
+	desired := []corev1.LocalObjectReference{{Name: "my-pull-secret"}}
+	existing := []corev1.LocalObjectReference{
+		{Name: "my-pull-secret"},
+		{Name: "sa-dockercfg-abcde"},
+		{Name: "sa-dockerconfigjson-fghij"},
+		{Name: "stale-secret"},
+	}
+
+	want := []corev1.LocalObjectReference{
+		{Name: "my-pull-secret"},
+		{Name: "sa-dockercfg-abcde"},
+		{Name: "sa-dockerconfigjson-fghij"},
+	}
+	got := PreserveOpenShiftPullSecrets(desired, existing)
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("PreserveOpenShiftPullSecrets() mismatch (-want +got):\n%s", diff)
+	}
+	if len(desired) != 1 {
+		t.Errorf("PreserveOpenShiftPullSecrets() mutated desired: %v", desired)
+	}
+}

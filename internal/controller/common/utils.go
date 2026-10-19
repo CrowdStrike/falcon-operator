@@ -9,9 +9,12 @@ import (
 	"strings"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	"github.com/crowdstrike/falcon-operator/internal/controller/assets"
+	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,6 +28,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
+
+// Reconciler is the minimal interface required for common controller operations.
+type Reconciler interface {
+	client.Client
+	GetK8sReader() client.Reader
+	GetScheme() *runtime.Scheme
+	GetLog() logr.Logger
+}
 
 var ErrNoWebhookServicePodReady = errors.New("no webhook service pod found in a Ready state")
 
@@ -124,6 +135,47 @@ func Update(r client.Client, ctx context.Context, req ctrl.Request, log logr.Log
 	}
 }
 
+// Patch applies a patch to obj using the provided patch strategy, logging and updating status conditions.
+func Patch(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *falconv1alpha1.FalconCRStatus, obj client.Object, patch client.Patch) error {
+	name := obj.GetName()
+	namespace := obj.GetNamespace()
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	fgvk := falconObject.GetObjectKind().GroupVersionKind()
+	condType := fmt.Sprintf("%sReady", strings.ToUpper(gvk.Kind[:1])+gvk.Kind[1:])
+
+	log.Info(logMessage("Patching", fgvk.Kind, gvk.Kind), oLogMessage(gvk.Kind, "Name"), name, oLogMessage(gvk.Kind, "Namespace"), namespace)
+	err := r.Patch(ctx, obj, patch)
+	if err != nil {
+		log.Error(err, logMessage("Failed to patch", fgvk.Kind, gvk.Kind), oLogMessage(gvk.Kind, "Name"), name, oLogMessage(gvk.Kind, "Namespace"), namespace)
+
+		if err := ConditionsUpdate(r, ctx, req, log, falconObject, falconStatus,
+			metav1.Condition{
+				Status:             metav1.ConditionFalse,
+				Reason:             falconv1alpha1.ReasonUpdateFailed,
+				Type:               condType,
+				Message:            fmt.Sprintf("%s %s patch has failed", fgvk.Kind, gvk.Kind),
+				ObservedGeneration: falconObject.GetGeneration(),
+			}); err != nil {
+			return err
+		}
+
+		return err
+	}
+
+	if err := ConditionsUpdate(r, ctx, req, log, falconObject, falconStatus,
+		metav1.Condition{
+			Status:             metav1.ConditionTrue,
+			Reason:             falconv1alpha1.ReasonUpdateSucceeded,
+			Type:               condType,
+			Message:            fmt.Sprintf("%s %s has been successfully patched", fgvk.Kind, gvk.Kind),
+			ObservedGeneration: falconObject.GetGeneration(),
+		}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Delete(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *falconv1alpha1.FalconCRStatus, obj runtime.Object) error {
 	switch o := obj.(type) {
 	case client.Object:
@@ -195,6 +247,30 @@ func ConditionsUpdate(r client.Client, ctx context.Context, req ctrl.Request, lo
 		}
 	}
 
+	return nil
+}
+
+// ConditionsRemove removes the condition of the given type from the CR status if it is present.
+func ConditionsRemove(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *falconv1alpha1.FalconCRStatus, condType string) error {
+	if meta.FindStatusCondition(falconStatus.Conditions, condType) == nil {
+		return nil
+	}
+	fgvk := falconObject.GetObjectKind().GroupVersionKind()
+
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		if err := r.Get(ctx, req.NamespacedName, falconObject); err != nil {
+			log.Error(err, fmt.Sprintf("Failed to re-fetch %s for status update", fgvk.Kind))
+			return err
+		}
+		if !meta.RemoveStatusCondition(&falconStatus.Conditions, condType) {
+			return nil
+		}
+		return r.Status().Update(ctx, falconObject)
+	})
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update %s status", fgvk.Kind))
+		return err
+	}
 	return nil
 }
 
@@ -340,4 +416,52 @@ func IsInitPodCrashLooping(pod *corev1.Pod) bool {
 		}
 	}
 	return false
+}
+
+// GetOrCreate fetches an existing resource into existing. If not found, creates desired and returns (false, nil).
+// Returns (true, nil) when the resource already exists. On other errors returns (false, err).
+func GetOrCreate(ctx context.Context, r Reconciler, req ctrl.Request, owner client.Object, status *falconv1alpha1.FalconCRStatus, desired, existing client.Object, key types.NamespacedName, errMsg string) (bool, error) {
+	if err := pkgcommon.GetNamespacedObject(ctx, r, r.GetK8sReader(), key, existing); err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, Create(r, r.GetScheme(), ctx, req, r.GetLog(), owner, status, desired)
+		}
+		r.GetLog().Error(err, errMsg)
+		return false, err
+	}
+	return true, nil
+}
+
+// PreserveOpenShiftPullSecrets appends OpenShift-managed image pull secrets found on the existing
+// ServiceAccount to the desired list. OpenShift automatically adds secrets with the patterns
+// <serviceaccount-name>-dockercfg-<random> (legacy) and <serviceaccount-name>-dockerconfigjson-<random>;
+// removing them causes OpenShift to re-add them, resulting in an endless update loop.
+func PreserveOpenShiftPullSecrets(desired, existing []corev1.LocalObjectReference) []corev1.LocalObjectReference {
+	merged := slices.Clone(desired)
+	for _, s := range existing {
+		if !strings.Contains(s.Name, "-dockercfg-") && !strings.Contains(s.Name, "-dockerconfigjson-") {
+			continue
+		}
+		if !slices.Contains(merged, s) {
+			merged = append(merged, s)
+		}
+	}
+	return merged
+}
+
+// ReconcileNamespace ensures the given namespace exists, creating it if necessary.
+func ReconcileNamespace(ctx context.Context, r Reconciler, req ctrl.Request, owner client.Object, status *falconv1alpha1.FalconCRStatus, namespace string) error {
+	ns := assets.Namespace(namespace)
+	existing := &corev1.Namespace{}
+	if err := pkgcommon.GetNamespacedObject(ctx, r, r.GetK8sReader(), types.NamespacedName{Name: namespace}, existing); err != nil {
+		if apierrors.IsNotFound(err) {
+			return Create(r, r.GetScheme(), ctx, req, r.GetLog(), owner, status, ns)
+		}
+		ownerKind := owner.GetObjectKind().GroupVersionKind().Kind
+		r.GetLog().Error(err, "Failed to get Namespace", "owner", owner.GetName(), "ownerKind", ownerKind, "namespace", namespace)
+		return err
+	}
+	if existing.DeletionTimestamp != nil {
+		return fmt.Errorf("namespace %s is terminating, waiting for deletion to complete", namespace)
+	}
+	return nil
 }
