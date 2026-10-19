@@ -37,16 +37,16 @@ type FalconDeploymentSpec struct {
 	FalconSecret FalconSecret `json:"falconSecret,omitempty"`
 
 	// Determines if Falcon Admission Controller is deployed
-	// +kubebuilder:default:=true
+	// +kubebuilder:default:=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deploy Falcon Admission Controller",order=4
 	DeployAdmissionController *bool `json:"deployAdmissionController,omitempty"`
 
 	// Determines if Falcon Node Sensor is deployed
-	// +kubebuilder:default:=true
+	// +kubebuilder:default:=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deploy Falcon Node Sensor",order=5
 	DeployNodeSensor *bool `json:"deployNodeSensor,omitempty"`
 
-	// Determines if Falcon Node Sensor is deployed
+	// Determines if Falcon Image Analyzer is deployed
 	// +kubebuilder:default:=true
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deploy Falcon Image Analyzer",order=6
 	DeployImageAnalyzer *bool `json:"deployImageAnalyzer,omitempty"`
@@ -56,25 +56,35 @@ type FalconDeploymentSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deploy Falcon Container Sensor",order=7
 	DeployContainerSensor *bool `json:"deployContainerSensor,omitempty"`
 
+	// Determines if Falcon Cluster Guard is deployed
+	// +kubebuilder:default:=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Deploy Falcon Cluster Guard",order=8
+	DeployClusterGuard *bool `json:"deployClusterGuard,omitempty"`
+
 	// Falcon Admission Controller Configuration
 	// +kubebuilder:default:={}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Configuration",order=8
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Admission Controller Configuration",order=9
 	FalconAdmission FalconAdmissionSpec `json:"falconAdmission,omitempty"`
 
 	// Falcon Node Sensor Controller Configuration
 	// +kubebuilder:default:={}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Node Sensor Configuration",order=9
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Node Sensor Configuration",order=10
 	FalconNodeSensor FalconNodeSensorSpec `json:"falconNodeSensor,omitempty"`
 
 	// Falcon Image Analyzer Configuration
 	// +kubebuilder:default:={}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Configuration",order=10
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Image Analyzer Configuration",order=11
 	FalconImageAnalyzer FalconImageAnalyzerSpec `json:"falconImageAnalyzer,omitempty"`
 
 	// Falcon Container Sensor Configuration
 	// +kubebuilder:default:={}
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Sensor Configuration",order=11
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Container Sensor Configuration",order=12
 	FalconContainerSensor FalconContainerSpec `json:"falconContainerSensor,omitempty"`
+
+	// Falcon Cluster Guard Configuration
+	// +kubebuilder:default:={}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Configuration",order=13
+	FalconClusterGuard FalconClusterGuardSpec `json:"falconClusterGuard,omitempty"`
 }
 
 // FalconDeploymentStatus defines the observed state of FalconDeployment
@@ -94,9 +104,15 @@ type FalconDeploymentStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
-//+kubebuilder:printcolumn:name="Operator Version",type="string",JSONPath=".status.version",description="Version of the Operator"
-//+kubebuilder:printcolumn:name="Falcon Sensor",type="string",JSONPath=".status.sensor",description="Version of the Falcon Container"
+//+kubebuilder:resource:scope=Cluster,categories={falcon}
+//+kubebuilder:printcolumn:name="Cluster Guard",type="string",JSONPath=".spec.deployClusterGuard",description="Cluster Guard enabled"
+//+kubebuilder:printcolumn:name="Image Analyzer",type="string",JSONPath=".spec.deployImageAnalyzer",description="Image Analyzer enabled"
+//+kubebuilder:printcolumn:name="Container",type="string",JSONPath=".spec.deployContainerSensor",description="Container Sensor enabled"
+//+kubebuilder:printcolumn:name="Node Sensor",type="string",JSONPath=".spec.deployNodeSensor",description="Node Sensor enabled (deprecated)"
+//+kubebuilder:printcolumn:name="Admission",type="string",JSONPath=".spec.deployAdmissionController",description="Admission Controller enabled (deprecated)"
+//+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type=='Success')].reason",description="Deployment status"
+//+kubebuilder:printcolumn:name="Migration",type="string",JSONPath=".status.conditions[?(@.type=='MigrationRequired')].reason",description="Migration status"
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Age of the resource"
 
 // FalconDeployment is the Schema for the falcondeployments API
 type FalconDeployment struct {
