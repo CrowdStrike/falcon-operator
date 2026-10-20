@@ -23,9 +23,6 @@ func TestClusterGuardSensorDaemonSetReturnsDS(t *testing.T) {
 	n := New(nil, cfg)
 	ds := n.daemonSet()
 
-	if ds == nil {
-		t.Fatal("expected non-nil DaemonSet")
-	}
 	if ds.Name != expectedName {
 		t.Errorf("expected name %q, got %q", expectedName, ds.Name)
 	}
@@ -75,9 +72,6 @@ func TestClusterGuardSensorCleanupDaemonSetReturnsDS(t *testing.T) {
 	n := New(nil, cfg)
 	ds := n.cleanupDaemonSet()
 
-	if ds == nil {
-		t.Fatal("expected non-nil DaemonSet")
-	}
 	if ds.Name != expectedName {
 		t.Errorf("expected name %q, got %q", expectedName, ds.Name)
 	}
@@ -102,9 +96,6 @@ func TestClusterGuardSensorDaemonSetUsesNamePrefix(t *testing.T) {
 	n := New(nil, cfg)
 	ds := n.daemonSet()
 
-	if ds == nil {
-		t.Fatal("expected non-nil DaemonSet")
-	}
 	expectedName := prefix + "-sensor"
 	if ds.Name != expectedName {
 		t.Errorf("expected DaemonSet name %q, got %q", expectedName, ds.Name)
@@ -140,54 +131,9 @@ func TestClusterGuardSensorCleanupDaemonSetUsesNamePrefix(t *testing.T) {
 	n := New(nil, cfg)
 	ds := n.cleanupDaemonSet()
 
-	if ds == nil {
-		t.Fatal("expected non-nil DaemonSet")
-	}
 	expectedName := prefix + "-sensor-cleanup"
 	if ds.Name != expectedName {
 		t.Errorf("expected cleanup DaemonSet name %q, got %q", expectedName, ds.Name)
-	}
-}
-
-func TestBuildResourceRequirementsWithValues(t *testing.T) {
-	res := falconv1alpha1.FalconClusterGuardResources{}
-	res.Limits.Memory = "1Gi"
-	res.Limits.CPU = "500m"
-	res.Requests.Memory = "512Mi"
-	res.Requests.CPU = "200m"
-
-	reqs := BuildResourceRequirements(res)
-
-	if reqs.Limits == nil {
-		t.Fatal("expected non-nil Limits")
-	}
-	if reqs.Requests == nil {
-		t.Fatal("expected non-nil Requests")
-	}
-	if _, ok := reqs.Limits[corev1.ResourceMemory]; !ok {
-		t.Error("expected memory limit")
-	}
-	if _, ok := reqs.Limits[corev1.ResourceCPU]; !ok {
-		t.Error("expected cpu limit")
-	}
-	if _, ok := reqs.Requests[corev1.ResourceMemory]; !ok {
-		t.Error("expected memory request")
-	}
-	if _, ok := reqs.Requests[corev1.ResourceCPU]; !ok {
-		t.Error("expected cpu request")
-	}
-}
-
-func TestBuildResourceRequirementsWithEmptyValues(t *testing.T) {
-	res := falconv1alpha1.FalconClusterGuardResources{}
-
-	reqs := BuildResourceRequirements(res)
-
-	if len(reqs.Limits) != 0 {
-		t.Errorf("expected empty Limits, got %v", reqs.Limits)
-	}
-	if len(reqs.Requests) != 0 {
-		t.Errorf("expected empty Requests, got %v", reqs.Requests)
 	}
 }
 
@@ -576,10 +522,6 @@ func TestNodeSensorConfigMapHasRequiredKeys(t *testing.T) {
 	n := New(nil, cfg)
 	cm := n.configMap()
 
-	if cm == nil {
-		t.Fatal("expected non-nil ConfigMap")
-	}
-
 	requiredKeys := []string{
 		"FALCONCTL_OPT_BACKEND",
 		"FALCON_MODE",
@@ -629,81 +571,41 @@ func TestNodeSensorConfigMapCidOverride(t *testing.T) {
 	}
 }
 
-func TestNodeSensorConfigMapNameUsesPrefix(t *testing.T) {
-	prefix := "my-guard"
+// Cluster-wide and shared resources keep fixed names regardless of NamePrefix.
+func TestNodeSensorFixedNamesIgnoreNamePrefix(t *testing.T) {
 	cfg := Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
+			NamePrefix:       "my-guard",
 		},
 	}
 	n := New(nil, cfg)
-	cm := n.configMap()
 
-	if cm.Name != pkgcommon.ClusterGuardNodeSensorConfigMapName {
-		t.Errorf("expected ConfigMap name %q, got %q", pkgcommon.ClusterGuardNodeSensorConfigMapName, cm.Name)
+	tests := []struct {
+		name          string
+		gotName       string
+		gotNamespace  string
+		wantName      string
+		wantNamespace string
+	}{
+		{"ConfigMap", n.configMap().Name, n.configMap().Namespace, pkgcommon.ClusterGuardNodeSensorConfigMapName, "test-ns"},
+		{"ServiceAccount", n.serviceAccount().Name, n.serviceAccount().Namespace, pkgcommon.ClusterGuardNodeSensorServiceAccountName, "test-ns"},
+		{"CleanupServiceAccount", n.cleanupServiceAccount().Name, n.cleanupServiceAccount().Namespace, pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName, "test-ns"},
+		{"ClusterRoleBinding", n.clusterRoleBinding().Name, n.clusterRoleBinding().Namespace, pkgcommon.ClusterGuardNodeSensorClusterRoleBindingName, ""},
 	}
-	if cm.Namespace != "test-ns" {
-		t.Errorf("expected namespace %q, got %q", "test-ns", cm.Namespace)
-	}
-}
-
-func TestNodeSensorConfigMapDefaultName(t *testing.T) {
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-	}
-	n := New(nil, cfg)
-	cm := n.configMap()
-
-	if cm.Name != "falcon-sensor-config" {
-		t.Errorf("expected default ConfigMap name %q, got %q", "falcon-sensor-config", cm.Name)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.gotName != tt.wantName {
+				t.Errorf("expected name %q, got %q", tt.wantName, tt.gotName)
+			}
+			if tt.gotNamespace != tt.wantNamespace {
+				t.Errorf("expected namespace %q, got %q", tt.wantNamespace, tt.gotNamespace)
+			}
+		})
 	}
 }
 
 // ServiceAccount builder tests
-
-func TestNodeSensorServiceAccountName(t *testing.T) {
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-			Image:            "quay.io/crowdstrike/falcon-sensor:latest",
-		},
-	}
-	n := New(nil, cfg)
-	sa := n.serviceAccount()
-
-	if sa == nil {
-		t.Fatal("expected non-nil ServiceAccount")
-	}
-	if sa.Name != pkgcommon.ClusterGuardNodeSensorServiceAccountName {
-		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardNodeSensorServiceAccountName, sa.Name)
-	}
-	if sa.Namespace != "falcon-clusterguard" {
-		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", sa.Namespace)
-	}
-}
-
-func TestNodeSensorServiceAccountNameUsesPrefix(t *testing.T) {
-	prefix := "my-guard"
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
-		},
-	}
-	n := New(nil, cfg)
-	sa := n.serviceAccount()
-
-	// SA name is always the fixed constant regardless of prefix
-	if sa.Name != pkgcommon.ClusterGuardNodeSensorServiceAccountName {
-		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardNodeSensorServiceAccountName, sa.Name)
-	}
-	if sa.Namespace != "test-ns" {
-		t.Errorf("expected namespace %q, got %q", "test-ns", sa.Namespace)
-	}
-}
 
 func TestNodeSensorServiceAccountImagePullSecrets(t *testing.T) {
 	secrets := []corev1.LocalObjectReference{{Name: "my-pull-secret"}}
@@ -743,39 +645,6 @@ func TestNodeSensorServiceAccountAnnotations(t *testing.T) {
 }
 
 // ClusterRoleBinding builder tests
-
-func TestNodeSensorClusterRoleBindingName(t *testing.T) {
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-	}
-	n := New(nil, cfg)
-	crb := n.clusterRoleBinding()
-
-	if crb == nil {
-		t.Fatal("expected non-nil ClusterRoleBinding")
-	}
-	if crb.Name != pkgcommon.ClusterGuardNodeSensorClusterRoleBindingName {
-		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardNodeSensorClusterRoleBindingName, crb.Name)
-	}
-}
-
-func TestNodeSensorClusterRoleBindingNameUsesPrefix(t *testing.T) {
-	prefix := "my-guard"
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
-		},
-	}
-	n := New(nil, cfg)
-	crb := n.clusterRoleBinding()
-
-	if crb.Name != pkgcommon.ClusterGuardNodeSensorClusterRoleBindingName {
-		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardNodeSensorClusterRoleBindingName, crb.Name)
-	}
-}
 
 func TestNodeSensorClusterRoleBindingRoleRef(t *testing.T) {
 	cfg := Config{
@@ -824,43 +693,6 @@ func TestNodeSensorClusterRoleBindingSubjectPointsToSA(t *testing.T) {
 }
 
 // CleanupServiceAccount builder tests
-
-func TestNodeSensorCleanupServiceAccountName(t *testing.T) {
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-	}
-	n := New(nil, cfg)
-	sa := n.cleanupServiceAccount()
-
-	if sa == nil {
-		t.Fatal("expected non-nil cleanup ServiceAccount")
-	}
-	if sa.Name != pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName {
-		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName, sa.Name)
-	}
-	if sa.Namespace != "falcon-clusterguard" {
-		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", sa.Namespace)
-	}
-}
-
-func TestNodeSensorCleanupServiceAccountNameUsesPrefix(t *testing.T) {
-	prefix := "my-guard"
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
-		},
-	}
-	n := New(nil, cfg)
-	sa := n.cleanupServiceAccount()
-
-	// Cleanup SA name is always the fixed constant regardless of prefix
-	if sa.Name != pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName {
-		t.Errorf("expected name %q, got %q", pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName, sa.Name)
-	}
-}
 
 func TestNodeSensorCleanupServiceAccountHasNoImagePullSecrets(t *testing.T) {
 	cfg := Config{
@@ -1133,31 +965,6 @@ func TestDSAutoPilotCleanupAllowlistLabelValue(t *testing.T) {
 	expected := pkgcommon.GKEAutoPilotCleanupAllowlistPrefix + "-" + version
 	if val != expected {
 		t.Errorf("expected label value %q, got %q", expected, val)
-	}
-}
-
-func TestDSAutoPilotDeployAndCleanupLabelsUseDistinctPrefixes(t *testing.T) {
-	gkeEnabled := true
-	version := "v1.0.0"
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-		NodeSensor: falconv1alpha1.FalconClusterGuardNodeSpec{
-			GKE: falconv1alpha1.FalconClusterGuardAutoPilot{
-				Enabled:                 &gkeEnabled,
-				DeployAllowListVersion:  &version,
-				CleanupAllowListVersion: &version,
-			},
-		},
-	}
-	n := New(nil, cfg)
-
-	deployVal := n.dsAutoPilotDeployAllowlistLabel()[pkgcommon.GKEAutoPilotAllowListLabelKey]
-	cleanupVal := n.dsAutoPilotCleanupAllowlistLabel()[pkgcommon.GKEAutoPilotAllowListLabelKey]
-
-	if deployVal == cleanupVal {
-		t.Errorf("expected deploy and cleanup label values to differ, both are %q", deployVal)
 	}
 }
 

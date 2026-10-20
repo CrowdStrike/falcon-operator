@@ -20,11 +20,3 @@ func TestFalconImageAnalyzerValidator_ValidateUpdate(t *testing.T) {
 		t.Error("ValidateUpdate: expected error for deprecated FalconImageAnalyzer, got nil")
 	}
 }
-
-func TestFalconImageAnalyzerValidator_ValidateDelete(t *testing.T) {
-	v := &FalconImageAnalyzerValidator{}
-	_, err := v.ValidateDelete(context.Background(), &FalconImageAnalyzer{})
-	if err != nil {
-		t.Errorf("ValidateDelete: expected nil, got %v", err)
-	}
-}

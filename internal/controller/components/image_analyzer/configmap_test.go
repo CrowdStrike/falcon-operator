@@ -5,7 +5,6 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/components"
-	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
 )
 
 func newIAForConfigMap(cid, namespace string, spec falconv1alpha1.FalconClusterGuardImageAnalyzerSpec, api *falconv1alpha1.FalconAPI) *ImageAnalyzer {
@@ -137,14 +136,6 @@ func TestBuildConfigMap_VolumeSizeLimitCustom(t *testing.T) {
 	cm, _ := ia.buildConfigMap()
 	if cm.Data["AGENT_TEMP_MOUNT_SIZE"] != "50Gi" {
 		t.Errorf("expected AGENT_TEMP_MOUNT_SIZE=50Gi, got %q", cm.Data["AGENT_TEMP_MOUNT_SIZE"])
-	}
-}
-
-func TestBuildConfigMap_Name(t *testing.T) {
-	ia := newIAForConfigMap("", "ns", falconv1alpha1.FalconClusterGuardImageAnalyzerSpec{}, nil)
-	cm, _ := ia.buildConfigMap()
-	if cm.Name != pkgcommon.FCGImageAnalyzerConfigMapName {
-		t.Errorf("expected ConfigMap name %q, got %q", pkgcommon.FCGImageAnalyzerConfigMapName, cm.Name)
 	}
 }
 

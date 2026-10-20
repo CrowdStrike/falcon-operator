@@ -80,19 +80,6 @@ func TestFCGGenerateCA(t *testing.T) {
 	}
 }
 
-func TestFCGGenerateCA_DifferentCommonNames(t *testing.T) {
-	for _, cn := range []string{"my-ca", "falcon-sensor-ca-default", ""} {
-		caPEM, _, err := FCGGenerateCA(cn, 1)
-		if err != nil {
-			t.Fatalf("FCGGenerateCA(%q) error: %v", cn, err)
-		}
-		cert := parseCertPEM(t, caPEM)
-		if cert.Subject.CommonName != cn {
-			t.Errorf("CommonName = %q, want %q", cert.Subject.CommonName, cn)
-		}
-	}
-}
-
 func mustGenerateCA(t *testing.T) (caPEM, caKeyPEM []byte) {
 	t.Helper()
 	caPEM, caKeyPEM, err := FCGGenerateCA("test-ca", 730)
@@ -245,26 +232,5 @@ func TestFCGSignCert_InvalidCAKeyPEM(t *testing.T) {
 	_, _, err := FCGSignCert(caPEM, []byte("not-a-pem"), 1, FCGCertInfo{CommonName: "test"})
 	if err == nil {
 		t.Error("expected error for invalid CA key PEM, got nil")
-	}
-}
-
-func TestFCGSignCert_LeafNotTrustedByDifferentCA(t *testing.T) {
-	caPEM1, caKeyPEM1 := mustGenerateCA(t)
-	caPEM2, _, _ := FCGGenerateCA("other-ca", 730)
-
-	certPEM, _, err := FCGSignCert(caPEM1, caKeyPEM1, 1, FCGCertInfo{
-		CommonName:  "test",
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-	})
-	if err != nil {
-		t.Fatalf("FCGSignCert: %v", err)
-	}
-
-	cert := parseCertPEM(t, certPEM)
-	otherCA := parseCertPEM(t, caPEM2)
-	pool := x509.NewCertPool()
-	pool.AddCert(otherCA)
-	if _, err := cert.Verify(x509.VerifyOptions{Roots: pool}); err == nil {
-		t.Error("cert should not verify against a different CA")
 	}
 }

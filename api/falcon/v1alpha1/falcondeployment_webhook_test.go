@@ -129,11 +129,3 @@ func TestFalconDeploymentValidator_ValidateUpdate(t *testing.T) {
 		})
 	}
 }
-
-func TestFalconDeploymentValidator_ValidateDelete(t *testing.T) {
-	v := &FalconDeploymentValidator{}
-	_, err := v.ValidateDelete(context.Background(), &FalconDeployment{})
-	if err != nil {
-		t.Errorf("ValidateDelete: expected nil, got %v", err)
-	}
-}

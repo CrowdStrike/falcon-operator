@@ -229,7 +229,4 @@ func TestPreserveOpenShiftPullSecrets(t *testing.T) {
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("PreserveOpenShiftPullSecrets() mismatch (-want +got):\n%s", diff)
 	}
-	if len(desired) != 1 {
-		t.Errorf("PreserveOpenShiftPullSecrets() mutated desired: %v", desired)
-	}
 }

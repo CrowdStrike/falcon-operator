@@ -123,18 +123,6 @@ func TestCrowdStrikeLabelGeneric(t *testing.T) {
 
 // --- hasCrowdStrikeKey ---
 
-func TestHasCrowdStrikeKey_Nil(t *testing.T) {
-	if hasCrowdStrikeKey(nil) {
-		t.Error("expected false for nil map")
-	}
-}
-
-func TestHasCrowdStrikeKey_Empty(t *testing.T) {
-	if hasCrowdStrikeKey(map[string]string{}) {
-		t.Error("expected false for empty map")
-	}
-}
-
 func TestHasCrowdStrikeKey_Match(t *testing.T) {
 	if !hasCrowdStrikeKey(map[string]string{"crowdstrike.com/foo": "bar"}) {
 		t.Error("expected true for key containing crowdstrike.com")

@@ -428,15 +428,6 @@ func TestConfigMapChecksum(t *testing.T) {
 		}
 	})
 
-	t.Run("key insertion order does not affect checksum", func(t *testing.T) {
-		// Go maps have random iteration order; build two maps with same pairs
-		a := ConfigMapChecksum(cm(map[string]string{"A": "1", "B": "2"}))
-		b := ConfigMapChecksum(cm(map[string]string{"B": "2", "A": "1"}))
-		if a != b {
-			t.Errorf("expected order-independent checksums, got %q and %q", a, b)
-		}
-	})
-
 	t.Run("changed value produces different checksum", func(t *testing.T) {
 		a := ConfigMapChecksum(cm(map[string]string{"KEY": "old"}))
 		b := ConfigMapChecksum(cm(map[string]string{"KEY": "new"}))

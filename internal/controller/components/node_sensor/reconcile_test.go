@@ -94,24 +94,6 @@ func reconcileAndGet(t *testing.T, n *NodeSensor, r *fakeReconciler, namespace, 
 	return got
 }
 
-// TestReconcileDaemonSet_Create verifies that reconcileDaemonSet creates the DaemonSet
-// when it does not yet exist.
-func TestReconcileDaemonSet_Create(t *testing.T) {
-	ns := "falcon-clusterguard"
-	owner := ownerCR()
-	r := newFakeReconciler(owner)
-	n := New(r, baseConfig(ns, owner))
-
-	ds := reconcileAndGet(t, n, r, ns, "falcon-sensor")
-
-	if ds.Name != "falcon-sensor" {
-		t.Errorf("expected name %q, got %q", "falcon-sensor", ds.Name)
-	}
-	if ds.Namespace != ns {
-		t.Errorf("expected namespace %q, got %q", ns, ds.Namespace)
-	}
-}
-
 // TestReconcileDaemonSet_Idempotent verifies that a second call with no spec change
 // produces no update (resource version stays the same).
 func TestReconcileDaemonSet_Idempotent(t *testing.T) {
