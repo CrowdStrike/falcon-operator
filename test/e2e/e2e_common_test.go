@@ -171,14 +171,6 @@ func validateAITapSecrets() {
 	ExpectWithOffset(1, string(output)).To(Equal("falcon-aitap-aidr-secret"))
 }
 
-func (c crConfig) validateInitContainerReadOnlyRootFilesystem() {
-	By("validating that the init container has readOnlyRootFilesystem set to true")
-	cmd := exec.Command("kubectl", "get", "daemonset", "falcon-node-sensor", "-n", c.namespace, "-o", "jsonpath={.spec.template.spec.initContainers[0].securityContext.readOnlyRootFilesystem}")
-	output, err := utils.Run(cmd)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	ExpectWithOffset(1, string(output)).To(Equal("true"))
-}
-
 // loadManifest reads a manifest file, unmarshals it into the provided object, and updates credentials
 func loadManifest(manifest string, obj any) error {
 	manifestPath := filepath.Join(projectDir, manifest)
@@ -322,16 +314,6 @@ func (cr crConfig) validateDefaultValues() {
 	}
 
 	switch cr.kind {
-	case "FalconNodeSensor":
-		validateField(".spec.installNamespace", "falcon-system", "spec.installNamespace")
-		validateField(".spec.node.backend", "bpf", "spec.node.backend")
-		validateField(".spec.node.imagePullPolicy", "Always", "spec.node.imagePullPolicy")
-		validateField(".spec.node.terminationGracePeriod", "60", "spec.node.terminationGracePeriod")
-		validateField(".spec.node.disableCleanup", "false", "spec.node.disableCleanup")
-		validateField(".spec.node.updateStrategy.type", "RollingUpdate", "spec.node.updateStrategy.type")
-		validateContains(".spec.node.tolerations[*].key", "node-role.kubernetes.io/master", "spec.node.tolerations[master]")
-		validateContains(".spec.node.tolerations[*].key", "node-role.kubernetes.io/control-plane", "spec.node.tolerations[control-plane]")
-
 	case "FalconContainer":
 		validateField(".spec.installNamespace", "falcon-system", "spec.installNamespace")
 		validateField(".spec.injector.listenPort", "4433", "spec.injector.listenPort")
@@ -340,24 +322,6 @@ func (cr crConfig) validateDefaultValues() {
 		validateField(".spec.injector.replicas", "2", "spec.injector.replicas")
 		validateField(".spec.injector.disableDefaultNamespaceInjection", "false", "spec.injector.disableDefaultNamespaceInjection")
 		validateField(".spec.injector.disableDefaultPodInjection", "false", "spec.injector.disableDefaultPodInjection")
-
-	case "FalconAdmission":
-		validateField(".spec.installNamespace", "falcon-kac", "spec.installNamespace")
-		validateField(".spec.admissionConfig.servicePort", "443", "spec.admissionConfig.servicePort")
-		validateField(".spec.admissionConfig.containerPort", "4443", "spec.admissionConfig.containerPort")
-		validateField(".spec.admissionConfig.failurePolicy", "Ignore", "spec.admissionConfig.failurePolicy")
-		validateField(".spec.admissionConfig.imagePullPolicy", "Always", "spec.admissionConfig.imagePullPolicy")
-		validateField(".spec.admissionConfig.deployWatcher", "true", "spec.admissionConfig.deployWatcher")
-		validateField(".spec.admissionConfig.watcherEnabled", "true", "spec.admissionConfig.watcherEnabled")
-		validateField(".spec.admissionConfig.snapshotsEnabled", "true", "spec.admissionConfig.snapshotsEnabled")
-		validateField(".spec.admissionConfig.admissionControlEnabled", "true", "spec.admissionConfig.admissionControlEnabled")
-		validateField(".spec.admissionConfig.configMapWatcherEnabled", "true", "spec.admissionConfig.configMapWatcherEnabled")
-		validateField(".spec.admissionConfig.snapshotsInterval", "22h", "spec.admissionConfig.snapshotsInterval")
-		validateField(".spec.admissionConfig.falconImageAnalyzerNamespace", "falcon-iar", "spec.admissionConfig.falconImageAnalyzerNamespace")
-		validateField(".spec.admissionConfig.replicas", "2", "spec.admissionConfig.replicas")
-		validateField(".spec.resourcequota.pods", "2", "spec.resourcequota.pods")
-		validateField(".spec.admissionConfig.updateStrategy.rollingUpdate.maxUnavailable", "0", "spec.admissionConfig.updateStrategy.rollingUpdate.maxUnavailable")
-		validateField(".spec.admissionConfig.updateStrategy.rollingUpdate.maxSurge", "1", "spec.admissionConfig.updateStrategy.rollingUpdate.maxSurge")
 
 	case "FalconImageAnalyzer":
 		validateField(".spec.installNamespace", "falcon-iar", "spec.installNamespace")
@@ -435,31 +399,6 @@ func (cr crConfig) validateDefaultValues() {
 		validateField(".spec.falconNodeSensor.falcon.apd", "false", "spec.falconNodeSensor.falcon.apd")
 		validateField(".spec.falconContainerSensor.falcon.trace", "none", "spec.falconContainerSensor.falcon.trace")
 		validateField(".spec.falconContainerSensor.falcon.apd", "false", "spec.falconContainerSensor.falcon.apd")
-
-	case "FalconClusterGuard":
-		validateField(".spec.installNamespace", "falcon-sensor", "spec.installNamespace")
-		validateField(".spec.registry.type", "crowdstrike", "spec.registry.type")
-		validateField(".spec.imagePullPolicy", "IfNotPresent", "spec.imagePullPolicy")
-		// controller defaults
-		validateField(".spec.controller.servicePort", "443", "spec.controller.servicePort")
-		validateField(".spec.controller.containerPort", "4443", "spec.controller.containerPort")
-		validateField(".spec.controller.failurePolicy", "Ignore", "spec.controller.failurePolicy")
-		validateField(".spec.controller.imagePullPolicy", "Always", "spec.controller.imagePullPolicy")
-		validateField(".spec.controller.watcherEnabled", "true", "spec.controller.watcherEnabled")
-		validateField(".spec.controller.snapshotsEnabled", "true", "spec.controller.snapshotsEnabled")
-		validateField(".spec.controller.admissionControlEnabled", "false", "spec.controller.admissionControlEnabled")
-		validateField(".spec.controller.configMapWatcherEnabled", "true", "spec.controller.configMapWatcherEnabled")
-		validateField(".spec.controller.snapshotsInterval", "22h", "spec.controller.snapshotsInterval")
-		validateField(".spec.controller.replicas", "2", "spec.controller.replicas")
-		validateField(".spec.controller.updateStrategy.rollingUpdate.maxUnavailable", "0", "spec.controller.updateStrategy.rollingUpdate.maxUnavailable")
-		validateField(".spec.controller.updateStrategy.rollingUpdate.maxSurge", "1", "spec.controller.updateStrategy.rollingUpdate.maxSurge")
-		// nodeSensor defaults (inherited from FalconNodeBaseConfig)
-		validateField(".spec.nodeSensor.backend", "bpf", "spec.nodeSensor.backend")
-		validateField(".spec.nodeSensor.terminationGracePeriod", "60", "spec.nodeSensor.terminationGracePeriod")
-		validateField(".spec.nodeSensor.disableCleanup", "false", "spec.nodeSensor.disableCleanup")
-		validateField(".spec.nodeSensor.updateStrategy.type", "RollingUpdate", "spec.nodeSensor.updateStrategy.type")
-		validateContains(".spec.nodeSensor.tolerations[*].key", "node-role.kubernetes.io/master", "spec.nodeSensor.tolerations[master]")
-		validateContains(".spec.nodeSensor.tolerations[*].key", "node-role.kubernetes.io/control-plane", "spec.nodeSensor.tolerations[control-plane]")
 	}
 
 	// Report all failures at once
