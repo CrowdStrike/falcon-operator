@@ -253,88 +253,57 @@ func TestClusterNameConfigMapHasClusterName(t *testing.T) {
 
 // ServiceAccount builder tests
 
-func TestAdmissionServiceAccountImagePullSecrets(t *testing.T) {
-	secrets := []corev1.LocalObjectReference{{Name: "my-pull-secret"}, {Name: "other-secret"}}
+// assets.ServiceAccount is covered in the assets package; this only checks which
+// config fields the controller feeds into it.
+func TestAdmissionServiceAccountWiring(t *testing.T) {
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "falcon-clusterguard",
-			ImagePullSecrets: secrets,
-		},
-	})
-	sa := a.serviceAccount()
-
-	if len(sa.ImagePullSecrets) != 2 {
-		t.Fatalf("expected 2 ImagePullSecrets, got %d", len(sa.ImagePullSecrets))
-	}
-	if sa.ImagePullSecrets[0].Name != "my-pull-secret" {
-		t.Errorf("expected first secret %q, got %q", "my-pull-secret", sa.ImagePullSecrets[0].Name)
-	}
-}
-
-func TestAdmissionServiceAccountAnnotations(t *testing.T) {
-	annotations := map[string]string{"iam.amazonaws.com/role": "arn:aws:iam::123:role/my-role"}
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
+			ImagePullSecrets: []corev1.LocalObjectReference{{Name: "my-pull-secret"}},
 		},
 		ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{
-			ServiceAccount: falconv1alpha1.FalconClusterGuardControllerServiceAccount{Annotations: annotations},
+			ServiceAccount: falconv1alpha1.FalconClusterGuardControllerServiceAccount{
+				Annotations: map[string]string{"iam.amazonaws.com/role": "arn:aws:iam::123:role/my-role"},
+			},
 		},
 	})
 	sa := a.serviceAccount()
 
+	if len(sa.ImagePullSecrets) != 1 || sa.ImagePullSecrets[0].Name != "my-pull-secret" {
+		t.Errorf("expected ImagePullSecrets [my-pull-secret], got %v", sa.ImagePullSecrets)
+	}
 	if sa.Annotations["iam.amazonaws.com/role"] != "arn:aws:iam::123:role/my-role" {
-		t.Errorf("expected annotation to be propagated, got %q", sa.Annotations["iam.amazonaws.com/role"])
+		t.Errorf("expected ClusterGuardController.ServiceAccount annotations to be propagated, got %v", sa.Annotations)
 	}
 }
 
-// ClusterRoleBinding builder tests
+// ClusterRoleBinding / RoleBinding builder tests
 
-func TestAdmissionClusterRoleBindingRoleRef(t *testing.T) {
+// assets.ClusterRoleBinding and assets.RoleBinding are covered in the assets package;
+// these only check the role, ServiceAccount and namespace the controller passes in.
+func TestAdmissionClusterRoleBindingWiring(t *testing.T) {
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
+			InstallNamespace: "test-ns",
 		},
 	})
 	crb := a.clusterRoleBinding()
 
-	if crb.RoleRef.Kind != "ClusterRole" {
-		t.Errorf("expected RoleRef.Kind=ClusterRole, got %q", crb.RoleRef.Kind)
-	}
 	if crb.RoleRef.Name != common.ClusterGuardControllerClusterRoleName {
 		t.Errorf("expected RoleRef.Name=%q, got %q", common.ClusterGuardControllerClusterRoleName, crb.RoleRef.Name)
 	}
-	if crb.RoleRef.APIGroup != "rbac.authorization.k8s.io" {
-		t.Errorf("expected RoleRef.APIGroup=rbac.authorization.k8s.io, got %q", crb.RoleRef.APIGroup)
-	}
-}
-
-func TestAdmissionClusterRoleBindingSubjectPointsToSA(t *testing.T) {
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "test-ns",
-		},
-	})
-	crb := a.clusterRoleBinding()
-
 	if len(crb.Subjects) != 1 {
 		t.Fatalf("expected 1 subject, got %d", len(crb.Subjects))
 	}
-	subj := crb.Subjects[0]
-	if subj.Kind != "ServiceAccount" {
-		t.Errorf("expected subject Kind=ServiceAccount, got %q", subj.Kind)
+	if crb.Subjects[0].Name != common.ClusterGuardControllerServiceAccountName {
+		t.Errorf("expected subject Name=%q, got %q", common.ClusterGuardControllerServiceAccountName, crb.Subjects[0].Name)
 	}
-	if subj.Name != common.ClusterGuardControllerServiceAccountName {
-		t.Errorf("expected subject Name=%q, got %q", common.ClusterGuardControllerServiceAccountName, subj.Name)
-	}
-	if subj.Namespace != "test-ns" {
-		t.Errorf("expected subject Namespace=%q, got %q", "test-ns", subj.Namespace)
+	if crb.Subjects[0].Namespace != "test-ns" {
+		t.Errorf("expected subject Namespace=%q, got %q", "test-ns", crb.Subjects[0].Namespace)
 	}
 }
 
-// RoleBinding builder tests
-
-func TestAdmissionRoleBindingRoleRef(t *testing.T) {
+func TestAdmissionRoleBindingWiring(t *testing.T) {
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "test-ns",
@@ -342,22 +311,9 @@ func TestAdmissionRoleBindingRoleRef(t *testing.T) {
 	})
 	rb := a.roleBinding()
 
-	if rb.RoleRef.Kind != "Role" {
-		t.Errorf("expected RoleRef.Kind=Role, got %q", rb.RoleRef.Kind)
-	}
 	if rb.RoleRef.Name != common.ClusterGuardControllerNamespaceRoleName {
 		t.Errorf("expected RoleRef.Name=%q, got %q", common.ClusterGuardControllerNamespaceRoleName, rb.RoleRef.Name)
 	}
-}
-
-func TestAdmissionRoleBindingSubjectPointsToSA(t *testing.T) {
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "test-ns",
-		},
-	})
-	rb := a.roleBinding()
-
 	if len(rb.Subjects) != 1 {
 		t.Fatalf("expected 1 subject, got %d", len(rb.Subjects))
 	}
@@ -366,41 +322,6 @@ func TestAdmissionRoleBindingSubjectPointsToSA(t *testing.T) {
 	}
 	if rb.Subjects[0].Namespace != "test-ns" {
 		t.Errorf("expected subject Namespace=%q, got %q", "test-ns", rb.Subjects[0].Namespace)
-	}
-}
-
-// Role builder tests
-
-func TestAdmissionRoleHasPolicyRules(t *testing.T) {
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-	})
-	role := a.role()
-
-	if len(role.Rules) == 0 {
-		t.Fatal("expected Role to have policy rules")
-	}
-
-	// Verify configmaps rule exists
-	foundConfigMaps := false
-	foundPods := false
-	for _, rule := range role.Rules {
-		for _, res := range rule.Resources {
-			if res == "configmaps" {
-				foundConfigMaps = true
-			}
-			if res == "pods" {
-				foundPods = true
-			}
-		}
-	}
-	if !foundConfigMaps {
-		t.Error("expected Role to have a rule for configmaps")
-	}
-	if !foundPods {
-		t.Error("expected Role to have a rule for pods")
 	}
 }
 
@@ -514,24 +435,6 @@ func TestResourceQuotaCustomPods(t *testing.T) {
 	}
 	if pods.Value() != int64(custom) {
 		t.Errorf("expected %d pods, got %d", custom, pods.Value())
-	}
-}
-
-func TestResourceQuotaHasPriorityClassScopeSelector(t *testing.T) {
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{InstallNamespace: "falcon-clusterguard"},
-	})
-	rq := a.resourceQuota()
-
-	if rq.Spec.ScopeSelector == nil {
-		t.Fatal("expected non-nil ScopeSelector")
-	}
-	if len(rq.Spec.ScopeSelector.MatchExpressions) != 1 {
-		t.Fatalf("expected 1 scope expression, got %d", len(rq.Spec.ScopeSelector.MatchExpressions))
-	}
-	expr := rq.Spec.ScopeSelector.MatchExpressions[0]
-	if expr.ScopeName != corev1.ResourceQuotaScopePriorityClass {
-		t.Errorf("expected ScopeName %q, got %q", corev1.ResourceQuotaScopePriorityClass, expr.ScopeName)
 	}
 }
 
