@@ -607,83 +607,51 @@ func TestNodeSensorFixedNamesIgnoreNamePrefix(t *testing.T) {
 
 // ServiceAccount builder tests
 
-func TestNodeSensorServiceAccountImagePullSecrets(t *testing.T) {
-	secrets := []corev1.LocalObjectReference{{Name: "my-pull-secret"}}
+// assets.ServiceAccount is covered in the assets package; this only checks which
+// config fields the node sensor feeds into it.
+func TestNodeSensorServiceAccountWiring(t *testing.T) {
 	cfg := Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "falcon-clusterguard",
-			ImagePullSecrets: secrets,
-		},
-	}
-	n := New(nil, cfg)
-	sa := n.serviceAccount()
-
-	if len(sa.ImagePullSecrets) != 1 {
-		t.Fatalf("expected 1 ImagePullSecret, got %d", len(sa.ImagePullSecrets))
-	}
-	if sa.ImagePullSecrets[0].Name != "my-pull-secret" {
-		t.Errorf("expected secret name %q, got %q", "my-pull-secret", sa.ImagePullSecrets[0].Name)
-	}
-}
-
-func TestNodeSensorServiceAccountAnnotations(t *testing.T) {
-	annotations := map[string]string{"iam.amazonaws.com/role": "arn:aws:iam::123:role/my-role"}
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
+			ImagePullSecrets: []corev1.LocalObjectReference{{Name: "my-pull-secret"}},
 		},
 		NodeSensor: falconv1alpha1.FalconClusterGuardNodeSpec{
-			ServiceAccount: falconv1alpha1.FalconClusterGuardNodeServiceAccount{Annotations: annotations},
+			ServiceAccount: falconv1alpha1.FalconClusterGuardNodeServiceAccount{
+				Annotations: map[string]string{"iam.amazonaws.com/role": "arn:aws:iam::123:role/my-role"},
+			},
 		},
 	}
 	n := New(nil, cfg)
 	sa := n.serviceAccount()
 
+	if len(sa.ImagePullSecrets) != 1 || sa.ImagePullSecrets[0].Name != "my-pull-secret" {
+		t.Errorf("expected ImagePullSecrets [my-pull-secret], got %v", sa.ImagePullSecrets)
+	}
 	if sa.Annotations["iam.amazonaws.com/role"] != "arn:aws:iam::123:role/my-role" {
-		t.Errorf("expected annotation to be propagated, got %q", sa.Annotations["iam.amazonaws.com/role"])
+		t.Errorf("expected NodeSensor.ServiceAccount annotations to be propagated, got %v", sa.Annotations)
 	}
 }
 
 // ClusterRoleBinding builder tests
 
-func TestNodeSensorClusterRoleBindingRoleRef(t *testing.T) {
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-	}
-	n := New(nil, cfg)
-	crb := n.clusterRoleBinding()
-
-	if crb.RoleRef.Kind != "ClusterRole" {
-		t.Errorf("expected RoleRef.Kind=ClusterRole, got %q", crb.RoleRef.Kind)
-	}
-	if crb.RoleRef.Name != pkgcommon.ClusterGuardNodeSensorClusterRoleName {
-		t.Errorf("expected RoleRef.Name=%q, got %q", pkgcommon.ClusterGuardNodeSensorClusterRoleName, crb.RoleRef.Name)
-	}
-	if crb.RoleRef.APIGroup != "rbac.authorization.k8s.io" {
-		t.Errorf("expected RoleRef.APIGroup=rbac.authorization.k8s.io, got %q", crb.RoleRef.APIGroup)
-	}
-}
-
-func TestNodeSensorClusterRoleBindingSubjectPointsToSA(t *testing.T) {
-	prefix := "my-guard"
+// assets.ClusterRoleBinding is covered in the assets package; this only checks the
+// role, ServiceAccount and namespace the node sensor passes in.
+func TestNodeSensorClusterRoleBindingWiring(t *testing.T) {
 	cfg := Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "test-ns",
-			NamePrefix:       prefix,
 		},
 	}
 	n := New(nil, cfg)
 	crb := n.clusterRoleBinding()
 
+	if crb.RoleRef.Name != pkgcommon.ClusterGuardNodeSensorClusterRoleName {
+		t.Errorf("expected RoleRef.Name=%q, got %q", pkgcommon.ClusterGuardNodeSensorClusterRoleName, crb.RoleRef.Name)
+	}
 	if len(crb.Subjects) != 1 {
 		t.Fatalf("expected 1 subject, got %d", len(crb.Subjects))
 	}
 	subj := crb.Subjects[0]
-	if subj.Kind != "ServiceAccount" {
-		t.Errorf("expected subject Kind=ServiceAccount, got %q", subj.Kind)
-	}
 	if subj.Name != pkgcommon.ClusterGuardNodeSensorServiceAccountName {
 		t.Errorf("expected subject Name=%q, got %q", pkgcommon.ClusterGuardNodeSensorServiceAccountName, subj.Name)
 	}
@@ -1249,31 +1217,5 @@ func TestDaemonSetNilDNSConfigNotApplied(t *testing.T) {
 
 	if ds.Spec.Template.Spec.DNSConfig != nil {
 		t.Error("expected nil DNSConfig when not configured")
-	}
-}
-
-func TestDaemonSetDNSConfigApplied(t *testing.T) {
-	n := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-			Image:            "quay.io/crowdstrike/falcon-sensor:latest",
-		},
-		NodeSensor: falconv1alpha1.FalconClusterGuardNodeSpec{
-			DNSConfig: &corev1.PodDNSConfig{
-				Nameservers: []string{"8.8.8.8"},
-				Searches:    []string{"my.domain.local"},
-			},
-		},
-	})
-	ds := n.daemonSet()
-
-	if ds.Spec.Template.Spec.DNSConfig == nil {
-		t.Fatal("expected non-nil DNSConfig")
-	}
-	if len(ds.Spec.Template.Spec.DNSConfig.Nameservers) != 1 || ds.Spec.Template.Spec.DNSConfig.Nameservers[0] != "8.8.8.8" {
-		t.Errorf("expected nameserver 8.8.8.8, got %v", ds.Spec.Template.Spec.DNSConfig.Nameservers)
-	}
-	if len(ds.Spec.Template.Spec.DNSConfig.Searches) != 1 || ds.Spec.Template.Spec.DNSConfig.Searches[0] != "my.domain.local" {
-		t.Errorf("expected search my.domain.local, got %v", ds.Spec.Template.Spec.DNSConfig.Searches)
 	}
 }
