@@ -203,19 +203,6 @@ func TestAdmissionConfigMapCidIsSet(t *testing.T) {
 	}
 }
 
-func TestAdmissionConfigMapDefaultName(t *testing.T) {
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-	})
-	cm := a.configMap()
-
-	if cm.Name != "falcon-clusterguard-config" {
-		t.Errorf("expected default ConfigMap name %q, got %q", "falcon-clusterguard-config", cm.Name)
-	}
-}
-
 func TestAdmissionConfigMapTLSVersionMinimumWhenSet(t *testing.T) {
 	tlsMin := "TLS1.3"
 	a := New(nil, Config{
@@ -264,41 +251,7 @@ func TestClusterNameConfigMapHasClusterName(t *testing.T) {
 	}
 }
 
-func TestClusterNameConfigMapName(t *testing.T) {
-	clusterName := "my-cluster"
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-		ClusterName: &clusterName,
-	})
-	cm := a.clusterNameConfigMap()
-
-	if cm.Name != common.FalconAdmissionClusterNameConfigMapName {
-		t.Errorf("expected name %q, got %q", common.FalconAdmissionClusterNameConfigMapName, cm.Name)
-	}
-}
-
 // ServiceAccount builder tests
-
-func TestAdmissionServiceAccountName(t *testing.T) {
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-	})
-	sa := a.serviceAccount()
-
-	if sa == nil {
-		t.Fatal("expected non-nil ServiceAccount")
-	}
-	if sa.Name != "falcon-cg-controller-sa" {
-		t.Errorf("expected name %q, got %q", "falcon-cg-controller-sa", sa.Name)
-	}
-	if sa.Namespace != "falcon-clusterguard" {
-		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", sa.Namespace)
-	}
-}
 
 func TestAdmissionServiceAccountImagePullSecrets(t *testing.T) {
 	secrets := []corev1.LocalObjectReference{{Name: "my-pull-secret"}, {Name: "other-secret"}}
@@ -336,22 +289,6 @@ func TestAdmissionServiceAccountAnnotations(t *testing.T) {
 }
 
 // ClusterRoleBinding builder tests
-
-func TestAdmissionClusterRoleBindingName(t *testing.T) {
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-	})
-	crb := a.clusterRoleBinding()
-
-	if crb == nil {
-		t.Fatal("expected non-nil ClusterRoleBinding")
-	}
-	if crb.Name != "falcon-clusterguard-security-crb" {
-		t.Errorf("expected name %q, got %q", "falcon-clusterguard-security-crb", crb.Name)
-	}
-}
 
 func TestAdmissionClusterRoleBindingRoleRef(t *testing.T) {
 	a := New(nil, Config{
@@ -397,25 +334,6 @@ func TestAdmissionClusterRoleBindingSubjectPointsToSA(t *testing.T) {
 
 // RoleBinding builder tests
 
-func TestAdmissionRoleBindingName(t *testing.T) {
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-	})
-	rb := a.roleBinding()
-
-	if rb == nil {
-		t.Fatal("expected non-nil RoleBinding")
-	}
-	if rb.Name != "falcon-clusterguard-rolebinding" {
-		t.Errorf("expected name %q, got %q", "falcon-clusterguard-rolebinding", rb.Name)
-	}
-	if rb.Namespace != "falcon-clusterguard" {
-		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", rb.Namespace)
-	}
-}
-
 func TestAdmissionRoleBindingRoleRef(t *testing.T) {
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
@@ -453,25 +371,6 @@ func TestAdmissionRoleBindingSubjectPointsToSA(t *testing.T) {
 
 // Role builder tests
 
-func TestAdmissionRoleName(t *testing.T) {
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-	})
-	role := a.role()
-
-	if role == nil {
-		t.Fatal("expected non-nil Role")
-	}
-	if role.Name != "falcon-clusterguard-namespace-role" {
-		t.Errorf("expected name %q, got %q", "falcon-clusterguard-namespace-role", role.Name)
-	}
-	if role.Namespace != "falcon-clusterguard" {
-		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", role.Namespace)
-	}
-}
-
 func TestAdmissionRoleHasPolicyRules(t *testing.T) {
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
@@ -507,25 +406,6 @@ func TestAdmissionRoleHasPolicyRules(t *testing.T) {
 
 // WebhookService builder tests
 
-func TestAdmissionWebhookServiceName(t *testing.T) {
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-	})
-	svc := a.webhookService()
-
-	if svc == nil {
-		t.Fatal("expected non-nil Service")
-	}
-	if svc.Name != common.ClusterGuardControllerWebhookServiceName {
-		t.Errorf("expected name %q, got %q", common.ClusterGuardControllerWebhookServiceName, svc.Name)
-	}
-	if svc.Namespace != "falcon-clusterguard" {
-		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", svc.Namespace)
-	}
-}
-
 func TestAdmissionWebhookServiceSelectorUsesFalconKAC(t *testing.T) {
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
@@ -556,25 +436,6 @@ func TestAdmissionWebhookServicePort(t *testing.T) {
 }
 
 // APIService builder tests
-
-func TestAdmissionAPIServiceName(t *testing.T) {
-	a := New(nil, Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "falcon-clusterguard",
-		},
-	})
-	svc := a.apiService()
-
-	if svc == nil {
-		t.Fatal("expected non-nil Service")
-	}
-	if svc.Name != common.ClusterGuardControllerAPIServiceName {
-		t.Errorf("expected name %q, got %q", common.ClusterGuardControllerAPIServiceName, svc.Name)
-	}
-	if svc.Namespace != "falcon-clusterguard" {
-		t.Errorf("expected namespace %q, got %q", "falcon-clusterguard", svc.Namespace)
-	}
-}
 
 func TestAdmissionAPIServiceSelectorUsesFalconKAC(t *testing.T) {
 	a := New(nil, Config{

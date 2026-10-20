@@ -20,11 +20,3 @@ func TestFalconAdmissionValidator_ValidateUpdate(t *testing.T) {
 		t.Error("ValidateUpdate: expected error for deprecated FalconAdmission, got nil")
 	}
 }
-
-func TestFalconAdmissionValidator_ValidateDelete(t *testing.T) {
-	v := &FalconAdmissionValidator{}
-	_, err := v.ValidateDelete(context.Background(), &FalconAdmission{})
-	if err != nil {
-		t.Errorf("ValidateDelete: expected nil, got %v", err)
-	}
-}

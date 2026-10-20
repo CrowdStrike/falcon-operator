@@ -460,27 +460,6 @@ func (n *NodeSensor) isInitReadOnlyRootFilesystem() *bool {
 	return &readOnly
 }
 
-// BuildResourceRequirements converts a falconv1alpha1.Resources spec into corev1.ResourceRequirements.
-func BuildResourceRequirements(res falconv1alpha1.FalconClusterGuardResources) corev1.ResourceRequirements {
-	reqs := corev1.ResourceRequirements{
-		Limits:   corev1.ResourceList{},
-		Requests: corev1.ResourceList{},
-	}
-	if res.Limits.Memory != "" {
-		reqs.Limits[corev1.ResourceMemory] = resource.MustParse(res.Limits.Memory)
-	}
-	if res.Limits.CPU != "" {
-		reqs.Limits[corev1.ResourceCPU] = resource.MustParse(res.Limits.CPU)
-	}
-	if res.Requests.Memory != "" {
-		reqs.Requests[corev1.ResourceMemory] = resource.MustParse(res.Requests.Memory)
-	}
-	if res.Requests.CPU != "" {
-		reqs.Requests[corev1.ResourceCPU] = resource.MustParse(res.Requests.CPU)
-	}
-	return reqs
-}
-
 func (n *NodeSensor) reconcileDaemonSet(ctx context.Context) error {
 	ds := n.daemonSet()
 

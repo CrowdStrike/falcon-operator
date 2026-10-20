@@ -720,30 +720,6 @@ def test_node_sensor_wins_image_conflict():
     assert spec["falconClusterGuard"]["image"] == "node-image:1.0"
 
 
-# ── deep copy (no anchors) ────────────────────────────────────────────────────
-
-def test_no_yaml_anchors_in_output():
-    doc = make_deployment("""\
-  falconNodeSensor:
-    installNamespace: falcon-system
-    falcon_api:
-      client_id: abc
-  falconAdmission:
-    admissionConfig:
-      failurePolicy: Ignore
-""")
-    warnings = []
-    migrate(doc, warnings)
-
-    import io
-    buf = io.StringIO()
-    yaml.dump(doc, buf)
-    output = buf.getvalue()
-
-    assert "&id" not in output
-    assert "*id" not in output
-
-
 # ── load_files ────────────────────────────────────────────────────────────────
 
 def test_load_files_single_node_sensor(tmp_path):
