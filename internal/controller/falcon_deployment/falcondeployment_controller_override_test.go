@@ -2,7 +2,6 @@ package falcon
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -35,13 +34,11 @@ var _ = Describe("FalconDeployment Controller", func() {
 		sidecarSensorNamespacedName := "falcon-container-sensor"
 		nodeSensorNamespace := "falcon-node-sensor"
 		nodeSensorOverrideNamespace := "falcon-node-sensor-override"
-		nodeSensorNamespacedName := "falcon-node-sensor"
 		imageAnalyzerNamespace := "falcon-iar"
 		imageAnalyzerOverrideNamespace := "falcon-iar-override"
 		imageAnalyzerNamespacedName := "falcon-image-analyzer"
 		admissionControllerNamespace := "falcon-kac"
 		admissionControllerOverrideNamespace := "falcon-kac-override"
-		admissionControllerNamespacedName := "falcon-kac"
 
 		ctx := context.Background()
 
@@ -79,15 +76,11 @@ var _ = Describe("FalconDeployment Controller", func() {
 		})
 
 		typeContainerNamespacedName := types.NamespacedName{Name: sidecarSensorNamespacedName, Namespace: sidecarSensorNamespace}
-		typeAdmissionNamespacedName := types.NamespacedName{Name: admissionControllerNamespacedName, Namespace: admissionControllerNamespace}
 		typeIARNamespacedName := types.NamespacedName{Name: imageAnalyzerNamespacedName, Namespace: imageAnalyzerNamespace}
-		typeNodeNamespacedName := types.NamespacedName{Name: nodeSensorNamespacedName, Namespace: nodeSensorNamespace}
 		typeNamespacedName := types.NamespacedName{Name: FalconDeploymentName, Namespace: FalconDeploymentName}
 
 		typeContainerNamespacedOverrideName := types.NamespacedName{Name: sidecarSensorNamespacedName, Namespace: sidecarSensorOverrideNamespace}
-		typeAdmissionNamespacedOverrideName := types.NamespacedName{Name: admissionControllerNamespacedName, Namespace: admissionControllerOverrideNamespace}
 		typeIARNamespacedOverrideName := types.NamespacedName{Name: imageAnalyzerNamespacedName, Namespace: imageAnalyzerOverrideNamespace}
-		typeNodeNamespacedOverrideName := types.NamespacedName{Name: nodeSensorNamespacedName, Namespace: nodeSensorOverrideNamespace}
 		typeNamespacedOverrideName := types.NamespacedName{Name: FalconDeploymentOverrideName, Namespace: FalconDeploymentOverrideName}
 
 		defaultRegistry := falconv1alpha1.RegistrySpec{
@@ -187,16 +180,6 @@ var _ = Describe("FalconDeployment Controller", func() {
 			})
 			Expect(err).To(Not(HaveOccurred()))
 
-			falconAdmission := &falconv1alpha1.FalconAdmission{}
-			if common.FalconNodeSensorEnabled {
-				By("Validate FalconDeployment top level FalconAPI credentials are used in the child CRs - FalconAdmission - without overrides")
-				err = k8sClient.Get(ctx, typeAdmissionNamespacedName, falconAdmission)
-				Expect(err).To(Not(HaveOccurred()))
-				Expect(falconAdmission.Spec.FalconAPI.ClientId).To(Equal(mockFalconAPI.ClientId))
-				Expect(falconAdmission.Spec.FalconAPI.ClientSecret).To(Equal(mockFalconAPI.ClientSecret))
-				Expect(falconAdmission.Spec.FalconAPI.CloudRegion).To(Equal(mockFalconAPI.CloudRegion))
-			}
-
 			By("Validate FalconDeployment top level FalconAPI credentials are used in the child CRs - FalconImageAnalyzer - without overrides")
 			falconImageAnalyzer := &falconv1alpha1.FalconImageAnalyzer{}
 			err = k8sClient.Get(ctx, typeIARNamespacedName, falconImageAnalyzer)
@@ -204,16 +187,6 @@ var _ = Describe("FalconDeployment Controller", func() {
 			Expect(falconImageAnalyzer.Spec.FalconAPI.ClientId).To(Equal(mockFalconAPI.ClientId))
 			Expect(falconImageAnalyzer.Spec.FalconAPI.ClientSecret).To(Equal(mockFalconAPI.ClientSecret))
 			Expect(falconImageAnalyzer.Spec.FalconAPI.CloudRegion).To(Equal(mockFalconAPI.CloudRegion))
-
-			falconNodeSensor := &falconv1alpha1.FalconNodeSensor{}
-			if common.FalconNodeSensorEnabled {
-				By("Validate FalconDeployment top level FalconAPI credentials are used in the child CRss - FalconNodeSensor - without overrides")
-				err = k8sClient.Get(ctx, typeNodeNamespacedName, falconNodeSensor)
-				Expect(err).To(Not(HaveOccurred()))
-				Expect(falconNodeSensor.Spec.FalconAPI.ClientId).To(Equal(mockFalconAPI.ClientId))
-				Expect(falconNodeSensor.Spec.FalconAPI.ClientSecret).To(Equal(mockFalconAPI.ClientSecret))
-				Expect(falconNodeSensor.Spec.FalconAPI.CloudRegion).To(Equal(mockFalconAPI.CloudRegion))
-			}
 
 			By("Validate FalconDeployment top level FalconAPI credentials are used in the child CRs - FalconContainer - without overrides")
 			falconContainer := &falconv1alpha1.FalconContainer{}
@@ -224,28 +197,14 @@ var _ = Describe("FalconDeployment Controller", func() {
 			Expect(falconContainer.Spec.FalconAPI.CloudRegion).To(Equal(mockFalconAPI.CloudRegion))
 
 			By("Validate FalconDeployment top level FalconSecret spec is used in the child CRs - without overrides")
-			if common.FalconAdmissionEnabled {
-				Expect(falconAdmission.Spec.FalconSecret).To(Equal(topLevelFalconSecret))
-			}
 			Expect(falconImageAnalyzer.Spec.FalconSecret).To(Equal(topLevelFalconSecret))
-			if common.FalconNodeSensorEnabled {
-				Expect(falconNodeSensor.Spec.FalconSecret).To(Equal(topLevelFalconSecret))
-			}
 			Expect(falconContainer.Spec.FalconSecret).To(Equal(topLevelFalconSecret))
 
 			By("Deleting the FalconDeployment to perform the tests")
-			if common.FalconAdmissionEnabled {
-				_ = k8sClient.Delete(ctx, falconAdmission)
-			}
 			_ = k8sClient.Delete(ctx, falconImageAnalyzer)
-			_ = k8sClient.Delete(ctx, falconNodeSensor)
 			_ = k8sClient.Delete(ctx, falconContainer)
 
 			By("Creating the custom resource for the Kind FalconDeployment - With Overrides")
-			deployContainerSensor = true
-			deployAdmissionController = common.FalconAdmissionEnabled
-			deployNodeSensor = common.FalconNodeSensorEnabled
-
 			overrideFalconDeployment := &falconv1alpha1.FalconDeployment{}
 			err = k8sClient.Get(ctx, typeNamespacedOverrideName, overrideFalconDeployment)
 			if err != nil && errors.IsNotFound(err) {
@@ -304,17 +263,6 @@ var _ = Describe("FalconDeployment Controller", func() {
 			})
 			Expect(err).To(Not(HaveOccurred()))
 
-			falconAdmission = &falconv1alpha1.FalconAdmission{}
-			if common.FalconAdmissionEnabled {
-				By("Validate override FalconAPI credentials are used in the child CRs - FalconAdmission - With Overrides")
-				err = k8sClient.Get(ctx, typeAdmissionNamespacedOverrideName, falconAdmission)
-				fmt.Println(falconAdmission.Spec.FalconAPI)
-				Expect(err).To(Not(HaveOccurred()))
-				Expect(falconAdmission.Spec.FalconAPI.ClientId).To(Equal(overrideFalconAPI.ClientId))
-				Expect(falconAdmission.Spec.FalconAPI.ClientSecret).To(Equal(overrideFalconAPI.ClientSecret))
-				Expect(falconAdmission.Spec.FalconAPI.CloudRegion).To(Equal(overrideFalconAPI.CloudRegion))
-			}
-
 			By("Validate override FalconAPI credentials are used in the child CRs - FalconImageAnalyzer - With Overrides")
 			falconImageAnalyzer = &falconv1alpha1.FalconImageAnalyzer{}
 			err = k8sClient.Get(ctx, typeIARNamespacedOverrideName, falconImageAnalyzer)
@@ -322,16 +270,6 @@ var _ = Describe("FalconDeployment Controller", func() {
 			Expect(falconImageAnalyzer.Spec.FalconAPI.ClientId).To(Equal(overrideFalconAPI.ClientId))
 			Expect(falconImageAnalyzer.Spec.FalconAPI.ClientSecret).To(Equal(overrideFalconAPI.ClientSecret))
 			Expect(falconImageAnalyzer.Spec.FalconAPI.CloudRegion).To(Equal(overrideFalconAPI.CloudRegion))
-
-			falconNodeSensor = &falconv1alpha1.FalconNodeSensor{}
-			if common.FalconNodeSensorEnabled {
-				By("Validate override FalconAPI credentials are used in the child CRss - FalconNodeSensor - With Overrides")
-				err = k8sClient.Get(ctx, typeNodeNamespacedOverrideName, falconNodeSensor)
-				Expect(err).To(Not(HaveOccurred()))
-				Expect(falconNodeSensor.Spec.FalconAPI.ClientId).To(Equal(overrideFalconAPI.ClientId))
-				Expect(falconNodeSensor.Spec.FalconAPI.ClientSecret).To(Equal(overrideFalconAPI.ClientSecret))
-				Expect(falconNodeSensor.Spec.FalconAPI.CloudRegion).To(Equal(overrideFalconAPI.CloudRegion))
-			}
 
 			By("Validate override FalconAPI credentials are used in the child CRs - FalconContainer - With Overrides")
 			falconContainer = &falconv1alpha1.FalconContainer{}
@@ -342,13 +280,7 @@ var _ = Describe("FalconDeployment Controller", func() {
 			Expect(falconContainer.Spec.FalconAPI.CloudRegion).To(Equal(overrideFalconAPI.CloudRegion))
 
 			By("Validate lower level FalconSecret spec is used in the child CRs - with overrides")
-			if common.FalconAdmissionEnabled {
-				Expect(falconAdmission.Spec.FalconSecret).To(Equal(lowerLevelFalconSecret))
-			}
 			Expect(falconImageAnalyzer.Spec.FalconSecret).To(Equal(lowerLevelFalconSecret))
-			if common.FalconNodeSensorEnabled {
-				Expect(falconNodeSensor.Spec.FalconSecret).To(Equal(lowerLevelFalconSecret))
-			}
 			Expect(falconContainer.Spec.FalconSecret).To(Equal(lowerLevelFalconSecret))
 		})
 	})
