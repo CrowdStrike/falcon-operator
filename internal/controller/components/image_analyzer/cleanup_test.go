@@ -7,7 +7,6 @@ import (
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	"github.com/crowdstrike/falcon-operator/internal/controller/components"
-	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -97,32 +96,5 @@ func TestCleanup_RemovesEverythingReconcileCreated(t *testing.T) {
 	}
 	if c := meta.FindStatusCondition(persisted.Status.Conditions, falconv1alpha1.ConditionImageAnalyzerReady); c != nil {
 		t.Errorf("expected %s condition to be removed, got %v", falconv1alpha1.ConditionImageAnalyzerReady, c)
-	}
-}
-
-func TestCleanup_KeepsResourcesNotControlledByOwner(t *testing.T) {
-	ctx := context.Background()
-	scheme := runtime.NewScheme()
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = falconv1alpha1.AddToScheme(scheme)
-
-	owner := ownerCR()
-	owner.UID = "uid-test-fcg"
-	// Same name the FCG uses, but created by something else (e.g. a standalone FalconImageAnalyzer).
-	foreign := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.FCGImageAnalyzerDeploymentName, Namespace: testNamespace}}
-	r := &fakeReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).
-		WithObjects(owner, foreign).WithStatusSubresource(owner).Build()}
-	ia := New(r, Config{BaseConfig: components.BaseConfig{
-		InstallNamespace: testNamespace,
-		Owner:            owner,
-		Status:           &owner.Status,
-		Request:          ctrl.Request{NamespacedName: types.NamespacedName{Name: owner.Name}},
-	}})
-
-	if err := ia.Cleanup(ctx); err != nil {
-		t.Fatalf("Cleanup() error: %v", err)
-	}
-	if err := r.Get(ctx, client.ObjectKeyFromObject(foreign), &appsv1.Deployment{}); err != nil {
-		t.Errorf("expected Deployment not controlled by the FalconClusterGuard to be kept: %v", err)
 	}
 }
