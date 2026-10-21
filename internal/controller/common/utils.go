@@ -221,30 +221,47 @@ func Delete(r client.Client, ctx context.Context, req ctrl.Request, log logr.Log
 	}
 }
 
-// ConditionsUpdate updates the Falcon Object CR conditions
+// ConditionsUpdate updates the Falcon Object CR conditions when the condition status changes
 func ConditionsUpdate(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *falconv1alpha1.FalconCRStatus, falconCondition metav1.Condition) error {
-	if !meta.IsStatusConditionPresentAndEqual(falconStatus.Conditions, falconCondition.Type, falconCondition.Status) {
-		fgvk := falconObject.GetObjectKind().GroupVersionKind()
+	if meta.IsStatusConditionPresentAndEqual(falconStatus.Conditions, falconCondition.Type, falconCondition.Status) {
+		return nil
+	}
+	return conditionWrite(r, ctx, req, log, falconObject, falconStatus, falconCondition)
+}
 
-		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			// Re-fetch the Custom Resource before update the status
-			// so that we have the latest state of the resource on the cluster and we will avoid
-			// raise the issue "the object has been modified, please apply
-			// your changes to the latest version and try again" which would re-trigger the reconciliation
-			err := r.Get(ctx, req.NamespacedName, falconObject)
-			if err != nil {
-				log.Error(err, fmt.Sprintf("Failed to re-fetch %s for status update", fgvk.Kind))
-				return err
-			}
+// ConditionsSet is like ConditionsUpdate, but also updates the condition when only its reason, message or
+// observed generation changes, so a condition that stays False keeps reporting the current cause.
+// Like ConditionsUpdate, it re-fetches falconObject before writing.
+func ConditionsSet(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *falconv1alpha1.FalconCRStatus, falconCondition metav1.Condition) error {
+	if c := meta.FindStatusCondition(falconStatus.Conditions, falconCondition.Type); c != nil &&
+		c.Status == falconCondition.Status && c.Reason == falconCondition.Reason &&
+		c.Message == falconCondition.Message && c.ObservedGeneration == falconCondition.ObservedGeneration {
+		return nil
+	}
+	return conditionWrite(r, ctx, req, log, falconObject, falconStatus, falconCondition)
+}
 
-			// The following implementation will update the status
-			meta.SetStatusCondition(&falconStatus.Conditions, falconCondition)
-			return r.Status().Update(ctx, falconObject)
-		})
+func conditionWrite(r client.Client, ctx context.Context, req ctrl.Request, log logr.Logger, falconObject client.Object, falconStatus *falconv1alpha1.FalconCRStatus, falconCondition metav1.Condition) error {
+	fgvk := falconObject.GetObjectKind().GroupVersionKind()
+
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		// Re-fetch the Custom Resource before update the status
+		// so that we have the latest state of the resource on the cluster and we will avoid
+		// raise the issue "the object has been modified, please apply
+		// your changes to the latest version and try again" which would re-trigger the reconciliation
+		err := r.Get(ctx, req.NamespacedName, falconObject)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Failed to update %s status", fgvk.Kind))
+			log.Error(err, fmt.Sprintf("Failed to re-fetch %s for status update", fgvk.Kind))
 			return err
 		}
+
+		// The following implementation will update the status
+		meta.SetStatusCondition(&falconStatus.Conditions, falconCondition)
+		return r.Status().Update(ctx, falconObject)
+	})
+	if err != nil {
+		log.Error(err, fmt.Sprintf("Failed to update %s status", fgvk.Kind))
+		return err
 	}
 
 	return nil

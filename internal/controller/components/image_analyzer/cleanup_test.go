@@ -77,7 +77,7 @@ func TestCleanup_RemovesEverythingReconcileCreated(t *testing.T) {
 	if err := r.Get(ctx, types.NamespacedName{Name: owner.Name}, persisted); err != nil {
 		t.Fatal(err)
 	}
-	if !meta.IsStatusConditionTrue(persisted.Status.Conditions, falconv1alpha1.ConditionImageAnalyzerReady) {
+	if meta.FindStatusCondition(persisted.Status.Conditions, falconv1alpha1.ConditionImageAnalyzerReady) == nil {
 		t.Fatalf("expected %s condition to be persisted, got %v", falconv1alpha1.ConditionImageAnalyzerReady, persisted.Status.Conditions)
 	}
 
