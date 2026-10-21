@@ -12,13 +12,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // TestImageAnalyzerDeploymentFromConfig tests ImageAnalyzerDeploymentFromConfig
 func TestImageAnalyzerDeploymentFromConfig_Basic(t *testing.T) {
-	name := "falcon-fcg-image-analyzer"
+	name := "falcon-image-analyzer"
 	namespace := "falcon-clusterguard"
 	component := "fcg-iar"
 	imageUri := "quay.io/crowdstrike/falcon-iar:latest"
@@ -50,6 +51,20 @@ func TestImageAnalyzerDeploymentFromConfig_Basic(t *testing.T) {
 	}
 	if dep.Spec.Template.Spec.ServiceAccountName != "fcg-iar-sa" {
 		t.Errorf("expected serviceAccountName %q, got %q", "fcg-iar-sa", dep.Spec.Template.Spec.ServiceAccountName)
+	}
+	// The container name and app label match the falcon-clusterguard Helm chart. The app label is left out of
+	// the selector, which is immutable, so existing Deployments keep matching their pods.
+	if got := dep.Spec.Template.Spec.Containers[0].Name; got != "falcon-image-analyzer" {
+		t.Errorf("expected container falcon-image-analyzer, got %q", got)
+	}
+	if got := dep.Spec.Template.Labels["app"]; got != "falcon-image-analyzer" {
+		t.Errorf("expected pod label app=falcon-image-analyzer, got %q", got)
+	}
+	if _, ok := dep.Spec.Selector.MatchLabels["app"]; ok {
+		t.Errorf("expected the selector to leave out the app label, got %v", dep.Spec.Selector.MatchLabels)
+	}
+	if !labels.SelectorFromSet(dep.Spec.Selector.MatchLabels).Matches(labels.Set(dep.Spec.Template.Labels)) {
+		t.Errorf("selector %v does not match pod labels %v", dep.Spec.Selector.MatchLabels, dep.Spec.Template.Labels)
 	}
 }
 

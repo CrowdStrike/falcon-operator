@@ -116,7 +116,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 		},
 		Containers: []corev1.Container{
 			{
-				Name:            n.prefix() + "-sensor",
+				Name:            n.prefix() + "-node-sensor",
 				Image:           imageUri,
 				ImagePullPolicy: imagePullPolicy,
 				SecurityContext: &corev1.SecurityContext{

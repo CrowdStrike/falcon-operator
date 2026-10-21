@@ -2,6 +2,7 @@ package assets
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -836,7 +837,9 @@ func ImageAnalyzerDeploymentFromConfig(
 	tlsSecretName string,
 	spec falconv1alpha1.FalconClusterGuardImageAnalyzerSpec,
 ) *appsv1.Deployment {
-	labels := common.CRLabels("deployment", name, component)
+	selectorLabels := common.CRLabels("deployment", name, component)
+	labels := maps.Clone(selectorLabels)
+	labels[common.AppLabelKey] = common.FalconImageAnalyzerAgentServiceApp
 	var replicaCount int32 = 1
 	hostPathFile := corev1.HostPathFile
 	var rootUid int64 = 0
@@ -925,7 +928,7 @@ func ImageAnalyzerDeploymentFromConfig(
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicaCount,
 			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: selectorLabels,
 			},
 			Strategy: appsv1.DeploymentStrategy{
 				Type:          appsv1.RollingUpdateDeploymentStrategyType,

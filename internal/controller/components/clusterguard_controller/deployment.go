@@ -100,7 +100,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 	}
 
 	selectorLabels := map[string]string{
-		"app": pkgcommon.ClusterGuardControllerServiceApp,
+		"app": pkgcommon.ClusterGuardServiceApp,
 	}
 
 	crLabels := pkgcommon.CRLabels("deployment", name, pkgcommon.ClusterGuardComponentName)
