@@ -1,6 +1,7 @@
 package clusterguard_controller
 
 import (
+	"slices"
 	"testing"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -40,6 +41,17 @@ func TestClusterGuardDeploymentReturnsDeployment(t *testing.T) {
 	}
 	if dep.Spec.Template.Spec.Containers[0].Image != imageUri {
 		t.Errorf("expected image %q, got %q", imageUri, dep.Spec.Template.Spec.Containers[0].Image)
+	}
+	// Container names and the app label match the falcon-clusterguard Helm chart.
+	var names []string
+	for _, c := range dep.Spec.Template.Spec.Containers {
+		names = append(names, c.Name)
+	}
+	if want := []string{"falcon-ac", "falcon-client", "falcon-watcher"}; !slices.Equal(names, want) {
+		t.Errorf("expected containers %v, got %v", want, names)
+	}
+	if got := dep.Spec.Template.Labels["app"]; got != "falcon-clusterguard" {
+		t.Errorf("expected pod label app=falcon-clusterguard, got %q", got)
 	}
 }
 
@@ -335,8 +347,8 @@ func TestAdmissionWebhookServiceSelectorUsesFalconKAC(t *testing.T) {
 	})
 	svc := a.webhookService()
 
-	if svc.Spec.Selector["app"] != common.ClusterGuardControllerServiceApp {
-		t.Errorf("expected selector app=%q, got %q", common.ClusterGuardControllerServiceApp, svc.Spec.Selector["app"])
+	if svc.Spec.Selector["app"] != common.ClusterGuardServiceApp {
+		t.Errorf("expected selector app=%q, got %q", common.ClusterGuardServiceApp, svc.Spec.Selector["app"])
 	}
 }
 
@@ -366,8 +378,8 @@ func TestAdmissionAPIServiceSelectorUsesFalconKAC(t *testing.T) {
 	})
 	svc := a.apiService()
 
-	if svc.Spec.Selector["app"] != common.ClusterGuardControllerServiceApp {
-		t.Errorf("expected selector app=%q, got %q", common.ClusterGuardControllerServiceApp, svc.Spec.Selector["app"])
+	if svc.Spec.Selector["app"] != common.ClusterGuardServiceApp {
+		t.Errorf("expected selector app=%q, got %q", common.ClusterGuardServiceApp, svc.Spec.Selector["app"])
 	}
 }
 
