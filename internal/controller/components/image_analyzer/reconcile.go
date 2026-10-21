@@ -9,7 +9,6 @@ import (
 	"github.com/crowdstrike/falcon-operator/internal/controller/components"
 	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
 	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -60,13 +59,15 @@ func (ia *ImageAnalyzer) Reconcile(ctx context.Context) (ctrl.Result, error) {
 		}
 	}
 
-	return ctrl.Result{}, k8sutils.ConditionsUpdate(ia.r, ctx, ia.cfg.Request, ia.r.GetLog(), ia.cfg.Owner, ia.cfg.Status, metav1.Condition{
-		Type:               falconv1alpha1.ConditionImageAnalyzerReady,
-		Status:             metav1.ConditionTrue,
-		Reason:             falconv1alpha1.ReasonInstallSucceeded,
-		Message:            "Image Analyzer is ready",
-		ObservedGeneration: ia.cfg.Owner.GetGeneration(),
-	})
+	// A Deployment that is not ready yet is reported through the condition rather than a requeue, so the
+	// remaining components still reconcile; the FalconClusterGuard controller requeues until it is ready.
+	status, err := k8sutils.DeploymentStatus(ctx, ia.r,
+		types.NamespacedName{Name: pkgcommon.FCGImageAnalyzerDeploymentName, Namespace: ia.cfg.InstallNamespace})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, k8sutils.ConditionsSet(ia.r, ctx, ia.cfg.Request, ia.r.GetLog(), ia.cfg.Owner, ia.cfg.Status,
+		status.Condition(falconv1alpha1.ConditionImageAnalyzerReady, "Image Analyzer is ready", ia.cfg.Owner.GetGeneration()))
 }
 
 // triggerRollingRestart bumps the config-version annotation on the Deployment to force a rolling restart.

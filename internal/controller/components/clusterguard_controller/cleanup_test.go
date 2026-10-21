@@ -100,7 +100,7 @@ func TestCleanup_RemovesEverythingReconcileCreated(t *testing.T) {
 	if err := r.Get(ctx, types.NamespacedName{Name: owner.Name}, persisted); err != nil {
 		t.Fatal(err)
 	}
-	if !meta.IsStatusConditionTrue(persisted.Status.Conditions, falconv1alpha1.ConditionAdmissionReady) {
+	if meta.FindStatusCondition(persisted.Status.Conditions, falconv1alpha1.ConditionAdmissionReady) == nil {
 		t.Fatalf("expected %s condition to be persisted, got %v", falconv1alpha1.ConditionAdmissionReady, persisted.Status.Conditions)
 	}
 
@@ -119,6 +119,42 @@ func TestCleanup_RemovesEverythingReconcileCreated(t *testing.T) {
 	}
 	if c := meta.FindStatusCondition(persisted.Status.Conditions, falconv1alpha1.ConditionAdmissionReady); c != nil {
 		t.Errorf("expected %s condition to be removed, got %v", falconv1alpha1.ConditionAdmissionReady, c)
+	}
+}
+
+func TestReconcile_ReportsDeploymentReadiness(t *testing.T) {
+	ctx := context.Background()
+	r, owner, a := newCleanupTestController(t)
+	reconcileCondition := func() *metav1.Condition {
+		t.Helper()
+		if _, err := a.Reconcile(ctx); err != nil {
+			t.Fatalf("Reconcile() error: %v", err)
+		}
+		persisted := &falconv1alpha1.FalconClusterGuard{}
+		if err := r.Get(ctx, types.NamespacedName{Name: owner.Name}, persisted); err != nil {
+			t.Fatal(err)
+		}
+		return meta.FindStatusCondition(persisted.Status.Conditions, falconv1alpha1.ConditionAdmissionReady)
+	}
+
+	if c := reconcileCondition(); c.Status != metav1.ConditionFalse || c.Reason != falconv1alpha1.ReasonProgressing {
+		t.Errorf("before rollout: got %s/%s, want False/%s", c.Status, c.Reason, falconv1alpha1.ReasonProgressing)
+	}
+
+	dep := &appsv1.Deployment{}
+	if err := r.Get(ctx, types.NamespacedName{Name: pkgcommon.ClusterGuardControllerDeploymentName, Namespace: cleanupTestNamespace}, dep); err != nil {
+		t.Fatal(err)
+	}
+	replicas := int32(1)
+	if dep.Spec.Replicas != nil {
+		replicas = *dep.Spec.Replicas
+	}
+	dep.Status = appsv1.DeploymentStatus{ObservedGeneration: dep.Generation, Replicas: replicas, UpdatedReplicas: replicas, AvailableReplicas: replicas}
+	if err := r.Status().Update(ctx, dep); err != nil {
+		t.Fatal(err)
+	}
+	if c := reconcileCondition(); c.Status != metav1.ConditionTrue {
+		t.Errorf("after rollout: got %s/%s %q, want True", c.Status, c.Reason, c.Message)
 	}
 }
 

@@ -28,6 +28,7 @@ const (
 	ReasonReqMet           string = "RequirementsMet"
 	ReasonInstallSucceeded string = "InstallSucceeded"
 	ReasonInstallFailed    string = "InstallFailed"
+	ReasonProgressing      string = "Progressing"
 	ReasonSucceeded        string = "Succeeded"
 	ReasonUpdateSucceeded  string = "UpdateSucceeded"
 	ReasonUpdateFailed     string = "UpdateFailed"
