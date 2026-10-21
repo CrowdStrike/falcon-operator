@@ -76,7 +76,6 @@ const (
 	ClusterGuardControllerRoleName               = "falcon-clusterguard-role"
 	ClusterGuardControllerRoleBindingName        = "falcon-clusterguard-rolebinding"
 	ClusterGuardControllerResourceQuotaName      = "falcon-clusterguard-quota"
-	ClusterGuardControllerServiceApp             = "falcon-kac"
 	ClusterGuardServiceApp                       = "falcon-clusterguard"
 	ClusterGuardControllerWebhookServiceName     = "webhook"
 	ClusterGuardControllerAPIServiceName         = "api"
@@ -119,7 +118,7 @@ const (
 	// FCG-owned Image Analyzer module constants
 	FCGImageAnalyzerServiceAccountName = "falcon-fcg-iar-sa"
 	FCGImageAnalyzerConfigMapName      = "falcon-fcg-iar-config"
-	FCGImageAnalyzerDeploymentName     = "falcon-fcg-image-analyzer"
+	FCGImageAnalyzerDeploymentName     = "falcon-image-analyzer"
 	FCGImageAnalyzerTLSSecretName      = "falcon-fcg-iar-tls"
 	FCGImageAnalyzerCRBName            = "falcon-fcg-iar-crb"
 	// "falcon-operator-" namePrefix from config/default/kustomization.yaml is applied at deploy time

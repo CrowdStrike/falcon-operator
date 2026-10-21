@@ -35,6 +35,13 @@ func TestClusterGuardSensorDaemonSetReturnsDS(t *testing.T) {
 	if ds.Spec.Template.Spec.Containers[0].Image != cfg.Image {
 		t.Errorf("expected image %q, got %q", cfg.Image, ds.Spec.Template.Spec.Containers[0].Image)
 	}
+	// The container name and app label match the falcon-clusterguard Helm chart.
+	if got := ds.Spec.Template.Spec.Containers[0].Name; got != "falcon-node-sensor" {
+		t.Errorf("expected container falcon-node-sensor, got %q", got)
+	}
+	if got := ds.Spec.Template.Labels["app"]; got != "falcon-sensor" {
+		t.Errorf("expected pod label app=falcon-sensor, got %q", got)
+	}
 }
 
 func TestClusterGuardSensorDaemonSetDefaultTerminationGracePeriod(t *testing.T) {
