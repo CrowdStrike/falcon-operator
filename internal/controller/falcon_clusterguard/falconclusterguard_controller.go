@@ -124,6 +124,10 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	r.log.Info("Reconciling FalconClusterGuard")
 
+	if falconClusterGuard.GetDeletionTimestamp() != nil {
+		return r.finalize(ctx, req, falconClusterGuard)
+	}
+
 	if meta.FindStatusCondition(falconClusterGuard.Status.Conditions, falconv1alpha1.ConditionSuccess) == nil {
 		if err := commonctrl.StatusUpdate(ctx, r.Client, r.Status(), req, r.log, falconClusterGuard,
 			falconv1alpha1.ConditionPending, metav1.ConditionFalse,
@@ -294,22 +298,6 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 	nodeSensorEnabled := falconClusterGuard.Spec.NodeSensor.IsEnabled()
 	imageAnalyzerEnabled := falconClusterGuard.Spec.ImageAnalyzer.IsEnabled()
 
-	if falconClusterGuard.GetDeletionTimestamp() != nil {
-		if !controllerutil.ContainsFinalizer(falconClusterGuard, common.FalconFinalizer) {
-			return ctrl.Result{}, nil
-		}
-		r.log.Info("FalconClusterGuard is being deleted, running finalization logic")
-		finalize := nodeSensor.Cleanup
-		if nodeSensorEnabled {
-			finalize = nodeSensor.Finalize
-		}
-		if result, err := finalize(ctx); err != nil || result.RequeueAfter > 0 {
-			return result, err
-		}
-		// Removing the finalizer lets the API server delete the CR, so no status update follows.
-		return ctrl.Result{}, r.setFinalizer(ctx, falconClusterGuard, false)
-	}
-
 	// The finalizer guarantees node cleanup runs before the CR, and with it the sensor DaemonSet, is deleted.
 	if nodeSensorEnabled {
 		if err := r.setFinalizer(ctx, falconClusterGuard, true); err != nil {
@@ -351,6 +339,27 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	// Components report workloads that are not ready yet through their conditions instead of a requeue,
+	// so installation only counts as complete once every enabled component reports ready.
+	var readyConditions []string
+	if admissionEnabled {
+		readyConditions = append(readyConditions, falconv1alpha1.ConditionAdmissionReady)
+	}
+	if nodeSensorEnabled {
+		readyConditions = append(readyConditions, falconv1alpha1.ConditionNodeSensorReady)
+	}
+	if imageAnalyzerEnabled {
+		readyConditions = append(readyConditions, falconv1alpha1.ConditionImageAnalyzerReady)
+	}
+	if ready, reason, message := componentsReadiness(falconClusterGuard.Status.Conditions, readyConditions); !ready {
+		r.logNotReady(falconClusterGuard.Status.Conditions, readyConditions)
+		if err := commonctrl.StatusUpdate(ctx, r.Client, r.Status(), req, r.log, falconClusterGuard,
+			falconv1alpha1.ConditionSuccess, metav1.ConditionFalse, reason, message); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: commonctrl.WorkloadNotReadyRequeue}, nil
+	}
+
 	if err := commonctrl.StatusUpdate(ctx, r.Client, r.Status(), req, r.log, falconClusterGuard,
 		falconv1alpha1.ConditionSuccess, metav1.ConditionTrue,
 		falconv1alpha1.ReasonInstallSucceeded, "FalconClusterGuard installation completed"); err != nil {
@@ -358,4 +367,66 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// finalize runs node cleanup and then removes the FalconFinalizer while the FalconClusterGuard is being deleted.
+// It runs before the setup in Reconcile, such as resolving the CID and the image or reconciling the namespace, so a
+// failure there cannot block deletion. Node cleanup takes the image and pull secrets from the existing sensor
+// DaemonSet, so the config only carries what the spec provides directly.
+func (r *FalconClusterGuardReconciler) finalize(ctx context.Context, req ctrl.Request, fcg *falconv1alpha1.FalconClusterGuard) (ctrl.Result, error) {
+	if !controllerutil.ContainsFinalizer(fcg, common.FalconFinalizer) {
+		return ctrl.Result{}, nil
+	}
+	r.log.Info("FalconClusterGuard is being deleted, running finalization logic")
+	nodeSensor := node_sensor.New(r, node_sensor.Config{
+		BaseConfig: components.BaseConfig{
+			Request:          req,
+			Owner:            fcg,
+			Status:           &fcg.Status,
+			InstallNamespace: fcg.Spec.InstallNamespace,
+		},
+		NodeSensor: fcg.Spec.NodeSensor,
+	})
+	if result, err := nodeSensor.Cleanup(ctx); err != nil || result.RequeueAfter > 0 {
+		return result, err
+	}
+	// Removing the finalizer lets the API server delete the CR, so no status update follows.
+	return ctrl.Result{}, r.setFinalizer(ctx, fcg, false)
+}
+
+// componentsReadiness summarises the Ready conditions of the enabled components. While any of them is not True,
+// ready is false and reason is ReasonFailed if one of them reports a failure, or ReasonProgressing otherwise.
+func componentsReadiness(conditions []metav1.Condition, condTypes []string) (ready bool, reason, message string) {
+	var notReady []string
+	reason = falconv1alpha1.ReasonProgressing
+	for _, t := range condTypes {
+		c := meta.FindStatusCondition(conditions, t)
+		if c != nil && c.Status == metav1.ConditionTrue {
+			continue
+		}
+		notReady = append(notReady, t)
+		if c != nil && c.Reason == falconv1alpha1.ReasonFailed {
+			reason = falconv1alpha1.ReasonFailed
+		}
+	}
+	if len(notReady) == 0 {
+		return true, "", ""
+	}
+	return false, reason, "Waiting for " + strings.Join(notReady, ", ")
+}
+
+// logNotReady logs the condition of each enabled component that is not ready yet, so every requeue while
+// waiting records what is being waited on.
+func (r *FalconClusterGuardReconciler) logNotReady(conditions []metav1.Condition, condTypes []string) {
+	for _, t := range condTypes {
+		c := meta.FindStatusCondition(conditions, t)
+		switch {
+		case c == nil:
+			r.log.Info("FalconClusterGuard component is not ready", "condition", t,
+				"requeueAfter", commonctrl.WorkloadNotReadyRequeue)
+		case c.Status != metav1.ConditionTrue:
+			r.log.Info("FalconClusterGuard component is not ready", "condition", t, "reason", c.Reason,
+				"message", c.Message, "requeueAfter", commonctrl.WorkloadNotReadyRequeue)
+		}
+	}
 }

@@ -8,7 +8,7 @@ import (
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
 	"github.com/crowdstrike/falcon-operator/internal/controller/components"
 	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -91,16 +91,23 @@ func (a *ClusterGuardController) Reconcile(ctx context.Context) (ctrl.Result, er
 		}
 		if pod.Name == "" {
 			log.Info("Looking for a Ready FalconClusterGuard pod", "namespace", a.cfg.InstallNamespace)
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, a.updateReadyCondition(ctx)
 		}
 		return ctrl.Result{}, a.triggerRollingDeployment(ctx)
 	}
 
-	return ctrl.Result{}, k8sutils.ConditionsUpdate(a.r, ctx, a.cfg.Request, log, a.cfg.Owner, a.cfg.Status, metav1.Condition{
-		Type:               falconv1alpha1.ConditionAdmissionReady,
-		Status:             metav1.ConditionTrue,
-		Reason:             falconv1alpha1.ReasonInstallSucceeded,
-		Message:            "Admission controller is ready",
-		ObservedGeneration: a.cfg.Owner.GetGeneration(),
-	})
+	return ctrl.Result{}, a.updateReadyCondition(ctx)
+}
+
+// updateReadyCondition reports the Deployment's readiness as the AdmissionReady condition. A Deployment that is
+// not ready yet is reported through the condition rather than a requeue, so the remaining components still
+// reconcile; the FalconClusterGuard controller requeues until it is ready.
+func (a *ClusterGuardController) updateReadyCondition(ctx context.Context) error {
+	status, err := k8sutils.DeploymentStatus(ctx, a.r,
+		types.NamespacedName{Name: pkgcommon.ClusterGuardControllerDeploymentName, Namespace: a.cfg.InstallNamespace})
+	if err != nil {
+		return err
+	}
+	return k8sutils.ConditionsSet(a.r, ctx, a.cfg.Request, a.r.GetLog(), a.cfg.Owner, a.cfg.Status,
+		status.Condition(falconv1alpha1.ConditionAdmissionReady, "Admission controller is ready", a.cfg.Owner.GetGeneration()))
 }

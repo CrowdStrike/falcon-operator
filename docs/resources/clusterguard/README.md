@@ -389,7 +389,7 @@ kubectl delete falconclusterguard --all
 ```
 
 > [!NOTE]
-> During uninstallation, the node sensor DaemonSet runs a cleanup job to remove `/opt/CrowdStrike` from each node. If cleanup pods crashloop, manually remove the `/opt/CrowdStrike` directory on affected nodes to prevent stale Agent IDs from being reused on reinstallation.
+> During uninstallation, the operator deletes the node sensor DaemonSet and then runs a cleanup DaemonSet to remove `/opt/CrowdStrike` from each node. Uninstallation does not wait on cleanup pods that fail to start (for example `ErrImageNeverPull`, `ImagePullBackOff`, or `CrashLoopBackOff`), and it proceeds after 5 minutes if cleanup pods have still not finished; the operator logs the affected nodes. On those nodes, manually remove the `/opt/CrowdStrike` directory to prevent stale Agent IDs from being reused on reinstallation.
 
 ### Sensor upgrades
 
@@ -431,9 +431,9 @@ To upgrade the sensor version, simply add and/or update the `version` field in t
   kubectl logs -n falcon-system -l "crowdstrike.com/component=fcg-iar"
   ```
 
-- Each enabled component reports its readiness as a status condition on the FalconClusterGuard resource (`AdmissionReady`, `NodeSensorReady`, and `ImageAnalyzerReady`). The condition is removed when its component is disabled:
+- Each enabled component reports its readiness as a status condition on the FalconClusterGuard resource (`AdmissionReady`, `NodeSensorReady`, and `ImageAnalyzerReady`). The condition is removed when its component is disabled. A condition is `True` only once the component's Deployment or DaemonSet has rolled out and its pods are available. Until then it is `False` with reason `Progressing`, or `Failed` when a pod is stuck (for example `ImagePullBackOff` or `CrashLoopBackOff`), and the message names the pod and container at fault. The `Success` condition stays `False` until every enabled component is ready:
   ```sh
-  kubectl get falconclusterguard -o jsonpath='{range .items[].status.conditions[*]}{.type}={.status}{"\n"}{end}'
+  kubectl get falconclusterguard -o jsonpath='{range .items[].status.conditions[*]}{.type}={.status} {.reason}: {.message}{"\n"}{end}'
   ```
 
 - To review the currently deployed version of the operator:

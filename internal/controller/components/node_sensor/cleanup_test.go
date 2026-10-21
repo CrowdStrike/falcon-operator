@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
 	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
@@ -82,18 +83,34 @@ func dsExists(t *testing.T, r *fakeReconciler, name string) bool {
 	return err == nil
 }
 
-func TestReconcile_PersistsReadyConditionWithoutFinalizer(t *testing.T) {
+func TestReconcile_ReportsDaemonSetReadiness(t *testing.T) {
+	ctx := context.Background()
 	r, owner, n := newCleanupTestSensor(t, falconv1alpha1.FalconClusterGuardNodeSpec{})
+	reconcileCondition := func(status appsv1.DaemonSetStatus) *metav1.Condition {
+		t.Helper()
+		ds := &appsv1.DaemonSet{}
+		if err := r.Get(ctx, client.ObjectKeyFromObject(n.sensorDaemonSetRef()), ds); err == nil {
+			ds.Status = status
+			if err := r.Status().Update(ctx, ds); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := n.Reconcile(ctx); err != nil {
+			t.Fatalf("Reconcile() error: %v", err)
+		}
+		persisted := getPersistedOwner(t, r, owner)
+		if len(persisted.Finalizers) != 0 {
+			t.Errorf("finalizers are managed by the FalconClusterGuard controller, got %v", persisted.Finalizers)
+		}
+		return meta.FindStatusCondition(persisted.Status.Conditions, falconv1alpha1.ConditionNodeSensorReady)
+	}
 
-	if _, err := n.Reconcile(context.Background()); err != nil {
-		t.Fatalf("Reconcile() error: %v", err)
+	reconcileCondition(appsv1.DaemonSetStatus{})
+	if c := reconcileCondition(appsv1.DaemonSetStatus{DesiredNumberScheduled: 2, UpdatedNumberScheduled: 2, NumberAvailable: 1}); c.Status != metav1.ConditionFalse || c.Reason != falconv1alpha1.ReasonProgressing {
+		t.Errorf("with 1 of 2 pods available: got %s/%s, want False/%s", c.Status, c.Reason, falconv1alpha1.ReasonProgressing)
 	}
-	persisted := getPersistedOwner(t, r, owner)
-	if !meta.IsStatusConditionTrue(persisted.Status.Conditions, falconv1alpha1.ConditionNodeSensorReady) {
-		t.Errorf("expected %s condition to be persisted, got %v", falconv1alpha1.ConditionNodeSensorReady, persisted.Status.Conditions)
-	}
-	if len(persisted.Finalizers) != 0 {
-		t.Errorf("finalizers are managed by the FalconClusterGuard controller, got %v", persisted.Finalizers)
+	if c := reconcileCondition(appsv1.DaemonSetStatus{DesiredNumberScheduled: 2, UpdatedNumberScheduled: 2, NumberAvailable: 2}); c.Status != metav1.ConditionTrue {
+		t.Errorf("with all pods available: got %s/%s %q, want True", c.Status, c.Reason, c.Message)
 	}
 }
 
@@ -133,46 +150,21 @@ func TestCleanup_RunsNodeCleanupBeforeDeleting(t *testing.T) {
 	r, owner, n := newCleanupTestSensor(t, falconv1alpha1.FalconClusterGuardNodeSpec{
 		PriorityClass: falconv1alpha1.FalconClusterGuardPriorityClassConfig{Deploy: boolPtr(true)},
 	})
-	if _, err := n.Reconcile(ctx); err != nil {
-		t.Fatalf("Reconcile() error: %v", err)
-	}
-
-	result, err := n.Cleanup(ctx)
-	if err != nil {
-		t.Fatalf("Cleanup() error: %v", err)
-	}
-	if result.RequeueAfter == 0 {
-		t.Fatal("expected Cleanup to requeue while cleanup pods are pending")
-	}
+	startNodeCleanup(t, r, n, 1)
 	if dsExists(t, r, "falcon-sensor") {
 		t.Error("sensor DaemonSet should be deleted before node cleanup runs")
-	}
-	if !dsExists(t, r, "falcon-sensor-cleanup") {
-		t.Fatal("expected cleanup DaemonSet to be created")
 	}
 	if c := meta.FindStatusCondition(getPersistedOwner(t, r, owner).Status.Conditions, falconv1alpha1.ConditionNodeSensorReady); c == nil {
 		t.Error("condition should only be removed once cleanup completes")
 	}
 
 	// Simulate the cleanup pod running on the only node.
-	cleanupDS := &appsv1.DaemonSet{}
-	if err := r.Get(ctx, types.NamespacedName{Name: "falcon-sensor-cleanup", Namespace: cleanupTestNamespace}, cleanupDS); err != nil {
-		t.Fatal(err)
-	}
-	cleanupDS.Status.DesiredNumberScheduled = 1
-	if err := r.Status().Update(ctx, cleanupDS); err != nil {
-		t.Fatal(err)
-	}
-	if err := r.Create(ctx, &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "cleanup-pod", Namespace: cleanupTestNamespace,
-			Labels: map[string]string{"app": "falcon-sensor-cleanup"}},
-		Status: corev1.PodStatus{Phase: corev1.PodRunning},
-	}); err != nil {
+	if err := r.Create(ctx, cleanupPod("cleanup-pod", corev1.PodRunning, "")); err != nil {
 		t.Fatal(err)
 	}
 
 	for i := range 2 {
-		result, err = n.Cleanup(ctx)
+		result, err := n.Cleanup(ctx)
 		if err != nil {
 			t.Fatalf("call %d: Cleanup() error: %v", i+1, err)
 		}
@@ -186,6 +178,138 @@ func TestCleanup_RunsNodeCleanupBeforeDeleting(t *testing.T) {
 	}
 	if c := meta.FindStatusCondition(getPersistedOwner(t, r, owner).Status.Conditions, falconv1alpha1.ConditionNodeSensorReady); c != nil {
 		t.Errorf("expected %s condition to be removed, got %v", falconv1alpha1.ConditionNodeSensorReady, c)
+	}
+}
+
+// startNodeCleanup reconciles the node sensor, then runs the first Cleanup pass, which deletes the sensor DaemonSet and
+// creates the cleanup DaemonSet. It returns the cleanup DaemonSet with its status set to schedule on nodes nodes.
+func startNodeCleanup(t *testing.T, r *fakeReconciler, n *NodeSensor, nodes int32) *appsv1.DaemonSet {
+	t.Helper()
+	ctx := context.Background()
+	if _, err := n.Reconcile(ctx); err != nil {
+		t.Fatalf("Reconcile() error: %v", err)
+	}
+	result, err := n.Cleanup(ctx)
+	if err != nil {
+		t.Fatalf("Cleanup() error: %v", err)
+	}
+	if result.RequeueAfter == 0 {
+		t.Fatal("expected Cleanup to requeue while cleanup pods are pending")
+	}
+	cleanupDS := &appsv1.DaemonSet{}
+	if err := r.Get(ctx, client.ObjectKeyFromObject(n.cleanupDaemonSetRef()), cleanupDS); err != nil {
+		t.Fatal(err)
+	}
+	cleanupDS.Status.DesiredNumberScheduled = nodes
+	if err := r.Status().Update(ctx, cleanupDS); err != nil {
+		t.Fatal(err)
+	}
+	return cleanupDS
+}
+
+func cleanupPod(name string, phase corev1.PodPhase, initWaitingReason string) *corev1.Pod {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: cleanupTestNamespace,
+			Labels: map[string]string{"app": "falcon-sensor-cleanup"}},
+		Spec:   corev1.PodSpec{NodeName: name + "-node"},
+		Status: corev1.PodStatus{Phase: phase},
+	}
+	if initWaitingReason != "" {
+		pod.Status.InitContainerStatuses = []corev1.ContainerStatus{{
+			Name:  "cleanup-opt-crowdstrike",
+			State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: initWaitingReason}},
+		}}
+	}
+	return pod
+}
+
+func TestCleanup_ProceedsWhenCleanupPodsFail(t *testing.T) {
+	ctx := context.Background()
+	r, owner, n := newCleanupTestSensor(t, falconv1alpha1.FalconClusterGuardNodeSpec{})
+	startNodeCleanup(t, r, n, 4)
+
+	for _, pod := range []*corev1.Pod{
+		cleanupPod("running", corev1.PodRunning, ""),
+		cleanupPod("failed", corev1.PodFailed, ""),
+		cleanupPod("never-pull", corev1.PodPending, "ErrImageNeverPull"),
+		cleanupPod("cleaning", corev1.PodPending, ""),
+	} {
+		if err := r.Create(ctx, pod); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if result, err := n.Cleanup(ctx); err != nil || result.RequeueAfter == 0 {
+		t.Fatalf("Cleanup() = %v, %v; want a requeue while a cleanup pod is still initializing", result, err)
+	}
+
+	pod := &corev1.Pod{}
+	if err := r.Get(ctx, types.NamespacedName{Name: "cleaning", Namespace: cleanupTestNamespace}, pod); err != nil {
+		t.Fatal(err)
+	}
+	pod.Status = cleanupPod("cleaning", corev1.PodPending, "ImagePullBackOff").Status
+	if err := r.Status().Update(ctx, pod); err != nil {
+		t.Fatal(err)
+	}
+	if result, err := n.Cleanup(ctx); err != nil || result.RequeueAfter > 0 {
+		t.Fatalf("Cleanup() = %v, %v; want it to finish once every cleanup pod is running, failed or failed to start", result, err)
+	}
+	if left := controlledBy(t, r, owner); len(left) != 0 {
+		t.Errorf("Cleanup left resources behind: %v", left)
+	}
+}
+
+func TestCleanup_ProceedsAfterCleanupTimeout(t *testing.T) {
+	ctx := context.Background()
+	r, owner, n := newCleanupTestSensor(t, falconv1alpha1.FalconClusterGuardNodeSpec{})
+	// No cleanup pods are ever created, as when the namespace's pod security admission rejects them.
+	cleanupDS := startNodeCleanup(t, r, n, 2)
+
+	cleanupDS.CreationTimestamp = metav1.NewTime(time.Now().Add(-cleanupTimeout - time.Minute))
+	if err := r.Update(ctx, cleanupDS); err != nil {
+		t.Fatal(err)
+	}
+	if result, err := n.Cleanup(ctx); err != nil || result.RequeueAfter > 0 {
+		t.Fatalf("Cleanup() = %v, %v; want it to finish once the cleanup timeout has passed", result, err)
+	}
+	if left := controlledBy(t, r, owner); len(left) != 0 {
+		t.Errorf("Cleanup left resources behind: %v", left)
+	}
+}
+
+func TestCleanup_UsesImageOfExistingDaemonSet(t *testing.T) {
+	ctx := context.Background()
+	r, owner, n := newCleanupTestSensor(t, falconv1alpha1.FalconClusterGuardNodeSpec{})
+	n.cfg.ImagePullPolicy = corev1.PullNever
+	n.cfg.ImagePullSecrets = []corev1.LocalObjectReference{{Name: pkgcommon.FalconPullSecretName}}
+	if _, err := n.Reconcile(ctx); err != nil {
+		t.Fatalf("Reconcile() error: %v", err)
+	}
+
+	// While the FalconClusterGuard is being deleted, the image is not resolved from the spec.
+	cfg := baseConfig(cleanupTestNamespace, owner)
+	cfg.Status = &owner.Status
+	cfg.Image = ""
+	deleting := New(r, cfg)
+	cleanupImage := func() corev1.Container {
+		t.Helper()
+		if _, err := deleting.Cleanup(ctx); err != nil {
+			t.Fatalf("Cleanup() error: %v", err)
+		}
+		ds := &appsv1.DaemonSet{}
+		if err := r.Get(ctx, client.ObjectKeyFromObject(n.cleanupDaemonSetRef()), ds); err != nil {
+			t.Fatal(err)
+		}
+		if got := ds.Spec.Template.Spec.ImagePullSecrets; len(got) != 1 || got[0].Name != pkgcommon.FalconPullSecretName {
+			t.Errorf("cleanup DaemonSet pull secrets = %v, want the sensor DaemonSet's", got)
+		}
+		return ds.Spec.Template.Spec.InitContainers[0]
+	}
+
+	for _, pass := range []string{"from the sensor DaemonSet", "from the cleanup DaemonSet once the sensor DaemonSet is gone"} {
+		c := cleanupImage()
+		if c.Image != n.cfg.Image || c.ImagePullPolicy != corev1.PullNever {
+			t.Errorf("%s: cleanup image = %s (%s), want %s (%s)", pass, c.Image, c.ImagePullPolicy, n.cfg.Image, corev1.PullNever)
+		}
 	}
 }
 
