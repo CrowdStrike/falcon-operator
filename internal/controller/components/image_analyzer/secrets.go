@@ -59,7 +59,7 @@ func (ia *ImageAnalyzer) reconcileTLSSecret(ctx context.Context) error {
 		"ca.crt":  b,
 	}
 
-	// Labels required for KAC -> IAR communication; values must match the standalone FalconImageAnalyzer.
+	// Labels required for clusterguard controller -> IAR communication; values must match the standalone FalconImageAnalyzer.
 	labels := pkgcommon.CRLabels("secret", pkgcommon.FCGImageAnalyzerTLSSecretName, pkgcommon.FCGImageAnalyzerComponentName)
 	labels[pkgcommon.AppLabelKey] = pkgcommon.FalconImageAnalyzerAgentServiceApp
 	labels[pkgcommon.KubernetesComponentKey] = pkgcommon.FalconImageAnalyzerComponentName

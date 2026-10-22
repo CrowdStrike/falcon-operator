@@ -14,7 +14,7 @@ import (
 func (ia *ImageAnalyzer) reconcileService(ctx context.Context) error {
 	selector := map[string]string{pkgcommon.FalconComponentKey: pkgcommon.FCGImageAnalyzerComponentName}
 
-	// Labels required for KAC -> IAR communication; values must match the standalone FalconImageAnalyzer.
+	// Labels required for clusterguard controller -> IAR communication; values must match the standalone FalconImageAnalyzer.
 	labels := pkgcommon.CRLabels("service", pkgcommon.FCGImageAnalyzerDeploymentName, pkgcommon.FCGImageAnalyzerComponentName)
 	labels[pkgcommon.AppLabelKey] = pkgcommon.FalconImageAnalyzerAgentServiceApp
 	labels[pkgcommon.KubernetesComponentKey] = pkgcommon.FalconImageAnalyzerComponentName

@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// KAC discovers IAR by these labels, so they must match the standalone FalconImageAnalyzer values.
+// The clusterguard controller discovers IAR by these labels, so they must match the standalone FalconImageAnalyzer values.
 func assertKACDiscoveryLabels(t *testing.T, obj client.Object) {
 	t.Helper()
 	labels := obj.GetLabels()

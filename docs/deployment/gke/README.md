@@ -1,7 +1,7 @@
 <!--- NOTE: DO NOT EDIT! This file is auto-generated. Please update the source *.tmpl file instead --->
 # Deployment Guide for GKE and GCR
 This document will guide you through the installation of the Falcon Operator and deployment of the following custom resources provided by the Falcon Operator:
-- [FalconClusterGuard](../../resources/clusterguard/README.md) **(Recommended)** with the Falcon Cluster Guard image being pulled from the CrowdStrike container registry. Combines the Falcon Kubernetes Admission Controller and Falcon Linux Node Sensor into a single resource.
+- [FalconClusterGuard](../../resources/clusterguard/README.md) **(Recommended)** with the Falcon Cluster Guard image being pulled from the CrowdStrike container registry. Combines the Falcon Cluster Guard Controller, Falcon Linux Node Sensor, and optional Falcon Image Analyzer into a single resource.
 - [FalconContainer](../../resources/container/README.md) with the Falcon Container image being mirrored from CrowdStrike container registry to GCR (Google Container Registry). A new GCP service account for pushing to GCR registry will be created.
 - [FalconImageAnalyzer](../../resources/imageanalyzer/README.md) with the Falcon Image Analyzer image being pull from the CrowdStrike container registry.
 - [FalconNodeSensor](../../resources/node/README.md) **(Deprecated)** — use FalconClusterGuard instead.
@@ -38,7 +38,7 @@ This document will guide you through the installation of the Falcon Operator and
 <details>
   <summary>Click to expand</summary>
 
-FalconClusterGuard combines the Falcon Kubernetes Admission Controller and Falcon Linux Node Sensor into a single resource. This is the recommended approach for new deployments.
+FalconClusterGuard combines the Falcon Cluster Guard Controller, Falcon Linux Node Sensor, and optional Falcon Image Analyzer into a single resource. This is the recommended approach for new deployments.
 
 After the Falcon Operator has deployed, you can now deploy Falcon Cluster Guard:
 

@@ -282,7 +282,6 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		ClusterGuardControllerConfig: falconClusterGuard.Spec.ClusterGuardControllerConfig,
 		ClusterName:                  falconClusterGuard.GetClusterName(),
 		RegistryTLS:                  falconClusterGuard.Spec.Registry.TLS,
-		ImageAnalyzerEnabled:         falconClusterGuard.Spec.ImageAnalyzer.IsEnabled(),
 	})
 	nodeSensor := node_sensor.New(r, node_sensor.Config{
 		BaseConfig: base,
