@@ -315,13 +315,13 @@ spec:
         displayName: Service Account Annotations
         path: controller.serviceAccount.annotations
       - description: Validity of the TLS certificate in days. Default is 3650 days.
-        displayName: Falcon Admission Controller TLS Validity Length (days)
+        displayName: Falcon Cluster Guard Controller TLS Validity Length (days)
         path: controller.tls.validity
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
       - description: RollingUpdate is used to specify the strategy used to roll out
           a deployment.
-        displayName: Falcon Admission Controller deployment update configuration
+        displayName: Falcon Cluster Guard Controller deployment update configuration
         path: controller.updateStrategy.rollingUpdate
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:updateStrategy
@@ -541,9 +541,8 @@ spec:
         displayName: Node Affinity
         path: nodeSensor.nodeAffinity
       - description: Configure the failure policy for the Falcon Cluster Guard Controller
-          Admission Controller.
-        displayName: Falcon Cluster Guard Controller Admission Controller Failure
-          Policy
+          admission webhook.
+        displayName: Falcon Cluster Guard Controller Admission Webhook Failure Policy
         path: controller.failurePolicy
       - description: 'Sensor grouping tags are optional, user-defined identifiers
           that can used to group and filter hosts. Allowed characters: all alphanumerics,
@@ -606,7 +605,7 @@ spec:
           Only applies when using the eBPF backend.
         displayName: Falcon eBPF Sensor Resources
         path: nodeSensor.resources
-      - displayName: Falcon Cluster Guard Controller Admission Controller Resources
+      - displayName: Falcon Cluster Guard Controller falcon-ac Resources
         path: controller.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
@@ -647,12 +646,13 @@ spec:
           the cluster.
         displayName: Time Interval Between Two Snapshots
         path: controller.snapshotsInterval
-      - description: Determines if the admission controller watches for configMap
+      - description: Determines if the Cluster Guard Controller watches for configMap
           events.
         displayName: Enable ConfigMap Event Watcher
         path: controller.configMapWatcherEnabled
-      - description: Determines if the admission controller webhook is enabled.
-        displayName: Enable Admission Controller
+      - description: Determines if the Cluster Guard Controller admission webhook
+          is enabled.
+        displayName: Enable Admission Control
         path: controller.admissionControlEnabled
       - displayName: Falcon Cluster Guard Controller Watcher Resources
         path: controller.resourcesWatcher
@@ -662,11 +662,6 @@ spec:
           Controller.
         displayName: Node Affinity
         path: controller.nodeAffinity
-      - description: |-
-          Namespace where Falcon Image Analyzer is installed. Falcon Cluster Guard needs to know this to discover and communicate with IAR.
-          Ignored when imageAnalyzer is enabled, since the Falcon Cluster Guard managed IAR always runs in installNamespace.
-        displayName: Falcon Image Analyzer Namespace
-        path: controller.falconImageAnalyzerNamespace
       - description: Specifies tolerations for scheduling the Falcon Cluster Guard
           Controller.
         displayName: Tolerations
@@ -683,7 +678,7 @@ spec:
         path: controller.tlsVersionMinimum
       - description: |-
           Maximum number of pods allowed with the system-cluster-critical priority class.
-          Controls the ResourceQuota for the admission controller namespace. Defaults to 2.
+          Controls the ResourceQuota for the Cluster Guard Controller namespace. Defaults to 2.
         displayName: Resource Quota Pods
         path: controller.resourceQuotaPods
       - description: Configure resource requests and limits for the Image Analyzer
@@ -1033,13 +1028,13 @@ spec:
         displayName: Service Account Annotations
         path: falconClusterGuard.controller.serviceAccount.annotations
       - description: Validity of the TLS certificate in days. Default is 3650 days.
-        displayName: Falcon Admission Controller TLS Validity Length (days)
+        displayName: Falcon Cluster Guard Controller TLS Validity Length (days)
         path: falconClusterGuard.controller.tls.validity
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
       - description: RollingUpdate is used to specify the strategy used to roll out
           a deployment.
-        displayName: Falcon Admission Controller deployment update configuration
+        displayName: Falcon Cluster Guard Controller deployment update configuration
         path: falconClusterGuard.controller.updateStrategy.rollingUpdate
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:updateStrategy
@@ -1875,9 +1870,8 @@ spec:
         displayName: Falcon Admission Controller Registry Configuration
         path: falconAdmission.registry
       - description: Configure the failure policy for the Falcon Cluster Guard Controller
-          Admission Controller.
-        displayName: Falcon Cluster Guard Controller Admission Controller Failure
-          Policy
+          admission webhook.
+        displayName: Falcon Cluster Guard Controller Admission Webhook Failure Policy
         path: falconClusterGuard.controller.failurePolicy
       - description: 'Sensor grouping tags are optional, user-defined identifiers
           that can used to group and filter hosts. Allowed characters: all alphanumerics,
@@ -2096,7 +2090,7 @@ spec:
           This will be overwritten if Falcon KAC is able to discover the cluster name.
         displayName: Falcon Admission Cluster Name
         path: falconAdmission.clusterName
-      - displayName: Falcon Cluster Guard Controller Admission Controller Resources
+      - displayName: Falcon Cluster Guard Controller falcon-ac Resources
         path: falconClusterGuard.controller.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
@@ -2222,7 +2216,7 @@ spec:
           events
         displayName: Enable ConfigMap Event Watcher
         path: falconAdmission.admissionConfig.configMapWatcherEnabled
-      - description: Determines if the admission controller watches for configMap
+      - description: Determines if the Cluster Guard Controller watches for configMap
           events.
         displayName: Enable ConfigMap Event Watcher
         path: falconClusterGuard.controller.configMapWatcherEnabled
@@ -2233,8 +2227,9 @@ spec:
         path: falconAdmission.admissionConfig.resourcesWatcher
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: Determines if the admission controller webhook is enabled.
-        displayName: Enable Admission Controller
+      - description: Determines if the Cluster Guard Controller admission webhook
+          is enabled.
+        displayName: Enable Admission Control
         path: falconClusterGuard.controller.admissionControlEnabled
       - displayName: Falcon Cluster Guard Controller Watcher Resources
         path: falconClusterGuard.controller.resourcesWatcher
@@ -2254,11 +2249,6 @@ spec:
       - description: Specifies tolerations for scheduling the Admission Controller.
         displayName: Tolerations
         path: falconAdmission.admissionConfig.tolerations
-      - description: |-
-          Namespace where Falcon Image Analyzer is installed. Falcon Cluster Guard needs to know this to discover and communicate with IAR.
-          Ignored when imageAnalyzer is enabled, since the Falcon Cluster Guard managed IAR always runs in installNamespace.
-        displayName: Falcon Image Analyzer Namespace
-        path: falconClusterGuard.controller.falconImageAnalyzerNamespace
       - description: Specifies tolerations for scheduling the Falcon Cluster Guard
           Controller.
         displayName: Tolerations
@@ -2275,7 +2265,7 @@ spec:
         path: falconClusterGuard.controller.tlsVersionMinimum
       - description: |-
           Maximum number of pods allowed with the system-cluster-critical priority class.
-          Controls the ResourceQuota for the admission controller namespace. Defaults to 2.
+          Controls the ResourceQuota for the Cluster Guard Controller namespace. Defaults to 2.
         displayName: Resource Quota Pods
         path: falconClusterGuard.controller.resourceQuotaPods
       - description: Configure resource requests and limits for the Image Analyzer

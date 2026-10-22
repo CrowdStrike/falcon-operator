@@ -13,29 +13,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Config holds the inputs needed to reconcile the admission controller component.
+// Config holds the inputs needed to reconcile the clusterguard controller component.
 type Config struct {
 	components.BaseConfig
 	ClusterGuardControllerConfig falconv1alpha1.FalconClusterGuardController
 	ClusterName                  *string
 	RegistryTLS                  falconv1alpha1.RegistryTLSSpec
-	// ImageAnalyzerEnabled indicates IAR is deployed by FalconClusterGuard in InstallNamespace,
-	// which overrides ClusterGuardControllerConfig.FalconImageAnalyzerNamespace.
-	ImageAnalyzerEnabled bool
 }
 
-// Admission owns the reconciliation of all admission controller sub-resources.
+// ClusterGuardController owns the reconciliation of all clusterguard controller sub-resources.
 type ClusterGuardController struct {
 	r   k8sutils.Reconciler
 	cfg Config
 }
 
-// New returns an Admission ready to reconcile.
+// New returns a ClusterGuardController ready to reconcile.
 func New(r k8sutils.Reconciler, cfg Config) *ClusterGuardController {
 	return &ClusterGuardController{r: r, cfg: cfg}
 }
 
-// Reconcile runs all admission controller reconciliation steps in order.
+// Reconcile runs all clusterguard controller reconciliation steps in order.
 func (a *ClusterGuardController) Reconcile(ctx context.Context) (ctrl.Result, error) {
 	log := a.r.GetLog()
 
@@ -109,5 +106,5 @@ func (a *ClusterGuardController) updateReadyCondition(ctx context.Context) error
 		return err
 	}
 	return k8sutils.ConditionsSet(a.r, ctx, a.cfg.Request, a.r.GetLog(), a.cfg.Owner, a.cfg.Status,
-		status.Condition(falconv1alpha1.ConditionAdmissionReady, "Admission controller is ready", a.cfg.Owner.GetGeneration()))
+		status.Condition(falconv1alpha1.ConditionAdmissionReady, "Cluster Guard Controller is ready", a.cfg.Owner.GetGeneration()))
 }

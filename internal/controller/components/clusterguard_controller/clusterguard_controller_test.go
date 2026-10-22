@@ -215,6 +215,19 @@ func TestAdmissionConfigMapCidIsSet(t *testing.T) {
 	}
 }
 
+func TestAdmissionConfigMapIARNamespaceIsInstallNamespace(t *testing.T) {
+	a := New(nil, Config{
+		BaseConfig: components.BaseConfig{
+			InstallNamespace: "falcon-clusterguard",
+		},
+	})
+	cm := a.configMap()
+
+	if cm.Data["__CS_IAR_NAMESPACE"] != "falcon-clusterguard" {
+		t.Errorf("expected __CS_IAR_NAMESPACE=falcon-clusterguard, got %q", cm.Data["__CS_IAR_NAMESPACE"])
+	}
+}
+
 func TestAdmissionConfigMapTLSVersionMinimumWhenSet(t *testing.T) {
 	tlsMin := "TLS1.3"
 	a := New(nil, Config{
@@ -339,7 +352,7 @@ func TestAdmissionRoleBindingWiring(t *testing.T) {
 
 // WebhookService builder tests
 
-func TestAdmissionWebhookServiceSelectorUsesFalconKAC(t *testing.T) {
+func TestAdmissionWebhookServiceSelectorUsesClusterGuardApp(t *testing.T) {
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "test-ns",
@@ -370,7 +383,7 @@ func TestAdmissionWebhookServicePort(t *testing.T) {
 
 // APIService builder tests
 
-func TestAdmissionAPIServiceSelectorUsesFalconKAC(t *testing.T) {
+func TestAdmissionAPIServiceSelectorUsesClusterGuardApp(t *testing.T) {
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "test-ns",
@@ -447,43 +460,5 @@ func TestResourceQuotaCustomPods(t *testing.T) {
 	}
 	if pods.Value() != int64(custom) {
 		t.Errorf("expected %d pods, got %d", custom, pods.Value())
-	}
-}
-
-func TestFalconClientEnvIARNamespace(t *testing.T) {
-	specNS := "falcon-iar"
-	tests := []struct {
-		name          string
-		iarEnabled    bool
-		specNamespace *string
-		want          string
-		wantPresent   bool
-	}{
-		{name: "IAR enabled overrides spec default", iarEnabled: true, specNamespace: &specNS, want: "falcon-clusterguard", wantPresent: true},
-		{name: "IAR enabled with unset spec", iarEnabled: true, want: "falcon-clusterguard", wantPresent: true},
-		{name: "IAR disabled uses spec for standalone IAR", specNamespace: &specNS, want: "falcon-iar", wantPresent: true},
-		{name: "IAR disabled with unset spec", wantPresent: false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			a := New(nil, Config{
-				BaseConfig: components.BaseConfig{InstallNamespace: "falcon-clusterguard"},
-				ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{
-					FalconImageAnalyzerNamespace: tt.specNamespace,
-				},
-				ImageAnalyzerEnabled: tt.iarEnabled,
-			})
-
-			var got string
-			present := false
-			for _, e := range a.falconClientEnv() {
-				if e.Name == "__CS_IAR_NAMESPACE" {
-					got, present = e.Value, true
-				}
-			}
-			if present != tt.wantPresent || got != tt.want {
-				t.Errorf("__CS_IAR_NAMESPACE = %q (present=%v), want %q (present=%v)", got, present, tt.want, tt.wantPresent)
-			}
-		})
 	}
 }

@@ -59,7 +59,7 @@ func newCleanupTestController(t *testing.T, objs ...client.Object) (*fakeReconci
 	})
 }
 
-// controlledBy lists every object of the kinds the admission controller creates that is controlled by owner.
+// controlledBy lists every object of the kinds the clusterguard controller creates that is controlled by owner.
 func controlledBy(t *testing.T, c client.Client, owner client.Object) []string {
 	t.Helper()
 	lists := []client.ObjectList{

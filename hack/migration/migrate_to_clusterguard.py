@@ -64,7 +64,6 @@ Field mapping notes:
     admissionConfig.configMapWatcherEnabled  -> falconClusterGuard.controller.configMapWatcherEnabled
     admissionConfig.imagePullPolicy          -> falconClusterGuard.imagePullPolicy              (skipped if already set)
     admissionConfig.imagePullSecrets         -> falconClusterGuard.imagePullSecrets             (skipped if already set)
-    admissionConfig.falconImageAnalyzerNamespace -> falconClusterGuard.controller.falconImageAnalyzerNamespace
     admissionConfig.replicas                 -> falconClusterGuard.controller.replicas
     admissionConfig.nodeAffinity             -> falconClusterGuard.controller.nodeAffinity
     admissionConfig.tolerations              -> falconClusterGuard.controller.tolerations
@@ -74,6 +73,7 @@ Field mapping notes:
     admissionConfig.resourcesClientNoWebhook -> falconClusterGuard.controller.resourcesClientNoWebhook
     admissionConfig.resourcesWatcher         -> falconClusterGuard.controller.resourcesWatcher
     admissionConfig.deployWatcher            -> (no equivalent, skipped)
+    admissionConfig.falconImageAnalyzerNamespace -> (no equivalent, skipped)
     version                                  -> (no equivalent, skipped)
     resourcequota                            -> (no equivalent, skipped with warning)
 
@@ -312,7 +312,6 @@ def migrate_admission(admission: CommentedMap, fcg: CommentedMap, warnings: list
         "snapshotsInterval",
         "admissionControlEnabled",
         "configMapWatcherEnabled",
-        "falconImageAnalyzerNamespace",
         "replicas",
         "nodeAffinity",
         "tolerations",

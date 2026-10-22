@@ -587,13 +587,13 @@ def test_admission_config_configmap_watcher_enabled():
     assert spec["falconClusterGuard"]["controller"]["configMapWatcherEnabled"] is False
 
 
-def test_admission_config_falcon_image_analyzer_namespace():
+def test_admission_config_falcon_image_analyzer_namespace_skipped():
     spec, _ = run("""\
   falconAdmission:
     admissionConfig:
       falconImageAnalyzerNamespace: falcon-iar
 """)
-    assert spec["falconClusterGuard"]["controller"]["falconImageAnalyzerNamespace"] == "falcon-iar"
+    assert "falconImageAnalyzerNamespace" not in spec["falconClusterGuard"].get("controller", {})
 
 
 def test_admission_config_replicas():
