@@ -1,7 +1,7 @@
 # Falcon Cluster Guard
 
 ## About FalconClusterGuard Custom Resource (CR)
-Falcon Operator introduces the FalconClusterGuard Custom Resource (CR) to the cluster. The resource is meant to install, configure, and uninstall Falcon Cluster Guard on the cluster. FalconClusterGuard combines the capabilities of the Falcon Kubernetes Admission Controller, the Falcon Linux Node Sensor, and the Falcon Image Analyzer into a single resource, deploying a Deployment (for admission control and cluster visibility), a DaemonSet (for node-level protection), and optionally an Image Analyzer Deployment (for image assessment at runtime) from a single manifest.
+Falcon Operator introduces the FalconClusterGuard Custom Resource (CR) to the cluster. The resource is meant to install, configure, and uninstall Falcon Cluster Guard on the cluster. FalconClusterGuard combines the Falcon Cluster Guard Controller, the Falcon Linux Node Sensor, and the Falcon Image Analyzer into a single resource, deploying a Cluster Guard Controller Deployment (for admission control and cluster visibility), a DaemonSet (for node-level protection), and optionally an Image Analyzer Deployment (for image assessment at runtime) from a single manifest.
 
 > [!IMPORTANT]
 > `FalconNodeSensor`, `FalconAdmission`, and `FalconImageAnalyzer` are deprecated. New deployments should use `FalconClusterGuard` instead. Existing `FalconNodeSensor`, `FalconAdmission`, and `FalconImageAnalyzer` resources can be deleted and replaced with a `FalconClusterGuard` resource. Creation of new `FalconNodeSensor` resources and creation or update of `FalconAdmission` and `FalconImageAnalyzer` resources are blocked by a validating webhook.
@@ -133,7 +133,7 @@ These settings are for internal CrowdStrike testing only.
 | controller.watcherPort                     | (optional) Configure the port the falcon-watcher container listens on. Default is `4080`.                                                                                                          |
 | controller.tls.validity                    | (optional) Configure the validity of the TLS certificate used by the controller.                                                                                                                   |
 | controller.tlsVersionMinimum               | (optional) Minimum TLS version accepted by the webhook server. Valid values: `TLS1.2`, `TLS1.3`. When unset the server default is used.                                                            |
-| controller.resourceQuotaPods               | (optional) Maximum number of pods allowed with the `system-cluster-critical` priority class. Controls the ResourceQuota for the admission controller namespace. Default is `2`.                    |
+| controller.resourceQuotaPods               | (optional) Maximum number of pods allowed with the `system-cluster-critical` priority class. Controls the ResourceQuota for the Cluster Guard Controller namespace. Default is `2`.             |
 | controller.failurePolicy                   | (optional) Configure the failure policy of the admission webhook (`Ignore` or `Fail`). Default is `Ignore`.                                                                                        |
 | controller.disabledNamespaces.namespaces   | (optional) Configure the list of namespaces the admission webhook should ignore.                                                                                                                   |
 | controller.watcherEnabled                  | (optional) Determines if Kubernetes resources are watched for cluster visibility. Default is `true`.                                                                                               |
@@ -149,7 +149,6 @@ These settings are for internal CrowdStrike testing only.
 | controller.updateStrategy                  | (optional) Configure the Deployment update strategy for the controller.                                                                                                                            |
 | controller.nodeAffinity                    | (optional) See https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/ for examples on configuring nodeAffinity. AMD64 and ARM64 architectures are supported by default.          |
 | controller.tolerations                     | (optional) Specify tolerations for scheduling the controller pods. See https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ for examples. Note: Tolerations can be added or updated through the operator, but removing tolerations from the spec requires manual deletion from the deployment to distinguish user-defined tolerations from those automatically added by Kubernetes. |
-| controller.falconImageAnalyzerNamespace    | (optional) Namespace where a standalone Falcon Image Analyzer is installed. Required only if it is not `falcon-iar`. Ignored when `imageAnalyzer.enabled` is true (IAR runs in `installNamespace`). |
 
 > [!IMPORTANT]
 > Always install Falcon Cluster Guard to its own unique namespace. We recommend the namespace `falcon-system`. The controller does not monitor its own namespace.
@@ -217,7 +216,7 @@ The Image Analyzer runs in `installNamespace` and uses the top-level `image`, `v
 | imageAnalyzer.iarAgentService.domainName              | (optional) Custom DNS domain for services when .svc requires a domain (e.g., if service.my-namespace.svc doesn't resolve and the cluster uses service.my-namespace.svc.testing.io, add testing.io). |
 
 > [!NOTE]
-> When `imageAnalyzer.enabled` is `true`, the Cluster Guard Controller communicates with the Image Analyzer in `installNamespace` and `controller.falconImageAnalyzerNamespace` is ignored. Do not run a standalone `FalconImageAnalyzer` alongside the Image Analyzer managed by FalconClusterGuard.
+> When `imageAnalyzer.enabled` is `true`, do not run a standalone `FalconImageAnalyzer` alongside the Image Analyzer managed by FalconClusterGuard.
 #### Guardian Local Proxy
 
 When `nodeSensor.guardian.proxy.enabled: true`, the operator:
@@ -416,22 +415,22 @@ To upgrade the sensor version, simply add and/or update the `version` field in t
   kubectl -n falcon-operator logs -f deploy/falcon-operator-controller-manager -c manager
   ```
 
-- To review the logs of the admission controller:
+- To review the logs of the Cluster Guard Controller (replace `falcon-system` with your `installNamespace`):
   ```sh
-  kubectl logs -n falcon-sensor -l "crowdstrike.com/provider=crowdstrike"
+  kubectl logs -n falcon-system -l "app=falcon-clusterguard" --all-containers
   ```
 
 - To review the logs of the node sensor DaemonSet:
   ```sh
-  kubectl logs -n falcon-sensor -l "crowdstrike.com/component=node_sensor"
+  kubectl logs -n falcon-system -l "app=falcon-sensor"
   ```
 
 - To review the logs of the Image Analyzer:
   ```sh
-  kubectl logs -n falcon-system -l "crowdstrike.com/component=fcg-iar"
+  kubectl logs -n falcon-system -l "app=falcon-image-analyzer"
   ```
 
-- Each enabled component reports its readiness as a status condition on the FalconClusterGuard resource (`AdmissionReady`, `NodeSensorReady`, and `ImageAnalyzerReady`). The condition is removed when its component is disabled. A condition is `True` only once the component's Deployment or DaemonSet has rolled out and its pods are available. Until then it is `False` with reason `Progressing`, or `Failed` when a pod is stuck (for example `ImagePullBackOff` or `CrashLoopBackOff`), and the message names the pod and container at fault. The `Success` condition stays `False` until every enabled component is ready:
+- Each enabled component reports its readiness as a status condition on the FalconClusterGuard resource (`AdmissionReady` for the Cluster Guard Controller, `NodeSensorReady`, and `ImageAnalyzerReady`). The condition is removed when its component is disabled. A condition is `True` only once the component's Deployment or DaemonSet has rolled out and its pods are available. Until then it is `False` with reason `Progressing`, or `Failed` when a pod is stuck (for example `ImagePullBackOff` or `CrashLoopBackOff`), and the message names the pod and container at fault. The `Success` condition stays `False` until every enabled component is ready:
   ```sh
   kubectl get falconclusterguard -o jsonpath='{range .items[].status.conditions[*]}{.type}={.status} {.reason}: {.message}{"\n"}{end}'
   ```
@@ -441,7 +440,7 @@ To upgrade the sensor version, simply add and/or update the `version` field in t
   kubectl get falconclusterguard -A -o=jsonpath='{.items[].status.version}'
   ```
 
-- The admission controller process creates the following ConfigMaps at runtime (not managed by the operator):
+- The Cluster Guard Controller creates the following ConfigMaps at runtime (not managed by the operator):
   - `falcon-kac-aid` — stores the sensor AID (agent ID) after registration
   - `falcon-kac-meta` — stores cluster metadata (e.g. cluster name discovered by the sensor)
   - `falcon-kac-pol` — stores policy data pulled from the Falcon platform

@@ -13,7 +13,7 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-// The admission controller process itself creates and manages the following ConfigMaps at runtime:
+// The clusterguard controller process itself creates and manages the following ConfigMaps at runtime:
 //   - falcon-kac-aid   – stores the sensor AID (agent ID) after registration
 //   - falcon-kac-meta  – stores cluster metadata (e.g. ClusterName discovered by the sensor)
 //   - falcon-kac-pol   – stores policy data pulled from the Falcon platform
@@ -21,7 +21,7 @@ import (
 //
 // These are not managed by the operator; do not attempt to reconcile or delete them.
 
-// configMap builds the ConfigMap for the FalconClusterGuard admission controller.
+// configMap builds the ConfigMap for the clusterguard controller.
 func (a *ClusterGuardController) configMap() *corev1.ConfigMap {
 	cfg := a.cfg.ClusterGuardControllerConfig
 
@@ -41,6 +41,9 @@ func (a *ClusterGuardController) configMap() *corev1.ConfigMap {
 	data["__CS_SNAPSHOTS_ENABLED"] = strconv.FormatBool(cfg.GetSnapshotsEnabled())
 	data["__CS_SNAPSHOT_INTERVAL"] = cfg.GetSnapshotsInterval().String()
 	data["__CS_GRPC_API_ENABLED"] = "true"
+	// IAR managed by FalconClusterGuard always runs in InstallNamespace. Set it regardless of
+	// imageAnalyzer.enabled so toggling IAR does not change the ConfigMap and roll the Deployment.
+	data["__CS_IAR_NAMESPACE"] = a.cfg.InstallNamespace
 	if cfg.TLSVersionMinimum != nil {
 		data["__CS_TLS_PROTOCOL_MIN"] = *cfg.TLSVersionMinimum
 	}
@@ -79,7 +82,7 @@ func (a *ClusterGuardController) syncConfigMap(ctx context.Context, cm *corev1.C
 	return false, nil
 }
 
-// reconcileConfigMap reconciles the admission controller ConfigMap.
+// reconcileConfigMap reconciles the clusterguard controller ConfigMap.
 func (a *ClusterGuardController) reconcileConfigMap(ctx context.Context) (bool, error) {
 	cm := a.configMap()
 	return a.syncConfigMap(ctx, cm, "FalconClusterGuard")

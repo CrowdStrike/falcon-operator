@@ -77,8 +77,8 @@ spec:
                 properties:
                   admissionControlEnabled:
                     default: false
-                    description: Determines if the admission controller webhook is
-                      enabled.
+                    description: Determines if the Cluster Guard Controller admission
+                      webhook is enabled.
                     type: boolean
                   clusterName:
                     description: Cluster Name if Falcon Cluster Guard cannot discover
@@ -87,8 +87,8 @@ spec:
                     type: string
                   configMapWatcherEnabled:
                     default: true
-                    description: Determines if the admission controller watches for
-                      configMap events.
+                    description: Determines if the Cluster Guard Controller watches
+                      for configMap events.
                     type: boolean
                   containerPort:
                     default: 4443
@@ -121,16 +121,10 @@ spec:
                   failurePolicy:
                     default: Ignore
                     description: Configure the failure policy for the Falcon Cluster
-                      Guard Controller Admission Controller.
+                      Guard Controller admission webhook.
                     enum:
                     - Ignore
                     - Fail
-                    type: string
-                  falconImageAnalyzerNamespace:
-                    default: falcon-iar
-                    description: |-
-                      Namespace where Falcon Image Analyzer is installed. Falcon Cluster Guard needs to know this to discover and communicate with IAR.
-                      Ignored when imageAnalyzer is enabled, since the Falcon Cluster Guard managed IAR always runs in installNamespace.
                     type: string
                   nodeAffinity:
                     description: Specifies node affinity for scheduling the Falcon
@@ -343,7 +337,7 @@ spec:
                     default: 2
                     description: |-
                       Maximum number of pods allowed with the system-cluster-critical priority class.
-                      Controls the ResourceQuota for the admission controller namespace. Defaults to 2.
+                      Controls the ResourceQuota for the Cluster Guard Controller namespace. Defaults to 2.
                     format: int32
                     minimum: 0
                     type: integer

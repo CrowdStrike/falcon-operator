@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Cleanup removes the admission controller resources owned by the FalconClusterGuard when the component is disabled.
+// Cleanup removes the clusterguard controller resources owned by the FalconClusterGuard when the component is disabled.
 // The API TLS secrets are left in place because they are shared with the node sensor.
 // It is a no-op once the resources are gone.
 func (a *ClusterGuardController) Cleanup(ctx context.Context) error {

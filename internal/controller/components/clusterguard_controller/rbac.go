@@ -13,12 +13,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// serviceAccount builds the ServiceAccount for the FalconClusterGuard admission controller.
+// serviceAccount builds the ServiceAccount for the clusterguard controller.
 func (a *ClusterGuardController) serviceAccount() *corev1.ServiceAccount {
 	return assets.ServiceAccount(pkgcommon.ClusterGuardControllerServiceAccountName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardControllerComponentName, a.cfg.ClusterGuardControllerConfig.ServiceAccount.Annotations, a.cfg.ImagePullSecrets)
 }
 
-// clusterRoleBinding builds the ClusterRoleBinding for the FalconClusterGuard admission controller.
+// clusterRoleBinding builds the ClusterRoleBinding for the clusterguard controller.
 func (a *ClusterGuardController) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return assets.ClusterRoleBinding(
 		pkgcommon.ClusterGuardControllerClusterRoleBindingName,
@@ -30,17 +30,17 @@ func (a *ClusterGuardController) clusterRoleBinding() *rbacv1.ClusterRoleBinding
 	)
 }
 
-// roleBinding builds the RoleBinding for the FalconClusterGuard admission controller.
+// roleBinding builds the RoleBinding for the clusterguard controller.
 func (a *ClusterGuardController) roleBinding() *rbacv1.RoleBinding {
 	return assets.RoleBinding(pkgcommon.ClusterGuardControllerRoleBindingName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardControllerNamespaceRoleName, pkgcommon.ClusterGuardControllerServiceAccountName)
 }
 
-// role builds the Role for the FalconClusterGuard admission controller.
+// role builds the Role for the clusterguard controller.
 func (a *ClusterGuardController) role() *rbacv1.Role {
 	return assets.Role(pkgcommon.ClusterGuardControllerNamespaceRoleName, a.cfg.InstallNamespace)
 }
 
-// reconcileServiceAccount reconciles the ServiceAccount for the admission controller.
+// reconcileServiceAccount reconciles the ServiceAccount for the clusterguard controller.
 func (a *ClusterGuardController) reconcileServiceAccount(ctx context.Context) error {
 	sa := a.serviceAccount()
 	existing := &corev1.ServiceAccount{}

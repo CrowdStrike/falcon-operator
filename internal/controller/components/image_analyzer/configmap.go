@@ -88,7 +88,7 @@ func (ia *ImageAnalyzer) buildConfigMap() (*corev1.ConfigMap, error) {
 	data["SECRETS_AUTODISCOVER_ENABLED"] = strconv.FormatBool(spec.RegistryConfig.AutoDiscoverCredentials)
 	data["IAR_AGENT_SERVICE_PORT"] = strconv.Itoa(int(spec.IARAgentService.Port))
 
-	// KAC is always co-located with IAR in FCG; use the shared install namespace
+	// The clusterguard controller is always co-located with IAR in FCG; use the shared install namespace
 	data["__CS_KAC_NAMESPACE"] = ia.cfg.InstallNamespace
 
 	data["IS_KUBERNETES"] = isKubernetes

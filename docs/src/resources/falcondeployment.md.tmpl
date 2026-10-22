@@ -8,7 +8,7 @@ Use `FalconDeployment` to deploy these Falcon components:
 
 | Component | Resource Name | Status |
 | :---- | :---- | :---- |
-| Falcon Cluster Guard (Node Sensor + Admission Controller) | `FalconClusterGuard` | **Recommended** |
+| Falcon Cluster Guard (Cluster Guard Controller + Node Sensor + Image Analyzer) | `FalconClusterGuard` | **Recommended** |
 | Falcon Container sensor for Linux | `FalconContainer` | Active |
 | Falcon Image Assessment at Runtime agent | `FalconImageAnalyzer` | Active |
 | Falcon Sensor for Linux | `FalconNodeSensor` | **Deprecated** — use FalconClusterGuard |
@@ -121,7 +121,7 @@ Here are some examples of how to use the single manifest to deploy Falcon compon
 
 #### Deploy multiple Falcon components with default configurations
 
-This example shows the recommended configuration for `FalconDeployment`. It deploys `FalconClusterGuard` (which combines node sensor and admission controller into a single resource), `FalconImageAnalyzer`, and does not deploy the FalconContainer.
+This example shows the recommended configuration for `FalconDeployment`. It deploys `FalconClusterGuard` (which combines the Cluster Guard Controller and node sensor into a single resource), `FalconImageAnalyzer`, and does not deploy the FalconContainer.
 
 ```
 apiVersion: falcon.crowdstrike.com/v1alpha1
