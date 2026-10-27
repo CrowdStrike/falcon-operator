@@ -206,6 +206,8 @@ Example:
 image: myprivateregistry.internal.lan/falcon-admission/falcon-sensor:6.47.0-3003.container.x86_64.Release.US-1
 ```
 
+{{ template "imageselection.tmpl" (dict "Kind" "FalconAdmission" "ImageField" "image" "VersionField" "version" "EnvVar" "RELATED_IMAGE_ADMISSION_CONTROLLER") }}
+
 ### Install Steps
 To install Falcon Admission Controller, run the following command to install the FalconAdmission CR:
 ```sh

@@ -391,6 +391,8 @@ Example:
 image: myprivateregistry.internal.lan/falcon-container/falcon-sensor:6.47.0-3003.container.x86_64.Release.US-1
 ```
 
+{{ template "imageselection.tmpl" (dict "Kind" "FalconContainer" "ImageField" "image" "VersionField" "version" "EnvVar" "RELATED_IMAGE_SIDECAR_SENSOR") }}
+
 ### Install Steps
 To install Falcon Container (assuming Falcon Operator is installed):
 ```sh

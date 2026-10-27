@@ -37,7 +37,7 @@ These constraints are specific to managed OpenShift services. ROSA with Hosted C
 
 ### Installing on Disconnected Clusters
 
-While the Falcon sensor requires a connection to the CrowdStrike Cloud, customers installing semi-disconnected clusters with `oc mirror` can still deploy the Falcon operator. The destination cluster must support an outbound connection the CrowdStrike Cloud, i.e. the cluster cannot be fully air-gapped. Refer to [Installing with `oc mirror`](oc-mirror.md).
+While the Falcon sensor requires a connection to the CrowdStrike Cloud, customers installing semi-disconnected clusters with `oc mirror` can still deploy the Falcon operator. The destination cluster must support an outbound connection the CrowdStrike Cloud, i.e. the cluster cannot be fully air-gapped. Refer to [Installing with `oc mirror`](oc-mirror.md). Because the Falcon Image Analyzer always requires Falcon API credentials, you must set `spec.image` on `FalconImageAnalyzer` to your mirrored image.
 
 ## Installing the operator through the Web Console (GUI)
 
@@ -97,7 +97,7 @@ While the Falcon sensor requires a connection to the CrowdStrike Cloud, customer
 <details>
   <summary>Click to expand</summary>
 
-- To deploy the Falcon Sidecar Sensor, click `Create Instance` for the `Falcon Admission` Kind under the `Provided APIs` for the Falcon Operator.
+- To deploy the Falcon Admission Controller, click `Create Instance` for the `Falcon Admission` Kind under the `Provided APIs` for the Falcon Operator.
 
    ![OpenShift CrowdStrike Falcon Admission Controller](images/ocp-fkac.png)
 

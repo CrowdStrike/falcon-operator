@@ -173,6 +173,23 @@ Example:
 image: myprivateregistry.internal.lan/falcon-image-analyzer/falcon-imageanalyzer:1.0.9
 ```
 
+#### Image selection order
+
+The operator chooses the FalconImageAnalyzer image in the following order:
+
+1. **`image`**: if set, this image is always used.
+2. **CrowdStrike API lookup**: if Falcon API credentials are configured, the operator uses the CrowdStrike API to find the image for `version` (or the latest image if no version is set).
+3. **Operator bundled image**: if no Falcon API credentials are configured, the operator uses the image referenced by the `RELATED_IMAGE_IMAGE_ANALYZER` environment variable. Only the OpenShift certified operator installed through OLM sets this variable.
+4. If none of the above apply, the operator reports an error and does not deploy FalconImageAnalyzer.
+
+Falcon API credentials are considered configured when both `falcon_api.client_id` and `falcon_api.client_secret` are set, or when `falconSecret.enabled` is `true`. Setting only one of `client_id` or `client_secret` does not count as configured.
+
+> [!NOTE]
+> When Falcon API credentials are configured, the operator bundled image is never used, even if the CrowdStrike API lookup fails. In disconnected or `oc mirror` environments where the operator cannot pull the image returned by the CrowdStrike API, set `image` to your mirrored image.
+
+> [!IMPORTANT]
+> Falcon Image Analyzer always requires Falcon API credentials, so the operator bundled image is never used for FalconImageAnalyzer. In disconnected or `oc mirror` environments, you must set `image` to the Falcon Image Analyzer image in your mirror registry.
+
 ### Install Steps
 To install Falcon Image Analyzer, run the following command to install the FalconImageAnalyzer CR:
 ```sh

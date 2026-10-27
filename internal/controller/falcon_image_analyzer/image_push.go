@@ -22,6 +22,7 @@ import (
 	"github.com/go-logr/logr"
 	imagev1 "github.com/openshift/api/image/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func (r *FalconImageAnalyzerReconciler) PushImage(ctx context.Context, log logr.Logger, falconImageAnalyzer *falconv1alpha1.FalconImageAnalyzer) error {
@@ -134,6 +135,9 @@ func (r *FalconImageAnalyzerReconciler) registryUri(ctx context.Context, falconI
 
 		return fmt.Sprintf("%s.azurecr.io/falcon-imageanalyzer", *falconImageAnalyzer.Spec.Registry.AcrName), nil
 	case falconv1alpha1.RegistryTypeCrowdStrike:
+		if !falconImageAnalyzer.Spec.FalconAPI.IsConfigured(falconImageAnalyzer.GetFalconSecretSpec()) {
+			return "", fmt.Errorf("falcon_api or falconSecret must be configured when using CrowdStrike registry")
+		}
 		cloud, err := falconImageAnalyzer.Spec.FalconAPI.FalconCloudWithSecret(ctx, r.Reader, falconImageAnalyzer.Spec.FalconSecret)
 		if err != nil {
 			return "", err
@@ -151,7 +155,9 @@ func (r *FalconImageAnalyzerReconciler) imageUri(ctx context.Context, falconImag
 	}
 
 	imageAnalyzerImage := os.Getenv("RELATED_IMAGE_IMAGE_ANALYZER")
-	if imageAnalyzerImage != "" && falconImageAnalyzer.Spec.FalconAPI == nil {
+	if imageAnalyzerImage != "" && !falconImageAnalyzer.Spec.FalconAPI.IsConfigured(falconImageAnalyzer.GetFalconSecretSpec()) {
+		log.FromContext(ctx).Info("spec.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_IMAGE_ANALYZER",
+			"image", imageAnalyzerImage)
 		return imageAnalyzerImage, nil
 	}
 
@@ -201,8 +207,10 @@ func (r *FalconImageAnalyzerReconciler) setImageTag(ctx context.Context, falconI
 		return *falconImageAnalyzer.Status.Sensor, r.Client.Status().Update(ctx, falconImageAnalyzer)
 	}
 
-	if os.Getenv("RELATED_IMAGE_IMAGE_ANALYZER") != "" && falconImageAnalyzer.Spec.FalconAPI == nil {
+	if os.Getenv("RELATED_IMAGE_IMAGE_ANALYZER") != "" && !falconImageAnalyzer.Spec.FalconAPI.IsConfigured(falconImageAnalyzer.GetFalconSecretSpec()) {
 		image := os.Getenv("RELATED_IMAGE_IMAGE_ANALYZER")
+		log.FromContext(ctx).Info("spec.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_IMAGE_ANALYZER",
+			"image", image)
 		falconImageAnalyzer.Status.Sensor = common.ImageVersion(image)
 
 		return *falconImageAnalyzer.Status.Sensor, r.Client.Status().Update(ctx, falconImageAnalyzer)

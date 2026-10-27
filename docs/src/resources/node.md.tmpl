@@ -166,11 +166,17 @@ See `docs/ADVANCED.md` for more details.
 The operator checks for new releases of Falcon sensor once every 24 hours by default. This can be adjusted by setting the `--sensor-auto-update-interval` command-line flag to any value acceptable by [Golang's ParseDuration](https://pkg.go.dev/time#ParseDuration) function. However, it is strongly recommended that this be left at the default, as each cycle involves queries to the Falcon API and too many could result in throttling.
 
 > [!IMPORTANT]
-> All arguments are optional, but successful deployment requires either **client_id and falcon_secret or the Falcon cid and image**. When deploying using the CrowdStrike Falcon API, the container image and CID will be fetched from CrowdStrike Falcon API. While in the latter case, the CID and image location is explicitly specified by the user.
+> All arguments are optional, but successful deployment requires either **client_id and client_secret or the Falcon cid and image**. When deploying using the CrowdStrike Falcon API, the container image and CID will be fetched from CrowdStrike Falcon API. While in the latter case, the CID and image location is explicitly specified by the user.
 
 ### Auto Proxy Configuration
 
 {{ template "proxy.tmpl" . }}
+
+### Image Registry considerations
+
+{{ template "imageselection.tmpl" (dict "Kind" "FalconNodeSensor" "ImageField" "node.image" "VersionField" "node.version" "EnvVar" "RELATED_IMAGE_NODE_SENSOR") }}
+
+When the operator bundled image is used, the operator does not call the CrowdStrike API, so you must also set `falcon.cid`.
 
 ### Install Steps
 With Falcon Operator installed, run the following command to install the FalconNodeSensor CR:

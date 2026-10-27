@@ -180,7 +180,9 @@ func (r *FalconContainerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if _, err := r.setImageTag(ctx, falconContainer); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Container Image version: %v", err)
 		}
-	} else if os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR") != "" && falconContainer.Spec.FalconAPI == nil {
+	} else if os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR") != "" && !falconContainer.Spec.FalconAPI.IsConfigured(falconContainer.GetFalconSecretSpec()) {
+		log.Info("spec.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_SIDECAR_SENSOR",
+			"image", os.Getenv("RELATED_IMAGE_SIDECAR_SENSOR"))
 		if _, err := r.setImageTag(ctx, falconContainer); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set Falcon Container Image version: %v", err)
 		}

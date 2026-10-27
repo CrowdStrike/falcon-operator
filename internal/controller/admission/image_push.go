@@ -22,6 +22,7 @@ import (
 	"github.com/go-logr/logr"
 	imagev1 "github.com/openshift/api/image/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func (r *FalconAdmissionReconciler) PushImage(ctx context.Context, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission) error {
@@ -134,6 +135,9 @@ func (r *FalconAdmissionReconciler) registryUri(ctx context.Context, falconAdmis
 
 		return fmt.Sprintf("%s.azurecr.io/falcon-kac", *falconAdmission.Spec.Registry.AcrName), nil
 	case falconv1alpha1.RegistryTypeCrowdStrike:
+		if !falconAdmission.Spec.FalconAPI.IsConfigured(falconAdmission.GetFalconSecretSpec()) {
+			return "", fmt.Errorf("falcon_api or falconSecret must be configured when using CrowdStrike registry")
+		}
 		cloud, err := falconAdmission.Spec.FalconAPI.FalconCloudWithSecret(ctx, r.Reader, falconAdmission.Spec.FalconSecret)
 		if err != nil {
 			return "", err
@@ -151,7 +155,9 @@ func (r *FalconAdmissionReconciler) imageUri(ctx context.Context, falconAdmissio
 	}
 
 	admissionImage := os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER")
-	if admissionImage != "" && falconAdmission.Spec.FalconAPI == nil {
+	if admissionImage != "" && !falconAdmission.Spec.FalconAPI.IsConfigured(falconAdmission.GetFalconSecretSpec()) {
+		log.FromContext(ctx).Info("spec.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_ADMISSION_CONTROLLER",
+			"image", admissionImage)
 		return admissionImage, nil
 	}
 
@@ -202,8 +208,10 @@ func (r *FalconAdmissionReconciler) setImageTag(ctx context.Context, falconAdmis
 		return *falconAdmission.Status.Sensor, r.Client.Status().Update(ctx, falconAdmission)
 	}
 
-	if os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER") != "" && falconAdmission.Spec.FalconAPI == nil {
+	if os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER") != "" && !falconAdmission.Spec.FalconAPI.IsConfigured(falconAdmission.GetFalconSecretSpec()) {
 		image := os.Getenv("RELATED_IMAGE_ADMISSION_CONTROLLER")
+		log.FromContext(ctx).Info("spec.image not set and Falcon API credentials not configured; using operator-provided image from RELATED_IMAGE_ADMISSION_CONTROLLER",
+			"image", image)
 		falconAdmission.Status.Sensor = common.ImageVersion(image)
 
 		return *falconAdmission.Status.Sensor, r.Client.Status().Update(ctx, falconAdmission)

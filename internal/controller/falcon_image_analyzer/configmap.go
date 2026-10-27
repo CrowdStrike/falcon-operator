@@ -67,26 +67,26 @@ func (r *FalconImageAnalyzerReconciler) newConfigMap(ctx context.Context, name s
 	data := map[string]string{}
 	cid := ""
 
-	if falconImageAnalyzer.Spec.FalconAPI != nil {
-		cid, err = falcon_api.FalconCID(ctx, falconImageAnalyzer.Spec.FalconAPI.CID, falconImageAnalyzer.Spec.FalconAPI.ApiConfig())
-		if err != nil {
-			return &corev1.ConfigMap{}, err
-		}
-	}
-
 	// AGENT_HELM_VERSION must be set to >= 1.1.17 for latest IAR features
 	data["AGENT_HELM_VERSION"] = "1.1.17"
 
-	if falconImageAnalyzer.Spec.FalconAPI.ClientId != "" {
-		data["AGENT_CLIENT_ID"] = falconImageAnalyzer.Spec.FalconAPI.ClientId
-	}
+	if fa := falconImageAnalyzer.Spec.FalconAPI; fa != nil {
+		cid, err = falcon_api.FalconCID(ctx, fa.CID, fa.ApiConfig())
+		if err != nil {
+			return &corev1.ConfigMap{}, err
+		}
 
-	if falconImageAnalyzer.Spec.FalconAPI.ClientSecret != "" {
-		data["AGENT_CLIENT_SECRET"] = falconImageAnalyzer.Spec.FalconAPI.ClientSecret
-	}
+		if fa.ClientId != "" {
+			data["AGENT_CLIENT_ID"] = fa.ClientId
+		}
 
-	// cloud region is required
-	data["AGENT_REGION"] = falcon.Cloud(falconImageAnalyzer.Spec.FalconAPI.CloudRegion).String()
+		if fa.ClientSecret != "" {
+			data["AGENT_CLIENT_SECRET"] = fa.ClientSecret
+		}
+
+		// cloud region is required
+		data["AGENT_REGION"] = falcon.Cloud(fa.CloudRegion).String()
+	}
 
 	if falconImageAnalyzer.Spec.ImageAnalyzerConfig.ClusterName != "" {
 		data["AGENT_CLUSTER_NAME"] = falconImageAnalyzer.Spec.ImageAnalyzerConfig.ClusterName

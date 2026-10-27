@@ -166,7 +166,7 @@ See `docs/ADVANCED.md` for more details.
 The operator checks for new releases of Falcon sensor once every 24 hours by default. This can be adjusted by setting the `--sensor-auto-update-interval` command-line flag to any value acceptable by [Golang's ParseDuration](https://pkg.go.dev/time#ParseDuration) function. However, it is strongly recommended that this be left at the default, as each cycle involves queries to the Falcon API and too many could result in throttling.
 
 > [!IMPORTANT]
-> All arguments are optional, but successful deployment requires either **client_id and falcon_secret or the Falcon cid and image**. When deploying using the CrowdStrike Falcon API, the container image and CID will be fetched from CrowdStrike Falcon API. While in the latter case, the CID and image location is explicitly specified by the user.
+> All arguments are optional, but successful deployment requires either **client_id and client_secret or the Falcon cid and image**. When deploying using the CrowdStrike Falcon API, the container image and CID will be fetched from CrowdStrike Falcon API. While in the latter case, the CID and image location is explicitly specified by the user.
 
 ### Auto Proxy Configuration
 
@@ -197,6 +197,24 @@ These settings can be overridden by configuring the [sensor's proxy settings](#f
 > 2. If the CrowdStrike API is not used, configure the [sensor's proxy settings](#falcon-sensor-settings).
 > 3. Ensure that the host node can reach the CrowdStrike Falcon Cloud through the proxy.
 
+
+### Image Registry considerations
+
+#### Image selection order
+
+The operator chooses the FalconNodeSensor image in the following order:
+
+1. **`node.image`**: if set, this image is always used.
+2. **CrowdStrike API lookup**: if Falcon API credentials are configured, the operator uses the CrowdStrike API to find the image for `node.version` (or the latest image if no version is set).
+3. **Operator bundled image**: if no Falcon API credentials are configured, the operator uses the image referenced by the `RELATED_IMAGE_NODE_SENSOR` environment variable. Only the OpenShift certified operator installed through OLM sets this variable.
+4. If none of the above apply, the operator reports an error and does not deploy FalconNodeSensor.
+
+Falcon API credentials are considered configured when both `falcon_api.client_id` and `falcon_api.client_secret` are set, or when `falconSecret.enabled` is `true`. Setting only one of `client_id` or `client_secret` does not count as configured.
+
+> [!NOTE]
+> When Falcon API credentials are configured, the operator bundled image is never used, even if the CrowdStrike API lookup fails. In disconnected or `oc mirror` environments where the operator cannot pull the image returned by the CrowdStrike API, set `node.image` to your mirrored image.
+
+When the operator bundled image is used, the operator does not call the CrowdStrike API, so you must also set `falcon.cid`.
 
 ### Install Steps
 With Falcon Operator installed, run the following command to install the FalconNodeSensor CR:
