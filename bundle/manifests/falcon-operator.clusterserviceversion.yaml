@@ -147,7 +147,7 @@ metadata:
       ]
     capabilities: Seamless Upgrades
     categories: Security,Monitoring
-    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:7658b20ca65b7e0b8a20af039fcb66a088ac45c6bbfd6c373036b11cf9374cd3
+    containerImage: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:9d6734798aa44da946589bee00e1dbac07fc3fc29d24ea32542bb776f94ce0f6
     createdAt: "2025-11-18T23:39:10Z"
     description: Falcon Operator installs CrowdStrike Falcon Sensors on the cluster
     features.operators.openshift.io/cnf: "false"
@@ -166,7 +166,12 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: registry.connect.redhat.com/crowdstrike/falcon-operator
     support: CrowdStrike
-  name: falcon-operator.v1.15.0
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+    operatorframework.io/arch.s390x: supported
+    operatorframework.io/os.linux: supported
+  name: falcon-operator.v1.16.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -2383,16 +2388,6 @@ spec:
           verbs:
           - create
         serviceAccountName: falcon-operator-controller-manager
-      - rules:
-        - apiGroups:
-          - security.openshift.io
-          resourceNames:
-          - privileged
-          resources:
-          - securitycontextconstraints
-          verbs:
-          - use
-        serviceAccountName: falcon-operator-node-sensor
       deployments:
       - label:
           control-plane: controller-manager
@@ -2438,6 +2433,7 @@ spec:
                 - --health-probe-bind-address=:8081
                 - --metrics-bind-address=:8443
                 - --leader-elect
+                - --openshift
                 command:
                 - /manager
                 env:
@@ -2448,16 +2444,16 @@ spec:
                 - name: OPERATOR_NAME
                   value: falcon-operator
                 - name: OPERATOR_MANIFEST
-                  value: 1.15.0
+                  value: 1.16.0
                 - name: RELATED_IMAGE_NODE_SENSOR
-                  value: registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:26d60f33c9f651b598dccb78d42363a06ae5741f6c16176aa21c88d84b091027
+                  value: registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:dcb584cd3d9fa388cdcd7a9be5babffeea7747bb7a1d169730b6cbabb1bfb35f
                 - name: RELATED_IMAGE_SIDECAR_SENSOR
-                  value: registry.crowdstrike.com/falcon-container/release/falcon-container@sha256:7ece1ebdd95a70d8c9a29e9abb62d434e389b5c551bc2298b65e14d69e297c4c
+                  value: registry.crowdstrike.com/falcon-container/release/falcon-container@sha256:ef329bc7fcb3a375d7a8a6a756f869c1030220a5e196e0c083a79895bf67af51
                 - name: RELATED_IMAGE_ADMISSION_CONTROLLER
-                  value: registry.crowdstrike.com/falcon-kac/release/falcon-kac@sha256:c72ef408a26a340aff7bc24d02f53e618f9895115ad39873beb8e0ab0905bb8e
+                  value: registry.crowdstrike.com/falcon-kac/release/falcon-kac@sha256:27d68e30e94e0391b58e058209521c0786e5780873af4b7c9b22a00bf488bedc
                 - name: RELATED_IMAGE_IMAGE_ANALYZER
-                  value: registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@sha256:2670a66c025fa9ce43e3752edd90e63556df711d816ec0a8b9b2a3cc0dbcf471
-                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:7658b20ca65b7e0b8a20af039fcb66a088ac45c6bbfd6c373036b11cf9374cd3
+                  value: registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@sha256:730c9d836284e7dd0b2c5c777c0cf375a1cb3d340d38543e84c8c4d0cd7ae19a
+                image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:9d6734798aa44da946589bee00e1dbac07fc3fc29d24ea32542bb776f94ce0f6
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -2541,11 +2537,6 @@ spec:
   keywords:
   - security
   - runtime-protection
-  labels:
-    operatorframework.io/arch.amd64: supported
-    operatorframework.io/arch.arm64: supported
-    operatorframework.io/arch.s390x: supported
-    operatorframework.io/os.linux: supported
   links:
   - name: Falcon Operator
     url: https://github.com/CrowdStrike/falcon-operator
@@ -2558,18 +2549,18 @@ spec:
     name: CrowdStrike
     url: https://crowdStrike.com
   relatedImages:
-  - image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:7658b20ca65b7e0b8a20af039fcb66a088ac45c6bbfd6c373036b11cf9374cd3
+  - image: registry.connect.redhat.com/crowdstrike/falcon-operator@sha256:9d6734798aa44da946589bee00e1dbac07fc3fc29d24ea32542bb776f94ce0f6
     name: operator
-  - image: registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:26d60f33c9f651b598dccb78d42363a06ae5741f6c16176aa21c88d84b091027
+  - image: registry.crowdstrike.com/falcon-sensor/release/falcon-sensor@sha256:dcb584cd3d9fa388cdcd7a9be5babffeea7747bb7a1d169730b6cbabb1bfb35f
     name: node-sensor
-  - image: registry.crowdstrike.com/falcon-container/release/falcon-container@sha256:7ece1ebdd95a70d8c9a29e9abb62d434e389b5c551bc2298b65e14d69e297c4c
+  - image: registry.crowdstrike.com/falcon-container/release/falcon-container@sha256:ef329bc7fcb3a375d7a8a6a756f869c1030220a5e196e0c083a79895bf67af51
     name: sidecar-sensor
-  - image: registry.crowdstrike.com/falcon-kac/release/falcon-kac@sha256:c72ef408a26a340aff7bc24d02f53e618f9895115ad39873beb8e0ab0905bb8e
+  - image: registry.crowdstrike.com/falcon-kac/release/falcon-kac@sha256:27d68e30e94e0391b58e058209521c0786e5780873af4b7c9b22a00bf488bedc
     name: admission-controller
-  - image: registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@sha256:2670a66c025fa9ce43e3752edd90e63556df711d816ec0a8b9b2a3cc0dbcf471
+  - image: registry.crowdstrike.com/falcon-imageanalyzer/release/falcon-imageanalyzer@sha256:730c9d836284e7dd0b2c5c777c0cf375a1cb3d340d38543e84c8c4d0cd7ae19a
     name: image-analyzer
-  replaces: falcon-operator.v1.14.0
+  replaces: falcon-operator.v1.15.0
   skips:
   - falcon-operator.v1.3.0
   - falcon-operator.v1.12.0
-  version: 1.15.0
+  version: 1.16.0
