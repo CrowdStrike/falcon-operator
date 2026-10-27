@@ -16,6 +16,7 @@ For an optimal experience, use the following preferred methods when installing f
 - **[Deployment Guide for EKS Fargate](./deployment/eks-fargate/README.md)**
 - **[Deployment Guide for GKE/GCR](./deployment/gke/README.md)**
 - **[Deployment Guide for OpenShift](./deployment/openshift/README.md)**
+- **[Deployment Guide for VMware vSphere Kubernetes Service (VKS)](./deployment/generic/README.md)**
 - **[Deployment Guide for Generic Kubernetes](./deployment/generic/README.md)**
 
 ## Upgrading
