@@ -812,6 +812,7 @@ spec:
                     description: Falcon OAuth2 API Client Secret
                     type: string
                   cloud_region:
+                    default: autodiscover
                     description: Cloud Region defines CrowdStrike Falcon Cloud Region
                       to which the operator will connect and register.
                     enum:
@@ -823,8 +824,6 @@ spec:
                     - us-gov-1
                     - us-gov-2
                     type: string
-                required:
-                - cloud_region
                 type: object
               falconSecret:
                 default:
@@ -1132,6 +1131,7 @@ spec:
                     description: Falcon OAuth2 API Client Secret
                     type: string
                   cloud_region:
+                    default: autodiscover
                     description: Cloud Region defines CrowdStrike Falcon Cloud Region
                       to which the operator will connect and register.
                     enum:
@@ -1143,8 +1143,6 @@ spec:
                     - us-gov-1
                     - us-gov-2
                     type: string
-                required:
-                - cloud_region
                 type: object
               falconSecret:
                 default:
@@ -3698,6 +3696,7 @@ spec:
                     description: Falcon OAuth2 API Client Secret
                     type: string
                   cloud_region:
+                    default: autodiscover
                     description: Cloud Region defines CrowdStrike Falcon Cloud Region
                       to which the operator will connect and register.
                     enum:
@@ -3709,8 +3708,6 @@ spec:
                     - us-gov-1
                     - us-gov-2
                     type: string
-                required:
-                - cloud_region
                 type: object
               falconAdmission:
                 default: {}
@@ -4469,6 +4466,7 @@ spec:
                         description: Falcon OAuth2 API Client Secret
                         type: string
                       cloud_region:
+                        default: autodiscover
                         description: Cloud Region defines CrowdStrike Falcon Cloud
                           Region to which the operator will connect and register.
                         enum:
@@ -4480,8 +4478,6 @@ spec:
                         - us-gov-1
                         - us-gov-2
                         type: string
-                    required:
-                    - cloud_region
                     type: object
                   falconSecret:
                     default:
@@ -4672,6 +4668,7 @@ spec:
                         description: Falcon OAuth2 API Client Secret
                         type: string
                       cloud_region:
+                        default: autodiscover
                         description: Cloud Region defines CrowdStrike Falcon Cloud
                           Region to which the operator will connect and register.
                         enum:
@@ -4683,8 +4680,6 @@ spec:
                         - us-gov-1
                         - us-gov-2
                         type: string
-                    required:
-                    - cloud_region
                     type: object
                   falconSecret:
                     default:
@@ -7115,6 +7110,7 @@ spec:
                         description: Falcon OAuth2 API Client Secret
                         type: string
                       cloud_region:
+                        default: autodiscover
                         description: Cloud Region defines CrowdStrike Falcon Cloud
                           Region to which the operator will connect and register.
                         enum:
@@ -7126,8 +7122,6 @@ spec:
                         - us-gov-1
                         - us-gov-2
                         type: string
-                    required:
-                    - cloud_region
                     type: object
                   falconSecret:
                     default:
@@ -7798,6 +7792,7 @@ spec:
                         description: Falcon OAuth2 API Client Secret
                         type: string
                       cloud_region:
+                        default: autodiscover
                         description: Cloud Region defines CrowdStrike Falcon Cloud
                           Region to which the operator will connect and register.
                         enum:
@@ -7809,8 +7804,6 @@ spec:
                         - us-gov-1
                         - us-gov-2
                         type: string
-                    required:
-                    - cloud_region
                     type: object
                   falconSecret:
                     default:
@@ -8551,6 +8544,7 @@ spec:
                     description: Falcon OAuth2 API Client Secret
                     type: string
                   cloud_region:
+                    default: autodiscover
                     description: Cloud Region defines CrowdStrike Falcon Cloud Region
                       to which the operator will connect and register.
                     enum:
@@ -8562,8 +8556,6 @@ spec:
                     - us-gov-1
                     - us-gov-2
                     type: string
-                required:
-                - cloud_region
                 type: object
               falconSecret:
                 default:
@@ -9347,6 +9339,7 @@ spec:
                     description: Falcon OAuth2 API Client Secret
                     type: string
                   cloud_region:
+                    default: autodiscover
                     description: Cloud Region defines CrowdStrike Falcon Cloud Region
                       to which the operator will connect and register.
                     enum:
@@ -9358,8 +9351,6 @@ spec:
                     - us-gov-1
                     - us-gov-2
                     type: string
-                required:
-                - cloud_region
                 type: object
               falconSecret:
                 default:
@@ -10608,8 +10599,8 @@ spec:
         - name: OPERATOR_NAME
           value: falcon-operator
         - name: OPERATOR_MANIFEST
-          value: 1.15.0
-        image: quay.io/crowdstrike/falcon-operator:1.15.0
+          value: 1.16.0
+        image: quay.io/crowdstrike/falcon-operator:1.16.0
         livenessProbe:
           httpGet:
             path: /healthz
