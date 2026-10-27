@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	internalErrors "github.com/crowdstrike/falcon-operator/internal/errors"
 	"github.com/crowdstrike/gofalcon/falcon"
 	"github.com/crowdstrike/gofalcon/falcon/client"
 	"github.com/crowdstrike/gofalcon/falcon/client/falcon_container"
@@ -54,6 +55,10 @@ func CCID(ctx context.Context, client *client.CrowdStrikeAPISpecification) (stri
 func FalconCID(ctx context.Context, cid *string, fa *falcon.ApiConfig) (string, error) {
 	if cid != nil {
 		return *cid, nil
+	}
+
+	if fa == nil {
+		return "", internalErrors.ErrMissingCIDWithoutFalconAPI
 	}
 
 	fa.Context = ctx

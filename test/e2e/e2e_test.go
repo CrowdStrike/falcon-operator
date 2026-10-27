@@ -48,6 +48,9 @@ import (
 //
 // Example usage enabling reconcile loop checks:
 //   RECONCILE_LOOP_CHECK=true go test ./test/e2e/...
+//
+// Example usage running only the image selection order specs:
+//   make test-e2e GINKGO_LABEL_FILTER=ImageSelection
 
 // constant parts of the file
 const (
@@ -267,7 +270,7 @@ var _ = Describe("falcon", Ordered, func() {
 		}
 	})
 
-	Context("Falcon Operator", Label("FalconNodeSensor", "FalconAdmission", "FalconImageAnalyzer", "FalconContainer", "FalconDeployment"), func() {
+	Context("Falcon Operator", Label("FalconNodeSensor", "FalconAdmission", "FalconImageAnalyzer", "FalconContainer", "FalconDeployment", "ImageSelection"), func() {
 		It("should run successfully", func() {
 
 			var err error
@@ -1352,6 +1355,308 @@ var _ = Describe("falcon", Ordered, func() {
 			kacConfig.manageCrdInstance(crDelete, manifest)
 			kacConfig.validateRunningStatus(shouldBeTerminated)
 			kacConfig.waitForNamespaceDeletion()
+		})
+	})
+
+	// The image selection specs check which image the operator puts in the component Deployment or DaemonSet:
+	// image → CrowdStrike API (when credentials are configured) → RELATED_IMAGE_* bundled image → not deployed.
+	// The operator runs with RELATED_IMAGE_* set, as it does when installed through the OpenShift OLM bundle.
+	// The fake example.com images are only compared against the workload spec; their pods are not expected to run.
+	Context("Falcon Admission Controller Image Selection", Label("FalconAdmission", "ImageSelection"), func() {
+		const (
+			relatedImageEnv = "RELATED_IMAGE_ADMISSION_CONTROLLER"
+			customImage     = "example.com/falcon-kac:custom-e2e"
+		)
+		manifest := "./config/samples/falcon_v1alpha1_falconadmission.yaml"
+		fakeCID := "0123456789abcdef0123456789abcdef-12"
+		var bundledImage string
+		restoreOperatorEnv := func() {}
+
+		// newAdmission returns the sample FalconAdmission configured as in an isolated environment:
+		// no Falcon API credentials and an explicit CID
+		newAdmission := func() *falconv1alpha1.FalconAdmission {
+			var admission falconv1alpha1.FalconAdmission
+			ExpectWithOffset(1, loadManifest(manifest, &admission)).To(Succeed())
+			admission.Spec.FalconAPI = nil
+			admission.Spec.Falcon.CID = &fakeCID
+			return &admission
+		}
+
+		BeforeAll(func() {
+			bundledImage, restoreOperatorEnv = useBundledImage(relatedImageEnv, "example.com/falcon-kac:bundled-e2e")
+		})
+
+		AfterEach(func() {
+			kacConfig.deleteCrInstance()
+		})
+
+		AfterAll(func() {
+			restoreOperatorEnv()
+		})
+
+		It("should use the bundled image when no Falcon API credentials are configured", func() {
+			Expect(applyManifest(newAdmission(), kacConfig.namespace)).To(Succeed())
+			kacConfig.validateWorkloadImage(Equal(bundledImage))
+		})
+
+		It("should use the bundled image when only client_id is set", func() {
+			admission := newAdmission()
+			admission.Spec.FalconAPI = &falconv1alpha1.FalconAPI{ClientId: "e2e-client-id-only", CloudRegion: "us-1"}
+			Expect(applyManifest(admission, kacConfig.namespace)).To(Succeed())
+			kacConfig.validateWorkloadImage(Equal(bundledImage))
+		})
+
+		It("should prefer image over the bundled image", func() {
+			admission := newAdmission()
+			admission.Spec.Image = customImage
+			Expect(applyManifest(admission, kacConfig.namespace)).To(Succeed())
+			kacConfig.validateWorkloadImage(Equal(customImage))
+		})
+
+		It("should use the CrowdStrike API instead of the bundled image when credentials are configured", func() {
+			clientID, clientSecret := getCredentials()
+			if clientID == "" || clientSecret == "" {
+				Skip("FALCON_CLIENT_ID and FALCON_CLIENT_SECRET are required")
+			}
+
+			admission := newAdmission()
+			admission.Spec.Falcon.CID = nil
+			admission.Spec.FalconAPI = &falconv1alpha1.FalconAPI{
+				ClientId:     clientID,
+				ClientSecret: clientSecret,
+				CloudRegion:  "autodiscover",
+			}
+			Expect(applyManifest(admission, kacConfig.namespace)).To(Succeed())
+			kacConfig.validateWorkloadImage(And(ContainSubstring("crowdstrike.com/"), Not(Equal(bundledImage))))
+		})
+
+		It("should not deploy when no image, credentials or bundled image are available", func() {
+			deployment := operatorDeploymentName()
+			if isOperatorManagedByOLM(deployment) {
+				Skip(fmt.Sprintf("%s cannot be unset on an operator managed by OLM", relatedImageEnv))
+			}
+
+			// The env var is restored in AfterAll
+			setOperatorEnv(deployment, relatedImageEnv, "")
+			Expect(applyManifest(newAdmission(), kacConfig.namespace)).To(Succeed())
+			kacConfig.validateNotDeployed(time.Minute)
+			validateOperatorLogError("missing falcon_api in CRD spec")
+		})
+	})
+
+	Context("Falcon Image Analyzer Image Selection", Label("FalconImageAnalyzer", "ImageSelection"), func() {
+		const customImage = "example.com/falcon-imageanalyzer:custom-e2e"
+		manifest := "./config/samples/falcon_v1alpha1_falconimageanalyzer.yaml"
+		var bundledImage string
+		restoreOperatorEnv := func() {}
+
+		BeforeAll(func() {
+			clientID, clientSecret := getCredentials()
+			if clientID == "" || clientSecret == "" {
+				Skip("FALCON_CLIENT_ID and FALCON_CLIENT_SECRET are required: FalconImageAnalyzer always requires Falcon API credentials")
+			}
+			bundledImage, restoreOperatorEnv = useBundledImage("RELATED_IMAGE_IMAGE_ANALYZER", "example.com/falcon-imageanalyzer:bundled-e2e")
+		})
+
+		AfterEach(func() {
+			iarConfig.deleteCrInstance()
+		})
+
+		AfterAll(func() {
+			restoreOperatorEnv()
+		})
+
+		It("should not use the bundled image because credentials are always configured", func() {
+			var iar falconv1alpha1.FalconImageAnalyzer
+			Expect(loadManifest(manifest, &iar)).To(Succeed())
+			Expect(applyManifest(&iar, iarConfig.namespace)).To(Succeed())
+			iarConfig.validateWorkloadImage(And(ContainSubstring("crowdstrike.com/"), Not(Equal(bundledImage))))
+		})
+
+		It("should use image for isolated environments", func() {
+			var iar falconv1alpha1.FalconImageAnalyzer
+			Expect(loadManifest(manifest, &iar)).To(Succeed())
+			iar.Spec.Image = customImage
+			Expect(applyManifest(&iar, iarConfig.namespace)).To(Succeed())
+			iarConfig.validateWorkloadImage(Equal(customImage))
+		})
+	})
+
+	Context("Falcon Sidecar Sensor Image Selection", Label("FalconContainer", "ImageSelection"), func() {
+		const (
+			relatedImageEnv = "RELATED_IMAGE_SIDECAR_SENSOR"
+			customImage     = "example.com/falcon-container:custom-e2e"
+		)
+		manifest := "./config/samples/falcon_v1alpha1_falconcontainer.yaml"
+		fakeCID := "0123456789abcdef0123456789abcdef-12"
+		var bundledImage string
+		restoreOperatorEnv := func() {}
+
+		// newContainer returns the sample FalconContainer configured as in an isolated environment:
+		// no Falcon API credentials and an explicit CID. Default namespace injection is disabled because
+		// the injector webhook fails closed, so an injector that cannot pull its image would block pod
+		// creation in every namespace.
+		newContainer := func() *falconv1alpha1.FalconContainer {
+			var container falconv1alpha1.FalconContainer
+			ExpectWithOffset(1, loadManifest(manifest, &container)).To(Succeed())
+			container.Spec.FalconAPI = nil
+			container.Spec.Falcon.CID = &fakeCID
+			container.Spec.Injector.DisableDefaultNSInjection = true
+			return &container
+		}
+
+		BeforeAll(func() {
+			if isOpenShift() {
+				Skip("FalconContainer is not supported on OpenShift - skipping")
+			}
+			bundledImage, restoreOperatorEnv = useBundledImage(relatedImageEnv, "example.com/falcon-container:bundled-e2e")
+		})
+
+		AfterEach(func() {
+			sidecarConfig.deleteCrInstance()
+		})
+
+		AfterAll(func() {
+			restoreOperatorEnv()
+		})
+
+		It("should use the bundled image when no Falcon API credentials are configured", func() {
+			Expect(applyManifest(newContainer(), sidecarConfig.namespace)).To(Succeed())
+			sidecarConfig.validateWorkloadImage(Equal(bundledImage))
+		})
+
+		It("should use the bundled image when only client_id is set", func() {
+			container := newContainer()
+			container.Spec.FalconAPI = &falconv1alpha1.FalconAPI{ClientId: "e2e-client-id-only", CloudRegion: "us-1"}
+			Expect(applyManifest(container, sidecarConfig.namespace)).To(Succeed())
+			sidecarConfig.validateWorkloadImage(Equal(bundledImage))
+		})
+
+		It("should prefer image over the bundled image", func() {
+			container := newContainer()
+			image := customImage
+			container.Spec.Image = &image
+			Expect(applyManifest(container, sidecarConfig.namespace)).To(Succeed())
+			sidecarConfig.validateWorkloadImage(Equal(customImage))
+		})
+
+		It("should use the CrowdStrike API instead of the bundled image when credentials are configured", func() {
+			clientID, clientSecret := getCredentials()
+			if clientID == "" || clientSecret == "" {
+				Skip("FALCON_CLIENT_ID and FALCON_CLIENT_SECRET are required")
+			}
+
+			container := newContainer()
+			container.Spec.Falcon.CID = nil
+			container.Spec.FalconAPI = &falconv1alpha1.FalconAPI{
+				ClientId:     clientID,
+				ClientSecret: clientSecret,
+				CloudRegion:  "autodiscover",
+			}
+			Expect(applyManifest(container, sidecarConfig.namespace)).To(Succeed())
+			sidecarConfig.validateWorkloadImage(And(ContainSubstring("crowdstrike.com/"), Not(Equal(bundledImage))))
+		})
+
+		It("should not deploy when no image, credentials or bundled image are available", func() {
+			deployment := operatorDeploymentName()
+			if isOperatorManagedByOLM(deployment) {
+				Skip(fmt.Sprintf("%s cannot be unset on an operator managed by OLM", relatedImageEnv))
+			}
+
+			// The env var is restored in AfterAll
+			setOperatorEnv(deployment, relatedImageEnv, "")
+			Expect(applyManifest(newContainer(), sidecarConfig.namespace)).To(Succeed())
+			sidecarConfig.validateNotDeployed(time.Minute)
+			validateOperatorLogError("missing falcon_api in CRD spec")
+		})
+	})
+
+	Context("Falcon Node Sensor Image Selection", Label("FalconNodeSensor", "ImageSelection"), func() {
+		const (
+			relatedImageEnv = "RELATED_IMAGE_NODE_SENSOR"
+			customImage     = "example.com/falcon-sensor:custom-e2e"
+		)
+		manifest := "./config/samples/falcon_v1alpha1_falconnodesensor.yaml"
+		fakeCID := "0123456789abcdef0123456789abcdef-12"
+		var bundledImage string
+		restoreOperatorEnv := func() {}
+
+		// newNodeSensor returns the sample FalconNodeSensor configured as in an isolated environment:
+		// no Falcon API credentials and an explicit CID. Node cleanup is disabled because the cleanup
+		// DaemonSet runs the sensor image and the operator waits for its pods before removing the finalizer,
+		// so deleting a FalconNodeSensor with an image that cannot be pulled would never finish.
+		newNodeSensor := func() *falconv1alpha1.FalconNodeSensor {
+			var nodeSensor falconv1alpha1.FalconNodeSensor
+			ExpectWithOffset(1, loadManifest(manifest, &nodeSensor)).To(Succeed())
+			nodeSensor.Spec.FalconAPI = nil
+			nodeSensor.Spec.Falcon.CID = &fakeCID
+			disableCleanup := true
+			nodeSensor.Spec.Node.NodeCleanup = &disableCleanup
+			return &nodeSensor
+		}
+
+		BeforeAll(func() {
+			bundledImage, restoreOperatorEnv = useBundledImage(relatedImageEnv, "example.com/falcon-sensor:bundled-e2e")
+		})
+
+		AfterEach(func() {
+			nodeConfig.deleteCrInstance()
+		})
+
+		AfterAll(func() {
+			restoreOperatorEnv()
+		})
+
+		It("should use the bundled image when no Falcon API credentials are configured", func() {
+			Expect(applyManifest(newNodeSensor(), nodeConfig.namespace)).To(Succeed())
+			nodeConfig.validateWorkloadImage(Equal(bundledImage))
+		})
+
+		It("should use the bundled image when only client_id is set", func() {
+			nodeSensor := newNodeSensor()
+			nodeSensor.Spec.FalconAPI = &falconv1alpha1.FalconAPI{ClientId: "e2e-client-id-only", CloudRegion: "us-1"}
+			Expect(applyManifest(nodeSensor, nodeConfig.namespace)).To(Succeed())
+			nodeConfig.validateWorkloadImage(Equal(bundledImage))
+		})
+
+		It("should prefer node.image over the bundled image", func() {
+			nodeSensor := newNodeSensor()
+			nodeSensor.Spec.Node.Image = customImage
+			Expect(applyManifest(nodeSensor, nodeConfig.namespace)).To(Succeed())
+			nodeConfig.validateWorkloadImage(Equal(customImage))
+		})
+
+		It("should use the CrowdStrike API instead of the bundled image when credentials are configured", func() {
+			clientID, clientSecret := getCredentials()
+			if clientID == "" || clientSecret == "" {
+				Skip("FALCON_CLIENT_ID and FALCON_CLIENT_SECRET are required")
+			}
+
+			// The real sensor image is pulled, so node cleanup can run and remove the sensor from the node
+			nodeSensor := newNodeSensor()
+			nodeSensor.Spec.Falcon.CID = nil
+			nodeSensor.Spec.FalconAPI = &falconv1alpha1.FalconAPI{
+				ClientId:     clientID,
+				ClientSecret: clientSecret,
+				CloudRegion:  "autodiscover",
+			}
+			enableCleanup := false
+			nodeSensor.Spec.Node.NodeCleanup = &enableCleanup
+			Expect(applyManifest(nodeSensor, nodeConfig.namespace)).To(Succeed())
+			nodeConfig.validateWorkloadImage(And(ContainSubstring("crowdstrike.com/"), Not(Equal(bundledImage))))
+		})
+
+		It("should not deploy when no image, credentials or bundled image are available", func() {
+			deployment := operatorDeploymentName()
+			if isOperatorManagedByOLM(deployment) {
+				Skip(fmt.Sprintf("%s cannot be unset on an operator managed by OLM", relatedImageEnv))
+			}
+
+			// The env var is restored in AfterAll
+			setOperatorEnv(deployment, relatedImageEnv, "")
+			Expect(applyManifest(newNodeSensor(), nodeConfig.namespace)).To(Succeed())
+			nodeConfig.validateNotDeployed(time.Minute)
+			validateOperatorLogError("missing falcon_api configuration")
 		})
 	})
 })
