@@ -3,10 +3,10 @@ package falcon
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -194,7 +194,7 @@ func (r *FalconDeploymentReconciler) reconcileAdmissionController(ctx context.Co
 			return err
 		}
 
-		if !reflect.DeepEqual(newFalconAdmission.Spec, existingFalconAdmission.Spec) {
+		if !equality.Semantic.DeepEqual(newFalconAdmission.Spec, existingFalconAdmission.Spec) {
 			existingFalconAdmission.Spec = newFalconAdmission.Spec
 			updated = true
 		}
@@ -259,7 +259,7 @@ func (r *FalconDeploymentReconciler) reconcileNodeSensor(ctx context.Context, lo
 			return err
 		}
 
-		if !reflect.DeepEqual(newNodeSensor.Spec, existingNodeSensor.Spec) {
+		if !equality.Semantic.DeepEqual(newNodeSensor.Spec, existingNodeSensor.Spec) {
 			existingNodeSensor.Spec = newNodeSensor.Spec
 			updated = true
 		}
@@ -324,7 +324,7 @@ func (r *FalconDeploymentReconciler) reconcileImageAnalyzer(ctx context.Context,
 			return err
 		}
 
-		if !reflect.DeepEqual(newImageAnalyzer.Spec, existingImageAnalyzer.Spec) {
+		if !equality.Semantic.DeepEqual(newImageAnalyzer.Spec, existingImageAnalyzer.Spec) {
 			existingImageAnalyzer.Spec = newImageAnalyzer.Spec
 			updated = true
 		}
@@ -390,7 +390,7 @@ func (r *FalconDeploymentReconciler) reconcileContainerSensor(ctx context.Contex
 			return err
 		}
 
-		if !reflect.DeepEqual(newContainerSensor.Spec, existingContainerSensor.Spec) {
+		if !equality.Semantic.DeepEqual(newContainerSensor.Spec, existingContainerSensor.Spec) {
 			existingContainerSensor.Spec = newContainerSensor.Spec
 			updated = true
 		}
