@@ -9,13 +9,15 @@ Falcon Operator introduces the FalconNodeSensor Custom Resource (CR) to the clus
 
 ### Version Support Matrix
 
-| Operator Version | Sensor Version | Notes                                                                                |
-| ---------------- | -------------- | ------------------------------------------------------------------------------------ |
-| v1.13.0          | >= 7.35        | —                                                                                    |
-| v1.12.1          | >= 7.35        | Added Falcon Data Protection for Cloud support for self-managed Kubernetes clusters. |
-| v1.11.0          | >= 7.31        | —                                                                                    |
-| v1.10.0          | >= 7.31        | —                                                                                    |
-| v1.9.0           | >= 7.31        | Added unified falcon-sensor image path support (non-regionalized).                   |
+| Operator Version | Sensor Version  | Notes                                                                                |
+|------------------|-----------------|--------------------------------------------------------------------------------------|
+| v1.15.0          | >= 7.40         | —                                                                                    |
+| v1.14.0          | >= 7.40         | Deprecated node backend option. Added new CrowdStrike config volume.                 |
+| v1.13.0          | >= 7.35, < 7.40 | —                                                                                    |
+| v1.12.1          | >= 7.35, < 7.40 | Added Falcon Data Protection for Cloud support for self-managed Kubernetes clusters. |
+| v1.11.0          | >= 7.31, < 7.40 | —                                                                                    |
+| v1.10.0          | >= 7.31, < 7.40 | —                                                                                    |
+| v1.9.0           | >= 7.31, < 7.40 | Added unified falcon-sensor image path support (non-regionalized).                   |
 
 ### FalconNodeSensor CR Configuration using CrowdStrike API Keys
 
