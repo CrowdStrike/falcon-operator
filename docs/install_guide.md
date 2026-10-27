@@ -132,6 +132,51 @@ After changing the log level, the operator pod will need to be restarted for the
 kubectl rollout restart deploy/falcon-operator-controller-manager -n falcon-operator
 ```
 
+#### Forcing OpenShift Mode
+
+By default, the operator automatically detects whether it is running on OpenShift by checking for the `image.openshift.io/v1` API. This detection is best-effort — during cluster restarts or when controllers start in an unpredictable order, the API check may fail even on a valid OpenShift cluster. In these cases, OpenShift mode can be forced explicitly using the `--openshift` flag.
+
+> [!NOTE]
+> The Red Hat certified OpenShift operator sets `--openshift` by default in its manifest. This section applies to installations using the non-OLM script or the OLM bundle.
+
+> [!NOTE]
+> When `--openshift` is forced but the ImageStream API (`image.openshift.io/v1`) is unavailable on the cluster, the operator will still start but ImageStream caching will be disabled and a warning will be logged.
+
+For **non-OLM installations**, edit the `deploy/falcon-operator.yaml` file:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        args:
+          - --leader-elect
+          - --openshift
+```
+
+For **OLM bundle installations**, edit the ClusterServiceVersion file:
+
+```yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+spec:
+  install:
+    spec:
+      deployments:
+      - name: falcon-operator-controller-manager
+        spec:
+          template:
+            spec:
+              containers:
+              - name: manager
+                args:
+                  - --leader-elect
+                  - --openshift
+```
+
 ### Operator Issues
 
 #### Resources stuck in PodInitializing state indefinitely

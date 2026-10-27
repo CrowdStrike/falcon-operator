@@ -20,6 +20,7 @@ import (
 	"k8s.io/client-go/discovery"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -57,6 +58,8 @@ import (
 const defaultSensorAutoUpdateInterval = time.Hour * 24
 const defaultLeaseDuration = time.Second * 30
 const defaultRenewDeadline = time.Second * 20
+const imageStreamRetries = 5
+const imageStreamRetryDelay = 5 * time.Second
 
 var (
 	scheme            = runtime.NewScheme()
@@ -128,6 +131,7 @@ func main() {
 	var sensorAutoUpdateInterval time.Duration
 	var leaseDuration time.Duration
 	var renewDeadline time.Duration
+	var openshiftFlag bool
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -145,6 +149,7 @@ func main() {
 	flag.DurationVar(&sensorAutoUpdateInterval, "sensor-auto-update-interval", defaultSensorAutoUpdateInterval, "The rate at which the Falcon API is queried for new sensor versions")
 	flag.DurationVar(&leaseDuration, "lease-duration", defaultLeaseDuration, "The duration that non-leader candidates will wait to force acquire leadership.")
 	flag.DurationVar(&renewDeadline, "renew-deadline", defaultRenewDeadline, "the duration that the acting controlplane will retry refreshing leadership before giving up.")
+	flag.BoolVar(&openshiftFlag, "openshift", false, "If set, the operator will run in OpenShift mode. If not set, OpenShift is auto-detected.")
 
 	// Openshift does not support persisting command line arguments when deploying the operator.
 	// The ARGS env var must be used instead if operator deployment options are updated.
@@ -188,19 +193,37 @@ func main() {
 		os.Exit(1)
 	}
 
-	openShift := isOpenShift(dc)
+	var imageStreamAvailable bool
+	if openshiftFlag {
+		imageStreamAvailable = waitForImageStream(dc)
+	} else {
+		var err error
+		imageStreamAvailable, err = isImageStreamAvailable(dc)
+		if err != nil && !kerrors.IsNotFound(err) {
+			setupLog.Error(err, "unexpected error checking ImageStream API availability")
+		}
+	}
+	openShift := openshiftFlag || imageStreamAvailable
 
 	if openShift {
 		environment = "OpenShift"
 
-		setupLog.Info(fmt.Sprintf("openshift api is available. cluster is running %s", environment))
+		if openshiftFlag {
+			setupLog.Info("--openshift flag is set, forcing OpenShift mode")
+		} else {
+			setupLog.Info("openshift api is available, cluster is running OpenShift")
+		}
 
 		if !strings.Contains(version.Get(), "certified") {
 			setupLog.V(1).Info("WARNING: this operator is not certified for OpenShift. Please install and use the certified operator for proper OpenShift support.")
 		}
 
-		requiredCacheObjs[&imagev1.ImageStream{}] = cache.ByObject{
-			Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
+		if imageStreamAvailable {
+			requiredCacheObjs[&imagev1.ImageStream{}] = cache.ByObject{
+				Label: labels.SelectorFromSet(labels.Set{common.FalconProviderKey: common.FalconProviderValue}),
+			}
+		} else {
+			setupLog.Info("WARNING: running in OpenShift mode but ImageStream API (image.openshift.io/v1) is unavailable; ImageStream caching will be disabled")
 		}
 	} else {
 		setupLog.Info(fmt.Sprintf("openshift api is not available. cluster is running %s", environment))
@@ -359,9 +382,29 @@ func main() {
 	}
 }
 
-func isOpenShift(client discovery.DiscoveryInterface) bool {
+func isImageStreamAvailable(client discovery.DiscoveryInterface) (bool, error) {
 	_, err := client.ServerResourcesForGroupVersion("image.openshift.io/v1")
-	return err == nil
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func waitForImageStream(dc discovery.DiscoveryInterface) bool {
+	for i := 1; i <= imageStreamRetries; i++ {
+		available, err := isImageStreamAvailable(dc)
+		if available {
+			return true
+		}
+		if err != nil && !kerrors.IsNotFound(err) {
+			setupLog.Error(err, fmt.Sprintf("unexpected error checking ImageStream API availability (%d/%d)", i, imageStreamRetries))
+		}
+		if i < imageStreamRetries {
+			setupLog.Info(fmt.Sprintf("ImageStream API not yet available, retrying (%d/%d)...", i, imageStreamRetries))
+			time.Sleep(imageStreamRetryDelay)
+		}
+	}
+	return false
 }
 
 func isCertManagerInstalled(client discovery.DiscoveryInterface) (bool, error) {
