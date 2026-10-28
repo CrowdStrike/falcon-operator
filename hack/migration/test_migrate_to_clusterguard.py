@@ -15,7 +15,7 @@ from ruamel.yaml.comments import CommentedMap
 sys.path.insert(0, os.path.dirname(__file__))
 from migrate_to_clusterguard import (
     migrate, migrate_node_sensor, migrate_admission, migrate_image_analyzer,
-    load_files, assemble, apply_overrides, main,
+    load_files, assemble, apply_overrides, main, _peek_ac_iar_defaults,
 )
 
 
@@ -101,14 +101,40 @@ def test_node_sensor_install_namespace_promoted():
     assert spec["falconClusterGuard"]["installNamespace"] == "falcon-system"
 
 
-def test_node_sensor_falcon_api_promoted():
+def test_node_sensor_falcon_api_moved_to_fd_top_level():
+    """The FalconDeployment controller passes its own falcon_api to FCG, so it must not be under falconClusterGuard."""
     spec, _ = run("""\
   falconNodeSensor:
     falcon_api:
       client_id: abc
       client_secret: xyz
 """)
-    assert spec["falconClusterGuard"]["falcon_api"]["client_id"] == "abc"
+    assert spec["falcon_api"]["client_id"] == "abc"
+    assert "falcon_api" not in spec["falconClusterGuard"]
+
+
+def test_fd_falcon_api_wins_over_sub_spec_with_warning():
+    spec, warnings = run("""\
+  falcon_api:
+    client_id: from-fd
+  falconNodeSensor:
+    falcon_api:
+      client_id: from-node
+""")
+    assert spec["falcon_api"]["client_id"] == "from-fd"
+    assert "falcon_api" not in spec["falconClusterGuard"]
+    assert any("falconNodeSensor.falcon_api was not copied" in w for w in warnings)
+
+
+def test_fd_falcon_api_matching_sub_spec_no_warning():
+    _, warnings = run("""\
+  falcon_api:
+    client_id: same
+  falconNodeSensor:
+    falcon_api:
+      client_id: same
+""")
+    assert not any("falcon_api" in w for w in warnings)
 
 
 def test_node_sensor_falcon_promoted():
@@ -120,24 +146,51 @@ def test_node_sensor_falcon_promoted():
     assert spec["falconClusterGuard"]["falcon"]["cid"] == "ABCD-1"
 
 
-def test_node_sensor_falcon_secret_promoted():
+def test_node_sensor_falcon_cloud_stripped_with_warning():
+    """FalconNodeSensor's falcon accepts cloud; FalconClusterGuard's falcon rejects it."""
+    spec, warnings = run("""\
+  falconNodeSensor:
+    falcon:
+      cid: ABCD-1
+      cloud: us-1
+""")
+    assert spec["falconClusterGuard"]["falcon"]["cid"] == "ABCD-1"
+    assert "cloud" not in spec["falconClusterGuard"]["falcon"]
+    assert any("falcon.cloud" in w and "cloud_region" in w for w in warnings)
+
+
+def test_node_sensor_falcon_secret_moved_to_fd_top_level():
     spec, _ = run("""\
   falconNodeSensor:
     falconSecret:
       enabled: true
 """)
-    assert spec["falconClusterGuard"]["falconSecret"]["enabled"] is True
+    assert spec["falconSecret"]["enabled"] is True
+    assert "falconSecret" not in spec["falconClusterGuard"]
 
 
 # ── node sensor: node.* fields ────────────────────────────────────────────────
 
-def test_node_image_promoted_to_fcg():
-    spec, _ = run("""\
+def test_node_image_skipped_with_warning():
+    """node.image is a falcon-sensor image; FCG runs every component from one Cluster Guard image."""
+    spec, warnings = run("""\
   falconNodeSensor:
     node:
       image: my-registry/falcon:latest
 """)
-    assert spec["falconClusterGuard"]["image"] == "my-registry/falcon:latest"
+    assert "image" not in spec["falconClusterGuard"]
+    assert any("falconNodeSensor.node.image" in w and "--fcg-image-override" in w for w in warnings)
+
+
+def test_node_version_skipped_with_warning():
+    spec, warnings = run("""\
+  falconNodeSensor:
+    node:
+      version: "7.10"
+""")
+    assert "version" not in spec["falconClusterGuard"]
+    assert "version" not in spec["falconClusterGuard"]["nodeSensor"]
+    assert any("falconNodeSensor.node.version" in w for w in warnings)
 
 
 def test_node_image_pull_policy_promoted_to_fcg():
@@ -302,21 +355,33 @@ def test_admission_install_namespace_promoted():
     assert spec["falconClusterGuard"]["installNamespace"] == "falcon-kac"
 
 
-def test_admission_falcon_api_promoted():
+def test_admission_falcon_api_moved_to_fd_top_level():
     spec, _ = run("""\
   falconAdmission:
     falcon_api:
       client_id: def
 """)
-    assert spec["falconClusterGuard"]["falcon_api"]["client_id"] == "def"
+    assert spec["falcon_api"]["client_id"] == "def"
+    assert "falcon_api" not in spec["falconClusterGuard"]
 
 
-def test_admission_image_promoted():
-    spec, _ = run("""\
+def test_admission_image_skipped_with_warning():
+    """falconAdmission.image is a falcon-kac image; FCG runs every component from one Cluster Guard image."""
+    spec, warnings = run("""\
   falconAdmission:
     image: my-registry/kac:latest
 """)
-    assert spec["falconClusterGuard"]["image"] == "my-registry/kac:latest"
+    assert "image" not in spec["falconClusterGuard"]
+    assert any("falconAdmission.image" in w and "--fcg-image-override" in w for w in warnings)
+
+
+def test_admission_version_skipped_with_warning():
+    spec, warnings = run("""\
+  falconAdmission:
+    version: "7.20"
+""")
+    assert "version" not in spec["falconClusterGuard"]
+    assert any("falconAdmission.version" in w for w in warnings)
 
 
 def test_admission_registry_crowdstrike_stays_crowdstrike():
@@ -337,8 +402,8 @@ def test_admission_registry_acr_mapped_to_private():
       acr_name: my-acr
 """)
     assert spec["falconClusterGuard"]["registry"]["type"] == "private"
-    assert any("acr" in w and "mapped to 'private'" in w for w in warnings)
-    assert any("acr_name" in w for w in warnings)
+    assert any("falconAdmission.registry.type 'acr'" in w and "mapped to 'private'" in w for w in warnings)
+    assert any("falconAdmission.registry.acr_name" in w for w in warnings)
 
 
 def test_admission_registry_ecr_mapped_to_private():
@@ -423,13 +488,33 @@ def test_admission_registry_not_overwritten_by_admission():
     assert any("already set" in x for x in w)
 
 
-def test_admission_resourcequota_skipped_with_warning():
-    _, warnings = run("""\
+def test_admission_resourcequota_pods_mapped_to_int():
+    spec, warnings = run("""\
   falconAdmission:
     resourcequota:
-      pods: "2"
+      pods: "5"
 """)
-    assert any("resourcequota" in w for w in warnings)
+    assert spec["falconClusterGuard"]["controller"]["resourceQuotaPods"] == 5
+    assert not any("resourcequota" in w for w in warnings)
+
+
+def test_admission_resourcequota_pods_not_integer_skipped_with_warning():
+    spec, warnings = run("""\
+  falconAdmission:
+    resourcequota:
+      pods: 5k
+""")
+    assert "resourceQuotaPods" not in spec["falconClusterGuard"].get("controller", {})
+    assert any("resourcequota.pods" in w and "not an integer" in w for w in warnings)
+
+
+def test_admission_resourcequota_empty_ignored():
+    spec, warnings = run("""\
+  falconAdmission:
+    resourcequota: {}
+""")
+    assert "resourceQuotaPods" not in spec["falconClusterGuard"].get("controller", {})
+    assert not any("resourcequota" in w for w in warnings)
 
 
 def test_admission_cluster_name_in_admission_config():
@@ -596,6 +681,81 @@ def test_admission_config_falcon_image_analyzer_namespace_skipped():
     assert "falconImageAnalyzerNamespace" not in spec["falconClusterGuard"].get("controller", {})
 
 
+def test_admission_config_deploy_watcher_false_disables_watcher_features():
+    """deployWatcher: false turns off every watcher feature in FalconAdmission, even explicitly enabled ones."""
+    spec, warnings = run("""\
+  falconAdmission:
+    admissionConfig:
+      deployWatcher: false
+      watcherEnabled: true
+""")
+    ac = spec["falconClusterGuard"]["controller"]
+    assert "deployWatcher" not in ac
+    assert ac["watcherEnabled"] is False
+    assert ac["snapshotsEnabled"] is False
+    assert ac["configMapWatcherEnabled"] is False
+    assert any("deployWatcher" in w for w in warnings)
+
+
+def test_admission_config_deploy_watcher_true_dropped_silently():
+    spec, warnings = run("""\
+  falconAdmission:
+    admissionConfig:
+      deployWatcher: true
+""")
+    ac = spec["falconClusterGuard"]["controller"]
+    assert "deployWatcher" not in ac
+    assert "watcherEnabled" not in ac
+    assert not any("deployWatcher" in w for w in warnings)
+
+
+# ── admission: admissionControlEnabled default ───────────────────────────────
+
+def test_admission_deployed_sets_admission_control_enabled():
+    """FalconAdmission defaults admission control on; FCG defaults it off, so the migration sets it."""
+    spec, _ = run("""\
+  deployAdmissionController: true
+  falconAdmission:
+    installNamespace: falcon-kac
+""")
+    assert spec["falconClusterGuard"]["controller"]["admissionControlEnabled"] is True
+
+
+def test_admission_deployed_without_sub_spec_sets_admission_control_enabled():
+    spec, _ = run("""\
+  deployAdmissionController: true
+""")
+    assert spec["falconClusterGuard"]["controller"]["admissionControlEnabled"] is True
+
+
+def test_admission_deployed_keeps_explicit_admission_control_disabled():
+    spec, _ = run("""\
+  deployAdmissionController: true
+  falconAdmission:
+    admissionConfig:
+      admissionControlEnabled: false
+""")
+    assert spec["falconClusterGuard"]["controller"]["admissionControlEnabled"] is False
+
+
+def test_admission_not_deployed_leaves_admission_control_unset():
+    spec, _ = run("""\
+  deployAdmissionController: false
+  falconAdmission:
+    installNamespace: falcon-kac
+""")
+    assert "admissionControlEnabled" not in spec["falconClusterGuard"].get("controller", {})
+
+
+def test_node_only_leaves_admission_control_unset():
+    spec, _ = run("""\
+  deployNodeSensor: true
+  falconNodeSensor:
+    installNamespace: falcon-system
+""")
+    assert "controller" not in spec["falconClusterGuard"]
+
+
 def test_admission_config_replicas():
     spec, _ = run("""\
   falconAdmission:
@@ -698,7 +858,7 @@ def test_node_sensor_wins_install_namespace_conflict():
 
 
 def test_node_sensor_wins_falcon_api_conflict():
-    spec, _ = run("""\
+    spec, warnings = run("""\
   falconNodeSensor:
     falcon_api:
       client_id: from-node
@@ -706,18 +866,23 @@ def test_node_sensor_wins_falcon_api_conflict():
     falcon_api:
       client_id: from-admission
 """)
-    assert spec["falconClusterGuard"]["falcon_api"]["client_id"] == "from-node"
+    assert spec["falcon_api"]["client_id"] == "from-node"
+    assert "falcon_api" not in spec["falconClusterGuard"]
+    assert any("falconAdmission.falcon_api was not copied" in w for w in warnings)
 
 
-def test_node_sensor_wins_image_conflict():
-    spec, _ = run("""\
+def test_component_images_never_set_fcg_image():
+    spec, warnings = run("""\
   falconNodeSensor:
     node:
       image: node-image:1.0
   falconAdmission:
     image: admission-image:1.0
+  falconImageAnalyzer:
+    image: iar-image:1.0
 """)
-    assert spec["falconClusterGuard"]["image"] == "node-image:1.0"
+    assert "image" not in spec["falconClusterGuard"]
+    assert sum(".image was skipped" in w for w in warnings) == 3
 
 
 # ── load_files ────────────────────────────────────────────────────────────────
@@ -884,6 +1049,7 @@ def test_assemble_fd_shared_field_wins_over_crd():
     warnings = []
     result = assemble(fd_doc, crs, "falcon", warnings)
     assert result["spec"]["falcon_api"]["client_id"] == "from-fd"
+    assert "falcon_api" not in result["spec"]["falconClusterGuard"]
 
 
 def test_assemble_no_fd_creates_from_crds():
@@ -941,9 +1107,9 @@ def test_fcg_image_override_sets_image_and_private_registry():
     assert fcg["registry"]["type"] == "private"
 
 
-def test_fcg_image_override_replaces_migrated_image():
-    fd_doc = _make_fd_doc("")
-    crs = {"FalconNodeSensor": _make_cr_spec("node:\n  image: old-image:1.0\ninstallNamespace: ns")}
+def test_fcg_image_override_replaces_existing_image():
+    fd_doc = _make_fd_doc("  falconClusterGuard:\n    image: old-image:1.0")
+    crs = {"FalconNodeSensor": _make_cr_spec("installNamespace: ns")}
     warnings = []
     result = assemble(fd_doc, crs, "falcon", warnings)
     apply_overrides(result, fcg_image_override="new-image:2.0", fcg_image_pull_policy=None)
@@ -952,8 +1118,8 @@ def test_fcg_image_override_replaces_migrated_image():
 
 
 def test_no_fcg_image_override_leaves_image_untouched():
-    fd_doc = _make_fd_doc("")
-    crs = {"FalconNodeSensor": _make_cr_spec("node:\n  image: original:1.0\ninstallNamespace: ns")}
+    fd_doc = _make_fd_doc("  falconClusterGuard:\n    image: original:1.0")
+    crs = {"FalconNodeSensor": _make_cr_spec("installNamespace: ns")}
     warnings = []
     result = assemble(fd_doc, crs, "falcon", warnings)
     apply_overrides(result, fcg_image_override=None, fcg_image_pull_policy=None)
@@ -1082,14 +1248,15 @@ def test_image_analyzer_install_namespace_promoted():
     assert spec["falconClusterGuard"]["installNamespace"] == "falcon-iar"
 
 
-def test_image_analyzer_falcon_api_promoted():
+def test_image_analyzer_falcon_api_moved_to_fd_top_level():
     spec, _ = _run_with_iar(
         "  deployImageAnalyzer: true\n"
         "  falconImageAnalyzer:\n"
         "    falcon_api:\n"
         "      client_id: iar-client\n"
     )
-    assert spec["falconClusterGuard"]["falcon_api"]["client_id"] == "iar-client"
+    assert spec["falcon_api"]["client_id"] == "iar-client"
+    assert "falcon_api" not in spec["falconClusterGuard"]
 
 
 def test_image_analyzer_falcon_api_does_not_overwrite_node_sensor():
@@ -1103,7 +1270,7 @@ def test_image_analyzer_falcon_api_does_not_overwrite_node_sensor():
         "    falcon_api:\n"
         "      client_id: iar-client\n"
     )
-    assert spec["falconClusterGuard"]["falcon_api"]["client_id"] == "node-client"
+    assert spec["falcon_api"]["client_id"] == "node-client"
 
 
 def test_image_analyzer_image_skipped_with_warning():
@@ -1167,7 +1334,87 @@ def test_image_analyzer_registry_ecr_mapped_to_private():
         "      type: ecr\n"
     )
     assert spec["falconClusterGuard"]["registry"]["type"] == "private"
-    assert any("ecr" in w and "mapped to 'private'" in w for w in warnings)
+    assert any("falconImageAnalyzer.registry.type 'ecr'" in w and "mapped to 'private'" in w for w in warnings)
+
+
+def test_image_analyzer_registry_already_set_warning_names_image_analyzer():
+    _, warnings = _run_with_iar(
+        "  deployAdmissionController: true\n"
+        "  falconAdmission:\n"
+        "    registry:\n"
+        "      type: crowdstrike\n"
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    registry:\n"
+        "      type: ecr\n"
+    )
+    assert any(w.startswith("falconImageAnalyzer.registry was not copied") for w in warnings)
+
+
+def test_image_analyzer_falcon_not_copied():
+    """FalconImageAnalyzerSpec has no falcon field; nothing should be promoted from it."""
+    spec, _ = _run_with_iar(
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    falcon:\n"
+        "      cid: ABCD-1\n"
+    )
+    assert "falcon" not in spec["falconClusterGuard"]
+
+
+# FalconDeployment spec.registry fallback
+
+def test_fd_registry_applied_when_admission_deployed():
+    spec, warnings = run("""\
+  registry:
+    type: ecr
+    tls:
+      insecure_skip_verify: true
+  deployAdmissionController: true
+""")
+    fcg = spec["falconClusterGuard"]
+    assert fcg["registry"]["type"] == "private"
+    assert fcg["registry"]["tls"]["insecure_skip_verify"] is True
+    assert spec["registry"]["type"] == "ecr"
+    assert any("FalconDeployment spec.registry.type 'ecr'" in w for w in warnings)
+
+
+def test_fd_registry_applied_when_image_analyzer_deployed():
+    spec, _ = _run_with_iar(
+        "  registry:\n"
+        "    type: crowdstrike\n"
+        "  deployImageAnalyzer: true\n"
+        "  falconImageAnalyzer:\n"
+        "    installNamespace: ns\n"
+    )
+    assert spec["falconClusterGuard"]["registry"]["type"] == "crowdstrike"
+
+
+def test_fd_registry_component_registry_wins():
+    spec, warnings = run("""\
+  registry:
+    type: ecr
+  deployAdmissionController: true
+  falconAdmission:
+    registry:
+      type: crowdstrike
+""")
+    assert spec["falconClusterGuard"]["registry"]["type"] == "crowdstrike"
+    assert not any("FalconDeployment spec.registry" in w for w in warnings)
+
+
+def test_fd_registry_not_applied_for_node_sensor_only():
+    """The node sensor never used spec.registry, so FCG keeps its default registry."""
+    spec, warnings = run("""\
+  registry:
+    type: ecr
+  deployNodeSensor: true
+  falconNodeSensor:
+    installNamespace: falcon-system
+""")
+    assert "registry" not in spec["falconClusterGuard"]
+    assert spec["registry"]["type"] == "ecr"
+    assert not any("registry" in w for w in warnings)
 
 
 # migrate_image_analyzer: imageAnalyzerConfig sub-fields
@@ -1358,6 +1605,40 @@ def test_assemble_standalone_iar_deploy_flag_false_disables_enabled():
     assert result["spec"]["falconClusterGuard"].get("imageAnalyzer", {}).get("enabled") is not True
 
 
+# ── wizard defaults ──────────────────────────────────────────────────────────
+
+def test_peek_ac_default_false_for_node_sensor_only(tmp_path):
+    p = _write_cr_file(tmp_path, "node.yaml", "FalconNodeSensor", "installNamespace: ns")
+    ac_default, _, _, _ = _peek_ac_iar_defaults([str(p)])
+    assert ac_default is False
+
+
+def test_peek_ac_default_true_for_standalone_admission(tmp_path):
+    p = _write_cr_file(tmp_path, "kac.yaml", "FalconAdmission", "installNamespace: falcon-kac")
+    ac_default, _, _, _ = _peek_ac_iar_defaults([str(p)])
+    assert ac_default is True
+
+
+def test_peek_ac_default_follows_admission_config(tmp_path):
+    p = _write_cr_file(tmp_path, "kac.yaml", "FalconAdmission",
+                       "admissionConfig:\n  admissionControlEnabled: false")
+    ac_default, _, _, _ = _peek_ac_iar_defaults([str(p)])
+    assert ac_default is False
+
+
+def test_peek_ac_default_true_for_fd_with_admission_deployed(tmp_path):
+    p = _write_cr_file(tmp_path, "fd.yaml", "FalconDeployment", "deployAdmissionController: true")
+    ac_default, _, _, _ = _peek_ac_iar_defaults([str(p)])
+    assert ac_default is True
+
+
+def test_peek_ac_default_false_for_fd_without_admission(tmp_path):
+    p = _write_cr_file(tmp_path, "fd.yaml", "FalconDeployment",
+                       "deployAdmissionController: false\nfalconAdmission:\n  installNamespace: falcon-kac")
+    ac_default, _, _, _ = _peek_ac_iar_defaults([str(p)])
+    assert ac_default is False
+
+
 # ── main() ───────────────────────────────────────────────────────────────────
 
 def _write_cr_file(tmp_path, filename, kind, spec_yaml=""):
@@ -1456,7 +1737,8 @@ def test_e2e_scenario1_crds_only():
     assert result["spec"]["deployNodeSensor"] is False
     assert result["spec"]["deployAdmissionController"] is False
     assert fcg["installNamespace"] == "falcon-system"
-    assert fcg["falcon_api"]["client_id"] == "abc"
+    assert result["spec"]["falcon_api"]["client_id"] == "abc"
+    assert "falcon_api" not in fcg
     assert fcg["nodeSensor"]["backend"] == "bpf"
     assert fcg["controller"]["failurePolicy"] == "Ignore"
     assert fcg["controller"]["servicePort"] == 8443
@@ -1481,9 +1763,12 @@ def test_e2e_scenario2_fd_only():
     result = assemble(fd_doc, {}, "falcon", warnings)
     fcg = result["spec"]["falconClusterGuard"]
     assert result["spec"]["deployClusterGuard"] is True
+    assert result["spec"]["falcon_api"]["client_id"] == "from-fd"
+    assert "falcon_api" not in fcg
     assert fcg["installNamespace"] == "falcon-system"
     assert fcg["nodeSensor"]["backend"] == "bpf"
     assert fcg["controller"]["failurePolicy"] == "Ignore"
+    assert fcg["controller"]["admissionControlEnabled"] is True
 
 
 def test_e2e_scenario3_fd_plus_crds_precedence():
@@ -1509,7 +1794,8 @@ def test_e2e_scenario3_fd_plus_crds_precedence():
 
     assert fcg["installNamespace"] == "from-fd"
     assert fcg["nodeSensor"]["backend"] == "bpf"
-    assert fcg["falcon_api"]["client_id"] == "fd-api-key"
+    assert spec["falcon_api"]["client_id"] == "fd-api-key"
+    assert "falcon_api" not in fcg
     assert fcg["controller"]["failurePolicy"] == "Ignore"
     assert spec["falconContainerSensor"]["injector"]["listenPort"] == 4433
     assert spec["deployContainerSensor"] is True

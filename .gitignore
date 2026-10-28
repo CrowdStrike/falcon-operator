@@ -35,6 +35,6 @@ helm-charts/
 *.tgz
 
 # Python artifacts from hack/ migration script and tests
-hack/.venv/
+.venv/
 __pycache__/
 .pytest_cache/

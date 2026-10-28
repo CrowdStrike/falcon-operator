@@ -15,17 +15,23 @@ FalconDeployment always takes precedence:
   - A standalone CRD is only merged when the FD's corresponding deploy* flag is NOT true
   - FD's shared fields (falcon_api, falconSecret) win over standalone CRD values
 
+Shared credentials:
+  falcon_api and falconSecret from any component sub-spec move to the FalconDeployment top level
+  (first-wins: node sensor, then admission, then image analyzer; an FD top-level value always wins).
+  They are never written under falconClusterGuard: the FalconDeployment controller passes its own
+  top-level values to FalconClusterGuard, and a copy there would override them.
+
 Field mapping notes:
   falconNodeSensor:
     installNamespace            -> falconClusterGuard.installNamespace
-    falcon_api                  -> falconClusterGuard.falcon_api  (skipped if already set by admission)
     falcon                      -> falconClusterGuard.falcon      (skipped if already set by admission)
-    falconSecret                -> falconClusterGuard.falconSecret (skipped if already set by admission)
+    falcon.cloud                -> (no equivalent, skipped with warning — use spec.falcon_api.cloud_region)
     node.tolerations            -> falconClusterGuard.nodeSensor.tolerations
     node.nodeAffinity           -> falconClusterGuard.nodeSensor.nodeAffinity
     node.imagePullPolicy        -> falconClusterGuard.imagePullPolicy
-    node.image                  -> falconClusterGuard.image
     node.imagePullSecrets       -> falconClusterGuard.imagePullSecrets
+    node.image                  -> (no equivalent, skipped with warning — FCG uses one shared Cluster Guard image)
+    node.version                -> (no equivalent, skipped with warning)
     node.updateStrategy         -> falconClusterGuard.nodeSensor.updateStrategy
     node.terminationGracePeriod -> falconClusterGuard.nodeSensor.terminationGracePeriod
     node.serviceAccount         -> falconClusterGuard.nodeSensor.serviceAccount
@@ -36,8 +42,7 @@ Field mapping notes:
     node.priorityClass          -> falconClusterGuard.nodeSensor.priorityClass
     node.advanced               -> falconClusterGuard.nodeSensor.advanced
     node.clusterName            -> falconClusterGuard.nodeSensor.clusterName
-    node.version                -> (no equivalent, skipped)
-    internal                    -> (no equivalent, skipped with warning)
+    internal                    -> (no equivalent, skipped with warning — falconClusterGuard.internal only has buildStage)
 
   deployNodeSensor:
     false (or absent)           -> falconClusterGuard.nodeSensor.enabled = false
@@ -45,11 +50,11 @@ Field mapping notes:
 
   falconAdmission:
     installNamespace            -> falconClusterGuard.installNamespace (skipped if already set)
-    falcon_api                  -> falconClusterGuard.falcon_api       (skipped if already set)
     falcon                      -> falconClusterGuard.falcon           (skipped if already set)
-    falconSecret                -> falconClusterGuard.falconSecret     (skipped if already set)
-    image                       -> falconClusterGuard.image            (skipped if already set)
+    image                       -> (no equivalent, skipped with warning — FCG uses one shared Cluster Guard image)
+    version                     -> (no equivalent, skipped with warning)
     registry                    -> falconClusterGuard.registry         (skipped if already set, type differs — verify manually)
+    resourcequota.pods          -> falconClusterGuard.controller.resourceQuotaPods (string -> int; warning if not an integer)
     clusterName                 -> falconClusterGuard.controller.clusterName (if present on FalconAdmission CR spec)
     admissionConfig.serviceAccount         -> falconClusterGuard.controller.serviceAccount
     admissionConfig.servicePort            -> falconClusterGuard.controller.servicePort
@@ -72,17 +77,17 @@ Field mapping notes:
     admissionConfig.resourcesClient          -> falconClusterGuard.controller.resourcesClient
     admissionConfig.resourcesClientNoWebhook -> falconClusterGuard.controller.resourcesClientNoWebhook
     admissionConfig.resourcesWatcher         -> falconClusterGuard.controller.resourcesWatcher
-    admissionConfig.deployWatcher            -> (no equivalent, skipped)
+    admissionConfig.deployWatcher: false     -> falconClusterGuard.controller.{watcherEnabled,snapshotsEnabled,configMapWatcherEnabled} = false
+                                                (with warning — FCG always deploys the watcher container)
     admissionConfig.falconImageAnalyzerNamespace -> (no equivalent, skipped)
-    version                                  -> (no equivalent, skipped)
-    resourcequota                            -> (no equivalent, skipped with warning)
+
+  deployAdmissionController:
+    true (or inferred from sub-spec)  -> falconClusterGuard.controller.admissionControlEnabled = true unless set
+                                         (FalconAdmission defaults admission control on, FalconClusterGuard off)
 
   falconImageAnalyzer:
     installNamespace                     -> falconClusterGuard.installNamespace                   (skipped if already set)
-    falcon_api                           -> falconClusterGuard.falcon_api                         (skipped if already set)
-    falcon                               -> falconClusterGuard.falcon                             (skipped if already set)
-    falconSecret                         -> falconClusterGuard.falconSecret                       (skipped if already set)
-    image                                -> (no equivalent, skipped with warning — FCG uses a single shared image)
+    image                                -> (no equivalent, skipped with warning — FCG uses one shared Cluster Guard image)
     registry                             -> falconClusterGuard.registry                           (skipped if already set, type differs — verify manually)
     version                              -> (no equivalent, skipped with warning)
     nodeAffinity                         -> falconClusterGuard.imageAnalyzer.nodeAffinity
@@ -108,6 +113,10 @@ Field mapping notes:
     true (or inferred from sub-spec)  -> falconClusterGuard.imageAnalyzer.enabled = true; spec.deployImageAnalyzer = false
     false (or absent)                 -> falconClusterGuard.imageAnalyzer.enabled is left unset (defaults to false)
 
+  FalconDeployment spec.registry:
+    -> falconClusterGuard.registry when the admission controller or image analyzer was deployed and neither
+       set its own registry (it was their base registry). spec.registry is kept for the container sensor.
+
 Usage:
   python3 hack/migration/migrate_to_clusterguard.py node-sensor.yaml admission.yaml -o falcon-deployment.yaml
   python3 hack/migration/migrate_to_clusterguard.py falcon-deployment.yaml -o migrated.yaml
@@ -117,6 +126,8 @@ Usage:
   python3 hack/migration/migrate_to_clusterguard.py --interactive
   python3 hack/migration/migrate_to_clusterguard.py -i
 """
+
+from __future__ import annotations
 
 import argparse
 import copy
@@ -142,7 +153,8 @@ _KINDS = {
 }
 
 # Fields promoted to FalconDeployment top level (first-wins among CRDs, FD always wins).
-_SHARED_FIELDS = frozenset(("falcon_api", "falconSecret"))
+# A tuple so that promoted fields land in the output in a stable order.
+_SHARED_FIELDS = ("falcon_api", "falconSecret")
 
 _PULL_POLICIES = ("Always", "IfNotPresent", "Never")
 
@@ -189,15 +201,18 @@ def _copy(src: CommentedMap, src_key: str, dst: CommentedMap, dst_key: str = Non
 _PRIVATE_REGISTRY_TYPES = {"acr", "ecr", "gcr", "openshift"}
 
 
-def _translate_registry(src_registry: CommentedMap, fcg: CommentedMap, warnings: list) -> None:
+def _translate_registry(src_registry: CommentedMap, fcg: CommentedMap, warnings: list, source: str) -> None:
     """Translate RegistrySpec to FalconClusterGuardRegistrySpec.
 
     Old types: crowdstrike, acr, ecr, gcr, openshift  (+ tls, acr_name)
     New types: crowdstrike, private                    (+ tls only)
+
+    source is the path of the registry being translated (e.g. "falconAdmission.registry") and
+    is used in warnings.
     """
     if "registry" in fcg:
         warnings.append(
-            "falconAdmission.registry was not copied because falconClusterGuard.registry is already set"
+            f"{source} was not copied because falconClusterGuard.registry is already set"
         )
         return
 
@@ -209,14 +224,15 @@ def _translate_registry(src_registry: CommentedMap, fcg: CommentedMap, warnings:
     elif old_type in _PRIVATE_REGISTRY_TYPES:
         dst["type"] = "private"
         warnings.append(
-            f"falconAdmission.registry.type '{old_type}' was mapped to 'private'; "
+            f"{source}.type '{old_type}' was mapped to 'private'; "
             "FalconClusterGuard does not manage cloud-specific registries (ACR/ECR/GCR/OpenShift) — "
-            "set spec.image and spec.imagePullSecrets to pull from your registry"
+            "set falconClusterGuard.image (or --fcg-image-override) to a mirrored falcon-clusterguard "
+            "image and falconClusterGuard.imagePullSecrets to pull from your registry"
         )
     elif old_type:
         dst["type"] = "private"
         warnings.append(
-            f"falconAdmission.registry.type '{old_type}' is unrecognized and was mapped to 'private'"
+            f"{source}.type '{old_type}' is unrecognized and was mapped to 'private'"
         )
 
     if src_registry.get("tls"):
@@ -224,18 +240,60 @@ def _translate_registry(src_registry: CommentedMap, fcg: CommentedMap, warnings:
 
     if src_registry.get("acr_name"):
         warnings.append(
-            "falconAdmission.registry.acr_name has no equivalent in FalconClusterGuard and was skipped"
+            f"{source}.acr_name has no equivalent in FalconClusterGuard and was skipped"
         )
 
     fcg["registry"] = dst
 
 
+def _skip_image(src: CommentedMap, path: str, warnings: list) -> None:
+    """Warn about a per-component image or version that FCG cannot carry over.
+
+    FalconClusterGuard runs every component from one falcon-clusterguard image, so a falcon-sensor,
+    falcon-kac or falcon-imageanalyzer image reference is not valid there.
+    """
+    if src.get("image"):
+        warnings.append(
+            f"{path}.image was skipped: FalconClusterGuard runs every component from one Cluster Guard image; "
+            "set falconClusterGuard.image (or --fcg-image-override) to a mirrored falcon-clusterguard image if needed"
+        )
+    if src.get("version"):
+        warnings.append(
+            f"{path}.version was skipped: FalconClusterGuard selects one Cluster Guard image for every component; "
+            "set falconClusterGuard.version if needed"
+        )
+
+
+def _promote_credentials(src: CommentedMap, spec: CommentedMap, path: str, warnings: list) -> None:
+    """Move falcon_api and falconSecret from a component sub-spec to the FalconDeployment top level.
+
+    The FalconDeployment controller passes its own falcon_api and falconSecret to FalconClusterGuard.
+    A copy under falconClusterGuard would override them, including the cloud region the controller
+    resolves, so the credentials are kept only at the top level.
+    """
+    for field in _SHARED_FIELDS:
+        val = src.get(field)
+        if val is None:
+            continue
+        if field not in spec:
+            spec[field] = copy.deepcopy(val)
+        elif spec[field] != val:
+            warnings.append(
+                f"{path}.{field} was not copied because FalconDeployment spec.{field} is already set"
+            )
+
+
 def migrate_node_sensor(node_sensor: CommentedMap, fcg: CommentedMap, warnings: list) -> None:
     # Top-level fields promote to FCG spec
     _copy(node_sensor, "installNamespace", fcg, overwrite=False)
-    _copy(node_sensor, "falcon_api", fcg, overwrite=False)
-    _copy(node_sensor, "falcon", fcg, overwrite=False)
-    _copy(node_sensor, "falconSecret", fcg, overwrite=False)
+    if _copy(node_sensor, "falcon", fcg, overwrite=False):
+        # FalconNodeSensor's falcon also accepts cloud; FalconClusterGuard's falcon does not.
+        if "cloud" in fcg["falcon"]:
+            del fcg["falcon"]["cloud"]
+            warnings.append(
+                "falconNodeSensor.falcon.cloud has no equivalent in FalconClusterGuard.falcon and was skipped "
+                "(set FalconDeployment spec.falcon_api.cloud_region to select the Falcon cloud)"
+            )
 
     if node_sensor.get("internal"):
         warnings.append("falconNodeSensor.internal has no equivalent in FalconClusterGuard and was skipped")
@@ -246,9 +304,10 @@ def migrate_node_sensor(node_sensor: CommentedMap, fcg: CommentedMap, warnings: 
 
     ns = fcg.setdefault("nodeSensor", CommentedMap())
 
+    _skip_image(node, "falconNodeSensor.node", warnings)
+
     # node.* fields that promote to FCG spec level
     _copy(node, "imagePullPolicy", fcg, overwrite=False)
-    _copy(node, "image", fcg, overwrite=False)
     _copy(node, "imagePullSecrets", fcg, overwrite=False)
 
     # node.* fields that stay in nodeSensor
@@ -271,14 +330,24 @@ def migrate_node_sensor(node_sensor: CommentedMap, fcg: CommentedMap, warnings: 
 
 def migrate_admission(admission: CommentedMap, fcg: CommentedMap, warnings: list) -> None:
     # Top-level fields that promote to FCG spec (don't overwrite if node sensor already set them)
-    for field in ("installNamespace", "falcon_api", "falcon", "falconSecret", "image"):
+    for field in ("installNamespace", "falcon"):
         _copy(admission, field, fcg, overwrite=False)
 
-    if admission.get("registry"):
-        _translate_registry(admission["registry"], fcg, warnings)
+    _skip_image(admission, "falconAdmission", warnings)
 
-    if admission.get("resourcequota"):
-        warnings.append("falconAdmission.resourcequota has no equivalent in FalconClusterGuard and was skipped")
+    if admission.get("registry"):
+        _translate_registry(admission["registry"], fcg, warnings, "falconAdmission.registry")
+
+    # Both quotas limit system-cluster-critical pods in the install namespace.
+    pods = (admission.get("resourcequota") or {}).get("pods")
+    if pods is not None:
+        try:
+            fcg.setdefault("controller", CommentedMap())["resourceQuotaPods"] = int(str(pods))
+        except ValueError:
+            warnings.append(
+                f"falconAdmission.resourcequota.pods {str(pods)!r} is not an integer and was skipped "
+                "(set falconClusterGuard.controller.resourceQuotaPods manually)"
+            )
 
     # clusterName lives on FalconAdmissionSpec directly (not in admissionConfig)
     if admission.get("clusterName"):
@@ -290,6 +359,7 @@ def migrate_admission(admission: CommentedMap, fcg: CommentedMap, warnings: list
         return
 
     ac_dst = fcg.setdefault("controller", CommentedMap())
+
 
     # These admissionConfig fields promote to FCG top-level (they don't exist on
     # FalconClusterGuardAdmissionSpec, only on FalconClusterGuardSpec).
@@ -323,24 +393,26 @@ def migrate_admission(admission: CommentedMap, fcg: CommentedMap, warnings: list
     ):
         _copy(ac_src, field, ac_dst)
 
+    # FalconAdmission turns off every watcher feature when the watcher container is not deployed.
+    # FalconClusterGuard always deploys the container, so turn the features off explicitly instead.
+    if ac_src.get("deployWatcher") is False:
+        for field in ("watcherEnabled", "snapshotsEnabled", "configMapWatcherEnabled"):
+            ac_dst[field] = False
+        warnings.append(
+            "falconAdmission.admissionConfig.deployWatcher: false has no equivalent in FalconClusterGuard; "
+            "the Cluster Guard Controller always runs the watcher container, so controller.watcherEnabled, "
+            "snapshotsEnabled and configMapWatcherEnabled were set to false instead"
+        )
+
 
 def migrate_image_analyzer(image_analyzer: CommentedMap, fcg: CommentedMap, warnings: list) -> None:
     # Top-level fields that promote to FCG spec (first-wins, don't overwrite earlier CRDs)
-    for field in ("installNamespace", "falcon_api", "falcon", "falconSecret"):
-        _copy(image_analyzer, field, fcg, overwrite=False)
+    _copy(image_analyzer, "installNamespace", fcg, overwrite=False)
 
-    # The standalone IAR image is not the FCG image; FCG runs all components from one shared image.
-    if image_analyzer.get("image"):
-        warnings.append(
-            "falconImageAnalyzer.image has no equivalent in FalconClusterGuard and was skipped "
-            "(FCG uses a single shared image; set spec.falconClusterGuard.image if needed)"
-        )
+    _skip_image(image_analyzer, "falconImageAnalyzer", warnings)
 
     if image_analyzer.get("registry"):
-        _translate_registry(image_analyzer["registry"], fcg, warnings)
-
-    if image_analyzer.get("version"):
-        warnings.append("falconImageAnalyzer.version has no equivalent in FalconClusterGuard and was skipped")
+        _translate_registry(image_analyzer["registry"], fcg, warnings, "falconImageAnalyzer.registry")
 
     ia_dst = fcg.setdefault("imageAnalyzer", CommentedMap())
 
@@ -376,7 +448,7 @@ def migrate_image_analyzer(image_analyzer: CommentedMap, fcg: CommentedMap, warn
     if iac_src.get("kac"):
         warnings.append(
             "falconImageAnalyzer.imageAnalyzerConfig.kac has no equivalent in FalconClusterGuard "
-            "and was skipped (KAC coordination is managed internally by FCG)"
+            "and was skipped (FalconClusterGuard connects the image analyzer to the Cluster Guard Controller)"
         )
 
 
@@ -503,13 +575,6 @@ def assemble(fd_doc: CommentedMap | None, crs: dict[str, CommentedMap],
     # Run FCG migration
     migrate(fd_doc, warnings)
 
-    # Bridge: copy shared fields into falconClusterGuard if not already there
-    fcg = spec.get("falconClusterGuard")
-    if fcg is not None:
-        for field in _SHARED_FIELDS:
-            if field in spec and field not in fcg:
-                fcg[field] = copy.deepcopy(spec[field])
-
     return fd_doc
 
 
@@ -571,6 +636,9 @@ def migrate(doc: CommentedMap, warnings: list) -> None:
         doc["spec"] = spec
 
     node_sensor_enabled = spec.get("deployNodeSensor") is not False
+    admission_enabled = spec.get("deployAdmissionController") is True or (
+        spec.get("deployAdmissionController") is None and bool(spec.get("falconAdmission"))
+    )
     image_analyzer_enabled = spec.get("deployImageAnalyzer") is True or (
         spec.get("deployImageAnalyzer") is None and bool(spec.get("falconImageAnalyzer"))
     )
@@ -580,6 +648,11 @@ def migrate(doc: CommentedMap, warnings: list) -> None:
     spec["deployImageAnalyzer"] = False
 
     fcg = spec.setdefault("falconClusterGuard", CommentedMap())
+
+    # Credentials stay at the FalconDeployment top level; the controller passes them to FalconClusterGuard.
+    for sub_key in ("falconNodeSensor", "falconAdmission", "falconImageAnalyzer"):
+        if spec.get(sub_key):
+            _promote_credentials(spec[sub_key], spec, sub_key, warnings)
 
     node_sensor = spec.get("falconNodeSensor")
     if node_sensor:
@@ -595,6 +668,11 @@ def migrate(doc: CommentedMap, warnings: list) -> None:
         migrate_admission(admission, fcg, warnings)
         del spec["falconAdmission"]
 
+    # FalconAdmission enables admission control by default; FalconClusterGuard does not.
+    if admission_enabled:
+        ac = fcg.setdefault("controller", CommentedMap())
+        ac.setdefault("admissionControlEnabled", True)
+
     image_analyzer = spec.get("falconImageAnalyzer")
     if image_analyzer:
         migrate_image_analyzer(image_analyzer, fcg, warnings)
@@ -603,6 +681,12 @@ def migrate(doc: CommentedMap, warnings: list) -> None:
     if image_analyzer_enabled:
         ia = fcg.setdefault("imageAnalyzer", CommentedMap())
         ia["enabled"] = True
+
+    # The FalconDeployment registry is the base registry for the admission controller and image analyzer;
+    # their own registry overrides it. The node sensor never used it, so a node-only FalconDeployment keeps
+    # FalconClusterGuard on its default registry. spec.registry itself stays for the container sensor.
+    if spec.get("registry") and "registry" not in fcg and (admission_enabled or image_analyzer_enabled):
+        _translate_registry(spec["registry"], fcg, warnings, "FalconDeployment spec.registry")
 
     # FalconContainerSensor config: keep deployContainerSensor enabled if config exists
     # and it was not explicitly disabled.
@@ -681,7 +765,9 @@ def _peek_ac_iar_defaults(file_paths: list[str]) -> tuple[bool, bool, str, bool]
     values before asking the user to confirm or change it.
     """
     _yaml = YAML()
-    ac_default = True   # admission control on by default (matches old kac default)
+    # FalconAdmission enables admission control by default and FalconClusterGuard does not, so
+    # default to on only when an admission controller is deployed today.
+    ac_default = False
     iar_default = False
     name_default = "falcon"
     name_from_fd = False
@@ -711,17 +797,15 @@ def _peek_ac_iar_defaults(file_paths: list[str]) -> tuple[bool, bool, str, bool]
                           .get("controller") or {}).get("admissionControlEnabled")
                 if fcg_ac is not None:
                     ac_default = bool(fcg_ac)
-                else:
+                elif spec.get("deployAdmissionController") is True:
                     # Pre-migration: read from falconAdmission sub-spec
                     fa_ac = ((spec.get("falconAdmission") or {})
                              .get("admissionConfig") or {}).get("admissionControlEnabled")
-                    if fa_ac is not None:
-                        ac_default = bool(fa_ac)
+                    ac_default = True if fa_ac is None else bool(fa_ac)
 
             elif kind == "FalconAdmission":
                 fa_ac = (spec.get("admissionConfig") or {}).get("admissionControlEnabled")
-                if fa_ac is not None:
-                    ac_default = bool(fa_ac)
+                ac_default = True if fa_ac is None else bool(fa_ac)
 
             elif kind == "FalconImageAnalyzer":
                 iar_default = True
@@ -984,9 +1068,9 @@ def run_wizard(
         print(f"  ✓ {img_label}")
 
     # ------------------------------------------------------------------
-    # Step 5: Admission Controller
+    # Step 5: Admission control
     # ------------------------------------------------------------------
-    print("\n── Step 5: Admission Controller ──")
+    print("\n── Step 5: Admission control ──")
 
     if cli_admission_control is not None:
         admission_control: bool | None = cli_admission_control
@@ -994,7 +1078,7 @@ def run_wizard(
     else:
         ac_prompt_default = "true" if _ac_default else "false"
         print(f"  Current: admissionControlEnabled = {ac_prompt_default}")
-        ac_raw = _prompt("Enable admission controller? (true/false)", default=ac_prompt_default)
+        ac_raw = _prompt("Enable Cluster Guard Controller admission control? (true/false)", default=ac_prompt_default)
         try:
             admission_control = _parse_bool(ac_raw)
         except ValueError:
@@ -1009,17 +1093,17 @@ def run_wizard(
 
     if cli_image_analyzer is not None:
         image_analyzer: bool | None = cli_image_analyzer
-        print(f"  ✓ deployImageAnalyzer = {str(image_analyzer).lower()} (from --image-analyzer flag)")
+        print(f"  ✓ imageAnalyzer.enabled = {str(image_analyzer).lower()} (from --image-analyzer flag)")
     else:
         iar_prompt_default = "true" if _iar_default else "false"
-        print(f"  Current: deployImageAnalyzer = {iar_prompt_default}")
-        iar_raw = _prompt("Deploy Image Analyzer? (true/false)", default=iar_prompt_default)
+        print(f"  Current: imageAnalyzer.enabled = {iar_prompt_default}")
+        iar_raw = _prompt("Enable the image analyzer in FalconClusterGuard? (true/false)", default=iar_prompt_default)
         try:
             image_analyzer = _parse_bool(iar_raw)
         except ValueError:
             print(f"  Invalid value '{iar_raw}' — keeping current ({iar_prompt_default})", file=sys.stderr)
             image_analyzer = _iar_default
-        print(f"  ✓ deployImageAnalyzer = {str(image_analyzer).lower()}")
+        print(f"  ✓ imageAnalyzer.enabled = {str(image_analyzer).lower()}")
 
     print("\n" + "=" * 60)
     return file_paths, output_path, name, fcg_image_override, fcg_image_pull_policy, admission_control, image_analyzer
@@ -1117,7 +1201,7 @@ def main() -> None:
     parser.add_argument("--admission-control", metavar="BOOL",
                         help="Override falconClusterGuard.controller.admissionControlEnabled (true/false)")
     parser.add_argument("--image-analyzer", metavar="BOOL",
-                        help="Override spec.deployImageAnalyzer (true/false)")
+                        help="Override falconClusterGuard.imageAnalyzer.enabled (true/false)")
     args = parser.parse_args()
 
     # Parse bool flags early so errors surface before any work begins
