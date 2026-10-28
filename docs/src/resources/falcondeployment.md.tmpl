@@ -296,7 +296,7 @@ The Falcon Operator will automatically detect these changes and initiate the upg
 
 ## Migrating from NodeSensor/Admission to ClusterGuard
 
-If your existing `FalconDeployment` uses `deployNodeSensor` and/or `deployAdmissionController`, you should migrate to `deployClusterGuard`. FalconClusterGuard combines both components into a single resource with a unified configuration.
+If your existing `FalconDeployment` uses `deployNodeSensor`, `deployAdmissionController`, or `deployImageAnalyzer`, you should migrate to `deployClusterGuard`. FalconClusterGuard combines the node sensor, the Cluster Guard Controller (which replaces the admission controller), and the image analyzer into a single resource with a unified configuration.
 
 ### Automated migration
 
@@ -314,7 +314,7 @@ hack/.venv/bin/python3 hack/migration/migrate_to_clusterguard.py fd.yaml contain
 
 # Override the FCG image and pull policy
 hack/.venv/bin/python3 hack/migration/migrate_to_clusterguard.py fd.yaml \
-  --fcg-image-override my-registry/falcon-cluster-guard:1.0 \
+  --fcg-image-override my-registry/falcon-clusterguard:1.0 \
   --fcg-image-pull-policy Always \
   -o migrated.yaml
 ```
@@ -327,6 +327,9 @@ When a FalconDeployment and standalone CRs are provided together, the FalconDepl
 | `-o, --output PATH` | Write output to this file (default: `falcon-deployment.yaml`) |
 | `--fcg-image-override URI` | Set `falconClusterGuard.image` and `registry.type` to `private` |
 | `--fcg-image-pull-policy POLICY` | Set `falconClusterGuard.imagePullPolicy` (`Always`, `IfNotPresent`, `Never`) |
+| `--admission-control BOOL` | Set `falconClusterGuard.controller.admissionControlEnabled` (`true`/`false`) |
+| `--image-analyzer BOOL` | Set `falconClusterGuard.imageAnalyzer.enabled` (`true`/`false`) |
+| `-i, --interactive` | Run the guided migration wizard (the default when no files are given) |
 
 The script requires a Python virtual environment with `ruamel.yaml`. Create one if it does not exist:
 
@@ -338,19 +341,29 @@ hack/.venv/bin/pip install ruamel.yaml
 ### What the migration does
 
 1. Sets `deployClusterGuard: true`
-2. Sets `deployNodeSensor: false` and `deployAdmissionController: false`
-3. Copies `falconNodeSensor` and `falconAdmission` configuration into the appropriate `falconClusterGuard` fields:
-   - `falconNodeSensor.installNamespace`, `falcon_api`, `falcon`, and `falconSecret` are promoted to `falconClusterGuard` top-level fields
+2. Sets `deployNodeSensor: false`, `deployAdmissionController: false`, and `deployImageAnalyzer: false`
+3. Copies `falconNodeSensor`, `falconAdmission`, and `falconImageAnalyzer` configuration into the appropriate `falconClusterGuard` fields:
+   - `falcon_api` and `falconSecret` are moved to the FalconDeployment's top-level `falcon_api` and `falconSecret`, never under `falconClusterGuard`. The Falcon Operator passes the top-level values to FalconClusterGuard. If the FalconDeployment already sets one, it is kept, and the script warns when a component sets a different value.
+   - `installNamespace` and `falcon` are promoted to `falconClusterGuard` top-level fields. When more than one component sets one of these fields or a credential field, the node sensor wins, then the admission controller, then the image analyzer.
+   - The image pull policy and image pull secrets of each component are promoted to `falconClusterGuard.imagePullPolicy` and `falconClusterGuard.imagePullSecrets`, using the same precedence.
    - `falconNodeSensor.node.*` fields (tolerations, resources, backend, etc.) are mapped to `falconClusterGuard.nodeSensor.*`
-   - `falconAdmission.admissionConfig.*` fields are mapped to `falconClusterGuard.controller.*`
-   - `falconAdmission.image`, `version`, and `registry` are promoted to `falconClusterGuard` top-level fields
+   - `falconAdmission.admissionConfig.*` fields and `falconAdmission.clusterName` are mapped to `falconClusterGuard.controller.*`, and `falconAdmission.resourcequota.pods` is mapped to `falconClusterGuard.controller.resourceQuotaPods`
+   - `falconImageAnalyzer.imageAnalyzerConfig.*`, `nodeAffinity`, and `tolerations` are mapped to `falconClusterGuard.imageAnalyzer.*`
+   - `falconAdmission.registry` or `falconImageAnalyzer.registry` is translated into `falconClusterGuard.registry`. If neither is set, the FalconDeployment's own `registry` is translated instead, but only when the admission controller or image analyzer was deployed. The FalconDeployment's `registry` is kept for the container sensor.
+4. Sets `falconClusterGuard.nodeSensor.enabled: false` if the node sensor was not deployed, and `falconClusterGuard.imageAnalyzer.enabled: true` if the image analyzer was deployed.
+5. Sets `falconClusterGuard.controller.admissionControlEnabled: true` if the admission controller was deployed and the setting was not configured. FalconAdmission enables admission control by default, but FalconClusterGuard does not.
 
 ### Fields that require manual attention
 
 The script warns about fields with no direct equivalent:
+- `falconNodeSensor.node.image`, `falconAdmission.image`, and `falconImageAnalyzer.image` — skipped. FalconClusterGuard runs every component from one Cluster Guard (`falcon-clusterguard`) image, so a component image cannot be reused. To use a mirrored image, set `falconClusterGuard.image` or pass `--fcg-image-override`.
+- `falconNodeSensor.node.version`, `falconAdmission.version`, and `falconImageAnalyzer.version` — skipped. Set `falconClusterGuard.version` to pin the Cluster Guard version.
+- `falconNodeSensor.falcon.cloud` — skipped. FalconClusterGuard has no `falcon.cloud`; set the FalconDeployment's `falcon_api.cloud_region` instead.
 - `falconNodeSensor.internal` — no equivalent in FalconClusterGuard
-- `falconAdmission.resourcequota` — no equivalent in FalconClusterGuard
-- `falconAdmission.registry` — see the registry note below
+- `falconAdmission.resourcequota.pods` — skipped if it is not an integer
+- `falconAdmission.admissionConfig.deployWatcher: false` — the Cluster Guard Controller always runs the watcher container, so the script sets `controller.watcherEnabled`, `snapshotsEnabled`, and `configMapWatcherEnabled` to `false` instead
+- `falconImageAnalyzer.imageAnalyzerConfig.kac` — no equivalent in FalconClusterGuard
+- `registry` types other than `crowdstrike` — see the registry note below
 
 ### Image registry changes
 
@@ -359,11 +372,11 @@ FalconClusterGuard does **not** support operator-managed image mirroring. The pr
 | Registry Type | Description |
 |:---|:---|
 | `crowdstrike` (default) | Pull images directly from the CrowdStrike registry. The operator creates an image pull secret on your behalf. |
-| `private` | Pull images from a private registry you manage. You must set `spec.image` and `spec.imagePullSecrets` yourself. |
+| `private` | Pull images from a private registry you manage. You must set `falconClusterGuard.image` and `falconClusterGuard.imagePullSecrets` yourself. |
 
 The migration script automatically maps `crowdstrike` → `crowdstrike` and `acr`/`ecr`/`gcr`/`openshift` → `private`, with a warning.
 
-If you were relying on operator-managed image mirroring, you will need to mirror the sensor image to your registry yourself before deploying FalconClusterGuard. CrowdStrike provides container image pull scripts for this purpose:
+If you were relying on operator-managed image mirroring, you will need to mirror the Cluster Guard image to your registry yourself before deploying FalconClusterGuard. CrowdStrike provides container image pull scripts for this purpose:
 
 - [falcon-container-sensor-pull](https://github.com/CrowdStrike/falcon-scripts/tree/main/bash/containers/falcon-container-sensor-pull)
 
@@ -402,6 +415,8 @@ spec:
           operator: Exists
           effect: NoSchedule
     controller:
+      # FalconAdmission enabled admission control by default; FalconClusterGuard does not.
+      admissionControlEnabled: true
       failurePolicy: Ignore
 ```
 
