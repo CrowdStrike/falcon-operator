@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // FalconClusterGuardReconciler reconciles a FalconClusterGuard object
@@ -51,9 +50,10 @@ type FalconClusterGuardReconciler struct {
 // SetupWithManager sets up the controller with the Manager.
 func (r *FalconClusterGuardReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	labelPredicate := predicates.CrowdStrikeLabel()
-	generationOrLabel := predicate.Or(predicate.GenerationChangedPredicate{}, labelPredicate)
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&falconv1alpha1.FalconClusterGuard{}, builder.WithPredicates(labelPredicate)).
+		// Every pass writes conditions to the FalconClusterGuard status, so status-only updates are ignored to keep
+		// those writes from triggering another reconcile.
+		For(&falconv1alpha1.FalconClusterGuard{}, builder.WithPredicates(predicates.IgnoreStatusUpdates())).
 		Owns(&corev1.Namespace{}, builder.WithPredicates(labelPredicate)).
 		Owns(&corev1.ConfigMap{}, builder.WithPredicates(labelPredicate)).
 		Owns(&corev1.Secret{}, builder.WithPredicates(labelPredicate)).
@@ -61,8 +61,10 @@ func (r *FalconClusterGuardReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Owns(&corev1.Service{}, builder.WithPredicates(labelPredicate)).
 		Owns(&rbacv1.ClusterRoleBinding{}, builder.WithPredicates(labelPredicate)).
 		Owns(&rbacv1.RoleBinding{}, builder.WithPredicates(labelPredicate)).
-		Owns(&appsv1.Deployment{}, builder.WithPredicates(generationOrLabel)).
-		Owns(&appsv1.DaemonSet{}, builder.WithPredicates(generationOrLabel)).
+		// Workload status changes are reconciled on purpose: the readiness conditions then update as soon as a
+		// rollout progresses, instead of at the next not-ready requeue.
+		Owns(&appsv1.Deployment{}, builder.WithPredicates(labelPredicate)).
+		Owns(&appsv1.DaemonSet{}, builder.WithPredicates(labelPredicate)).
 		Owns(&arv1.ValidatingWebhookConfiguration{}, builder.WithPredicates(labelPredicate)).
 		Complete(r)
 }
@@ -231,7 +233,8 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 			if err := r.Status().Update(ctx, falconClusterGuard); err != nil {
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{}, nil
+			// Status-only updates do not trigger a reconcile, so requeue to continue with the discovered image.
+			return ctrl.Result{RequeueAfter: time.Second}, nil
 		}
 		var err error
 		imageURI, err = image.URI(ctx, r, imgCfg, &falconClusterGuard.Status, falconClusterGuard)
@@ -359,12 +362,23 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{RequeueAfter: commonctrl.WorkloadNotReadyRequeue}, nil
 	}
 
+	// Logged at info level only when the current generation first becomes ready, so later reconciles triggered by
+	// watch events do not repeat it.
+	success := meta.FindStatusCondition(falconClusterGuard.Status.Conditions, falconv1alpha1.ConditionSuccess)
+	wasReady := success != nil && success.Status == metav1.ConditionTrue &&
+		success.ObservedGeneration == falconClusterGuard.GetGeneration()
+
 	if err := commonctrl.StatusUpdate(ctx, r.Client, r.Status(), req, r.log, falconClusterGuard,
 		falconv1alpha1.ConditionSuccess, metav1.ConditionTrue,
 		falconv1alpha1.ReasonInstallSucceeded, "FalconClusterGuard installation completed"); err != nil {
 		return ctrl.Result{}, err
 	}
 
+	if wasReady {
+		r.log.V(1).Info("FalconClusterGuard reconciled", "components", readyConditions)
+	} else {
+		r.log.Info("FalconClusterGuard is ready", "components", readyConditions)
+	}
 	return ctrl.Result{}, nil
 }
 
