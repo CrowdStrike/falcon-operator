@@ -24,7 +24,9 @@ func (a *ClusterGuardController) getResourceQuotaPods() int32 {
 
 func (a *ClusterGuardController) resourceQuota() *corev1.ResourceQuota {
 	pods := strconv.Itoa(int(a.getResourceQuotaPods()))
-	return assets.ResourceQuota(pkgcommon.ClusterGuardControllerResourceQuotaName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardControllerComponentName, pods)
+	rq := assets.ResourceQuota(pkgcommon.ClusterGuardControllerResourceQuotaName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardControllerComponentName, pods)
+	a.withAppLabels(rq.Labels)
+	return rq
 }
 
 func (a *ClusterGuardController) reconcileResourceQuota(ctx context.Context) error {

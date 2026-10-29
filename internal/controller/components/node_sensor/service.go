@@ -18,9 +18,9 @@ import (
 func (n *NodeSensor) proxyService() *corev1.Service {
 	internalTrafficPolicy := corev1.ServiceInternalTrafficPolicyLocal
 	selector := map[string]string{
-		pkgcommon.KubernetesComponentKey: pkgcommon.ClusterGuardNodeSensorComponentName,
+		pkgcommon.FalconComponentKey: pkgcommon.ClusterGuardNodeSensorComponentName,
 	}
-	labels := pkgcommon.CRLabels("service", pkgcommon.ClusterGuardProxyServiceName, pkgcommon.ClusterGuardNodeSensorComponentName)
+	labels := n.withAppLabels(pkgcommon.CRLabels("service", pkgcommon.ClusterGuardProxyServiceName, pkgcommon.ClusterGuardNodeSensorComponentName), pkgcommon.ClusterGuardComponentName)
 
 	return &corev1.Service{
 		TypeMeta: metav1.TypeMeta{

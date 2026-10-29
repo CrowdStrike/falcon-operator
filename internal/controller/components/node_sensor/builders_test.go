@@ -8,6 +8,9 @@ import (
 	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func TestClusterGuardSensorDaemonSetReturnsDS(t *testing.T) {
@@ -1057,14 +1060,30 @@ func TestProxyServiceBuilderInternalTrafficPolicyLocal(t *testing.T) {
 	}
 }
 
-func TestProxyServiceBuilderSelectorUsesComponentLabel(t *testing.T) {
+func TestProxyServiceSelectorMatchesNodeSensorPods(t *testing.T) {
 	n := New(nil, Config{BaseConfig: components.BaseConfig{InstallNamespace: "falcon-clusterguard"}})
-	svc := n.proxyService()
+	selector := labels.SelectorFromSet(n.proxyService().Spec.Selector)
 
-	if svc.Spec.Selector[pkgcommon.KubernetesComponentKey] != pkgcommon.ClusterGuardNodeSensorComponentName {
-		t.Errorf("expected selector %s=%s, got %q",
-			pkgcommon.KubernetesComponentKey, pkgcommon.ClusterGuardNodeSensorComponentName,
-			svc.Spec.Selector[pkgcommon.KubernetesComponentKey])
+	if podLabels := n.daemonSet().Spec.Template.Labels; !selector.Matches(labels.Set(podLabels)) {
+		t.Errorf("proxy Service selector %v does not match node sensor pod labels %v", selector, podLabels)
+	}
+	if podLabels := n.cleanupDaemonSet().Spec.Template.Labels; selector.Matches(labels.Set(podLabels)) {
+		t.Errorf("proxy Service selector %v must not match cleanup pod labels %v", selector, podLabels)
+	}
+}
+
+func TestDaemonSetSelectorsMatchOnlyTheirOwnPods(t *testing.T) {
+	n := New(nil, Config{BaseConfig: components.BaseConfig{InstallNamespace: "falcon-clusterguard"}})
+	sensor, cleanup := n.daemonSet(), n.cleanupDaemonSet()
+	sensorSel := labels.SelectorFromSet(sensor.Spec.Selector.MatchLabels)
+	cleanupSel := labels.SelectorFromSet(cleanup.Spec.Selector.MatchLabels)
+	sensorPods, cleanupPods := labels.Set(sensor.Spec.Template.Labels), labels.Set(cleanup.Spec.Template.Labels)
+
+	if !sensorSel.Matches(sensorPods) || sensorSel.Matches(cleanupPods) {
+		t.Errorf("sensor DaemonSet selector %v must match only sensor pods; sensor=%v cleanup=%v", sensorSel, sensorPods, cleanupPods)
+	}
+	if !cleanupSel.Matches(cleanupPods) || cleanupSel.Matches(sensorPods) {
+		t.Errorf("cleanup DaemonSet selector %v must match only cleanup pods; sensor=%v cleanup=%v", cleanupSel, sensorPods, cleanupPods)
 	}
 }
 
@@ -1224,5 +1243,43 @@ func TestDaemonSetNilDNSConfigNotApplied(t *testing.T) {
 
 	if ds.Spec.Template.Spec.DNSConfig != nil {
 		t.Error("expected nil DNSConfig when not configured")
+	}
+}
+
+func TestNodeSensorResourcesHaveHelmAppLabels(t *testing.T) {
+	n := New(nil, Config{BaseConfig: components.BaseConfig{
+		Request:          ctrl.Request{NamespacedName: types.NamespacedName{Name: "my-fcg"}},
+		InstallNamespace: "falcon-clusterguard",
+	}})
+	ds := n.daemonSet()
+	cleanup := n.cleanupDaemonSet()
+
+	tests := []struct {
+		name    string
+		labels  map[string]string
+		appName string
+	}{
+		{"sensor DaemonSet", ds.Labels, pkgcommon.ClusterGuardComponentName},
+		{"sensor pod template", ds.Spec.Template.Labels, pkgcommon.ClusterGuardComponentName},
+		{"cleanup DaemonSet", cleanup.Labels, pkgcommon.ClusterGuardComponentName + "-node-cleanup"},
+		{"cleanup pod template", cleanup.Spec.Template.Labels, pkgcommon.ClusterGuardComponentName + "-node-cleanup"},
+		{"ConfigMap", n.configMap().Labels, pkgcommon.ClusterGuardComponentName},
+		{"ServiceAccount", n.serviceAccount().Labels, pkgcommon.ClusterGuardComponentName},
+		{"cleanup ServiceAccount", n.cleanupServiceAccount().Labels, pkgcommon.ClusterGuardComponentName},
+		{"ClusterRoleBinding", n.clusterRoleBinding().Labels, pkgcommon.ClusterGuardComponentName},
+		{"proxy Service", n.proxyService().Labels, pkgcommon.ClusterGuardComponentName},
+	}
+	for _, tt := range tests {
+		want := map[string]string{
+			pkgcommon.KubernetesNameKey:      tt.appName,
+			pkgcommon.KubernetesInstanceKey:  "my-fcg",
+			pkgcommon.KubernetesManagedByKey: "falcon-operator",
+			pkgcommon.KubernetesComponentKey: pkgcommon.FalconKernelSensor,
+		}
+		for k, v := range want {
+			if got := tt.labels[k]; got != v {
+				t.Errorf("%s: expected %s=%q, got %q", tt.name, k, v, got)
+			}
+		}
 	}
 }

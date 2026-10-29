@@ -105,6 +105,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 
 	crLabels := pkgcommon.CRLabels("deployment", name, pkgcommon.ClusterGuardComponentName)
 	maps.Copy(crLabels, selectorLabels)
+	a.withAppLabels(crLabels)
 
 	apiServiceName := fmt.Sprintf("%s.%s.svc", pkgcommon.ClusterGuardControllerAPIServiceName, namespace)
 

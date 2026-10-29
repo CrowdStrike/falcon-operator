@@ -28,6 +28,7 @@ func (n *NodeSensor) reconcilePriorityClass(ctx context.Context) error {
 	}
 
 	desired := assets.PriorityClass(name, pc.Value)
+	n.withAppLabels(desired.Labels, pkgcommon.ClusterGuardComponentName)
 
 	existing := &schedulingv1.PriorityClass{}
 	err := pkgcommon.GetNamespacedObject(ctx, n.r, n.r.GetK8sReader(),

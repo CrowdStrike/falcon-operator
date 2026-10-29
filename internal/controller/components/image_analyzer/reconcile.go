@@ -2,6 +2,7 @@ package image_analyzer
 
 import (
 	"context"
+	"maps"
 	"strconv"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -29,6 +30,12 @@ type ImageAnalyzer struct {
 // New returns an ImageAnalyzer ready to reconcile.
 func New(r k8sutils.Reconciler, cfg Config) *ImageAnalyzer {
 	return &ImageAnalyzer{r: r, cfg: cfg}
+}
+
+// withAppLabels adds the Helm chart's image analyzer app.kubernetes.io labels to l.
+func (ia *ImageAnalyzer) withAppLabels(l map[string]string) map[string]string {
+	maps.Copy(l, pkgcommon.AppLabels(pkgcommon.ClusterGuardImageAnalyzerAppName, ia.cfg.Request.Name, pkgcommon.FalconImageAnalyzerComponentName))
+	return l
 }
 
 // Reconcile runs all Image Analyzer reconciliation steps in order.
