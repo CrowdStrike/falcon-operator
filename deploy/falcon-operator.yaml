@@ -2486,11 +2486,12 @@ spec:
                               node sensor DaemonSet.
                             type: boolean
                           port:
-                            description: Port on which the guardian proxy listens.
-                              Required when the guardian proxy is enabled.
+                            description: |-
+                              Port on which the guardian proxy listens. Required when the guardian proxy is enabled.
+                              Must be in the range 40000-49512, matching the port range accepted by the Falcon console.
                             format: int32
-                            maximum: 65535
-                            minimum: 1024
+                            maximum: 49512
+                            minimum: 40000
                             type: integer
                           tlsSecretName:
                             default: falcon-proxy-tls
@@ -8051,11 +8052,12 @@ spec:
                                   the node sensor DaemonSet.
                                 type: boolean
                               port:
-                                description: Port on which the guardian proxy listens.
-                                  Required when the guardian proxy is enabled.
+                                description: |-
+                                  Port on which the guardian proxy listens. Required when the guardian proxy is enabled.
+                                  Must be in the range 40000-49512, matching the port range accepted by the Falcon console.
                                 format: int32
-                                maximum: 65535
-                                minimum: 1024
+                                maximum: 49512
+                                minimum: 40000
                                 type: integer
                               tlsSecretName:
                                 default: falcon-proxy-tls
