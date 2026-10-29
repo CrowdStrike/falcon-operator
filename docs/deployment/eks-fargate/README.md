@@ -4,7 +4,7 @@ This document will guide you through the installation of the Falcon Operator and
 - [FalconClusterGuard](../../resources/clusterguard/README.md) **(Recommended)** with the Falcon Cluster Guard image being pulled from the CrowdStrike container registry. Combines the Falcon Cluster Guard Controller, Falcon Linux Node Sensor, and optional Falcon Image Analyzer into a single resource.
 - [FalconContainer](../../resources/container/README.md) with the Falcon Container image being mirrored from CrowdStrike container registry to ECR (Elastic Container Registry). A new AWS IAM Policy will be created to allow the operator to push to ECR registry.
 - [FalconImageAnalyzer](../../resources/imageanalyzer/README.md) with the Falcon Image Analyzer image being pull from the CrowdStrike container registry.
-- [FalconAdmission](../../resources/admission/README.md) **(Deprecated)** — use FalconClusterGuard instead.
+- [FalconAdmission](../../resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to ECR (Elastic Container Registry). A new AWS IAM Policy will be created to allow the operator to push to ECR registry.
 
 ## Prerequisites
 
@@ -69,10 +69,10 @@ This document will guide you through the installation of the Falcon Operator and
 
 </details>
 
-### Deploying the Falcon Admission Controller (Deprecated)
+### Deploying the Falcon Admission Controller
 
-> [!WARNING]
-> FalconAdmission is deprecated. Use [FalconClusterGuard](#deploying-the-falcon-cluster-guard-recommended) instead.
+> [!NOTE]
+> [FalconClusterGuard](#deploying-the-falcon-cluster-guard-recommended) is recommended for new deployments. Do not deploy a FalconAdmission alongside a FalconClusterGuard.
 
 <details>
   <summary>Click to expand</summary>
@@ -165,7 +165,7 @@ kubectl delete falconcontainers --all
 
 </details>
 
-### Uninstalling the Falcon Admission Controller (Deprecated)
+### Uninstalling the Falcon Admission Controller
 
 <details>
   <summary>Click to expand</summary>

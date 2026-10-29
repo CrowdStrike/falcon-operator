@@ -4,8 +4,8 @@ This document will guide you through the installation of the Falcon Operator and
 - [FalconClusterGuard](../../resources/clusterguard/README.md) **(Recommended)** with the Falcon Cluster Guard image being pulled from the CrowdStrike container registry. Combines the Falcon Cluster Guard Controller, Falcon Linux Node Sensor, and optional Falcon Image Analyzer into a single resource.
 - [FalconContainer](../../resources/container/README.md) with the Falcon Container image being mirrored from CrowdStrike container registry to ACR (Azure Container Registry).
 - [FalconImageAnalyzer](../../resources/imageanalyzer/README.md) with the Falcon Image Analyzer image being pull from the CrowdStrike container registry.
-- [FalconNodeSensor](../../resources/node/README.md) **(Deprecated)** — use FalconClusterGuard instead.
-- [FalconAdmission](../../resources/admission/README.md) **(Deprecated)** — use FalconClusterGuard instead.
+- [FalconNodeSensor](../../resources/node/README.md) custom resource to the cluster.
+- [FalconAdmission](../../resources/admission/README.md) with the Falcon Admission Controller image being mirrored from CrowdStrike container registry to ACR (Azure Container Registry).
 
 ## Prerequisites
 
@@ -57,10 +57,10 @@ Important notes for Kubernetes and other container deployments of the Falcon sen
 - **Falcon Node sensor for Linux with sensors version 7.34 and later:** DaemonSet deployments do not support the **Uninstall and maintenance protection** policy setting and automatically ignores it.
 - **Falcon Container sensor for Linux:** Deployed as a sidecar container within application pods. This sensor does not support the **Uninstall and maintenance protection** policy setting and automatically ignores it.
 
-### Deploying the Falcon Node Sensor (Deprecated)
+### Deploying the Falcon Node Sensor
 
-> [!WARNING]
-> FalconNodeSensor is deprecated. Use [FalconClusterGuard](#deploying-the-falcon-cluster-guard-recommended) instead.
+> [!NOTE]
+> [FalconClusterGuard](#deploying-the-falcon-cluster-guard-recommended) is recommended for new deployments. Do not deploy a FalconNodeSensor alongside a FalconClusterGuard with the node sensor enabled.
 
 <details>
   <summary>Click to expand</summary>
@@ -129,10 +129,10 @@ The Image push secret is used by the operator to mirror the Falcon Container sen
 
 </details>
 
-### Deploying the Falcon Admission Controller (Deprecated)
+### Deploying the Falcon Admission Controller
 
-> [!WARNING]
-> FalconAdmission is deprecated. Use [FalconClusterGuard](#deploying-the-falcon-cluster-guard-recommended) instead.
+> [!NOTE]
+> [FalconClusterGuard](#deploying-the-falcon-cluster-guard-recommended) is recommended for new deployments. Do not deploy a FalconAdmission alongside a FalconClusterGuard.
 
 <details>
   <summary>Click to expand</summary>
@@ -212,7 +212,7 @@ kubectl delete falconclusterguard --all
 
 </details>
 
-### Uninstalling the Falcon Node Sensor (Deprecated)
+### Uninstalling the Falcon Node Sensor
 
 <details>
   <summary>Click to expand</summary>
@@ -238,7 +238,7 @@ kubectl delete falconcontainers --all
 
 </details>
 
-### Uninstalling the Falcon Admission Controller (Deprecated)
+### Uninstalling the Falcon Admission Controller
 
 <details>
   <summary>Click to expand</summary>

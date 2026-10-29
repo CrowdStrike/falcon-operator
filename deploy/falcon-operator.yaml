@@ -5659,21 +5659,17 @@ spec:
       jsonPath: .spec.deployContainerSensor
       name: Container
       type: string
-    - description: Node Sensor enabled (deprecated)
+    - description: Node Sensor enabled
       jsonPath: .spec.deployNodeSensor
       name: Node Sensor
       type: string
-    - description: Admission Controller enabled (deprecated)
+    - description: Admission Controller enabled
       jsonPath: .spec.deployAdmissionController
       name: Admission
       type: string
     - description: Deployment status
       jsonPath: .status.conditions[?(@.type=='Success')].reason
       name: Status
-      type: string
-    - description: Migration status
-      jsonPath: .status.conditions[?(@.type=='MigrationRequired')].reason
-      name: Migration
       type: string
     - description: Age of the resource
       jsonPath: .metadata.creationTimestamp
@@ -14793,26 +14789,6 @@ webhooks:
     service:
       name: falcon-operator-webhook-service
       namespace: falcon-operator
-      path: /validate-falcon-crowdstrike-com-v1alpha1-falconadmission
-  failurePolicy: Ignore
-  name: vfalconadmission.kb.io
-  rules:
-  - apiGroups:
-    - falcon.crowdstrike.com
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - falconadmissions
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: falcon-operator-webhook-service
-      namespace: falcon-operator
       path: /validate-falcon-crowdstrike-com-v1alpha1-falconclusterguard
   failurePolicy: Ignore
   name: vfalconclusterguard.kb.io
@@ -14826,63 +14802,4 @@ webhooks:
     - UPDATE
     resources:
     - falconclusterguards
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: falcon-operator-webhook-service
-      namespace: falcon-operator
-      path: /validate-falcon-crowdstrike-com-v1alpha1-falcondeployment
-  failurePolicy: Ignore
-  name: vfalcondeployment.kb.io
-  rules:
-  - apiGroups:
-    - falcon.crowdstrike.com
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - falcondeployments
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: falcon-operator-webhook-service
-      namespace: falcon-operator
-      path: /validate-falcon-crowdstrike-com-v1alpha1-falconimageanalyzer
-  failurePolicy: Ignore
-  name: vfalconimageanalyzer.kb.io
-  rules:
-  - apiGroups:
-    - falcon.crowdstrike.com
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - falconimageanalyzers
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: falcon-operator-webhook-service
-      namespace: falcon-operator
-      path: /validate-falcon-crowdstrike-com-v1alpha1-falconnodesensor
-  failurePolicy: Ignore
-  name: vfalconnodesensor.kb.io
-  rules:
-  - apiGroups:
-    - falcon.crowdstrike.com
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    resources:
-    - falconnodesensors
   sideEffects: None
