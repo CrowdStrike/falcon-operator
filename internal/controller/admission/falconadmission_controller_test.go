@@ -3,9 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
+	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
+	internalErrors "github.com/crowdstrike/falcon-operator/internal/errors"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -13,7 +16,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -33,12 +35,18 @@ var _ = Describe("FalconAdmission controller", func() {
 		var (
 			// The namespaceCounter is a way to create a unique namespace for each test. Namespaces in tests are not reusable.
 			// ref: https://book.kubebuilder.io/reference/envtest.html#namespace-usage-limitation
-			namespaceCounter        int
-			namespace               *corev1.Namespace
-			namespaceName           string
-			falconAdmission         *falconv1alpha1.FalconAdmission
-			controllerName          string
-			admissionNamespacedName types.NamespacedName
+			namespaceCounter                int
+			namespace                       *corev1.Namespace
+			namespaceName                   string
+			falconAdmission                 *falconv1alpha1.FalconAdmission
+			controllerName                  string
+			admissionNamespacedName         types.NamespacedName
+			shouldAdmissionControlBeEnabled bool
+			resourceQuotaName               string
+			tlsSecretName                   string
+			configMapName                   string
+			serviceName                     string
+			deploymentName                  string
 		)
 
 		admissionImage := "example.com/image:test"
@@ -50,6 +58,11 @@ var _ = Describe("FalconAdmission controller", func() {
 			namespaceName = fmt.Sprintf("%s-%d", AdmissionControllerNamespace, namespaceCounter)
 			controllerName = fmt.Sprintf("%s-%d", AdmissionControllerName, namespaceCounter)
 			admissionNamespacedName = types.NamespacedName{Name: controllerName, Namespace: namespaceName}
+			resourceQuotaName = controllerName
+			tlsSecretName = fmt.Sprintf("%s-tls", controllerName)
+			configMapName = fmt.Sprintf("%s-config", controllerName)
+			serviceName = controllerName
+			deploymentName = controllerName
 
 			By(fmt.Sprintf("Creating the Namespace %s to perform the tests", namespaceName))
 			namespace = &corev1.Namespace{
@@ -128,9 +141,19 @@ var _ = Describe("FalconAdmission controller", func() {
 			_ = k8sClient.Delete(ctx, namespace)
 		})
 
-		It("should set the Deprecated condition and not deploy resources", func() {
+		// Validating a generic deployment of FalconAdmission
+		It("should successfully reconcile a custom resource for FalconAdmission", func() {
+			shouldAdmissionControlBeEnabled = true
+
 			By("Creating the custom resource for the Kind FalconAdmission")
-			Expect(k8sClient.Create(ctx, falconAdmission)).To(Succeed())
+			err := k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
 
 			By("Reconciling the custom resource created")
 			falconAdmissionReconciler := &FalconAdmissionReconciler{
@@ -138,23 +161,342 @@ var _ = Describe("FalconAdmission controller", func() {
 				Reader: k8sReader,
 				Scheme: k8sClient.Scheme(),
 			}
-			_, err := falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: admissionNamespacedName,
 			})
 			Expect(err).To(Not(HaveOccurred()))
 
-			By("Checking the Deprecated status condition")
-			found := &falconv1alpha1.FalconAdmission{}
-			Expect(k8sClient.Get(ctx, admissionNamespacedName, found)).To(Succeed())
-			cond := meta.FindStatusCondition(found.Status.Conditions, falconv1alpha1.ConditionDeprecated)
-			Expect(cond).NotTo(BeNil())
-			Expect(cond.Status).To(Equal(metav1.ConditionTrue))
-			Expect(cond.Reason).To(Equal(falconv1alpha1.ReasonDeprecated))
+			By("Checking if Service Account was successfully created in the reconciliation")
+			Eventually(func() error {
+				found := &corev1.ServiceAccount{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: common.AdmissionServiceAccountName, Namespace: namespaceName}, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
 
-			By("Checking that no Deployment was created")
-			deployList := &appsv1.DeploymentList{}
-			Expect(k8sClient.List(ctx, deployList, client.InNamespace(namespaceName))).To(Succeed())
-			Expect(deployList.Items).To(BeEmpty())
+			By("Checking if ResourceQuota was successfully created in the reconciliation")
+			Eventually(func() error {
+				found := &corev1.ResourceQuota{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: resourceQuotaName, Namespace: namespaceName}, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Checking if TLS Secret was successfully created in the reconciliation")
+			Eventually(func() error {
+				found := &corev1.Secret{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: tlsSecretName, Namespace: namespaceName}, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Checking if ConfigMap was successfully created in the reconciliation")
+			var configMap *corev1.ConfigMap
+			Eventually(func() error {
+				configMap = &corev1.ConfigMap{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: configMapName, Namespace: namespaceName}, configMap)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Checking if ConfigMap disabled Admission Control")
+			Expect(configMap.Data["__CS_ADMISSION_CONTROL_ENABLED"]).To(Equal(fmt.Sprintf("%t", shouldAdmissionControlBeEnabled)))
+
+			By("Checking if Service was successfully created in the reconciliation")
+			Eventually(func() error {
+				found := &corev1.Service{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: namespaceName}, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Checking if Deployment was successfully created in the reconciliation")
+			Eventually(func() error {
+				found := &appsv1.Deployment{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Checking if pods were successfully created in the reconciliation")
+			Eventually(func() error {
+				pod, err := k8sutils.GetReadyPod(k8sClient, ctx, namespaceName, map[string]string{common.FalconComponentKey: common.FalconAdmissionController})
+				if err != nil && err != k8sutils.ErrNoWebhookServicePodReady {
+					return err
+				}
+				if pod.Name == "" {
+					_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+						NamespacedName: admissionNamespacedName,
+					})
+				}
+				return err
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Checking the latest Status Condition added to the FalconAdmission instance")
+			Eventually(func() error {
+				if len(falconAdmission.Status.Conditions) != 0 {
+					latestStatusCondition := falconAdmission.Status.Conditions[len(falconAdmission.Status.Conditions)-1]
+					expectedLatestStatusCondition := metav1.Condition{Type: falconv1alpha1.ConditionDeploymentReady,
+						Status: metav1.ConditionTrue, Reason: falconv1alpha1.ReasonInstallSucceeded,
+						Message: "FalconAdmission installation completed"}
+					if latestStatusCondition != expectedLatestStatusCondition {
+						return fmt.Errorf("The latest status condition added to the FalconAdmission instance is not as expected")
+					}
+				}
+				return nil
+			}, 20*time.Second, time.Second).Should(Succeed())
+		})
+
+		It("should correctly handle and inject existing secrets into configmap", func() {
+			By("Creating test secrets")
+			clientId := "test-client-id"
+			clientSecret := "test-client-secret"
+			provisioningToken := "1a2b3c4d"
+			secretName := "falcon-secret"
+			testSecretNamespace := "falcon-secret"
+
+			falconSecretNamespace := corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testSecretNamespace,
+					Namespace: testSecretNamespace,
+				},
+			}
+
+			err := k8sClient.Create(ctx, &falconSecretNamespace)
+			Expect(err).To(Not(HaveOccurred()))
+
+			testSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: testSecretNamespace,
+				},
+				Type: corev1.SecretTypeOpaque,
+				StringData: map[string]string{
+					"falcon-client-id":          clientId,
+					"falcon-client-secret":      clientSecret,
+					"falcon-cid":                falconCID,
+					"falcon-provisioning-token": provisioningToken,
+				},
+			}
+			err = k8sClient.Create(ctx, testSecret)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Creating the FalconAdmission CR with FalconSecret configured")
+			falconAdmission.Spec.FalconSecret = falconv1alpha1.FalconSecret{
+				Enabled:    true,
+				Namespace:  testSecretNamespace,
+				SecretName: secretName,
+			}
+
+			err = k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				falconAdmission := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, falconAdmission)
+			}, 6*time.Second, time.Second).Should(Succeed())
+
+			By("Reconciling the custom resource created")
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if Service was successfully created in the reconciliation")
+			Eventually(func() error {
+				found := &corev1.Service{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: namespaceName}, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Checking if Deployment was created with updated config map")
+			Eventually(func() error {
+				admissionConfigMap := &corev1.ConfigMap{}
+				err = common.GetNamespacedObject(
+					ctx,
+					falconAdmissionReconciler.Client,
+					falconAdmissionReconciler.Reader,
+					types.NamespacedName{Name: configMapName, Namespace: admissionNamespacedName.Namespace},
+					admissionConfigMap,
+				)
+				if err != nil {
+					return fmt.Errorf("failed to get admission configmap: %w", err)
+				}
+
+				admissionDeployment := &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      deploymentName,
+					Namespace: admissionNamespacedName.Namespace,
+				}, admissionDeployment)
+				if err != nil {
+					return fmt.Errorf("failed to get admission deployment: %w", err)
+				}
+
+				// Check for environment variables with secret references
+				containers := admissionDeployment.Spec.Template.Spec.Containers
+				if len(containers) == 0 {
+					return fmt.Errorf("no containers found in admission deployment")
+				}
+
+				Expect(admissionDeployment).To(haveContainerNamed("falcon-kac"))
+				Expect(admissionDeployment).To(haveContainerWithConfigMapEnvFrom("falcon-kac", configMapName))
+				Expect(admissionConfigMap.Data["FALCONCTL_OPT_CID"]).To(Equal(falconCID))
+				Expect(admissionConfigMap.Data["FALCONCTL_OPT_PROVISIONING_TOKEN"]).To(Equal(provisioningToken))
+
+				return nil
+			}, 10*time.Second, time.Second).Should(Succeed())
+
+			By("Checking if pods were successfully created in the reconciliation")
+			Eventually(func() error {
+				pod, err := k8sutils.GetReadyPod(k8sClient, ctx, namespaceName, map[string]string{common.FalconComponentKey: common.FalconAdmissionController})
+				if err != nil && err != k8sutils.ErrNoWebhookServicePodReady {
+					return err
+				}
+				if pod.Name == "" {
+					_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+						NamespacedName: admissionNamespacedName,
+					})
+				}
+				return err
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Checking the latest Status Condition added to the FalconAdmission instance")
+			Eventually(func() error {
+				if len(falconAdmission.Status.Conditions) != 0 {
+					latestStatusCondition := falconAdmission.Status.Conditions[len(falconAdmission.Status.Conditions)-1]
+					expectedLatestStatusCondition := metav1.Condition{Type: falconv1alpha1.ConditionDeploymentReady,
+						Status: metav1.ConditionTrue, Reason: falconv1alpha1.ReasonInstallSucceeded,
+						Message: "FalconAdmission installation completed"}
+					if latestStatusCondition != expectedLatestStatusCondition {
+						return fmt.Errorf("The latest status condition added to the FalconAdmission instance is not as expected")
+					}
+				}
+				return nil
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Cleaning up the test specific resources")
+			err = k8sClient.Delete(ctx, testSecret)
+			Expect(err).To(Not(HaveOccurred()))
+		})
+
+		It("should error if falcon secret is enabled and Falcon API credentials are missing", func() {
+			By("Creating test secrets - without Falcon API credentials")
+			secretName := "falcon-secrets-1"
+			testSecretNamespace := "falcon-secret-1"
+
+			falconSecretNamespace := corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testSecretNamespace,
+					Namespace: testSecretNamespace,
+				},
+			}
+
+			err := k8sClient.Create(ctx, &falconSecretNamespace)
+			Expect(err).To(Not(HaveOccurred()))
+
+			testSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: testSecretNamespace,
+				},
+				Type: corev1.SecretTypeOpaque,
+				StringData: map[string]string{
+					"falcon-cid": falconCID,
+				},
+			}
+			err = k8sClient.Create(ctx, testSecret)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Creating the FalconAdmission CR with FalconSecret configured")
+			falconAdmission.Spec.FalconSecret = falconv1alpha1.FalconSecret{
+				Enabled:    true,
+				Namespace:  testSecretNamespace,
+				SecretName: secretName,
+			}
+			falconAdmission.Spec.Image = ""
+
+			err = k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				falconAdmission := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, falconAdmission)
+			}, 6*time.Second, time.Second).Should(Succeed())
+
+			By("Reconciling the custom resource created")
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(MatchError(ContainSubstring(internalErrors.ErrMissingFalconAPICredentialsInSecret.Error())))
+
+			By("Cleaning up the test specific resources")
+			err = k8sClient.Delete(ctx, testSecret)
+			Expect(err).To(Not(HaveOccurred()))
+		})
+
+		// Testing when FalconAdmission disables the admission controller
+		It("should successfully reconcile a custom resource for FalconAdmission - with admission control disabled", func() {
+			shouldAdmissionControlBeEnabled = false
+			falconAdmission.Spec.AdmissionConfig.AdmissionControlEnabled = &shouldAdmissionControlBeEnabled
+
+			By("Creating the custom resource for the Kind FalconAdmission - with admission control disabled")
+			err := k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created - with admission control disabled")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, found)
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Reconciling the custom resource create - with admission control disabled")
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if Service was successfully created in the reconciliation - with admission control disabled")
+			Eventually(func() error {
+				found := &corev1.Service{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: namespaceName}, found)
+			}, time.Minute, time.Second).ShouldNot(Succeed())
+
+			By("Checking if ConfigMap was successfully created in the reconciliation - with admission control disabled")
+			var configMap *corev1.ConfigMap
+			Eventually(func() error {
+				configMap = &corev1.ConfigMap{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: configMapName, Namespace: namespaceName}, configMap)
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Checking if ConfigMap data exists - with admission control disabled")
+			Expect(configMap.Data["__CS_ADMISSION_CONTROL_ENABLED"]).To(Equal(fmt.Sprintf("%t", shouldAdmissionControlBeEnabled)))
+
+			By("Checking if Deployment was successfully created in the reconciliation - with admission control disabled")
+			var deployment *appsv1.Deployment
+			Eventually(func() error {
+				deployment = &appsv1.Deployment{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+			}, time.Minute, time.Second).Should(Succeed())
+
+			By("Checking if falcon-client container has default resources - with admission control disabled")
+			var falconClientContainer *corev1.Container
+			for _, container := range deployment.Spec.Template.Spec.Containers {
+				if container.Name == "falcon-client" {
+					falconClientContainer = &container
+					break
+				}
+			}
+
+			Expect(falconClientContainer).ToNot(BeNil())
+			Expect(falconClientContainer.Resources.Requests.Cpu().String()).To(Equal("100m"))
+			Expect(falconClientContainer.Resources.Requests.Memory().String()).To(Equal("128Mi"))
+			Expect(falconClientContainer.Resources.Limits.Memory().String()).To(Equal("128Mi"))
 		})
 
 		// Testing reconcileServiceAccount return value
@@ -496,6 +838,845 @@ var _ = Describe("FalconAdmission controller", func() {
 			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("openshift.io/sa.scc.supplemental-groups", "1000710000/10000"))
 			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("openshift.io/sa.scc.uid-range", "1000710000/10000"))
 			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("operator-managed-annotation", "value1"))
+		})
+
+		// Test environment variable comparison logic in deployment reconciliation
+		It("should detect environment variable changes during deployment reconciliation", func() {
+			By("Creating the custom resource for the Kind FalconAdmission")
+			err := k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Creating the reconciler")
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			By("Running initial reconciliation to create deployment")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying deployment was created")
+			var deployment *appsv1.Deployment
+			Eventually(func() error {
+				deployment = &appsv1.Deployment{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Manually modifying deployment environment variables to simulate drift")
+			Eventually(func() error {
+				deployment = &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+				if err != nil {
+					return err
+				}
+
+				// Find the falcon-kac container and modify its env vars
+				for i, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "falcon-kac" {
+						// Add new env vars to simulate changes that reconciliation should detect
+						deployment.Spec.Template.Spec.Containers[i].Env = append(container.Env,
+							corev1.EnvVar{Name: "MANUALLY_ADDED_VAR", Value: "should_be_detected"},
+							corev1.EnvVar{Name: "TEST_VAR", Value: "test_value"},
+						)
+						break
+					}
+				}
+				return k8sClient.Update(ctx, deployment)
+			}, 10*time.Second, time.Second).Should(Succeed())
+
+			By("Verifying manually added env vars are present")
+			Eventually(func() bool {
+				deployment = &appsv1.Deployment{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+				for _, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "falcon-kac" {
+						envMap := make(map[string]string)
+						for _, env := range container.Env {
+							envMap[env.Name] = env.Value
+						}
+						_, hasManualVar := envMap["MANUALLY_ADDED_VAR"]
+						_, hasTestVar := envMap["TEST_VAR"]
+						return hasManualVar && hasTestVar
+					}
+				}
+				return false
+			}, 5*time.Second, time.Second).Should(BeTrue())
+
+			By("Waiting for deployment to be older than 5 seconds to allow reconcile updates")
+			time.Sleep(6 * time.Second)
+
+			By("Running reconciliation after manual env var changes")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying deployment env vars were corrected by reconciliation")
+			// The reconciliation should detect the drift and correct it
+			Eventually(func() bool {
+				deployment = &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+				if err != nil {
+					return false
+				}
+				for _, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "falcon-kac" {
+						envMap := make(map[string]string)
+						for _, env := range container.Env {
+							envMap[env.Name] = env.Value
+						}
+						// Manual vars should be removed by reconciliation
+						_, hasManualVar := envMap["MANUALLY_ADDED_VAR"]
+						_, hasTestVar := envMap["TEST_VAR"]
+
+						// Manual vars should no longer exist after reconciliation corrects the drift
+						return !hasManualVar && !hasTestVar
+					}
+				}
+				return false
+			}, 20*time.Second, 2*time.Second).Should(BeTrue())
+		})
+
+		// Test proxy environment variable handling (append and update)
+		It("should correctly append and update proxy environment variables", func() {
+			By("Creating the custom resource for the Kind FalconAdmission")
+			err := k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Creating the reconciler")
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			By("Running initial reconciliation to create deployment without proxy vars")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying deployment was created")
+			var deployment *appsv1.Deployment
+			Eventually(func() error {
+				deployment = &appsv1.Deployment{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Recording initial environment variables")
+			var initialEnvCount int
+			for _, container := range deployment.Spec.Template.Spec.Containers {
+				if container.Name == "falcon-kac" {
+					initialEnvCount = len(container.Env)
+					break
+				}
+			}
+
+			By("Waiting for deployment to be older than 5 seconds to allow reconcile updates")
+			time.Sleep(6 * time.Second)
+
+			By("Setting proxy environment variables")
+			originalHTTPProxy := os.Getenv("HTTP_PROXY")
+			originalHTTPSProxy := os.Getenv("HTTPS_PROXY")
+			originalNoProxy := os.Getenv("NO_PROXY")
+			defer func() {
+				// Restore original env vars
+				if originalHTTPProxy != "" {
+					os.Setenv("HTTP_PROXY", originalHTTPProxy)
+				} else {
+					os.Unsetenv("HTTP_PROXY")
+				}
+				if originalHTTPSProxy != "" {
+					os.Setenv("HTTPS_PROXY", originalHTTPSProxy)
+				} else {
+					os.Unsetenv("HTTPS_PROXY")
+				}
+				if originalNoProxy != "" {
+					os.Setenv("NO_PROXY", originalNoProxy)
+				} else {
+					os.Unsetenv("NO_PROXY")
+				}
+			}()
+
+			os.Setenv("HTTP_PROXY", "http://proxy.example.com:8080")
+			os.Setenv("HTTPS_PROXY", "https://proxy.example.com:8443")
+			os.Setenv("NO_PROXY", "localhost,127.0.0.1")
+
+			By("Running reconciliation after setting proxy environment variables")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying proxy environment variables were appended to deployment")
+			Eventually(func() bool {
+				deployment = &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+				if err != nil {
+					return false
+				}
+				for _, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "falcon-kac" {
+						envMap := make(map[string]string)
+						for _, env := range container.Env {
+							envMap[env.Name] = env.Value
+						}
+						// Check proxy vars were added
+						httpProxy, hasHTTP := envMap["HTTP_PROXY"]
+						httpsProxy, hasHTTPS := envMap["HTTPS_PROXY"]
+						noProxy, hasNoProxy := envMap["NO_PROXY"]
+
+						return hasHTTP && hasHTTPS && hasNoProxy &&
+							httpProxy == "http://proxy.example.com:8080" &&
+							httpsProxy == "https://proxy.example.com:8443" &&
+							noProxy == "localhost,127.0.0.1"
+					}
+				}
+				return false
+			}, 20*time.Second, 2*time.Second).Should(BeTrue())
+
+			By("Verifying no duplicate proxy variables were created")
+			deployment = &appsv1.Deployment{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+			Expect(err).To(Not(HaveOccurred()))
+			for _, container := range deployment.Spec.Template.Spec.Containers {
+				if container.Name == "falcon-kac" {
+					httpProxyCount := 0
+					for _, env := range container.Env {
+						if env.Name == "HTTP_PROXY" || env.Name == "http_proxy" {
+							httpProxyCount++
+						}
+					}
+					Expect(httpProxyCount).To(Equal(2), "Should have HTTP_PROXY and http_proxy (uppercase and lowercase)")
+				}
+			}
+
+			By("Waiting for deployment to be older than 5 seconds again")
+			time.Sleep(6 * time.Second)
+
+			By("Updating proxy environment variables with new values")
+			os.Setenv("HTTP_PROXY", "http://new-proxy.example.com:9090")
+			os.Setenv("HTTPS_PROXY", "https://new-proxy.example.com:9443")
+			os.Setenv("NO_PROXY", "localhost,127.0.0.1,.svc,.cluster.local")
+
+			By("Running reconciliation after updating proxy environment variables")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying proxy environment variables were updated (not duplicated)")
+			Eventually(func() bool {
+				deployment = &appsv1.Deployment{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+				if err != nil {
+					return false
+				}
+				for _, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "falcon-kac" {
+						envMap := make(map[string]string)
+						for _, env := range container.Env {
+							envMap[env.Name] = env.Value
+						}
+
+						// Verify updated values
+						httpProxy, hasHTTP := envMap["HTTP_PROXY"]
+						httpsProxy, hasHTTPS := envMap["HTTPS_PROXY"]
+						noProxy, hasNoProxy := envMap["NO_PROXY"]
+
+						if !hasHTTP || !hasHTTPS || !hasNoProxy {
+							return false
+						}
+
+						// Check values were updated, not appended as duplicates
+						return httpProxy == "http://new-proxy.example.com:9090" &&
+							httpsProxy == "https://new-proxy.example.com:9443" &&
+							noProxy == "localhost,127.0.0.1,.svc,.cluster.local"
+					}
+				}
+				return false
+			}, 20*time.Second, 2*time.Second).Should(BeTrue())
+
+			By("Verifying env var count didn't increase (update, not append)")
+			deployment = &appsv1.Deployment{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+			Expect(err).To(Not(HaveOccurred()))
+			for _, container := range deployment.Spec.Template.Spec.Containers {
+				if container.Name == "falcon-kac" {
+					currentEnvCount := len(container.Env)
+					expectedCount := initialEnvCount + 6
+					Expect(currentEnvCount).To(Equal(expectedCount), "Environment variable count should not increase after update")
+					break
+				}
+			}
+		})
+
+		// Testing when WatcherEnabled is set to false
+		It("should only disable watch events when watcherEnabled is false, leaving snapshots and configmap watcher independent", func() {
+			watcherEnabled := false
+			falconAdmission.Spec.AdmissionConfig.WatcherEnabled = &watcherEnabled
+
+			By("Creating the custom resource for the Kind FalconAdmission with watcherEnabled set to false")
+			err := k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Reconciling the custom resource created")
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if ConfigMap was created")
+			var configMap *corev1.ConfigMap
+			Eventually(func() error {
+				configMap = &corev1.ConfigMap{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: configMapName, Namespace: namespaceName}, configMap)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Verifying that only watch events are disabled when watcherEnabled is false")
+			Expect(configMap.Data["__CS_WATCH_EVENTS_ENABLED"]).To(Equal("false"), "Watch events should be disabled")
+			Expect(configMap.Data["__CS_SNAPSHOTS_ENABLED"]).To(Equal("true"), "Snapshots are independent of watcherEnabled")
+			Expect(configMap.Data["__CS_VISIBILITY_CONFIGMAPS_ENABLED"]).To(Equal("true"), "ConfigMap watcher is independent of watcherEnabled")
+
+			By("Verifying that admission control is still enabled (independent of watcher)")
+			Expect(configMap.Data["__CS_ADMISSION_CONTROL_ENABLED"]).To(Equal("true"), "Admission control should still be enabled")
+
+			By("Verifying CID is set correctly")
+			Expect(configMap.Data["FALCONCTL_OPT_CID"]).To(Equal(falconCID))
+
+			By("Checking if Deployment was successfully created")
+			var deployment *appsv1.Deployment
+			Eventually(func() error {
+				deployment = &appsv1.Deployment{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: namespaceName}, deployment)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Verifying deployment references the config map")
+			Expect(deployment).To(haveContainerNamed("falcon-kac"))
+			Expect(deployment).To(haveContainerWithConfigMapEnvFrom("falcon-kac", configMapName))
+		})
+
+		// Testing that snapshotsEnabled and configMapWatcherEnabled are independent of watcherEnabled
+		It("should respect snapshotsEnabled and configMapWatcherEnabled independently when watcherEnabled is false", func() {
+			watcherEnabled := false
+			snapshotsEnabled := false
+			configMapWatcherEnabled := false
+			falconAdmission.Spec.AdmissionConfig.WatcherEnabled = &watcherEnabled
+			falconAdmission.Spec.AdmissionConfig.SnapshotsEnabled = &snapshotsEnabled
+			falconAdmission.Spec.AdmissionConfig.ConfigMapWatcherEnabled = &configMapWatcherEnabled
+
+			By("Creating the custom resource with watcherEnabled=false, snapshotsEnabled=false, configMapWatcherEnabled=false")
+			err := k8sClient.Create(ctx, falconAdmission)
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if the custom resource was successfully created")
+			Eventually(func() error {
+				found := &falconv1alpha1.FalconAdmission{}
+				return k8sClient.Get(ctx, admissionNamespacedName, found)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Reconciling the custom resource")
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Checking if ConfigMap was created")
+			var configMap *corev1.ConfigMap
+			Eventually(func() error {
+				configMap = &corev1.ConfigMap{}
+				return k8sClient.Get(ctx, types.NamespacedName{Name: configMapName, Namespace: namespaceName}, configMap)
+			}, 20*time.Second, time.Second).Should(Succeed())
+
+			By("Verifying all three are false when each is explicitly set to false")
+			Expect(configMap.Data["__CS_WATCH_EVENTS_ENABLED"]).To(Equal("false"))
+			Expect(configMap.Data["__CS_SNAPSHOTS_ENABLED"]).To(Equal("false"), "SnapshotsEnabled=false should be respected independently")
+			Expect(configMap.Data["__CS_VISIBILITY_CONFIGMAPS_ENABLED"]).To(Equal("false"), "ConfigMapWatcherEnabled=false should be respected independently")
+		})
+
+		It("should apply tolerations from spec to deployment", func() {
+			ctx := context.Background()
+
+			falconAdmission := &falconv1alpha1.FalconAdmission{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      controllerName,
+					Namespace: namespaceName,
+				},
+				Spec: falconv1alpha1.FalconAdmissionSpec{
+					Falcon: falconv1alpha1.FalconSensor{
+						CID: &falconCID,
+					},
+					InstallNamespace: namespaceName,
+					Image:            "crowdstrike/falcon-kac:test",
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+						Tolerations: []corev1.Toleration{
+							{
+								Key:      "disk-pressure",
+								Operator: corev1.TolerationOpExists,
+								Effect:   corev1.TaintEffectNoSchedule,
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, falconAdmission)).To(Succeed())
+
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err := falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			deployment := &appsv1.Deployment{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+			}, 5*time.Second, time.Second).Should(Succeed())
+
+			Expect(deployment.Spec.Template.Spec.Tolerations).To(HaveLen(1))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Key).To(Equal("disk-pressure"))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Operator).To(Equal(corev1.TolerationOpExists))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Effect).To(Equal(corev1.TaintEffectNoSchedule))
+		})
+
+		It("should preserve system-added tolerations while applying spec tolerations", func() {
+			ctx := context.Background()
+
+			falconAdmission := &falconv1alpha1.FalconAdmission{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      controllerName,
+					Namespace: namespaceName,
+				},
+				Spec: falconv1alpha1.FalconAdmissionSpec{
+					Falcon: falconv1alpha1.FalconSensor{
+						CID: &falconCID,
+					},
+					InstallNamespace: namespaceName,
+					Image:            "crowdstrike/falcon-kac:test",
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+						Tolerations: []corev1.Toleration{
+							{
+								Key:      "custom-taint",
+								Operator: corev1.TolerationOpExists,
+								Effect:   corev1.TaintEffectNoSchedule,
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, falconAdmission)).To(Succeed())
+
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err := falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying initial toleration is applied")
+			deployment := &appsv1.Deployment{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+			}, 5*time.Second, time.Second).Should(Succeed())
+
+			Expect(deployment.Spec.Template.Spec.Tolerations).To(HaveLen(1))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Key).To(Equal("custom-taint"))
+
+			By("Simulating a system like OpenShift adding a toleration")
+			deployment.Spec.Template.Spec.Tolerations = append(deployment.Spec.Template.Spec.Tolerations, corev1.Toleration{
+				Key:               "node.kubernetes.io/not-ready",
+				Operator:          corev1.TolerationOpExists,
+				Effect:            corev1.TaintEffectNoExecute,
+				TolerationSeconds: func() *int64 { i := int64(300); return &i }(),
+			})
+			Expect(k8sClient.Update(ctx, deployment)).To(Succeed())
+
+			By("Verifying system toleration was added")
+			Eventually(func() int {
+				dep := &appsv1.Deployment{}
+				_ = k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, dep)
+				return len(dep.Spec.Template.Spec.Tolerations)
+			}, 5*time.Second, time.Second).Should(Equal(2))
+
+			By("Reconciling again to ensure system toleration is preserved")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying both tolerations exist after reconciliation")
+			deployment = &appsv1.Deployment{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+				if err != nil {
+					return false
+				}
+				if len(deployment.Spec.Template.Spec.Tolerations) != 2 {
+					return false
+				}
+				hasCustom := false
+				hasSystem := false
+				for _, tol := range deployment.Spec.Template.Spec.Tolerations {
+					if tol.Key == "custom-taint" {
+						hasCustom = true
+					}
+					if tol.Key == "node.kubernetes.io/not-ready" {
+						hasSystem = true
+					}
+				}
+				return hasCustom && hasSystem
+			}, 5*time.Second, time.Second).Should(BeTrue())
+		})
+
+		It("should update tolerations when spec changes", func() {
+			ctx := context.Background()
+
+			falconAdmission := &falconv1alpha1.FalconAdmission{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      controllerName,
+					Namespace: namespaceName,
+				},
+				Spec: falconv1alpha1.FalconAdmissionSpec{
+					Falcon: falconv1alpha1.FalconSensor{
+						CID: &falconCID,
+					},
+					InstallNamespace: namespaceName,
+					Image:            "crowdstrike/falcon-kac:test",
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+						Tolerations: []corev1.Toleration{
+							{
+								Key:      "initial-taint",
+								Operator: corev1.TolerationOpExists,
+								Effect:   corev1.TaintEffectNoSchedule,
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, falconAdmission)).To(Succeed())
+
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err := falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying initial toleration is applied")
+			deployment := &appsv1.Deployment{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+			}, 5*time.Second, time.Second).Should(Succeed())
+
+			Expect(deployment.Spec.Template.Spec.Tolerations).To(HaveLen(1))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Key).To(Equal("initial-taint"))
+
+			By("Waiting for deployment to be older than 5 seconds to allow reconcile updates")
+			time.Sleep(6 * time.Second)
+
+			By("Updating FalconAdmission spec with new toleration")
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, admissionNamespacedName, falconAdmission); err != nil {
+					return err
+				}
+				falconAdmission.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+					{
+						Key:      "updated-taint",
+						Operator: corev1.TolerationOpExists,
+						Effect:   corev1.TaintEffectNoExecute,
+					},
+				}
+				return k8sClient.Update(ctx, falconAdmission)
+			}, 5*time.Second, time.Second).Should(Succeed())
+
+			By("Reconciling with updated spec")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying both old and new tolerations exist (merge preserves old as potential system toleration)")
+			deployment = &appsv1.Deployment{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+				if err != nil {
+					return false
+				}
+
+				if len(deployment.Spec.Template.Spec.Tolerations) < 1 {
+					return false
+				}
+
+				hasUpdated := false
+				for _, tol := range deployment.Spec.Template.Spec.Tolerations {
+					if tol.Key == "updated-taint" {
+						hasUpdated = true
+					}
+				}
+				return hasUpdated
+			}, 5*time.Second, time.Second).Should(BeTrue())
+		})
+
+		It("should replace toleration when spec has same Key+Effect but different Value/Operator", func() {
+			ctx := context.Background()
+
+			falconAdmission := &falconv1alpha1.FalconAdmission{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      controllerName,
+					Namespace: namespaceName,
+				},
+				Spec: falconv1alpha1.FalconAdmissionSpec{
+					Falcon: falconv1alpha1.FalconSensor{
+						CID: &falconCID,
+					},
+					InstallNamespace: namespaceName,
+					Image:            "crowdstrike/falcon-kac:test",
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+						Tolerations: []corev1.Toleration{
+							{
+								Key:      "app",
+								Operator: corev1.TolerationOpExists,
+								Effect:   corev1.TaintEffectNoSchedule,
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, falconAdmission)).To(Succeed())
+
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err := falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying initial toleration with Exists operator")
+			deployment := &appsv1.Deployment{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+			}, 5*time.Second, time.Second).Should(Succeed())
+
+			Expect(deployment.Spec.Template.Spec.Tolerations).To(HaveLen(1))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Key).To(Equal("app"))
+			Expect(deployment.Spec.Template.Spec.Tolerations[0].Operator).To(Equal(corev1.TolerationOpExists))
+
+			By("Manually updating deployment to simulate existing toleration with different value")
+			deployment.Spec.Template.Spec.Tolerations[0] = corev1.Toleration{
+				Key:      "app",
+				Operator: corev1.TolerationOpEqual,
+				Value:    "old-value",
+				Effect:   corev1.TaintEffectNoSchedule,
+			}
+			Expect(k8sClient.Update(ctx, deployment)).To(Succeed())
+
+			By("Waiting for deployment to be older than 5 seconds to allow reconcile updates")
+			time.Sleep(6 * time.Second)
+
+			By("Updating spec with new value for same Key+Effect")
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, admissionNamespacedName, falconAdmission); err != nil {
+					return err
+				}
+				falconAdmission.Spec.AdmissionConfig.Tolerations = []corev1.Toleration{
+					{
+						Key:      "app",
+						Operator: corev1.TolerationOpEqual,
+						Value:    "new-value",
+						Effect:   corev1.TaintEffectNoSchedule,
+					},
+				}
+				return k8sClient.Update(ctx, falconAdmission)
+			}, 5*time.Second, time.Second).Should(Succeed())
+
+			By("Reconciling to apply updated toleration")
+			_, err = falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying spec toleration replaces existing one (only one toleration with new value)")
+			deployment = &appsv1.Deployment{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+				if err != nil {
+					return false
+				}
+
+				if len(deployment.Spec.Template.Spec.Tolerations) != 1 {
+					return false
+				}
+
+				tol := deployment.Spec.Template.Spec.Tolerations[0]
+				return tol.Key == "app" &&
+					tol.Effect == corev1.TaintEffectNoSchedule &&
+					tol.Operator == corev1.TolerationOpEqual &&
+					tol.Value == "new-value"
+			}, 5*time.Second, time.Second).Should(BeTrue())
+		})
+
+		It("should allow multiple tolerations with same Key but different Effect", func() {
+			ctx := context.Background()
+
+			falconAdmission := &falconv1alpha1.FalconAdmission{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      controllerName,
+					Namespace: namespaceName,
+				},
+				Spec: falconv1alpha1.FalconAdmissionSpec{
+					Falcon: falconv1alpha1.FalconSensor{
+						CID: &falconCID,
+					},
+					InstallNamespace: namespaceName,
+					Image:            "crowdstrike/falcon-kac:test",
+					Registry: falconv1alpha1.RegistrySpec{
+						Type: "crowdstrike",
+					},
+					AdmissionConfig: falconv1alpha1.FalconAdmissionConfigSpec{
+						Tolerations: []corev1.Toleration{
+							{
+								Key:      "node-role",
+								Operator: corev1.TolerationOpExists,
+								Effect:   corev1.TaintEffectNoSchedule,
+							},
+							{
+								Key:      "node-role",
+								Operator: corev1.TolerationOpExists,
+								Effect:   corev1.TaintEffectNoExecute,
+							},
+						},
+					},
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, falconAdmission)).To(Succeed())
+
+			falconAdmissionReconciler := &FalconAdmissionReconciler{
+				Client: k8sClient,
+				Reader: k8sReader,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err := falconAdmissionReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: admissionNamespacedName,
+			})
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("Verifying both tolerations with same Key but different Effect exist")
+			deployment := &appsv1.Deployment{}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      falconAdmission.Name,
+					Namespace: namespaceName,
+				}, deployment)
+				if err != nil {
+					return false
+				}
+
+				if len(deployment.Spec.Template.Spec.Tolerations) != 2 {
+					return false
+				}
+
+				hasNoSchedule := false
+				hasNoExecute := false
+				for _, tol := range deployment.Spec.Template.Spec.Tolerations {
+					if tol.Key == "node-role" && tol.Effect == corev1.TaintEffectNoSchedule {
+						hasNoSchedule = true
+					}
+					if tol.Key == "node-role" && tol.Effect == corev1.TaintEffectNoExecute {
+						hasNoExecute = true
+					}
+				}
+				return hasNoSchedule && hasNoExecute
+			}, 5*time.Second, time.Second).Should(BeTrue())
 		})
 	})
 })
