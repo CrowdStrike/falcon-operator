@@ -696,8 +696,9 @@ type FalconClusterGuardGuardianProxy struct {
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// Port on which the guardian proxy listens. Required when the guardian proxy is enabled.
-	// +kubebuilder:validation:Minimum=1024
-	// +kubebuilder:validation:Maximum=65535
+	// Must be in the range 40000-49512, matching the port range accepted by the Falcon console.
+	// +kubebuilder:validation:Minimum=40000
+	// +kubebuilder:validation:Maximum=49512
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Guardian Proxy Port",order=2,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	Port *int32 `json:"port,omitempty"`
 
