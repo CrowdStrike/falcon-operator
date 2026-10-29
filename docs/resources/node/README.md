@@ -1,7 +1,7 @@
 # Falcon Node Sensor
 
-> [!WARNING]
-> `FalconNodeSensor` is deprecated. Use [`FalconClusterGuard`](clusterguard.md) instead. Creation of new `FalconNodeSensor` resources is blocked by a validating webhook. Existing resources can be deleted and replaced with a `FalconClusterGuard` resource.
+> [!NOTE]
+> For new deployments, [`FalconClusterGuard`](clusterguard.md) is recommended. It deploys the node sensor, the Cluster Guard Controller, and the Image Analyzer from a single resource. `FalconNodeSensor` remains supported. Do not run a `FalconNodeSensor` alongside a `FalconClusterGuard` with the node sensor enabled, because both deploy a sensor DaemonSet to every node.
 
 ## About Falcon Cloud Workload Protection
 

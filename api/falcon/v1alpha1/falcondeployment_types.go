@@ -108,10 +108,9 @@ type FalconDeploymentStatus struct {
 //+kubebuilder:printcolumn:name="Cluster Guard",type="string",JSONPath=".spec.deployClusterGuard",description="Cluster Guard enabled"
 //+kubebuilder:printcolumn:name="Image Analyzer",type="string",JSONPath=".spec.deployImageAnalyzer",description="Image Analyzer enabled"
 //+kubebuilder:printcolumn:name="Container",type="string",JSONPath=".spec.deployContainerSensor",description="Container Sensor enabled"
-//+kubebuilder:printcolumn:name="Node Sensor",type="string",JSONPath=".spec.deployNodeSensor",description="Node Sensor enabled (deprecated)"
-//+kubebuilder:printcolumn:name="Admission",type="string",JSONPath=".spec.deployAdmissionController",description="Admission Controller enabled (deprecated)"
+//+kubebuilder:printcolumn:name="Node Sensor",type="string",JSONPath=".spec.deployNodeSensor",description="Node Sensor enabled"
+//+kubebuilder:printcolumn:name="Admission",type="string",JSONPath=".spec.deployAdmissionController",description="Admission Controller enabled"
 //+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type=='Success')].reason",description="Deployment status"
-//+kubebuilder:printcolumn:name="Migration",type="string",JSONPath=".status.conditions[?(@.type=='MigrationRequired')].reason",description="Migration status"
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Age of the resource"
 
 // FalconDeployment is the Schema for the falcondeployments API

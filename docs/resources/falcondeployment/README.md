@@ -11,11 +11,11 @@ Use `FalconDeployment` to deploy these Falcon components:
 | Falcon Cluster Guard (Cluster Guard Controller + Node Sensor + Image Analyzer) | `FalconClusterGuard` | **Recommended** |
 | Falcon Container sensor for Linux | `FalconContainer` | Active |
 | Falcon Image Assessment at Runtime agent | `FalconImageAnalyzer` | Active |
-| Falcon Sensor for Linux | `FalconNodeSensor` | **Deprecated** — use FalconClusterGuard |
-| Falcon Kubernetes Admission Controller | `FalconAdmission` | **Deprecated** — use FalconClusterGuard |
+| Falcon Sensor for Linux | `FalconNodeSensor` | Active |
+| Falcon Kubernetes Admission Controller | `FalconAdmission` | Active |
 
 > [!IMPORTANT]
-> `FalconNodeSensor` and `FalconAdmission` are deprecated. New deployments should use `deployClusterGuard: true` instead of `deployNodeSensor` and `deployAdmissionController`. Existing FalconDeployment manifests can be migrated using the [migration script](#migrating-from-nodesensoradmission-to-clusterguard).
+> New deployments should use `deployClusterGuard: true` instead of `deployNodeSensor` and `deployAdmissionController`. `FalconNodeSensor` and `FalconAdmission` remain supported, and existing FalconDeployment manifests can be migrated using the [migration script](#migrating-from-nodesensoradmission-to-clusterguard). Do not enable `deployClusterGuard` together with `deployNodeSensor` or `deployAdmissionController`.
 
 ### Version Support Matrix
 
@@ -66,22 +66,22 @@ The FalconDeployment Spec contains fields that are shared by all child component
 | registry.tls.insecure\_skip\_verify | (Optional) Boolean to allow pushing to docker registries over HTTPS with failed TLS verification |
 | deployClusterGuard | (Optional) Boolean to deploy Falcon Cluster Guard (combines node sensor + admission controller). Default: False. **Recommended over deployNodeSensor and deployAdmissionController.** |
 | deployImageAnalyzer | (Optional) Boolean to deploy the Image Analyzer. Default: True |
-| deployAdmissionController | **(Deprecated)** Boolean to deploy the Admission Controller. Default: False. Use `deployClusterGuard` instead. |
-| deployNodeSensor | **(Deprecated)** Boolean to deploy Falcon Node Sensor. Default: False. Use `deployClusterGuard` instead. |
+| deployAdmissionController | (Optional) Boolean to deploy the Admission Controller. Do not deploy alongside `deployClusterGuard`. Default: False |
+| deployNodeSensor | (Optional) Boolean to deploy Falcon Node Sensor. Do not deploy alongside `deployClusterGuard`. Default: False |
 | deployContainerSensor | (Optional) Boolean to deploy Falcon Container. Do not deploy the container sensor alongside the Node Sensor. Default: False |
 | falconClusterGuard | (Optional) Additional configurations that map to FalconClusterGuardSpec. See the [FalconClusterGuard reference](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/clusterguard/README.md) for details. |
-| falconNodeSensor | **(Deprecated)** Additional configurations that map to FalconNodeSensorSpec. Use `falconClusterGuard` instead. |
+| falconNodeSensor | (Optional) Additional configurations that map to FalconNodeSensorSpec. All values within the custom resource spec can be overridden here. |
 | falconImageAnalyzer | (Optional) Additional configurations that map to FalconImageAnalyzerSpec. All values within the custom resource spec can be overridden here. |
 | falconContainerSensor | (Optional) Additional configurations that map to FalconContainerSpec. All values within the custom resource spec can be overridden here. |
-| falconAdmission | **(Deprecated)** Additional configurations that map to FalconAdmissionBaseConfig. Use `falconClusterGuard` instead. |
+| falconAdmission | (Optional) Additional configurations that map to FalconAdmissionBaseConfig. All values within the custom resource spec can be overridden here. |
 
 The additional configurations for each component are mapped to the Spec for each of the custom resource definitions (CRDs). For specific configuration info, see:
 
 * [Falcon Cluster Guard Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/clusterguard/README.md) **(Recommended)**
 * [Falcon Container sensor for Linux Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/container/README.md)
 * [Falcon Image Assessment at Runtime Agent Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/imageanalyzer/README.md)
-* [Falcon Sensor for Linux Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/node/README.md) (Deprecated)
-* [Falcon Kubernetes Admission Controller Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/admission/README.md) (Deprecated)
+* [Falcon Sensor for Linux Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/node/README.md)
+* [Falcon Kubernetes Admission Controller Custom Resource](https://github.com/CrowdStrike/falcon-operator/tree/main/docs/resources/admission/README.md)
 
 Each component chooses its image in the order described in the "Image selection order" section of its custom resource documentation. In disconnected or `oc mirror` environments, set the `image` in the CR spec to your mirrored sensor image. Falcon Image Analyzer is unique because it always requires Falcon API credentials and never uses the operator bundled image.
 
@@ -385,7 +385,7 @@ If you were relying on operator-managed image mirroring, you will need to mirror
 If you prefer to migrate manually:
 
 ```yaml
-# Before (deprecated)
+# Before
 spec:
   deployNodeSensor: true
   deployAdmissionController: true

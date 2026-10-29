@@ -29,21 +29,17 @@ spec:
       jsonPath: .spec.deployContainerSensor
       name: Container
       type: string
-    - description: Node Sensor enabled (deprecated)
+    - description: Node Sensor enabled
       jsonPath: .spec.deployNodeSensor
       name: Node Sensor
       type: string
-    - description: Admission Controller enabled (deprecated)
+    - description: Admission Controller enabled
       jsonPath: .spec.deployAdmissionController
       name: Admission
       type: string
     - description: Deployment status
       jsonPath: .status.conditions[?(@.type=='Success')].reason
       name: Status
-      type: string
-    - description: Migration status
-      jsonPath: .status.conditions[?(@.type=='MigrationRequired')].reason
-      name: Migration
       type: string
     - description: Age of the resource
       jsonPath: .metadata.creationTimestamp

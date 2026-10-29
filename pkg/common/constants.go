@@ -141,8 +141,4 @@ const (
 	GKEAutoPilotAllowListLabelKey       = "cloud.google.com/matching-allowlist"
 	GKEAutoPilotDeployDSAllowlistPrefix = "crowdstrike-falconsensor-deploy-allowlist"
 	GKEAutoPilotCleanupAllowlistPrefix  = "crowdstrike-falconsensor-cleanup-allowlist"
-
-	// Deprecation Variables
-	FalconAdmissionEnabled  = false
-	FalconNodeSensorEnabled = false
 )

@@ -87,8 +87,7 @@ func (r *FalconDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		err := r.statusUpdate(ctx, req, log, falconDeployment, falconv1alpha1.ConditionPending,
 			metav1.ConditionFalse,
 			falconv1alpha1.ReasonReqNotMet,
-			"FalconDeployment progressing",
-			nil)
+			"FalconDeployment progressing")
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -145,31 +144,10 @@ func (r *FalconDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	// Set or clear migration condition based on legacy component usage
-	nodeSensorEnabled := falconDeployment.Spec.DeployNodeSensor != nil && *falconDeployment.Spec.DeployNodeSensor
-	admissionEnabled := falconDeployment.Spec.DeployAdmissionController != nil && *falconDeployment.Spec.DeployAdmissionController
-	var migrationCondition *metav1.Condition
-	if nodeSensorEnabled || admissionEnabled {
-		var parts []string
-		if nodeSensorEnabled {
-			parts = append(parts, "deployNodeSensor")
-		}
-		if admissionEnabled {
-			parts = append(parts, "deployAdmissionController")
-		}
-		migrationCondition = &metav1.Condition{
-			Type:    "MigrationRequired",
-			Status:  metav1.ConditionTrue,
-			Reason:  "LegacyComponentsEnabled",
-			Message: strings.Join(parts, " and ") + " are deprecated and will be removed in a future release. Migrate to FalconClusterGuard (spec.deployClusterGuard: true).",
-		}
-	}
-
 	err = r.statusUpdate(ctx, req, log, falconDeployment, falconv1alpha1.ConditionSuccess,
 		metav1.ConditionTrue,
 		falconv1alpha1.ReasonInstallSucceeded,
-		"FalconDeployment installation completed",
-		migrationCondition)
+		"FalconDeployment installation completed")
 
 	return ctrl.Result{}, err
 }
@@ -522,18 +500,11 @@ func (r *FalconDeploymentReconciler) reconcileClusterGuard(ctx context.Context, 
 	return nil
 }
 
-func (r *FalconDeploymentReconciler) statusUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconDeployment *falconv1alpha1.FalconDeployment, condType string, status metav1.ConditionStatus, reason string, message string, migration *metav1.Condition) error {
+func (r *FalconDeploymentReconciler) statusUpdate(ctx context.Context, req ctrl.Request, log logr.Logger, falconDeployment *falconv1alpha1.FalconDeployment, condType string, status metav1.ConditionStatus, reason string, message string) error {
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		err := r.Get(ctx, req.NamespacedName, falconDeployment)
 		if err != nil {
 			return err
-		}
-
-		if migration != nil {
-			migration.ObservedGeneration = falconDeployment.GetGeneration()
-			meta.SetStatusCondition(&falconDeployment.Status.Conditions, *migration)
-		} else {
-			meta.RemoveStatusCondition(&falconDeployment.Status.Conditions, "MigrationRequired")
 		}
 
 		meta.SetStatusCondition(&falconDeployment.Status.Conditions, metav1.Condition{

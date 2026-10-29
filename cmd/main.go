@@ -397,28 +397,8 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	if enableWebhooks {
-		if err := (&falconv1alpha1.FalconNodeSensorValidator{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "FalconNodeSensor")
-			os.Exit(1)
-		}
-
-		if err := (&falconv1alpha1.FalconAdmissionValidator{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "FalconAdmission")
-			os.Exit(1)
-		}
-
-		if err := (&falconv1alpha1.FalconDeploymentValidator{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "FalconDeployment")
-			os.Exit(1)
-		}
-
 		if err := (&falconv1alpha1.FalconClusterGuardValidator{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "FalconClusterGuard")
-			os.Exit(1)
-		}
-
-		if err := (&falconv1alpha1.FalconImageAnalyzerValidator{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "FalconImageAnalyzer")
 			os.Exit(1)
 		}
 	}

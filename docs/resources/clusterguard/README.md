@@ -4,7 +4,7 @@
 Falcon Operator introduces the FalconClusterGuard Custom Resource (CR) to the cluster. The resource is meant to install, configure, and uninstall Falcon Cluster Guard on the cluster. FalconClusterGuard combines the Falcon Cluster Guard Controller, the Falcon Linux Node Sensor, and the Falcon Image Analyzer into a single resource, deploying a Cluster Guard Controller Deployment (for admission control and cluster visibility), a DaemonSet (for node-level protection), and optionally an Image Analyzer Deployment (for image assessment at runtime) from a single manifest.
 
 > [!IMPORTANT]
-> `FalconNodeSensor`, `FalconAdmission`, and `FalconImageAnalyzer` are deprecated. New deployments should use `FalconClusterGuard` instead. Existing `FalconNodeSensor`, `FalconAdmission`, and `FalconImageAnalyzer` resources can be deleted and replaced with a `FalconClusterGuard` resource. Creation of new `FalconNodeSensor` resources and creation or update of `FalconAdmission` and `FalconImageAnalyzer` resources are blocked by a validating webhook.
+> `FalconClusterGuard` is recommended for new deployments. `FalconNodeSensor`, `FalconAdmission`, and `FalconImageAnalyzer` remain supported, and existing resources can be deleted and replaced with a `FalconClusterGuard` resource. Do not run them alongside a `FalconClusterGuard` that deploys the same component.
 
 ### FalconClusterGuard CR Configuration using CrowdStrike API Keys
 To start the FalconClusterGuard installation using CrowdStrike API Keys to allow the operator to determine your Falcon Customer ID (CID) as well as pull down the CrowdStrike Falcon Cluster Guard image, please create the following FalconClusterGuard resource to your cluster.
