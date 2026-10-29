@@ -3,6 +3,7 @@ package node_sensor
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"time"
 
@@ -35,6 +36,12 @@ func (n *NodeSensor) prefix() string {
 		return n.cfg.NamePrefix
 	}
 	return nodeSensorDefaultPrefix
+}
+
+// withAppLabels adds the Helm chart's node sensor app.kubernetes.io labels to l.
+func (n *NodeSensor) withAppLabels(l map[string]string, appName string) map[string]string {
+	maps.Copy(l, pkgcommon.AppLabels(appName, n.cfg.Request.Name, pkgcommon.FalconKernelSensor))
+	return l
 }
 
 type NodeSensor struct {
