@@ -29,15 +29,6 @@ type Config struct {
 	NodeSensor falconv1alpha1.FalconClusterGuardNodeSpec
 }
 
-const nodeSensorDefaultPrefix = "falcon"
-
-func (n *NodeSensor) prefix() string {
-	if n.cfg.NamePrefix != "" {
-		return n.cfg.NamePrefix
-	}
-	return nodeSensorDefaultPrefix
-}
-
 // withAppLabels adds the Helm chart's node sensor app.kubernetes.io labels to l.
 func (n *NodeSensor) withAppLabels(l map[string]string, appName string) map[string]string {
 	maps.Copy(l, pkgcommon.AppLabels(appName, n.cfg.Request.Name, pkgcommon.FalconKernelSensor))
@@ -95,11 +86,11 @@ func (n *NodeSensor) skipNodeCleanup() bool {
 }
 
 func (n *NodeSensor) sensorDaemonSetRef() *appsv1.DaemonSet {
-	return &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: n.prefix() + "-sensor", Namespace: n.cfg.InstallNamespace}}
+	return &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorDaemonSetName, Namespace: n.cfg.InstallNamespace}}
 }
 
 func (n *NodeSensor) cleanupDaemonSetRef() *appsv1.DaemonSet {
-	return &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: n.prefix() + "-sensor-cleanup", Namespace: n.cfg.InstallNamespace}}
+	return &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorCleanupDaemonSetName, Namespace: n.cfg.InstallNamespace}}
 }
 
 // cleanupTimeout bounds how long node cleanup waits for cleanup pods that neither finish nor report a start
@@ -199,7 +190,6 @@ func (n *NodeSensor) useImageOf(ctx context.Context, ds *appsv1.DaemonSet) error
 // reconcile — delete and DaemonSet creation are idempotent.
 func (n *NodeSensor) finalize(ctx context.Context) (bool, error) {
 	log := n.r.GetLog()
-	dsCleanupName := n.prefix() + "-sensor-cleanup"
 
 	// The ServiceAccount is created first so that, once the sensor DaemonSet is deleted, only creating the cleanup
 	// DaemonSet can fail before it exists to carry the image into later passes.
@@ -215,7 +205,7 @@ func (n *NodeSensor) finalize(ctx context.Context) (bool, error) {
 
 	daemonset := &appsv1.DaemonSet{}
 	if err := pkgcommon.GetNamespacedObject(ctx, n.r, n.r.GetK8sReader(),
-		types.NamespacedName{Name: dsCleanupName, Namespace: n.cfg.InstallNamespace}, daemonset); err != nil {
+		types.NamespacedName{Name: pkgcommon.ClusterGuardNodeSensorCleanupDaemonSetName, Namespace: n.cfg.InstallNamespace}, daemonset); err != nil {
 		if apierrors.IsNotFound(err) {
 			log.Info("Cleanup DaemonSet not found yet, requeueing...")
 			return false, nil
@@ -225,7 +215,7 @@ func (n *NodeSensor) finalize(ctx context.Context) (bool, error) {
 
 	pods := corev1.PodList{}
 	cleanupListOptions := &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labels.Set{"app": dsCleanupName}),
+		LabelSelector: labels.SelectorFromSet(labels.Set{"app": pkgcommon.ClusterGuardNodeSensorCleanupDaemonSetName}),
 		Namespace:     n.cfg.InstallNamespace,
 	}
 	if err := n.r.List(ctx, &pods, cleanupListOptions); err != nil {

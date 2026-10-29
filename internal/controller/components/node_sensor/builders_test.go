@@ -14,7 +14,6 @@ import (
 )
 
 func TestClusterGuardSensorDaemonSetReturnsDS(t *testing.T) {
-	// Default prefix is "falcon" when NamePrefix is empty
 	expectedName := "falcon-sensor"
 	cfg := Config{
 		BaseConfig: components.BaseConfig{
@@ -45,6 +44,19 @@ func TestClusterGuardSensorDaemonSetReturnsDS(t *testing.T) {
 	if got := ds.Spec.Template.Labels["app"]; got != "falcon-sensor" {
 		t.Errorf("expected pod label app=falcon-sensor, got %q", got)
 	}
+	if got, want := ds.Spec.Template.Spec.ServiceAccountName, n.serviceAccount().Name; got != want {
+		t.Errorf("DaemonSet uses ServiceAccount %q, but the node sensor creates %q", got, want)
+	}
+	// The TLS secret is created by the FalconClusterGuard controller (reconcileAPITLSSecrets), not a node sensor builder.
+	foundTLS := false
+	for _, v := range ds.Spec.Template.Spec.Volumes {
+		if v.Secret != nil && v.Secret.SecretName == pkgcommon.ClusterGuardNodeSensorTLSSecretName {
+			foundTLS = true
+		}
+	}
+	if !foundTLS {
+		t.Errorf("expected TLS secret %q in volumes, not found", pkgcommon.ClusterGuardNodeSensorTLSSecretName)
+	}
 }
 
 func TestClusterGuardSensorDaemonSetDefaultTerminationGracePeriod(t *testing.T) {
@@ -68,7 +80,6 @@ func TestClusterGuardSensorDaemonSetDefaultTerminationGracePeriod(t *testing.T) 
 }
 
 func TestClusterGuardSensorCleanupDaemonSetReturnsDS(t *testing.T) {
-	// Default prefix is "falcon" when NamePrefix is empty
 	expectedName := "falcon-sensor-cleanup"
 	cfg := Config{
 		BaseConfig: components.BaseConfig{
@@ -90,60 +101,6 @@ func TestClusterGuardSensorCleanupDaemonSetReturnsDS(t *testing.T) {
 	}
 	if len(ds.Spec.Template.Spec.InitContainers) != 1 {
 		t.Errorf("expected 1 init container, got %d", len(ds.Spec.Template.Spec.InitContainers))
-	}
-}
-
-func TestClusterGuardSensorDaemonSetUsesNamePrefix(t *testing.T) {
-	prefix := "my-custom-guard"
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "test-ns",
-			Image:            "quay.io/crowdstrike/falcon-sensor:latest",
-			NamePrefix:       prefix,
-		},
-	}
-
-	n := New(nil, cfg)
-	ds := n.daemonSet()
-
-	expectedName := prefix + "-sensor"
-	if ds.Name != expectedName {
-		t.Errorf("expected DaemonSet name %q, got %q", expectedName, ds.Name)
-	}
-	// SA name is fixed regardless of prefix
-	expectedSA := pkgcommon.ClusterGuardNodeSensorServiceAccountName
-	if ds.Spec.Template.Spec.ServiceAccountName != expectedSA {
-		t.Errorf("expected ServiceAccountName %q, got %q", expectedSA, ds.Spec.Template.Spec.ServiceAccountName)
-	}
-	// TLS volume secret is a fixed name, not prefix-based
-	expectedTLSSecret := "falcon-node-sensor-tls"
-	foundTLS := false
-	for _, v := range ds.Spec.Template.Spec.Volumes {
-		if v.VolumeSource.Secret != nil && v.VolumeSource.Secret.SecretName == expectedTLSSecret {
-			foundTLS = true
-		}
-	}
-	if !foundTLS {
-		t.Errorf("expected TLS secret name %q in volumes, not found", expectedTLSSecret)
-	}
-}
-
-func TestClusterGuardSensorCleanupDaemonSetUsesNamePrefix(t *testing.T) {
-	prefix := "my-custom-guard"
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "test-ns",
-			Image:            "quay.io/crowdstrike/falcon-sensor:latest",
-			NamePrefix:       prefix,
-		},
-	}
-
-	n := New(nil, cfg)
-	ds := n.cleanupDaemonSet()
-
-	expectedName := prefix + "-sensor-cleanup"
-	if ds.Name != expectedName {
-		t.Errorf("expected cleanup DaemonSet name %q, got %q", expectedName, ds.Name)
 	}
 }
 
@@ -414,30 +371,6 @@ func TestNodeSensorConfigMapName(t *testing.T) {
 	}
 }
 
-func TestNodeSensorConfigMapNameWithPrefix(t *testing.T) {
-	prefix := "my-guard"
-	cfg := Config{
-		BaseConfig: components.BaseConfig{
-			InstallNamespace: "test-ns",
-			Image:            "quay.io/crowdstrike/falcon-sensor:latest",
-			NamePrefix:       prefix,
-		},
-	}
-	n := New(nil, cfg)
-	ds := n.daemonSet()
-
-	expectedCM := pkgcommon.ClusterGuardNodeSensorConfigMapName
-	found := false
-	for _, ef := range ds.Spec.Template.Spec.Containers[0].EnvFrom {
-		if ef.ConfigMapRef != nil && ef.ConfigMapRef.Name == expectedCM {
-			found = true
-		}
-	}
-	if !found {
-		t.Errorf("expected container EnvFrom to reference ConfigMap %q", expectedCM)
-	}
-}
-
 func TestNodeSensorConfigMapNameGKEUsesFixedName(t *testing.T) {
 	gkeEnabled := true
 	cfg := Config{
@@ -581,12 +514,11 @@ func TestNodeSensorConfigMapCidOverride(t *testing.T) {
 	}
 }
 
-// Cluster-wide and shared resources keep fixed names regardless of NamePrefix.
-func TestNodeSensorFixedNamesIgnoreNamePrefix(t *testing.T) {
+// Cluster-wide and shared resources keep fixed names.
+func TestNodeSensorFixedNames(t *testing.T) {
 	cfg := Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "test-ns",
-			NamePrefix:       "my-guard",
 		},
 	}
 	n := New(nil, cfg)
