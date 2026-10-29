@@ -36,11 +36,8 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 	sizeLimitPrivate := resource.MustParse("4Ki")
 	sizeLimitWatcher := resource.MustParse("64Mi")
 	terminationGracePeriod := int64(60)
+	// Replicas in the spec is ignored, as documented on the field: only one replica is currently supported.
 	singleReplica := int32(1)
-
-	if a.cfg.ClusterGuardControllerConfig.Replicas != nil && *a.cfg.ClusterGuardControllerConfig.Replicas != 1 {
-		a.r.GetLog().V(1).Info("Ignoring Replicas setting: only 1 replica is currently supported")
-	}
 
 	containerPort := pkgcommon.ClusterGuardControllerWebhookPort
 	if a.cfg.ClusterGuardControllerConfig.ContainerPort != nil {
