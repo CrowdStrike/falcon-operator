@@ -428,8 +428,9 @@ spec:
           Setting it to "normal" only reconciles when a new version is detected.
         displayName: Falcon Sensor Automatic Updates
         path: nodeSensor.advanced.autoUpdate
-      - description: Port on which the guardian proxy listens. Required when the guardian
-          proxy is enabled.
+      - description: |-
+          Port on which the guardian proxy listens. Required when the guardian proxy is enabled.
+          Must be in the range 40000-49512, matching the port range accepted by the Falcon console.
         displayName: Guardian Proxy Port
         path: nodeSensor.guardian.proxy.port
         x-descriptors:
@@ -1342,8 +1343,9 @@ spec:
           Setting it to "normal" only reconciles when a new version is detected.
         displayName: Falcon Sensor Automatic Updates
         path: falconClusterGuard.nodeSensor.advanced.autoUpdate
-      - description: Port on which the guardian proxy listens. Required when the guardian
-          proxy is enabled.
+      - description: |-
+          Port on which the guardian proxy listens. Required when the guardian proxy is enabled.
+          Must be in the range 40000-49512, matching the port range accepted by the Falcon console.
         displayName: Guardian Proxy Port
         path: falconClusterGuard.nodeSensor.guardian.proxy.port
         x-descriptors:
