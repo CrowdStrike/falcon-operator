@@ -36,6 +36,7 @@ func (a *ClusterGuardController) reconcileTLSSecret(ctx context.Context) (*corev
 		}
 		secretLabels := pkgcommon.CRLabels("secret", pkgcommon.ClusterGuardControllerTLSSecretName, pkgcommon.ClusterGuardControllerComponentName)
 		secretLabels["app"] = pkgcommon.ClusterGuardServiceApp
+		a.withAppLabels(secretLabels)
 		tlsSecret := assets.SecretWithCustomLabels(pkgcommon.ClusterGuardControllerTLSSecretName, namespace,
 			map[string][]byte{"tls.crt": cert, "tls.key": key, "ca.crt": ca}, corev1.SecretTypeTLS, secretLabels)
 		if err := k8sutils.Create(a.r, a.r.GetScheme(), ctx, a.cfg.Request, a.r.GetLog(), a.cfg.Owner, a.cfg.Status, tlsSecret); err != nil {

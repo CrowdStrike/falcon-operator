@@ -24,7 +24,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 	namespace := n.cfg.InstallNamespace
 	nodeSpec := n.cfg.NodeSensor
 
-	dsLabels := pkgcommon.CRLabels("daemonset", n.prefix()+"-sensor", pkgcommon.ClusterGuardNodeSensorComponentName)
+	dsLabels := n.withAppLabels(pkgcommon.CRLabels("daemonset", n.prefix()+"-sensor", pkgcommon.ClusterGuardNodeSensorComponentName), pkgcommon.ClusterGuardComponentName)
 	privileged := true
 	runAsUser := int64(0)
 	hostPathType := corev1.HostPathUnset
@@ -203,7 +203,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 			UpdateStrategy: updateStrategy,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: n.dsManageAutoPilotLabels("daemonset", n.prefix()+"-sensor", pkgcommon.ClusterGuardNodeSensorComponentName, n.dsAutoPilotDeployAllowlistLabel),
+					Labels: n.withAppLabels(n.dsManageAutoPilotLabels("daemonset", n.prefix()+"-sensor", pkgcommon.ClusterGuardNodeSensorComponentName, n.dsAutoPilotDeployAllowlistLabel), pkgcommon.ClusterGuardComponentName),
 					Annotations: map[string]string{
 						pkgcommon.FalconContainerInjection: "disabled",
 						"checksum/config":                  pkgcommon.ConfigMapChecksum(n.configMap()),
@@ -222,7 +222,7 @@ func (n *NodeSensor) cleanupDaemonSet() *appsv1.DaemonSet {
 	imageUri := n.cfg.Image
 	imagePullPolicy := n.cfg.ImagePullPolicy
 
-	dsLabels := pkgcommon.CRLabels("daemonset", n.prefix()+"-sensor-cleanup", pkgcommon.ClusterGuardComponentName)
+	dsLabels := n.withAppLabels(pkgcommon.CRLabels("daemonset", n.prefix()+"-sensor-cleanup", pkgcommon.ClusterGuardComponentName), pkgcommon.ClusterGuardNodeCleanupAppName)
 
 	if imagePullPolicy == "" {
 		imagePullPolicy = corev1.PullIfNotPresent
@@ -260,7 +260,7 @@ func (n *NodeSensor) cleanupDaemonSet() *appsv1.DaemonSet {
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: n.dsManageAutoPilotLabels("daemonset", n.prefix()+"-sensor-cleanup", pkgcommon.ClusterGuardComponentName, n.dsAutoPilotCleanupAllowlistLabel),
+					Labels: n.withAppLabels(n.dsManageAutoPilotLabels("daemonset", n.prefix()+"-sensor-cleanup", pkgcommon.ClusterGuardComponentName, n.dsAutoPilotCleanupAllowlistLabel), pkgcommon.ClusterGuardNodeCleanupAppName),
 					Annotations: map[string]string{
 						pkgcommon.FalconContainerInjection: "disabled",
 					},

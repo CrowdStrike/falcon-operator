@@ -136,6 +136,15 @@ func CRLabels(instanceName string, instanceKey string, component string) map[str
 	}
 }
 
+func AppLabels(name string, instance string, component string) map[string]string {
+	return map[string]string{
+		KubernetesNameKey:      name,
+		KubernetesInstanceKey:  instance,
+		KubernetesManagedByKey: FalconCreatedValue,
+		KubernetesComponentKey: component,
+	}
+}
+
 func ProxyEnvNamesWithLowerCase() []string {
 	envs := make([]string, 0, 6)
 	for _, s := range proxy.ProxyEnvNames {

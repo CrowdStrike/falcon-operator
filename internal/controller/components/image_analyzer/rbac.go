@@ -21,6 +21,7 @@ func (ia *ImageAnalyzer) reconcileServiceAccount(ctx context.Context) error {
 		ia.cfg.ImageAnalyzerSpec.ServiceAccount.Annotations,
 		ia.cfg.ImagePullSecrets,
 	)
+	ia.withAppLabels(sa.Labels)
 	existing := &corev1.ServiceAccount{}
 	found, err := k8sutils.GetOrCreate(ctx, ia.r, ia.cfg.Request, ia.cfg.Owner, ia.cfg.Status, sa, existing,
 		types.NamespacedName{Name: pkgcommon.FCGImageAnalyzerServiceAccountName, Namespace: ia.cfg.InstallNamespace},
@@ -78,6 +79,7 @@ func (ia *ImageAnalyzer) reconcileClusterRoleBinding(ctx context.Context) error 
 		pkgcommon.FCGImageAnalyzerComponentName,
 		[]rbacv1.Subject{},
 	)
+	ia.withAppLabels(crb.Labels)
 	existing := &rbacv1.ClusterRoleBinding{}
 	found, err := k8sutils.GetOrCreate(ctx, ia.r, ia.cfg.Request, ia.cfg.Owner, ia.cfg.Status, crb, existing,
 		types.NamespacedName{Name: pkgcommon.FCGImageAnalyzerCRBName},

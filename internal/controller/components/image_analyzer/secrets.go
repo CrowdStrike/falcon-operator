@@ -60,7 +60,7 @@ func (ia *ImageAnalyzer) reconcileTLSSecret(ctx context.Context) error {
 	}
 
 	// Labels required for clusterguard controller -> IAR communication; values must match the standalone FalconImageAnalyzer.
-	labels := pkgcommon.CRLabels("secret", pkgcommon.FCGImageAnalyzerTLSSecretName, pkgcommon.FCGImageAnalyzerComponentName)
+	labels := ia.withAppLabels(pkgcommon.CRLabels("secret", pkgcommon.FCGImageAnalyzerTLSSecretName, pkgcommon.FCGImageAnalyzerComponentName))
 	labels[pkgcommon.AppLabelKey] = pkgcommon.FalconImageAnalyzerAgentServiceApp
 	labels[pkgcommon.KubernetesComponentKey] = pkgcommon.FalconImageAnalyzerComponentName
 	labels[pkgcommon.KubernetesNameKey] = pkgcommon.FCGImageAnalyzerDeploymentName

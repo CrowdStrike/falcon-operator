@@ -101,5 +101,7 @@ func (ia *ImageAnalyzer) buildConfigMap() (*corev1.ConfigMap, error) {
 		data["AGENT_TEMP_MOUNT_SIZE"] = spec.VolumeSizeLimit
 	}
 
-	return assets.SensorConfigMap(pkgcommon.FCGImageAnalyzerConfigMapName, ia.cfg.InstallNamespace, pkgcommon.FCGImageAnalyzerComponentName, data), nil
+	cm := assets.SensorConfigMap(pkgcommon.FCGImageAnalyzerConfigMapName, ia.cfg.InstallNamespace, pkgcommon.FCGImageAnalyzerComponentName, data)
+	ia.withAppLabels(cm.Labels)
+	return cm, nil
 }

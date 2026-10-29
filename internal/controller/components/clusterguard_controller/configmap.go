@@ -49,7 +49,9 @@ func (a *ClusterGuardController) configMap() *corev1.ConfigMap {
 	}
 	data["FALCONCTL_OPT_CID"] = a.cfg.Cid
 
-	return assets.SensorConfigMap(pkgcommon.ClusterGuardControllerConfigMapName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardControllerComponentName, data)
+	cm := assets.SensorConfigMap(pkgcommon.ClusterGuardControllerConfigMapName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardControllerComponentName, data)
+	a.withAppLabels(cm.Labels)
+	return cm
 }
 
 // syncConfigMap creates or updates a ConfigMap when its Data has drifted.
@@ -90,12 +92,14 @@ func (a *ClusterGuardController) reconcileConfigMap(ctx context.Context) (bool, 
 
 // clusterNameConfigMap builds the cluster name ConfigMap.
 func (a *ClusterGuardController) clusterNameConfigMap() *corev1.ConfigMap {
-	return assets.SensorConfigMap(
+	cm := assets.SensorConfigMap(
 		pkgcommon.FalconAdmissionClusterNameConfigMapName,
 		a.cfg.InstallNamespace,
 		pkgcommon.ClusterGuardControllerComponentName,
 		map[string]string{"ClusterName": *a.cfg.ClusterName},
 	)
+	a.withAppLabels(cm.Labels)
+	return cm
 }
 
 // reconcileClusterNameConfigMap creates or updates the cluster name ConfigMap when

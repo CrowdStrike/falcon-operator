@@ -74,12 +74,10 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: webhookName,
-			Labels: map[string]string{
-				"app":                            pkgcommon.ClusterGuardComponentName,
-				pkgcommon.KubernetesNameKey:      pkgcommon.ClusterGuardComponentName,
-				pkgcommon.KubernetesComponentKey: pkgcommon.ClusterGuardControllerComponentName,
-				pkgcommon.FalconProviderKey:      pkgcommon.FalconProviderValue,
-			},
+			Labels: a.withAppLabels(map[string]string{
+				"app":                       pkgcommon.ClusterGuardComponentName,
+				pkgcommon.FalconProviderKey: pkgcommon.FalconProviderValue,
+			}),
 		},
 		Webhooks: []arv1.ValidatingWebhook{
 			{

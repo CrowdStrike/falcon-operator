@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"maps"
 	"net/url"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -72,6 +73,7 @@ func (r *FalconClusterGuardReconciler) reconcileAPITLSSecrets(
 	if apierrors.IsNotFound(errAPI) {
 		s := assets.Secret(pkgcommon.ClusterGuardControllerAPITLSSecretName, namespace, pkgcommon.ClusterGuardControllerComponentName,
 			map[string][]byte{"tls.crt": serverCert, "tls.key": serverKey}, corev1.SecretTypeTLS)
+		maps.Copy(s.Labels, pkgcommon.AppLabels(pkgcommon.ClusterGuardComponentName, fcg.Name, pkgcommon.ClusterGuardControllerAppComponent))
 		if err := k8sutils.Create(r, r.RuntimeScheme, ctx, req, r.log, fcg, status, s); err != nil {
 			return err
 		}
@@ -83,6 +85,7 @@ func (r *FalconClusterGuardReconciler) reconcileAPITLSSecrets(
 	if apierrors.IsNotFound(errCA) {
 		s := assets.Secret(pkgcommon.ClusterGuardControllerAPICASecretName, namespace, pkgcommon.ClusterGuardControllerComponentName,
 			map[string][]byte{"ca.crt": ca}, corev1.SecretTypeOpaque)
+		maps.Copy(s.Labels, pkgcommon.AppLabels(pkgcommon.ClusterGuardComponentName, fcg.Name, pkgcommon.ClusterGuardControllerAppComponent))
 		if err := k8sutils.Create(r, r.RuntimeScheme, ctx, req, r.log, fcg, status, s); err != nil {
 			return err
 		}
@@ -94,6 +97,7 @@ func (r *FalconClusterGuardReconciler) reconcileAPITLSSecrets(
 	if apierrors.IsNotFound(errSensor) {
 		s := assets.Secret(pkgcommon.ClusterGuardNodeSensorTLSSecretName, namespace, pkgcommon.ClusterGuardControllerComponentName,
 			map[string][]byte{"tls.crt": clientCert, "tls.key": clientKey}, corev1.SecretTypeTLS)
+		maps.Copy(s.Labels, pkgcommon.AppLabels(pkgcommon.ClusterGuardComponentName, fcg.Name, pkgcommon.ClusterGuardControllerAppComponent))
 		if err := k8sutils.Create(r, r.RuntimeScheme, ctx, req, r.log, fcg, status, s); err != nil {
 			return err
 		}

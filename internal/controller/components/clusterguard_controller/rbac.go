@@ -15,12 +15,14 @@ import (
 
 // serviceAccount builds the ServiceAccount for the clusterguard controller.
 func (a *ClusterGuardController) serviceAccount() *corev1.ServiceAccount {
-	return assets.ServiceAccount(pkgcommon.ClusterGuardControllerServiceAccountName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardControllerComponentName, a.cfg.ClusterGuardControllerConfig.ServiceAccount.Annotations, a.cfg.ImagePullSecrets)
+	sa := assets.ServiceAccount(pkgcommon.ClusterGuardControllerServiceAccountName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardControllerComponentName, a.cfg.ClusterGuardControllerConfig.ServiceAccount.Annotations, a.cfg.ImagePullSecrets)
+	a.withAppLabels(sa.Labels)
+	return sa
 }
 
 // clusterRoleBinding builds the ClusterRoleBinding for the clusterguard controller.
 func (a *ClusterGuardController) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
-	return assets.ClusterRoleBinding(
+	crb := assets.ClusterRoleBinding(
 		pkgcommon.ClusterGuardControllerClusterRoleBindingName,
 		a.cfg.InstallNamespace,
 		pkgcommon.ClusterGuardControllerClusterRoleName,
@@ -28,16 +30,22 @@ func (a *ClusterGuardController) clusterRoleBinding() *rbacv1.ClusterRoleBinding
 		pkgcommon.ClusterGuardControllerComponentName,
 		[]rbacv1.Subject{},
 	)
+	a.withAppLabels(crb.Labels)
+	return crb
 }
 
 // roleBinding builds the RoleBinding for the clusterguard controller.
 func (a *ClusterGuardController) roleBinding() *rbacv1.RoleBinding {
-	return assets.RoleBinding(pkgcommon.ClusterGuardControllerRoleBindingName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardControllerNamespaceRoleName, pkgcommon.ClusterGuardControllerServiceAccountName)
+	rb := assets.RoleBinding(pkgcommon.ClusterGuardControllerRoleBindingName, a.cfg.InstallNamespace, pkgcommon.ClusterGuardControllerNamespaceRoleName, pkgcommon.ClusterGuardControllerServiceAccountName)
+	a.withAppLabels(rb.Labels)
+	return rb
 }
 
 // role builds the Role for the clusterguard controller.
 func (a *ClusterGuardController) role() *rbacv1.Role {
-	return assets.Role(pkgcommon.ClusterGuardControllerNamespaceRoleName, a.cfg.InstallNamespace)
+	role := assets.Role(pkgcommon.ClusterGuardControllerNamespaceRoleName, a.cfg.InstallNamespace)
+	a.withAppLabels(role.Labels)
+	return role
 }
 
 // reconcileServiceAccount reconciles the ServiceAccount for the clusterguard controller.

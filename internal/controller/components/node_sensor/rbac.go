@@ -16,13 +16,15 @@ import (
 // The name is a fixed cluster-wide constant, not prefix-based. Currently only one node_sensor
 // component is supported per FalconClusterGuard; if multiple become supported this will need revisiting.
 func (n *NodeSensor) serviceAccount() *corev1.ServiceAccount {
-	return assets.ServiceAccount(pkgcommon.ClusterGuardNodeSensorServiceAccountName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, n.cfg.NodeSensor.ServiceAccount.Annotations, n.cfg.ImagePullSecrets)
+	sa := assets.ServiceAccount(pkgcommon.ClusterGuardNodeSensorServiceAccountName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, n.cfg.NodeSensor.ServiceAccount.Annotations, n.cfg.ImagePullSecrets)
+	n.withAppLabels(sa.Labels, pkgcommon.ClusterGuardComponentName)
+	return sa
 }
 
 // clusterRoleBinding builds the ClusterRoleBinding for the node sensor.
 // The name is a fixed cluster-wide constant — see serviceAccount() for rationale.
 func (n *NodeSensor) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
-	return assets.ClusterRoleBinding(
+	crb := assets.ClusterRoleBinding(
 		pkgcommon.ClusterGuardNodeSensorClusterRoleBindingName,
 		n.cfg.InstallNamespace,
 		pkgcommon.ClusterGuardNodeSensorClusterRoleName,
@@ -30,12 +32,16 @@ func (n *NodeSensor) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 		pkgcommon.ClusterGuardComponentName,
 		[]rbacv1.Subject{},
 	)
+	n.withAppLabels(crb.Labels, pkgcommon.ClusterGuardComponentName)
+	return crb
 }
 
 // cleanupServiceAccount builds the ServiceAccount for the node sensor cleanup DaemonSet.
 // The name is a fixed cluster-wide constant — see serviceAccount() for rationale.
 func (n *NodeSensor) cleanupServiceAccount() *corev1.ServiceAccount {
-	return assets.ServiceAccount(pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, nil, nil)
+	sa := assets.ServiceAccount(pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, nil, nil)
+	n.withAppLabels(sa.Labels, pkgcommon.ClusterGuardComponentName)
+	return sa
 }
 
 func (n *NodeSensor) reconcileServiceAccount(ctx context.Context) error {

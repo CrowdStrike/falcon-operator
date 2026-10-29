@@ -37,6 +37,8 @@ const (
 	AppLabelKey              = "app"
 	KubernetesComponentKey   = "app.kubernetes.io/component"
 	KubernetesNameKey        = "app.kubernetes.io/name"
+	KubernetesInstanceKey    = "app.kubernetes.io/instance"
+	KubernetesManagedByKey   = "app.kubernetes.io/managed-by"
 	FalconInstanceNameKey    = "crowdstrike.com/name"
 	FalconInstanceKey        = "crowdstrike.com/instance"
 	FalconComponentKey       = "crowdstrike.com/component"
@@ -110,6 +112,11 @@ const (
 	ClusterGuardNodeSensorComponentName = "node_sensor"
 	ClusterGuardAPIServiceName          = "api"
 	ClusterGuardAPICASecretName         = "falcon-api-ca"
+
+	// app.kubernetes.io name/component values that match the falcon-clusterguard Helm chart
+	ClusterGuardNodeCleanupAppName     = "falcon-clusterguard-node-cleanup"
+	ClusterGuardImageAnalyzerAppName   = "falcon-clusterguard-iar"
+	ClusterGuardControllerAppComponent = "fcg-controller"
 
 	// FCG component ClusterRole names (installed by kustomize, referenced by component CRBs)
 	ClusterGuardControllerClusterRoleName = "falcon-operator-falcon-clusterguard-resource-reader"

@@ -11,16 +11,17 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (ia *ImageAnalyzer) reconcileService(ctx context.Context) error {
+// service builds the image analyzer agent Service.
+func (ia *ImageAnalyzer) service() *corev1.Service {
 	selector := map[string]string{pkgcommon.FalconComponentKey: pkgcommon.FCGImageAnalyzerComponentName}
 
 	// Labels required for clusterguard controller -> IAR communication; values must match the standalone FalconImageAnalyzer.
-	labels := pkgcommon.CRLabels("service", pkgcommon.FCGImageAnalyzerDeploymentName, pkgcommon.FCGImageAnalyzerComponentName)
+	labels := ia.withAppLabels(pkgcommon.CRLabels("service", pkgcommon.FCGImageAnalyzerDeploymentName, pkgcommon.FCGImageAnalyzerComponentName))
 	labels[pkgcommon.AppLabelKey] = pkgcommon.FalconImageAnalyzerAgentServiceApp
 	labels[pkgcommon.KubernetesComponentKey] = pkgcommon.FalconImageAnalyzerComponentName
 	labels[pkgcommon.KubernetesNameKey] = pkgcommon.FCGImageAnalyzerDeploymentName
 
-	service := assets.ServiceWithCustomLabels(
+	return assets.ServiceWithCustomLabels(
 		pkgcommon.FalconImageAnalyzerAgentService,
 		ia.cfg.InstallNamespace,
 		selector,
@@ -29,7 +30,10 @@ func (ia *ImageAnalyzer) reconcileService(ctx context.Context) error {
 		pkgcommon.FalconImageAnalyzerAgentServicePortName,
 		pkgcommon.FalconImageAnalyzerAgentServicePort,
 	)
+}
 
+func (ia *ImageAnalyzer) reconcileService(ctx context.Context) error {
+	service := ia.service()
 	existing := &corev1.Service{}
 	found, err := k8sutils.GetOrCreate(ctx, ia.r, ia.cfg.Request, ia.cfg.Owner, ia.cfg.Status, service, existing,
 		types.NamespacedName{Name: pkgcommon.FalconImageAnalyzerAgentService, Namespace: ia.cfg.InstallNamespace},

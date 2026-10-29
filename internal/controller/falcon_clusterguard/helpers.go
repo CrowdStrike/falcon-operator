@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"maps"
 	"reflect"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -35,6 +36,7 @@ func (r *FalconClusterGuardReconciler) reconcileImagePullSecret(ctx context.Cont
 
 	secretData := map[string][]byte{corev1.DockerConfigJsonKey: common.CleanDecodedBase64(token)}
 	desired := assets.Secret(common.FalconPullSecretName, fcg.Spec.InstallNamespace, "falcon-operator", secretData, corev1.SecretTypeDockerConfigJson)
+	maps.Copy(desired.Labels, common.AppLabels(common.ClusterGuardComponentName, fcg.Name, common.ClusterGuardComponentName))
 
 	existing := &corev1.Secret{}
 	err = common.GetNamespacedObject(ctx, r.Client, r.Reader,

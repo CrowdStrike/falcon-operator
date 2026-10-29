@@ -16,7 +16,7 @@ import (
 )
 
 func (ia *ImageAnalyzer) deployment() *appsv1.Deployment {
-	return assets.ImageAnalyzerDeploymentFromConfig(
+	dep := assets.ImageAnalyzerDeploymentFromConfig(
 		pkgcommon.FCGImageAnalyzerDeploymentName,
 		ia.cfg.InstallNamespace,
 		pkgcommon.FCGImageAnalyzerComponentName,
@@ -28,6 +28,10 @@ func (ia *ImageAnalyzer) deployment() *appsv1.Deployment {
 		pkgcommon.FCGImageAnalyzerTLSSecretName,
 		ia.cfg.ImageAnalyzerSpec,
 	)
+	// Metadata and pod template share one label map; the selector is separate and stays unchanged.
+	ia.withAppLabels(dep.Labels)
+	ia.withAppLabels(dep.Spec.Template.Labels)
+	return dep
 }
 
 func (ia *ImageAnalyzer) reconcileDeployment(ctx context.Context) error {
