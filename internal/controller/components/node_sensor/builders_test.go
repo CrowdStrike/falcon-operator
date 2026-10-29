@@ -1089,6 +1089,9 @@ func TestDaemonSetProxyEnabledAddsPortVolumeMount(t *testing.T) {
 			if p.ContainerPort != port {
 				t.Errorf("expected containerPort %d, got %d", port, p.ContainerPort)
 			}
+			if p.HostPort != port {
+				t.Errorf("expected hostPort %d to match the API server default for hostNetwork pods, got %d", port, p.HostPort)
+			}
 			if p.Protocol != corev1.ProtocolTCP {
 				t.Errorf("expected protocol TCP, got %q", p.Protocol)
 			}
