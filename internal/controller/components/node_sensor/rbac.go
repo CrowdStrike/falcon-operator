@@ -13,7 +13,7 @@ import (
 )
 
 // serviceAccount builds the ServiceAccount for the node sensor.
-// The name is a fixed cluster-wide constant, not prefix-based. Currently only one node_sensor
+// The name is a fixed cluster-wide constant. Currently only one node_sensor
 // component is supported per FalconClusterGuard; if multiple become supported this will need revisiting.
 func (n *NodeSensor) serviceAccount() *corev1.ServiceAccount {
 	sa := assets.ServiceAccount(pkgcommon.ClusterGuardNodeSensorServiceAccountName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, n.cfg.NodeSensor.ServiceAccount.Annotations, n.cfg.ImagePullSecrets)

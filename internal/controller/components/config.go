@@ -16,7 +16,6 @@ type BaseConfig struct {
 	Image            string
 	ImagePullPolicy  corev1.PullPolicy
 	ImagePullSecrets []corev1.LocalObjectReference
-	NamePrefix       string
 	Cid              string
 	Falcon           falconv1alpha1.FalconSensor
 	OpenShift        bool
