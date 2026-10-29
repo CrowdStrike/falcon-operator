@@ -8,6 +8,8 @@ metadata:
 spec:
   group: falcon.crowdstrike.com
   names:
+    categories:
+    - falcon
     kind: FalconContainer
     listKind: FalconContainerList
     plural: falconcontainers

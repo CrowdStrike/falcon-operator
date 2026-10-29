@@ -129,6 +129,8 @@ var _ = Describe("FalconDeployment Controller", func() {
 		It("should successfully reconcile the resource", func() {
 			By("Creating the custom resource for the Kind FalconDeployment - No Overrides")
 			deployContainerSensor := true
+			deployAdmissionController := true
+			deployNodeSensor := true
 
 			falconDeployment := &falconv1alpha1.FalconDeployment{}
 			err := k8sClient.Get(ctx, typeNamespacedName, falconDeployment)
@@ -141,10 +143,12 @@ var _ = Describe("FalconDeployment Controller", func() {
 						Namespace: falconDeploymentNamespace.Name,
 					},
 					Spec: falconv1alpha1.FalconDeploymentSpec{
-						FalconAPI:             &mockFalconAPI,
-						Registry:              defaultRegistry,
-						FalconSecret:          topLevelFalconSecret,
-						DeployContainerSensor: &deployContainerSensor,
+						FalconAPI:                 &mockFalconAPI,
+						Registry:                  defaultRegistry,
+						FalconSecret:              topLevelFalconSecret,
+						DeployContainerSensor:     &deployContainerSensor,
+						DeployAdmissionController: &deployAdmissionController,
+						DeployNodeSensor:          &deployNodeSensor,
 						FalconAdmission: falconv1alpha1.FalconAdmissionSpec{
 							InstallNamespace: admissionControllerNamespace,
 							Registry:         defaultRegistry,
@@ -230,6 +234,8 @@ var _ = Describe("FalconDeployment Controller", func() {
 
 			By("Creating the custom resource for the Kind FalconDeployment - With Overrides")
 			deployContainerSensor = true
+			deployAdmissionController = true
+			deployNodeSensor = true
 
 			overrideFalconDeployment := &falconv1alpha1.FalconDeployment{}
 			err = k8sClient.Get(ctx, typeNamespacedOverrideName, overrideFalconDeployment)
@@ -242,9 +248,11 @@ var _ = Describe("FalconDeployment Controller", func() {
 						Namespace: falconDeploymentOverrideNamespace.Name,
 					},
 					Spec: falconv1alpha1.FalconDeploymentSpec{
-						FalconAPI:             &mockFalconAPI,
-						Registry:              defaultRegistry,
-						DeployContainerSensor: &deployContainerSensor,
+						FalconAPI:                 &mockFalconAPI,
+						Registry:                  defaultRegistry,
+						DeployContainerSensor:     &deployContainerSensor,
+						DeployAdmissionController: &deployAdmissionController,
+						DeployNodeSensor:          &deployNodeSensor,
 						FalconAdmission: falconv1alpha1.FalconAdmissionSpec{
 							InstallNamespace: admissionControllerOverrideNamespace,
 							FalconAPI:        &overrideFalconAPI,

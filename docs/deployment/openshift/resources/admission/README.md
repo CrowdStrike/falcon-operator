@@ -1,5 +1,8 @@
 # Falcon Admission Controller
 
+> [!NOTE]
+> For new deployments, [`FalconClusterGuard`](clusterguard.md) is recommended. Its Cluster Guard Controller provides admission control and cluster visibility, and it deploys the node sensor and the Image Analyzer from the same resource. `FalconAdmission` remains supported. Do not run a `FalconAdmission` alongside a `FalconClusterGuard`, because the cluster would then run two Falcon admission controllers.
+
 ## About FalconAdmission Custom Resource (CR)
 Falcon Operator introduces the FalconAdmission Custom Resource (CR) to the cluster. The resource is meant to install, configure, and uninstall the Falcon Admission Controller on the cluster.
 

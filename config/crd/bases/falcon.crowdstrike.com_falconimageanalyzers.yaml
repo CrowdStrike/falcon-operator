@@ -8,6 +8,8 @@ metadata:
 spec:
   group: falcon.crowdstrike.com
   names:
+    categories:
+    - falcon
     kind: FalconImageAnalyzer
     listKind: FalconImageAnalyzerList
     plural: falconimageanalyzers
@@ -657,7 +659,8 @@ spec:
                 type: string
             type: object
           status:
-            description: FalconAdmissionStatus defines the observed state of FalconAdmission
+            description: FalconCRStatus defines the observed state common to all Falcon
+              custom resources.
             properties:
               conditions:
                 items:
