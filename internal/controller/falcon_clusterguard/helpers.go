@@ -135,6 +135,13 @@ func (r *FalconClusterGuardReconciler) setFinalizer(ctx context.Context, fcg *fa
 		fcg.SetFinalizers(latest.GetFinalizers())
 		return nil
 	})
+	// A reconcile working from a stale cached copy can get here after the finalizer was already removed and the CR
+	// deleted, which is the state removal was aiming for.
+	if !present && apierrors.IsNotFound(err) {
+		controllerutil.RemoveFinalizer(fcg, common.FalconFinalizer)
+		r.log.V(1).Info("FalconClusterGuard already deleted, nothing to finalize")
+		return nil
+	}
 	if err != nil {
 		r.log.Error(err, "Failed to update FalconClusterGuard finalizers", "finalizer", common.FalconFinalizer, "present", present)
 		return err
