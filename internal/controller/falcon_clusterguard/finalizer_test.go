@@ -79,6 +79,25 @@ func TestSetFinalizerDoesNotPersistInjectedSpec(t *testing.T) {
 	}
 }
 
+// A reconcile working from a stale cached copy can try to remove the finalizer after an earlier reconcile already
+// removed it and the API server deleted the CR.
+func TestSetFinalizerRemoveIgnoresDeletedCR(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = falconv1alpha1.AddToScheme(scheme)
+	c := fake.NewClientBuilder().WithScheme(scheme).Build()
+	r := &FalconClusterGuardReconciler{Client: c, Reader: c, RuntimeScheme: scheme, log: logr.Discard()}
+
+	stale := &falconv1alpha1.FalconClusterGuard{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-fcg", Finalizers: []string{common.FalconFinalizer}},
+	}
+	if err := r.setFinalizer(context.Background(), stale, false); err != nil {
+		t.Fatalf("setFinalizer(false) on a deleted CR error: %v", err)
+	}
+	if slices.Contains(stale.Finalizers, common.FalconFinalizer) {
+		t.Errorf("expected in-memory finalizer %q to be removed, got %v", common.FalconFinalizer, stale.Finalizers)
+	}
+}
+
 // TestReconcile_DeletionRunsNodeCleanupWithoutSetup checks that deletion does not depend on the setup in Reconcile:
 // the CR has no CID or Falcon API credentials, so resolving the CID would fail. Where the cleanup image comes from is
 // covered by the node_sensor tests.
