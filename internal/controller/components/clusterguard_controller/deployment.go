@@ -104,8 +104,6 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 	maps.Copy(crLabels, selectorLabels)
 	a.withAppLabels(crLabels)
 
-	apiServiceName := fmt.Sprintf("%s.%s.svc", pkgcommon.ClusterGuardControllerAPIServiceName, namespace)
-
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: appsv1.SchemeGroupVersion.String(),
@@ -188,7 +186,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 							},
 						},
 						{
-							Name: name + "-tls-certs",
+							Name: pkgcommon.ClusterGuardControllerTLSVolumeName,
 							VolumeSource: corev1.VolumeSource{
 								Secret: &corev1.SecretVolumeSource{
 									SecretName: pkgcommon.ClusterGuardControllerTLSSecretName,
@@ -304,7 +302,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 							VolumeMounts: []corev1.VolumeMount{
 								{Name: "crowdstrike-falcon-vol0", MountPath: "/tmp"},
 								{Name: "crowdstrike-falcon-vol1", MountPath: "/var/private"},
-								{Name: name + "-tls-certs", MountPath: "/run/secrets/tls", ReadOnly: true},
+								{Name: pkgcommon.ClusterGuardControllerTLSVolumeName, MountPath: "/run/secrets/tls", ReadOnly: true},
 							},
 							StartupProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
@@ -351,8 +349,8 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 							Resources: resourcesWatcher,
 							Ports: []corev1.ContainerPort{
 								{
-									ContainerPort: pkgcommon.ClusterGuardControllerWatcherHTTPPort,
-									Name:          "watcher-health",
+									ContainerPort: a.cfg.ClusterGuardControllerConfig.GetWatcherPort(),
+									Name:          "healthcheck",
 									Protocol:      corev1.ProtocolTCP,
 								},
 								{
@@ -380,7 +378,6 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 										FieldRef: &corev1.ObjectFieldSelector{APIVersion: "v1", FieldPath: "spec.nodeName"},
 									},
 								},
-								{Name: "API_SERVICE_NAME", Value: apiServiceName},
 							}, pkgcommon.OperatorMetaEnvVars()...),
 							EnvFrom: []corev1.EnvFromSource{
 								{
@@ -402,7 +399,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   pkgcommon.FalconAdmissionClientStartupProbePath,
-										Port:   intstr.FromInt32(pkgcommon.ClusterGuardControllerWatcherHTTPPort),
+										Port:   intstr.FromInt32(a.cfg.ClusterGuardControllerConfig.GetWatcherPort()),
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
@@ -416,7 +413,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path:   pkgcommon.FalconAdmissionClientLivenessProbePath,
-										Port:   intstr.FromInt32(pkgcommon.ClusterGuardControllerWatcherHTTPPort),
+										Port:   intstr.FromInt32(a.cfg.ClusterGuardControllerConfig.GetWatcherPort()),
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},

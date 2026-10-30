@@ -1,6 +1,7 @@
 package clusterguard_controller
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/crowdstrike/falcon-operator/internal/controller/components"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/ptr"
 )
 
 func TestClusterGuardDeploymentReturnsDeployment(t *testing.T) {
@@ -52,6 +54,40 @@ func TestClusterGuardDeploymentReturnsDeployment(t *testing.T) {
 	}
 	if got := dep.Spec.Template.Labels["app"]; got != "falcon-clusterguard" {
 		t.Errorf("expected pod label app=falcon-clusterguard, got %q", got)
+	}
+}
+
+func TestClusterGuardDeploymentWatcherPort(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		port *int32
+		want int32
+	}{
+		{"default", nil, falconv1alpha1.ClusterGuardWatcherPortDefault},
+		{"custom", ptr.To(int32(4081)), 4081},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := New(nil, Config{ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{WatcherPort: tc.port}})
+			containers := a.Deployment().Spec.Template.Spec.Containers
+			i := slices.IndexFunc(containers, func(c corev1.Container) bool { return c.Name == "falcon-watcher" })
+			if i < 0 {
+				t.Fatal("expected a falcon-watcher container")
+			}
+			watcher := containers[i]
+
+			if arg := fmt.Sprintf("-http-port=%d", tc.want); !slices.Contains(watcher.Args, arg) {
+				t.Errorf("expected arg %q, got %v", arg, watcher.Args)
+			}
+			p := slices.IndexFunc(watcher.Ports, func(p corev1.ContainerPort) bool { return p.Name == "healthcheck" })
+			if p < 0 || watcher.Ports[p].ContainerPort != tc.want {
+				t.Errorf("expected healthcheck port %d, got %v", tc.want, watcher.Ports)
+			}
+			for probe, got := range map[string]*corev1.Probe{"startup": watcher.StartupProbe, "liveness": watcher.LivenessProbe} {
+				if got == nil || got.HTTPGet == nil || got.HTTPGet.Port.IntVal != tc.want {
+					t.Errorf("expected %s probe on port %d, got %+v", probe, tc.want, got)
+				}
+			}
+		})
 	}
 }
 

@@ -30,6 +30,8 @@ func (a *ClusterGuardController) webhookService() *corev1.Service {
 		a.cfg.InstallNamespace,
 		selector,
 		labels,
+		// RELEASE-CHECK: the falcon-clusterguard Helm chart leaves the webhook Service port unnamed; decide whether
+		// the operator should match it before release.
 		pkgcommon.FalconServiceHTTPSName,
 		"webhook-port",
 		port,
@@ -46,7 +48,7 @@ func (a *ClusterGuardController) apiService() *corev1.Service {
 		a.cfg.InstallNamespace,
 		selector,
 		labels,
-		"grpc",
+		"grpc-api",
 		"grpc-port",
 		pkgcommon.FalconServiceHTTPSPort,
 	)
