@@ -85,9 +85,8 @@ const (
 	ClusterGuardControllerWebhookPortStr         = "4443"
 	ClusterGuardControllerGRPCPort               = int32(50051)
 	ClusterGuardControllerGRPCPortStr            = "50051"
-	ClusterGuardControllerWatcherHTTPPort        = int32(4080)
-	ClusterGuardControllerWatcherHTTPPortStr     = "4080"
 	ClusterGuardControllerTLSSecretName          = "falcon-cg-controller-tls"
+	ClusterGuardControllerTLSVolumeName          = "falcon-cg-controller-tls-certs"
 	ClusterGuardControllerAPITLSSecretName       = "falcon-api-tls"
 	ClusterGuardControllerAPICASecretName        = "falcon-api-ca"
 	ClusterGuardControllerValidatingWebhookName  = "validating.falcon-clusterguard.crowdstrike.com"
@@ -101,8 +100,8 @@ const (
 	ClusterGuardNodeSensorTLSVolumeName             = "falcon-node-sensor-tls-certs"
 	ClusterGuardNodeSensorServiceAccountName        = "falcon-node-sensor-sa"
 	ClusterGuardNodeSensorConfigMapName             = "falcon-sensor-config"
-	ClusterGuardNodeSensorPriorityClassName         = "falcon-sensor-priorityclass"
-	ClusterGuardNodeSensorClusterRoleBindingName    = "falcon-sensor-access-binding"
+	ClusterGuardNodeSensorPriorityClassName         = "falcon-clusterguard-node-security-critical"
+	ClusterGuardNodeSensorClusterRoleBindingName    = "falcon-clusterguard-node-crb"
 	ClusterGuardNodeSensorCleanupServiceAccountName = "falcon-node-sensor-sa-node-cleanup"
 	ClusterGuardNodeSensorTLSSecretName             = "falcon-node-sensor-tls"
 	ClusterGuardProxyServiceName                    = "falcon-proxy"
