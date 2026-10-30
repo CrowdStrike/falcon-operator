@@ -18,9 +18,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// reconcileAPITLSSecrets ensures the PKI secrets shared between the admission
-// controller and node sensor exist. They are managed here rather than per-component
-// so they are created regardless of which component is enabled.
+// reconcileAPITLSSecrets ensures the PKI secrets for mTLS between the Cluster Guard Controller
+// API service and the node sensor exist. They are only needed while the Cluster Guard Controller
+// is enabled, and are removed by its Cleanup when it is disabled.
 func (r *FalconClusterGuardReconciler) reconcileAPITLSSecrets(
 	ctx context.Context,
 	req ctrl.Request,

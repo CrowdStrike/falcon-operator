@@ -1,6 +1,7 @@
 package node_sensor
 
 import (
+	"slices"
 	"testing"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -20,6 +21,7 @@ func TestClusterGuardSensorDaemonSetReturnsDS(t *testing.T) {
 			InstallNamespace: "falcon-clusterguard",
 			Image:            "quay.io/crowdstrike/falcon-sensor:latest",
 		},
+		ClusterGuardControllerEnabled: true,
 	}
 
 	n := New(nil, cfg)
@@ -309,42 +311,45 @@ func TestDsResourcesBpfPartialUserOverride(t *testing.T) {
 // configMap builder tests
 
 func TestClusterGuardSensorDaemonSetVolumesAndMounts(t *testing.T) {
-	n := New(nil, Config{BaseConfig: components.BaseConfig{
-		InstallNamespace: "falcon-clusterguard",
-		Image:            "quay.io/crowdstrike/falcon-sensor:latest",
-	}})
-	ds := n.daemonSet()
-
-	wantVolumes := []string{"cs-config", "falconstore", "falcon-sensor-tls-certs", "falcon-api-ca"}
-	volumeNames := map[string]bool{}
-	for _, v := range ds.Spec.Template.Spec.Volumes {
-		volumeNames[v.Name] = true
+	tests := []struct {
+		name              string
+		controllerEnabled bool
+		want              []string
+	}{
+		{"controller enabled", true, []string{"cs-config", "falconstore", "falcon-node-sensor-tls-certs", "falcon-api-ca"}},
+		{"controller disabled", false, []string{"cs-config", "falconstore"}},
 	}
-	for _, name := range wantVolumes {
-		if !volumeNames[name] {
-			t.Errorf("missing volume %q", name)
-		}
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			n := New(nil, Config{
+				BaseConfig: components.BaseConfig{
+					InstallNamespace: "falcon-clusterguard",
+					Image:            "quay.io/crowdstrike/falcon-sensor:latest",
+				},
+				ClusterGuardControllerEnabled: tt.controllerEnabled,
+			})
+			podSpec := n.daemonSet().Spec.Template.Spec
 
-	wantMounts := []string{"cs-config", "falconstore"}
-	for _, want := range wantMounts {
-		foundInit, foundMain := false, false
-		for _, vm := range ds.Spec.Template.Spec.InitContainers[0].VolumeMounts {
-			if vm.Name == want {
-				foundInit = true
+			var volumes, initMounts, mainMounts []string
+			for _, v := range podSpec.Volumes {
+				volumes = append(volumes, v.Name)
 			}
-		}
-		for _, vm := range ds.Spec.Template.Spec.Containers[0].VolumeMounts {
-			if vm.Name == want {
-				foundMain = true
+			for _, vm := range podSpec.InitContainers[0].VolumeMounts {
+				initMounts = append(initMounts, vm.Name)
 			}
-		}
-		if !foundInit {
-			t.Errorf("init container missing volumeMount %q", want)
-		}
-		if !foundMain {
-			t.Errorf("main container missing volumeMount %q", want)
-		}
+			for _, vm := range podSpec.Containers[0].VolumeMounts {
+				mainMounts = append(mainMounts, vm.Name)
+			}
+			if !slices.Equal(volumes, tt.want) {
+				t.Errorf("volumes = %v, want %v", volumes, tt.want)
+			}
+			if !slices.Equal(initMounts, tt.want) {
+				t.Errorf("init container volumeMounts = %v, want %v", initMounts, tt.want)
+			}
+			if !slices.Equal(mainMounts, tt.want) {
+				t.Errorf("main container volumeMounts = %v, want %v", mainMounts, tt.want)
+			}
+		})
 	}
 }
 

@@ -404,7 +404,7 @@ To upgrade the sensor version, simply add and/or update the `version` field in t
   {{ .KubeCmd }} logs -n falcon-system -l "app=falcon-image-analyzer"
   ```
 
-- Each enabled component reports its readiness as a status condition on the FalconClusterGuard resource (`AdmissionReady` for the Cluster Guard Controller, `NodeSensorReady`, and `ImageAnalyzerReady`). The condition is removed when its component is disabled. A condition is `True` only once the component's Deployment or DaemonSet has rolled out and its pods are available. Until then it is `False` with reason `Progressing`, or `Failed` when a pod is stuck (for example `ImagePullBackOff` or `CrashLoopBackOff`), and the message names the pod and container at fault. The `Success` condition stays `False` until every enabled component is ready:
+- Each enabled component reports its readiness as a status condition on the FalconClusterGuard resource (`ClusterGuardControllerReady` for the Cluster Guard Controller, `NodeSensorReady`, and `ImageAnalyzerReady`). The condition is removed when its component is disabled. A condition is `True` only once the component's Deployment or DaemonSet has rolled out and its pods are available. Until then it is `False` with reason `Progressing`, or `Failed` when a pod is stuck (for example `ImagePullBackOff` or `CrashLoopBackOff`), and the message names the pod and container at fault. The `Success` condition stays `False` until every enabled component is ready:
   ```sh
   {{ .KubeCmd }} get falconclusterguard -o jsonpath='{range .items[].status.conditions[*]}{.type}={.status} {.reason}: {.message}{"\n"}{end}'
   ```

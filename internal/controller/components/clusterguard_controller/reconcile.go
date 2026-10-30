@@ -103,8 +103,8 @@ func (a *ClusterGuardController) Reconcile(ctx context.Context) (ctrl.Result, er
 	return ctrl.Result{}, a.updateReadyCondition(ctx)
 }
 
-// updateReadyCondition reports the Deployment's readiness as the AdmissionReady condition. A Deployment that is
-// not ready yet is reported through the condition rather than a requeue, so the remaining components still
+// updateReadyCondition reports the Deployment's readiness as the ClusterGuardControllerReady condition. A Deployment
+// that is not ready yet is reported through the condition rather than a requeue, so the remaining components still
 // reconcile; the FalconClusterGuard controller requeues until it is ready.
 func (a *ClusterGuardController) updateReadyCondition(ctx context.Context) error {
 	status, err := k8sutils.DeploymentStatus(ctx, a.r,
@@ -113,5 +113,5 @@ func (a *ClusterGuardController) updateReadyCondition(ctx context.Context) error
 		return err
 	}
 	return k8sutils.ConditionsSet(a.r, ctx, a.cfg.Request, a.r.GetLog(), a.cfg.Owner, a.cfg.Status,
-		status.Condition(falconv1alpha1.ConditionAdmissionReady, "Cluster Guard Controller is ready", a.cfg.Owner.GetGeneration()))
+		status.Condition(falconv1alpha1.ConditionClusterGuardControllerReady, "Cluster Guard Controller is ready", a.cfg.Owner.GetGeneration()))
 }

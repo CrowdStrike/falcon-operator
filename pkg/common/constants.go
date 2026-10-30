@@ -98,7 +98,7 @@ const (
 	ClusterGuardNodeSensorDaemonSetName             = "falcon-sensor"
 	ClusterGuardNodeSensorCleanupDaemonSetName      = "falcon-sensor-cleanup"
 	ClusterGuardNodeSensorContainerName             = "falcon-node-sensor"
-	ClusterGuardNodeSensorTLSVolumeName             = "falcon-sensor-tls-certs"
+	ClusterGuardNodeSensorTLSVolumeName             = "falcon-node-sensor-tls-certs"
 	ClusterGuardNodeSensorServiceAccountName        = "falcon-node-sensor-sa"
 	ClusterGuardNodeSensorConfigMapName             = "falcon-sensor-config"
 	ClusterGuardNodeSensorPriorityClassName         = "falcon-sensor-priorityclass"
