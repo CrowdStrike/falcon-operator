@@ -19,6 +19,21 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
+// controllerTLSVolumeMounts mounts the mTLS client certificate and API CA the sensor uses to reach the
+// Cluster Guard Controller API service. They are only added when the Cluster Guard Controller is enabled.
+var controllerTLSVolumeMounts = []corev1.VolumeMount{
+	{Name: pkgcommon.ClusterGuardNodeSensorTLSVolumeName, MountPath: "/run/secrets/tls", ReadOnly: true},
+	{Name: "falcon-api-ca", MountPath: "/run/secrets/ca", ReadOnly: true},
+}
+
+// controllerTLSVolumes returns the Secret volumes backing controllerTLSVolumeMounts.
+func controllerTLSVolumes(defaultMode *int32) []corev1.Volume {
+	return []corev1.Volume{
+		{Name: pkgcommon.ClusterGuardNodeSensorTLSVolumeName, VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: pkgcommon.ClusterGuardNodeSensorTLSSecretName, DefaultMode: defaultMode}}},
+		{Name: "falcon-api-ca", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: pkgcommon.ClusterGuardAPICASecretName, DefaultMode: defaultMode}}},
+	}
+}
+
 // daemonSet builds the DaemonSet for the FalconClusterGuard node sensor.
 func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 	namespace := n.cfg.InstallNamespace
@@ -109,8 +124,6 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "cs-config", MountPath: pkgcommon.FalconConfigDir},
 					{Name: "falconstore", MountPath: pkgcommon.FalconStoreFile},
-					{Name: pkgcommon.ClusterGuardNodeSensorTLSVolumeName, MountPath: "/run/secrets/tls", ReadOnly: true},
-					{Name: "falcon-api-ca", MountPath: "/run/secrets/ca", ReadOnly: true},
 				},
 			},
 		},
@@ -138,17 +151,19 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "cs-config", MountPath: pkgcommon.FalconConfigDir},
 					{Name: "falconstore", MountPath: pkgcommon.FalconStoreFile},
-					{Name: pkgcommon.ClusterGuardNodeSensorTLSVolumeName, MountPath: "/run/secrets/tls", ReadOnly: true},
-					{Name: "falcon-api-ca", MountPath: "/run/secrets/ca", ReadOnly: true},
 				},
 			},
 		},
 		Volumes: []corev1.Volume{
 			{Name: "cs-config", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: pkgcommon.FalconConfigDir, Type: &hostPathType}}},
 			{Name: "falconstore", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: pkgcommon.FalconStoreFile, Type: &hostPathType}}},
-			{Name: pkgcommon.ClusterGuardNodeSensorTLSVolumeName, VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: pkgcommon.ClusterGuardNodeSensorTLSSecretName, DefaultMode: &secretDefaultMode}}},
-			{Name: "falcon-api-ca", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: pkgcommon.ClusterGuardAPICASecretName, DefaultMode: &secretDefaultMode}}},
 		},
+	}
+
+	if n.cfg.ClusterGuardControllerEnabled {
+		podSpec.Volumes = append(podSpec.Volumes, controllerTLSVolumes(&secretDefaultMode)...)
+		podSpec.InitContainers[0].VolumeMounts = append(podSpec.InitContainers[0].VolumeMounts, controllerTLSVolumeMounts...)
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, controllerTLSVolumeMounts...)
 	}
 
 	if nodeSpec.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution != nil ||

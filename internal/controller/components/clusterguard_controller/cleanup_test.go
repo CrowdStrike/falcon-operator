@@ -13,6 +13,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -100,8 +101,8 @@ func TestCleanup_RemovesEverythingReconcileCreated(t *testing.T) {
 	if err := r.Get(ctx, types.NamespacedName{Name: owner.Name}, persisted); err != nil {
 		t.Fatal(err)
 	}
-	if meta.FindStatusCondition(persisted.Status.Conditions, falconv1alpha1.ConditionAdmissionReady) == nil {
-		t.Fatalf("expected %s condition to be persisted, got %v", falconv1alpha1.ConditionAdmissionReady, persisted.Status.Conditions)
+	if meta.FindStatusCondition(persisted.Status.Conditions, falconv1alpha1.ConditionClusterGuardControllerReady) == nil {
+		t.Fatalf("expected %s condition to be persisted, got %v", falconv1alpha1.ConditionClusterGuardControllerReady, persisted.Status.Conditions)
 	}
 
 	// The second call verifies Cleanup is idempotent once everything is gone.
@@ -117,8 +118,8 @@ func TestCleanup_RemovesEverythingReconcileCreated(t *testing.T) {
 	if err := r.Get(ctx, types.NamespacedName{Name: owner.Name}, persisted); err != nil {
 		t.Fatal(err)
 	}
-	if c := meta.FindStatusCondition(persisted.Status.Conditions, falconv1alpha1.ConditionAdmissionReady); c != nil {
-		t.Errorf("expected %s condition to be removed, got %v", falconv1alpha1.ConditionAdmissionReady, c)
+	if c := meta.FindStatusCondition(persisted.Status.Conditions, falconv1alpha1.ConditionClusterGuardControllerReady); c != nil {
+		t.Errorf("expected %s condition to be removed, got %v", falconv1alpha1.ConditionClusterGuardControllerReady, c)
 	}
 }
 
@@ -134,7 +135,7 @@ func TestReconcile_ReportsDeploymentReadiness(t *testing.T) {
 		if err := r.Get(ctx, types.NamespacedName{Name: owner.Name}, persisted); err != nil {
 			t.Fatal(err)
 		}
-		return meta.FindStatusCondition(persisted.Status.Conditions, falconv1alpha1.ConditionAdmissionReady)
+		return meta.FindStatusCondition(persisted.Status.Conditions, falconv1alpha1.ConditionClusterGuardControllerReady)
 	}
 
 	if c := reconcileCondition(); c.Status != metav1.ConditionFalse || c.Reason != falconv1alpha1.ReasonProgressing {
@@ -160,18 +161,10 @@ func TestReconcile_ReportsDeploymentReadiness(t *testing.T) {
 
 func TestCleanup_KeepsSharedResources(t *testing.T) {
 	ctx := context.Background()
-	// falcon-kac-meta is also written by a standalone FalconAdmission; the API TLS secret is shared with the node sensor.
+	// falcon-kac-meta is also written by a standalone FalconAdmission.
 	standaloneMeta := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
 		Name: pkgcommon.FalconAdmissionClusterNameConfigMapName, Namespace: cleanupTestNamespace}}
-	apiTLS := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{
-		Name: pkgcommon.ClusterGuardControllerAPITLSSecretName, Namespace: cleanupTestNamespace}}
-	r, owner, a := newCleanupTestController(t, standaloneMeta)
-	if err := ctrl.SetControllerReference(owner, apiTLS, r.Scheme()); err != nil {
-		t.Fatal(err)
-	}
-	if err := r.Create(ctx, apiTLS); err != nil {
-		t.Fatal(err)
-	}
+	r, _, a := newCleanupTestController(t, standaloneMeta)
 
 	if err := a.Cleanup(ctx); err != nil {
 		t.Fatalf("Cleanup() error: %v", err)
@@ -179,7 +172,35 @@ func TestCleanup_KeepsSharedResources(t *testing.T) {
 	if err := r.Get(ctx, client.ObjectKeyFromObject(standaloneMeta), &corev1.ConfigMap{}); err != nil {
 		t.Errorf("expected ConfigMap not controlled by the FalconClusterGuard to be kept: %v", err)
 	}
-	if err := r.Get(ctx, client.ObjectKeyFromObject(apiTLS), &corev1.Secret{}); err != nil {
-		t.Errorf("expected shared API TLS secret to be kept: %v", err)
+}
+
+// The API mTLS secrets are created by the FalconClusterGuard controller rather than Reconcile, but are only
+// used while the clusterguard controller is enabled, so its Cleanup removes them.
+func TestCleanup_RemovesAPITLSSecrets(t *testing.T) {
+	ctx := context.Background()
+	r, owner, a := newCleanupTestController(t)
+	var secrets []*corev1.Secret
+	for _, name := range []string{
+		pkgcommon.ClusterGuardControllerAPITLSSecretName,
+		pkgcommon.ClusterGuardControllerAPICASecretName,
+		pkgcommon.ClusterGuardNodeSensorTLSSecretName,
+	} {
+		s := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: cleanupTestNamespace}}
+		if err := ctrl.SetControllerReference(owner, s, r.Scheme()); err != nil {
+			t.Fatal(err)
+		}
+		if err := r.Create(ctx, s); err != nil {
+			t.Fatal(err)
+		}
+		secrets = append(secrets, s)
+	}
+
+	if err := a.Cleanup(ctx); err != nil {
+		t.Fatalf("Cleanup() error: %v", err)
+	}
+	for _, s := range secrets {
+		if err := r.Get(ctx, client.ObjectKeyFromObject(s), &corev1.Secret{}); !apierrors.IsNotFound(err) {
+			t.Errorf("expected secret %q to be deleted, got %v", s.Name, err)
+		}
 	}
 }

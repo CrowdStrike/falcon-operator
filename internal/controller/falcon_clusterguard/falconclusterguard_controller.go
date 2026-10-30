@@ -278,27 +278,29 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		OpenShift:        r.OpenShift,
 	}
 
+	clusterGuardControllerEnabled := falconClusterGuard.Spec.ClusterGuardControllerConfig.IsEnabled()
+	nodeSensorEnabled := falconClusterGuard.Spec.NodeSensor.IsEnabled()
+	imageAnalyzerEnabled := falconClusterGuard.Spec.ImageAnalyzer.IsEnabled()
+
 	// Build every component config before any of them runs: status updates re-fetch the CR into
 	// falconClusterGuard, which drops data injected from the FalconSecret.
-	admission := clusterguard_controller.New(r, clusterguard_controller.Config{
+	clusterGuardController := clusterguard_controller.New(r, clusterguard_controller.Config{
 		BaseConfig:                   base,
 		ClusterGuardControllerConfig: falconClusterGuard.Spec.ClusterGuardControllerConfig,
 		ClusterName:                  falconClusterGuard.GetClusterName(),
 		RegistryTLS:                  falconClusterGuard.Spec.Registry.TLS,
 	})
 	nodeSensor := node_sensor.New(r, node_sensor.Config{
-		BaseConfig: base,
-		FalconAPI:  falconClusterGuard.Spec.FalconAPI,
-		NodeSensor: falconClusterGuard.Spec.NodeSensor,
+		BaseConfig:                    base,
+		FalconAPI:                     falconClusterGuard.Spec.FalconAPI,
+		NodeSensor:                    falconClusterGuard.Spec.NodeSensor,
+		ClusterGuardControllerEnabled: clusterGuardControllerEnabled,
 	})
 	imageAnalyzer := image_analyzer.New(r, image_analyzer.Config{
 		BaseConfig:        base,
 		ImageAnalyzerSpec: falconClusterGuard.Spec.ImageAnalyzer,
 		FalconAPI:         falconClusterGuard.Spec.FalconAPI,
 	})
-	admissionEnabled := falconClusterGuard.Spec.ClusterGuardControllerConfig.IsEnabled()
-	nodeSensorEnabled := falconClusterGuard.Spec.NodeSensor.IsEnabled()
-	imageAnalyzerEnabled := falconClusterGuard.Spec.ImageAnalyzer.IsEnabled()
 
 	// The finalizer guarantees node cleanup runs before the CR, and with it the sensor DaemonSet, is deleted.
 	if nodeSensorEnabled {
@@ -307,16 +309,15 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}
 
-	if err := r.reconcileAPITLSSecrets(ctx, req, falconClusterGuard); err != nil {
-		return ctrl.Result{}, err
-	}
-
 	// Disabled components are cleaned up in place; Cleanup is a no-op once their resources are gone.
-	if admissionEnabled {
-		if result, err := admission.Reconcile(ctx); err != nil || result.RequeueAfter > 0 {
+	if clusterGuardControllerEnabled {
+		if err := r.reconcileAPITLSSecrets(ctx, req, falconClusterGuard); err != nil {
+			return ctrl.Result{}, err
+		}
+		if result, err := clusterGuardController.Reconcile(ctx); err != nil || result.RequeueAfter > 0 {
 			return result, err
 		}
-	} else if err := admission.Cleanup(ctx); err != nil {
+	} else if err := clusterGuardController.Cleanup(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -344,8 +345,8 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// Components report workloads that are not ready yet through their conditions instead of a requeue,
 	// so installation only counts as complete once every enabled component reports ready.
 	var readyConditions []string
-	if admissionEnabled {
-		readyConditions = append(readyConditions, falconv1alpha1.ConditionAdmissionReady)
+	if clusterGuardControllerEnabled {
+		readyConditions = append(readyConditions, falconv1alpha1.ConditionClusterGuardControllerReady)
 	}
 	if nodeSensorEnabled {
 		readyConditions = append(readyConditions, falconv1alpha1.ConditionNodeSensorReady)

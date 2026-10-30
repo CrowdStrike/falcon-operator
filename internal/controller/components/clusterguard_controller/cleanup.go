@@ -14,8 +14,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Cleanup removes the clusterguard controller resources owned by the FalconClusterGuard when the component is disabled.
-// The API TLS secrets are left in place because they are shared with the node sensor.
+// Cleanup removes the clusterguard controller resources owned by the FalconClusterGuard when the component is disabled,
+// including the API mTLS secrets the node sensor only mounts while the controller is enabled.
 // It is a no-op once the resources are gone.
 func (a *ClusterGuardController) Cleanup(ctx context.Context) error {
 	ns := a.cfg.InstallNamespace
@@ -26,6 +26,9 @@ func (a *ClusterGuardController) Cleanup(ctx context.Context) error {
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardControllerWebhookServiceName, Namespace: ns}},
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardControllerAPIServiceName, Namespace: ns}},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardControllerTLSSecretName, Namespace: ns}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardControllerAPITLSSecretName, Namespace: ns}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardControllerAPICASecretName, Namespace: ns}},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorTLSSecretName, Namespace: ns}},
 		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardControllerConfigMapName, Namespace: ns}},
 		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.FalconAdmissionClusterNameConfigMapName, Namespace: ns}},
 		&corev1.ResourceQuota{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardControllerResourceQuotaName, Namespace: ns}},
@@ -37,5 +40,5 @@ func (a *ClusterGuardController) Cleanup(ctx context.Context) error {
 		return err
 	}
 	return k8sutils.ConditionsRemove(a.r, ctx, a.cfg.Request, a.r.GetLog(), a.cfg.Owner, a.cfg.Status,
-		falconv1alpha1.ConditionAdmissionReady)
+		falconv1alpha1.ConditionClusterGuardControllerReady)
 }

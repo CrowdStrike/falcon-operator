@@ -11,9 +11,9 @@ func TestComponentsReadiness(t *testing.T) {
 	cond := func(condType string, status metav1.ConditionStatus, reason string) metav1.Condition {
 		return metav1.Condition{Type: condType, Status: status, Reason: reason}
 	}
-	admission := falconv1alpha1.ConditionAdmissionReady
+	clusterGuardController := falconv1alpha1.ConditionClusterGuardControllerReady
 	nodeSensor := falconv1alpha1.ConditionNodeSensorReady
-	enabled := []string{admission, nodeSensor}
+	enabled := []string{clusterGuardController, nodeSensor}
 
 	tests := []struct {
 		name        string
@@ -26,7 +26,7 @@ func TestComponentsReadiness(t *testing.T) {
 		{
 			name: "all enabled components ready",
 			conditions: []metav1.Condition{
-				cond(admission, metav1.ConditionTrue, falconv1alpha1.ReasonInstallSucceeded),
+				cond(clusterGuardController, metav1.ConditionTrue, falconv1alpha1.ReasonInstallSucceeded),
 				cond(nodeSensor, metav1.ConditionTrue, falconv1alpha1.ReasonInstallSucceeded),
 			},
 			enabled:   enabled,
@@ -34,13 +34,13 @@ func TestComponentsReadiness(t *testing.T) {
 		},
 		{
 			name:       "disabled component is ignored",
-			conditions: []metav1.Condition{cond(admission, metav1.ConditionTrue, falconv1alpha1.ReasonInstallSucceeded)},
-			enabled:    []string{admission},
+			conditions: []metav1.Condition{cond(clusterGuardController, metav1.ConditionTrue, falconv1alpha1.ReasonInstallSucceeded)},
+			enabled:    []string{clusterGuardController},
 			wantReady:  true,
 		},
 		{
 			name:        "missing condition counts as progressing",
-			conditions:  []metav1.Condition{cond(admission, metav1.ConditionTrue, falconv1alpha1.ReasonInstallSucceeded)},
+			conditions:  []metav1.Condition{cond(clusterGuardController, metav1.ConditionTrue, falconv1alpha1.ReasonInstallSucceeded)},
 			enabled:     enabled,
 			wantReason:  falconv1alpha1.ReasonProgressing,
 			wantMessage: "Waiting for NodeSensorReady",
@@ -48,12 +48,12 @@ func TestComponentsReadiness(t *testing.T) {
 		{
 			name: "any failure makes the result failed",
 			conditions: []metav1.Condition{
-				cond(admission, metav1.ConditionFalse, falconv1alpha1.ReasonProgressing),
+				cond(clusterGuardController, metav1.ConditionFalse, falconv1alpha1.ReasonProgressing),
 				cond(nodeSensor, metav1.ConditionFalse, falconv1alpha1.ReasonFailed),
 			},
 			enabled:     enabled,
 			wantReason:  falconv1alpha1.ReasonFailed,
-			wantMessage: "Waiting for AdmissionReady, NodeSensorReady",
+			wantMessage: "Waiting for ClusterGuardControllerReady, NodeSensorReady",
 		},
 	}
 	for _, tt := range tests {

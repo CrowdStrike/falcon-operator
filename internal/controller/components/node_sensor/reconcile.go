@@ -27,6 +27,8 @@ type Config struct {
 	components.BaseConfig
 	FalconAPI  *falconv1alpha1.FalconAPI
 	NodeSensor falconv1alpha1.FalconClusterGuardNodeSpec
+	// ClusterGuardControllerEnabled mounts the Cluster Guard Controller API mTLS secrets into the sensor pods.
+	ClusterGuardControllerEnabled bool
 }
 
 // withAppLabels adds the Helm chart's node sensor app.kubernetes.io labels to l.
