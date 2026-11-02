@@ -12,6 +12,9 @@
 
 The CrowdStrike Falcon Operator installs CrowdStrike Falcon custom resources on a Kubernetes cluster.
 
+> [!IMPORTANT]
+> **Announcement:** In January 2027, the Falcon sensor for Linux (DaemonSet), Kubernetes Admission Controller (KAC), and Image Assessment at Runtime (IAR) will be consolidated into Falcon Cluster Guard. This affects the `FalconNodeSensor`, `FalconAdmission`, and `FalconImageAnalyzer` custom resources. Read the [Falcon Cluster Guard Announcement](FALCON_CLUSTER_GUARD.md) to prepare your environment.
+
 ## About the CrowdStrike Falcon Operator
 The CrowdStrike Falcon Operator is designed to streamline the deployment and use of CrowdStrike products on Kubernetes clusters. The operator exposes custom resources that allow you to protect your Kubernetes clusters when deployed.
 
