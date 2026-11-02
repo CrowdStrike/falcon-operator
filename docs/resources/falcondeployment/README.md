@@ -1,5 +1,9 @@
 # FalconDeployment CRD
 
+> [!IMPORTANT]
+> **Announcement:** In January 2027, the Falcon sensor for Linux (DaemonSet), Kubernetes Admission Controller (KAC), and Image Assessment at Runtime (IAR) will be consolidated into Falcon Cluster Guard. Read the [Falcon Cluster Guard Announcement](../../../FALCON_CLUSTER_GUARD.md) to prepare your environment.
+
+
 ## Overview
 
 The Falcon Operator introduces a Kubernetes custom resource definition (CRD) named FalconDeployment, which is used to deploy and manage other Falcon-specific custom resources. By using the single `FalconDeployment` manifest, you can control the deployment and configuration of multiple components across your Kubernetes environment.
