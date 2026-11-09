@@ -1,5 +1,9 @@
 # Falcon Node Sensor
 
+> [!IMPORTANT]
+> **Announcement:** In January 2027, the Falcon sensor for Linux (DaemonSet), Kubernetes Admission Controller (KAC), and Image Assessment at Runtime (IAR) will be consolidated into Falcon Cluster Guard. Read the [Falcon Cluster Guard Announcement](../../../../../FALCON_CLUSTER_GUARD.md) to prepare your environment.
+
+
 ## About Falcon Cloud Workload Protection
 
 Learn more at [product page](https://www.crowdstrike.com/cloud-security-products/falcon-cloud-workload-protection/) and [Linux sensor blog](https://www.crowdstrike.com/blog/tech-center/linux-protection/).
