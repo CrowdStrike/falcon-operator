@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.1-rc1] - 2026-11-09
+
+### Changed
+
+- fix: update ubi9-minimal base image and golang.org/x/crypto to address CVEs
+- docs: add Falcon Cluster Guard migration announcement
+- fix: stop overwriting runtime CA trust store to drop compromised eMudhra roots
+
 ## [1.16.0] - 2026-10-27
 
 ### Changed
