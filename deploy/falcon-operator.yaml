@@ -10599,8 +10599,8 @@ spec:
         - name: OPERATOR_NAME
           value: falcon-operator
         - name: OPERATOR_MANIFEST
-          value: 1.16.0
-        image: quay.io/crowdstrike/falcon-operator:1.16.0
+          value: 1.16.1-rc1
+        image: quay.io/crowdstrike/falcon-operator:1.16.1-rc1
         livenessProbe:
           httpGet:
             path: /healthz
