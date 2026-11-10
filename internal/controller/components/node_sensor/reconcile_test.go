@@ -227,38 +227,33 @@ func TestReconcileDaemonSet_InitContainerResources(t *testing.T) {
 	}
 }
 
-// TestReconcileDaemonSet_ContainerEnvFrom verifies that toggling GKE.Enabled updates
-// the EnvFrom ConfigMap reference on the main container.
+// TestReconcileDaemonSet_ContainerEnvFrom verifies that the main container's EnvFrom references
+// falcon-sensor-config with and without GKE, the only ConfigMap the node sensor creates.
 func TestReconcileDaemonSet_ContainerEnvFrom(t *testing.T) {
 	ns := "falcon-clusterguard"
 	owner := ownerCR()
 	r := newFakeReconciler(owner)
 
-	// Create without GKE — should reference the prefix-derived ConfigMap.
 	cfg := baseConfig(ns, owner)
 	n := New(r, cfg)
 
 	ds := reconcileAndGet(t, n, r, ns, "falcon-sensor")
-	nonGKECMName := "falcon-sensor-config"
-	if !hasEnvFromConfigMap(ds, nonGKECMName) {
+	cmName := "falcon-sensor-config"
+	if !hasEnvFromConfigMap(ds, cmName) {
 		t.Fatalf("expected EnvFrom to reference %q, envFrom=%v",
-			nonGKECMName, ds.Spec.Template.Spec.Containers[0].EnvFrom)
+			cmName, ds.Spec.Template.Spec.Containers[0].EnvFrom)
 	}
 
-	// Update with GKE enabled — should switch to the fixed GKE ConfigMap name.
+	// Enabling GKE must keep the same ConfigMap; the GKE Autopilot allowlist requires falcon-sensor-config.
 	gkeEnabled := true
 	cfg2 := baseConfig(ns, owner)
 	cfg2.NodeSensor.GKE = falconv1alpha1.FalconClusterGuardAutoPilot{Enabled: &gkeEnabled}
 	n2 := New(r, cfg2)
 
 	ds = reconcileAndGet(t, n2, r, ns, "falcon-sensor")
-	// The GKE ConfigMap name is pkgcommon.GKEAutoPilotConfigMapName; check it differs
-	// from the non-GKE name and that the non-GKE name is no longer present.
-	if hasEnvFromConfigMap(ds, nonGKECMName) {
-		t.Errorf("expected EnvFrom to no longer reference %q after enabling GKE", nonGKECMName)
-	}
-	if len(ds.Spec.Template.Spec.Containers[0].EnvFrom) == 0 {
-		t.Error("expected at least one EnvFrom entry after enabling GKE")
+	if !hasEnvFromConfigMap(ds, cmName) {
+		t.Errorf("expected EnvFrom to reference %q after enabling GKE, envFrom=%v",
+			cmName, ds.Spec.Template.Spec.Containers[0].EnvFrom)
 	}
 }
 

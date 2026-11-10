@@ -126,7 +126,6 @@ func (n *NodeSensor) Cleanup(ctx context.Context) (ctrl.Result, error) {
 	ns := n.cfg.InstallNamespace
 	objs := []client.Object{
 		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorConfigMapName, Namespace: ns}},
-		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.GKEAutoPilotConfigMapName, Namespace: ns}},
 		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorClusterRoleBindingName}},
 		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorServiceAccountName, Namespace: ns}},
 		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName, Namespace: ns}},
