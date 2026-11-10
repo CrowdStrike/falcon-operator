@@ -11,6 +11,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -426,6 +427,36 @@ func TestReconcileProxyService_CreateWhenEnabled(t *testing.T) {
 	}
 	if svc.Spec.InternalTrafficPolicy == nil || *svc.Spec.InternalTrafficPolicy != corev1.ServiceInternalTrafficPolicyLocal {
 		t.Error("expected InternalTrafficPolicy=Local on proxy Service")
+	}
+}
+
+// TestReconcileProxyService_DeletesWhenDisabled verifies that disabling the guardian proxy
+// deletes a falcon-proxy Service created while it was enabled.
+func TestReconcileProxyService_DeletesWhenDisabled(t *testing.T) {
+	ns := "falcon-clusterguard"
+	owner := ownerCR()
+	r := newFakeReconciler(owner)
+
+	enabled := true
+	port := int32(48080)
+	cfg := baseConfig(ns, owner)
+	cfg.NodeSensor.Guardian.Proxy.Enabled = &enabled
+	cfg.NodeSensor.Guardian.Proxy.Port = &port
+
+	ctx := context.Background()
+	if err := New(r, cfg).reconcileProxyService(ctx); err != nil {
+		t.Fatalf("reconcileProxyService() with proxy enabled error: %v", err)
+	}
+
+	disabled := false
+	cfg.NodeSensor.Guardian.Proxy.Enabled = &disabled
+	if err := New(r, cfg).reconcileProxyService(ctx); err != nil {
+		t.Fatalf("reconcileProxyService() with proxy disabled error: %v", err)
+	}
+
+	err := r.Get(ctx, types.NamespacedName{Name: pkgcommon.ClusterGuardProxyServiceName, Namespace: ns}, &corev1.Service{})
+	if !apierrors.IsNotFound(err) {
+		t.Errorf("expected falcon-proxy Service to be deleted when the proxy is disabled, got err=%v", err)
 	}
 }
 

@@ -540,6 +540,11 @@ spec:
         path: falcon.app
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+      - description: |-
+          Specifies the hostname of the API endpoint to use, for example api.crowdstrike.com. When set, cloud_region is
+          not used to select the API endpoint. If blank, the API endpoint of cloud_region is used.
+        displayName: API Host Override
+        path: falcon_api.host_override
       - displayName: Image Pull Policy
         path: imagePullPolicy
       - description: Specifies node affinity for scheduling the DaemonSet. Defaults
@@ -1822,6 +1827,11 @@ spec:
         path: falconClusterGuard.falcon.app
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
+      - description: |-
+          Specifies the hostname of the API endpoint to use, for example api.crowdstrike.com. When set, cloud_region is
+          not used to select the API endpoint. If blank, the API endpoint of cloud_region is used.
+        displayName: API Host Override
+        path: falconClusterGuard.falcon_api.host_override
       - displayName: Image Pull Policy
         path: falconClusterGuard.imagePullPolicy
       - description: Specifies node affinity for scheduling the DaemonSet. Defaults

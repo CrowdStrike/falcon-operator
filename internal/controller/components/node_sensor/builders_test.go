@@ -1117,6 +1117,9 @@ func TestDaemonSetProxyEnabledAddsPortVolumeMount(t *testing.T) {
 			if v.VolumeSource.Secret.Optional == nil || !*v.VolumeSource.Secret.Optional {
 				t.Error("expected proxy-tls volume to have Optional=true")
 			}
+			if m := v.VolumeSource.Secret.DefaultMode; m == nil || *m != 0400 {
+				t.Errorf("expected proxy-tls volume DefaultMode 0400, got %v", m)
+			}
 		}
 	}
 	if !foundVol {
@@ -1128,8 +1131,8 @@ func TestDaemonSetProxyEnabledAddsPortVolumeMount(t *testing.T) {
 	for _, vm := range ds.Spec.Template.Spec.Containers[0].VolumeMounts {
 		if vm.Name == pkgcommon.ClusterGuardProxyTLSVolumeName {
 			foundMount = true
-			if vm.MountPath != pkgcommon.ClusterGuardProxyMountPath {
-				t.Errorf("expected mountPath %q, got %q", pkgcommon.ClusterGuardProxyMountPath, vm.MountPath)
+			if vm.MountPath != "/opt/CrowdStrike/certs" {
+				t.Errorf("expected mountPath %q, got %q", "/opt/CrowdStrike/certs", vm.MountPath)
 			}
 			if !vm.ReadOnly {
 				t.Error("expected proxy volumemount to be ReadOnly")

@@ -27,7 +27,7 @@ func TestSetFinalizerDoesNotPersistInjectedSpec(t *testing.T) {
 	stored := &falconv1alpha1.FalconClusterGuard{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-fcg"},
 		Spec: falconv1alpha1.FalconClusterGuardSpec{
-			FalconAPI: &falconv1alpha1.FalconAPI{CloudRegion: "autodiscover"},
+			FalconAPI: &falconv1alpha1.FalconClusterGuardFalconAPI{FalconAPI: falconv1alpha1.FalconAPI{CloudRegion: "autodiscover"}},
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(stored).Build()

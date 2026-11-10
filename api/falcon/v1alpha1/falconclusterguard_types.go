@@ -344,6 +344,28 @@ func (s *FalconClusterGuardController) GetConfigMapWatcherEnabled() bool {
 	return *s.ConfigMapWatcherEnabled
 }
 
+// FalconClusterGuardFalconAPI configures connection from your local Falcon operator to CrowdStrike Falcon platform.
+type FalconClusterGuardFalconAPI struct {
+	FalconAPI `json:",inline"`
+
+	// Specifies the hostname of the API endpoint to use, for example api.crowdstrike.com. When set, cloud_region is
+	// not used to select the API endpoint. If blank, the API endpoint of cloud_region is used.
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?)*(:[0-9]+)?$`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="API Host Override",order=5
+	// +optional
+	HostOverride string `json:"host_override,omitempty"`
+}
+
+// API returns the FalconAPI configuration with HostOverride applied, or nil when fa is nil.
+func (fa *FalconClusterGuardFalconAPI) API() *FalconAPI {
+	if fa == nil {
+		return nil
+	}
+	api := fa.FalconAPI
+	api.HostOverride = fa.HostOverride
+	return &api
+}
+
 // FalconClusterGuardSpec defines the desired state of FalconClusterGuard
 type FalconClusterGuardSpec struct {
 	// InstallNamespace is the namespace where the Falcon Cluster Guard resources will be deployed
@@ -363,7 +385,7 @@ type FalconClusterGuardSpec struct {
 	// If using the API is not desired, the sensor can be manually configured by setting the Image field.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Platform API Configuration",order=2
 	// +optional
-	FalconAPI *FalconAPI `json:"falcon_api,omitempty"`
+	FalconAPI *FalconClusterGuardFalconAPI `json:"falcon_api,omitempty"`
 
 	// FalconSecret config is used to inject k8s secrets with sensitive data for the FalconAPI.
 	// The following Falcon values are supported by k8s secret injection:
@@ -469,12 +491,22 @@ func (f *FalconClusterGuard) GetFalconSecretSpec() FalconSecret {
 
 // GetFalconAPISpec returns the FalconAPI configuration
 func (f *FalconClusterGuard) GetFalconAPISpec() *FalconAPI {
-	return f.Spec.FalconAPI
+	if f.Spec.FalconAPI == nil {
+		return nil
+	}
+	return &f.Spec.FalconAPI.FalconAPI
 }
 
-// SetFalconAPISpec sets the FalconAPI configuration
+// SetFalconAPISpec sets the FalconAPI configuration, keeping the host override
 func (f *FalconClusterGuard) SetFalconAPISpec(api *FalconAPI) {
-	f.Spec.FalconAPI = api
+	if api == nil {
+		f.Spec.FalconAPI = nil
+		return
+	}
+	if f.Spec.FalconAPI == nil {
+		f.Spec.FalconAPI = &FalconClusterGuardFalconAPI{}
+	}
+	f.Spec.FalconAPI.FalconAPI = *api
 }
 
 // GetFalconSpec returns the FalconSensor configuration

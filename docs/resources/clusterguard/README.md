@@ -66,6 +66,7 @@ spec:
 | falcon_api.client_secret | (optional) CrowdStrike API Client Secret                                                                                                                                                                                             |
 | falcon_api.cloud_region  | (optional) CrowdStrike cloud region (allowed values: autodiscover, us-1, us-2, eu-1, us-gov-1, us-gov-2);<br> Falcon API credentials or [Falcon Secret with credentials](#falcon-secret-settings) are required if `cloud_region: autodiscover`;<br> `autodiscover` cannot be used for us-gov-1 or us-gov-2 |
 | falcon_api.cid           | (optional) CrowdStrike Falcon CID API override; Required for us-gov-2                                                                                                                                                                |
+| falcon_api.host_override | (optional) Hostname of the CrowdStrike API endpoint to use, for example `api.crowdstrike.com`. When set, `cloud_region` is not used to select the API endpoint                                                                     |
 
 #### FalconClusterGuard Configuration Settings
 | Spec                      | Description                                                                                                                                                                                     |
