@@ -89,7 +89,7 @@ const (
 	ClusterGuardControllerTLSVolumeName          = "falcon-cg-controller-tls-certs"
 	ClusterGuardControllerAPITLSSecretName       = "falcon-api-tls"
 	ClusterGuardControllerAPICASecretName        = "falcon-api-ca"
-	ClusterGuardControllerValidatingWebhookName  = "validating.falcon-clusterguard.crowdstrike.com"
+	ClusterGuardControllerValidatingWebhookName  = "validating.falcon-kac.crowdstrike.com"
 	ClusterGuardControllerReviewLabelKey         = "falcon-clusterguard.crowdstrike.com/admission-review"
 	ClusterGuardControllerComponentName          = "kac"
 
