@@ -17,7 +17,7 @@ import (
 // component is supported per FalconClusterGuard; if multiple become supported this will need revisiting.
 func (n *NodeSensor) serviceAccount() *corev1.ServiceAccount {
 	sa := assets.ServiceAccount(pkgcommon.ClusterGuardNodeSensorServiceAccountName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, n.cfg.NodeSensor.ServiceAccount.Annotations, n.cfg.ImagePullSecrets)
-	n.withAppLabels(sa.Labels, pkgcommon.ClusterGuardComponentName)
+	n.withAppLabels(sa.Labels, pkgcommon.ClusterGuardNodeSensorAppName)
 	return sa
 }
 
@@ -32,7 +32,7 @@ func (n *NodeSensor) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 		pkgcommon.ClusterGuardComponentName,
 		[]rbacv1.Subject{},
 	)
-	n.withAppLabels(crb.Labels, pkgcommon.ClusterGuardComponentName)
+	n.withAppLabels(crb.Labels, pkgcommon.ClusterGuardNodeSensorAppName)
 	return crb
 }
 
@@ -40,7 +40,7 @@ func (n *NodeSensor) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 // The name is a fixed cluster-wide constant — see serviceAccount() for rationale.
 func (n *NodeSensor) cleanupServiceAccount() *corev1.ServiceAccount {
 	sa := assets.ServiceAccount(pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, nil, nil)
-	n.withAppLabels(sa.Labels, pkgcommon.ClusterGuardComponentName)
+	n.withAppLabels(sa.Labels, pkgcommon.ClusterGuardNodeSensorAppName)
 	return sa
 }
 

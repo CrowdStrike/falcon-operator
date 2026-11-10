@@ -19,7 +19,7 @@ func TestImageAnalyzerResourcesHaveHelmAppLabels(t *testing.T) {
 	})
 
 	want := map[string]string{
-		pkgcommon.KubernetesNameKey:      "falcon-clusterguard-iar",
+		pkgcommon.KubernetesNameKey:      "falcon-clusterguard",
 		pkgcommon.KubernetesInstanceKey:  "my-fcg",
 		pkgcommon.KubernetesManagedByKey: "falcon-operator",
 		pkgcommon.KubernetesComponentKey: "iar",
@@ -34,21 +34,13 @@ func TestImageAnalyzerResourcesHaveHelmAppLabels(t *testing.T) {
 		"Deployment":              dep.Labels,
 		"Deployment pod template": dep.Spec.Template.Labels,
 		"ConfigMap":               cm.Labels,
+		"Service":                 ia.service().Labels,
 	}
 	for obj, got := range objs {
 		for k, v := range want {
 			if got[k] != v {
 				t.Errorf("%s: expected label %s=%q, got %q", obj, k, v, got[k])
 			}
-		}
-	}
-
-	// The Service keeps the standalone FalconImageAnalyzer name for clusterguard controller -> IAR communication.
-	svc := ia.service().Labels
-	want[pkgcommon.KubernetesNameKey] = pkgcommon.FCGImageAnalyzerDeploymentName
-	for k, v := range want {
-		if svc[k] != v {
-			t.Errorf("Service: expected label %s=%q, got %q", k, v, svc[k])
 		}
 	}
 

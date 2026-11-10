@@ -117,8 +117,8 @@ const (
 	ClusterGuardAPICASecretName         = "falcon-api-ca"
 
 	// app.kubernetes.io name/component values
+	ClusterGuardNodeSensorAppName      = "falcon-sensor"
 	ClusterGuardNodeCleanupAppName     = "falcon-clusterguard-node-cleanup"
-	ClusterGuardImageAnalyzerAppName   = "falcon-clusterguard-iar"
 	ClusterGuardControllerAppComponent = "fcg-controller"
 
 	// FCG component ClusterRole names (installed by kustomize, referenced by component CRBs)

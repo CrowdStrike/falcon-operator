@@ -1199,15 +1199,15 @@ func TestNodeSensorResourcesHaveHelmAppLabels(t *testing.T) {
 		labels  map[string]string
 		appName string
 	}{
-		{"sensor DaemonSet", ds.Labels, pkgcommon.ClusterGuardComponentName},
-		{"sensor pod template", ds.Spec.Template.Labels, pkgcommon.ClusterGuardComponentName},
-		{"cleanup DaemonSet", cleanup.Labels, pkgcommon.ClusterGuardComponentName + "-node-cleanup"},
-		{"cleanup pod template", cleanup.Spec.Template.Labels, pkgcommon.ClusterGuardComponentName + "-node-cleanup"},
-		{"ConfigMap", n.configMap().Labels, pkgcommon.ClusterGuardComponentName},
-		{"ServiceAccount", n.serviceAccount().Labels, pkgcommon.ClusterGuardComponentName},
-		{"cleanup ServiceAccount", n.cleanupServiceAccount().Labels, pkgcommon.ClusterGuardComponentName},
-		{"ClusterRoleBinding", n.clusterRoleBinding().Labels, pkgcommon.ClusterGuardComponentName},
-		{"proxy Service", n.proxyService().Labels, pkgcommon.ClusterGuardComponentName},
+		{"sensor DaemonSet", ds.Labels, "falcon-sensor"},
+		{"sensor pod template", ds.Spec.Template.Labels, "falcon-sensor"},
+		{"cleanup DaemonSet", cleanup.Labels, "falcon-clusterguard-node-cleanup"},
+		{"cleanup pod template", cleanup.Spec.Template.Labels, "falcon-clusterguard-node-cleanup"},
+		{"ConfigMap", n.configMap().Labels, "falcon-sensor"},
+		{"ServiceAccount", n.serviceAccount().Labels, "falcon-sensor"},
+		{"cleanup ServiceAccount", n.cleanupServiceAccount().Labels, "falcon-sensor"},
+		{"ClusterRoleBinding", n.clusterRoleBinding().Labels, "falcon-sensor"},
+		{"proxy Service", n.proxyService().Labels, "falcon-sensor"},
 	}
 	for _, tt := range tests {
 		want := map[string]string{

@@ -20,7 +20,7 @@ func (n *NodeSensor) proxyService() *corev1.Service {
 	selector := map[string]string{
 		pkgcommon.FalconComponentKey: pkgcommon.ClusterGuardNodeSensorComponentName,
 	}
-	labels := n.withAppLabels(pkgcommon.CRLabels("service", pkgcommon.ClusterGuardProxyServiceName, pkgcommon.ClusterGuardNodeSensorComponentName), pkgcommon.ClusterGuardComponentName)
+	labels := n.withAppLabels(pkgcommon.CRLabels("service", pkgcommon.ClusterGuardProxyServiceName, pkgcommon.ClusterGuardNodeSensorComponentName), pkgcommon.ClusterGuardNodeSensorAppName)
 
 	return &corev1.Service{
 		TypeMeta: metav1.TypeMeta{

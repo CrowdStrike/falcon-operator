@@ -19,7 +19,6 @@ func (ia *ImageAnalyzer) service() *corev1.Service {
 	labels := ia.withAppLabels(pkgcommon.CRLabels("service", pkgcommon.FCGImageAnalyzerDeploymentName, pkgcommon.FCGImageAnalyzerComponentName))
 	labels[pkgcommon.AppLabelKey] = pkgcommon.FalconImageAnalyzerAgentServiceApp
 	labels[pkgcommon.KubernetesComponentKey] = pkgcommon.FalconImageAnalyzerComponentName
-	labels[pkgcommon.KubernetesNameKey] = pkgcommon.FCGImageAnalyzerDeploymentName
 
 	return assets.ServiceWithCustomLabels(
 		pkgcommon.FalconImageAnalyzerAgentService,
