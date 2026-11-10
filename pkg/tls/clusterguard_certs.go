@@ -117,3 +117,24 @@ func FCGSignCert(caPEM, caKeyPEM []byte, days int, info FCGCertInfo) (certPEM, k
 
 	return certBuf.Bytes(), keyBuf.Bytes(), nil
 }
+
+// FCGCheckSignedBy returns an error unless the PEM-encoded certificate was signed by the PEM-encoded CA.
+func FCGCheckSignedBy(certPEM, caPEM []byte) error {
+	cert, err := decodeCertPEM(certPEM)
+	if err != nil {
+		return err
+	}
+	ca, err := decodeCertPEM(caPEM)
+	if err != nil {
+		return err
+	}
+	return cert.CheckSignatureFrom(ca)
+}
+
+func decodeCertPEM(certPEM []byte) (*x509.Certificate, error) {
+	block, _ := pem.Decode(certPEM)
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode certificate PEM")
+	}
+	return x509.ParseCertificate(block.Bytes)
+}
