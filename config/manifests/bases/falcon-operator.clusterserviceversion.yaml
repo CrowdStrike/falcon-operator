@@ -363,6 +363,11 @@ spec:
         path: imageAnalyzer.updateStrategy.rollingUpdate
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+      - description: |-
+          BuildStage selects the CrowdStrike registry build stage used when discovering the Cluster Guard image.
+          Only used when the image is discovered from the CrowdStrike registry: image is not set, registry.type is crowdstrike, and Falcon API credentials are configured.
+        displayName: Falcon Build Stage
+        path: internal.buildStage
       - description: UpdatePolicy is the name of a sensor update policy configured
           and enabled in Falcon UI. It is ignored when Image and/or Version are set.
         displayName: Falcon Sensor Update Policy
@@ -618,6 +623,8 @@ spec:
           Default is RollingUpdate.
         displayName: Deployment Update Strategy
         path: controller.updateStrategy
+      - displayName: Configurations used for internal testing
+        path: internal
       - description: Enables the use of GKE Autopilot.
         displayName: GKE Autopilot Settings
         path: nodeSensor.gke
@@ -1077,6 +1084,11 @@ spec:
         path: falconClusterGuard.imageAnalyzer.updateStrategy.rollingUpdate
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+      - description: |-
+          BuildStage selects the CrowdStrike registry build stage used when discovering the Cluster Guard image.
+          Only used when the image is discovered from the CrowdStrike registry: image is not set, registry.type is crowdstrike, and Falcon API credentials are configured.
+        displayName: Falcon Build Stage
+        path: falconClusterGuard.internal.buildStage
       - description: UpdatePolicy is the name of a sensor update policy configured
           and enabled in Falcon UI. It is ignored when Image and/or Version are set.
         displayName: Falcon Sensor Update Policy
@@ -2116,6 +2128,8 @@ spec:
           Default is RollingUpdate.
         displayName: Deployment Update Strategy
         path: falconClusterGuard.controller.updateStrategy
+      - displayName: Configurations used for internal testing
+        path: falconClusterGuard.internal
       - description: Enables the use of GKE Autopilot.
         displayName: GKE Autopilot Settings
         path: falconClusterGuard.nodeSensor.gke
