@@ -161,7 +161,7 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	if r.apiConfig == nil && falconClusterGuard.Spec.FalconAPI != nil {
-		apiConfig, err := falconClusterGuard.Spec.FalconAPI.ApiConfigWithSecret(ctx, r.Reader, falconClusterGuard.Spec.FalconSecret)
+		apiConfig, err := falconClusterGuard.Spec.FalconAPI.API().ApiConfigWithSecret(ctx, r.Reader, falconClusterGuard.Spec.FalconSecret)
 		if err != nil {
 			r.log.Error(err, "Failed to build Falcon API config")
 			return ctrl.Result{}, err
@@ -190,7 +190,7 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	imgCfg := image.Config{
 		Image:               falconClusterGuard.Spec.Image,
-		FalconAPI:           falconClusterGuard.Spec.FalconAPI,
+		FalconAPI:           falconClusterGuard.Spec.FalconAPI.API(),
 		FalconSecret:        falconClusterGuard.Spec.FalconSecret,
 		Version:             falconClusterGuard.Spec.Version,
 		RelatedImageEnvVar:  "RELATED_IMAGE_CLUSTER_GUARD",
@@ -292,14 +292,14 @@ func (r *FalconClusterGuardReconciler) Reconcile(ctx context.Context, req ctrl.R
 	})
 	nodeSensor := node_sensor.New(r, node_sensor.Config{
 		BaseConfig:                    base,
-		FalconAPI:                     falconClusterGuard.Spec.FalconAPI,
+		FalconAPI:                     falconClusterGuard.Spec.FalconAPI.API(),
 		NodeSensor:                    falconClusterGuard.Spec.NodeSensor,
 		ClusterGuardControllerEnabled: clusterGuardControllerEnabled,
 	})
 	imageAnalyzer := image_analyzer.New(r, image_analyzer.Config{
 		BaseConfig:        base,
 		ImageAnalyzerSpec: falconClusterGuard.Spec.ImageAnalyzer,
-		FalconAPI:         falconClusterGuard.Spec.FalconAPI,
+		FalconAPI:         falconClusterGuard.Spec.FalconAPI.API(),
 	})
 
 	// The finalizer guarantees node cleanup runs before the CR, and with it the sensor DaemonSet, is deleted.

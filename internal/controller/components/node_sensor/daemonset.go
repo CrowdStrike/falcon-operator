@@ -183,6 +183,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 			tlsSecretName = pkgcommon.ClusterGuardProxyServiceName + "-tls"
 		}
 		optional := true
+		proxyTLSMode := int32(0400)
 		// The API server defaults hostPort to containerPort for hostNetwork pods, so it is set here to keep
 		// the desired DaemonSet equal to the stored one and avoid an update on every reconcile.
 		podSpec.Containers[0].Ports = append(podSpec.Containers[0].Ports, corev1.ContainerPort{
@@ -195,7 +196,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 			Name: pkgcommon.ClusterGuardProxyTLSVolumeName,
 			VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{
 				SecretName:  tlsSecretName,
-				DefaultMode: &secretDefaultMode,
+				DefaultMode: &proxyTLSMode,
 				Optional:    &optional,
 			}},
 		})

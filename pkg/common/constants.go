@@ -108,7 +108,7 @@ const (
 	ClusterGuardProxyPortName                       = "proxy"
 	ClusterGuardProxyTLSVolumeName                  = "proxy-tls"
 	ClusterGuardProxyServicePort                    = int32(80)
-	ClusterGuardProxyMountPath                      = "/run/secrets/proxy"
+	ClusterGuardProxyMountPath                      = "/opt/CrowdStrike/certs"
 
 	// Shared between Cluster Guard Controller and Node Sensor modules
 	ClusterGuardComponentName           = "falcon-clusterguard"

@@ -454,7 +454,7 @@ func (r *FalconDeploymentReconciler) reconcileClusterGuard(ctx context.Context, 
 		}
 
 		newClusterGuard := &falconv1alpha1.FalconClusterGuard{}
-		newClusterGuard.Spec.FalconAPI = falconDeployment.Spec.FalconAPI
+		newClusterGuard.SetFalconAPISpec(falconDeployment.Spec.FalconAPI.DeepCopy())
 		newClusterGuard.Spec.FalconSecret = falconDeployment.Spec.FalconSecret
 		newClusterGuard.ObjectMeta = metav1.ObjectMeta{
 			Name:      "falcon-clusterguard",

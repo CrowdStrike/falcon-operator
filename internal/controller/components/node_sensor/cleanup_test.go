@@ -46,7 +46,7 @@ func newCleanupTestSensor(t *testing.T, spec falconv1alpha1.FalconClusterGuardNo
 func controlledBy(t *testing.T, c client.Client, owner client.Object) []string {
 	t.Helper()
 	lists := []client.ObjectList{
-		&appsv1.DaemonSetList{}, &corev1.ConfigMapList{}, &corev1.ServiceAccountList{},
+		&appsv1.DaemonSetList{}, &corev1.ConfigMapList{}, &corev1.ServiceAccountList{}, &corev1.ServiceList{},
 		&rbacv1.ClusterRoleBindingList{}, &schedulingv1.PriorityClassList{},
 	}
 	var names []string
@@ -116,9 +116,13 @@ func TestReconcile_ReportsDaemonSetReadiness(t *testing.T) {
 
 func TestCleanup_DisableCleanupDeletesWithoutNodeCleanup(t *testing.T) {
 	ctx := context.Background()
+	proxyPort := int32(48080)
 	r, owner, n := newCleanupTestSensor(t, falconv1alpha1.FalconClusterGuardNodeSpec{
 		NodeCleanup:   boolPtr(true),
 		PriorityClass: falconv1alpha1.FalconClusterGuardPriorityClassConfig{Deploy: boolPtr(true)},
+		Guardian: falconv1alpha1.FalconClusterGuardGuardian{
+			Proxy: falconv1alpha1.FalconClusterGuardGuardianProxy{Enabled: boolPtr(true), Port: &proxyPort},
+		},
 	})
 	if _, err := n.Reconcile(ctx); err != nil {
 		t.Fatalf("Reconcile() error: %v", err)

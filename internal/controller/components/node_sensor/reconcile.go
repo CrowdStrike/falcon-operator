@@ -95,6 +95,10 @@ func (n *NodeSensor) cleanupDaemonSetRef() *appsv1.DaemonSet {
 	return &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorCleanupDaemonSetName, Namespace: n.cfg.InstallNamespace}}
 }
 
+func (n *NodeSensor) proxyServiceRef() *corev1.Service {
+	return &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardProxyServiceName, Namespace: n.cfg.InstallNamespace}}
+}
+
 // cleanupTimeout bounds how long node cleanup waits for cleanup pods that neither finish nor report a start
 // failure, for example when the DaemonSet controller cannot create them. Deletion then proceeds without them.
 const cleanupTimeout = 5 * time.Minute
@@ -130,6 +134,7 @@ func (n *NodeSensor) Cleanup(ctx context.Context) (ctrl.Result, error) {
 		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorServiceAccountName, Namespace: ns}},
 		&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName, Namespace: ns}},
 		&schedulingv1.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardNodeSensorPriorityClassName}},
+		n.proxyServiceRef(),
 	}
 	if pc := n.cfg.NodeSensor.PriorityClass.Name; pc != "" && pc != pkgcommon.ClusterGuardNodeSensorPriorityClassName {
 		objs = append(objs, &schedulingv1.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: pc}})

@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
+	"github.com/crowdstrike/falcon-operator/internal/controller/components"
 	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,11 +49,11 @@ func (n *NodeSensor) proxyService() *corev1.Service {
 }
 
 // reconcileProxyService creates or updates the shared falcon-proxy Service when the guardian
-// proxy is enabled. The Service is static — shared across all node sensor DaemonSets in the
-// namespace — so deletion is handled at the FalconClusterGuard level, not here.
+// proxy is enabled, and deletes it when the proxy is disabled. The Service is static — shared
+// across all node sensor DaemonSets in the namespace.
 func (n *NodeSensor) reconcileProxyService(ctx context.Context) error {
 	if !n.cfg.NodeSensor.Guardian.Proxy.IsEnabled() {
-		return nil
+		return components.DeleteOwned(ctx, n.r, n.cfg.Owner, n.proxyServiceRef())
 	}
 
 	svc := n.proxyService()
