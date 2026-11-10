@@ -31,7 +31,7 @@ type Config struct {
 	ClusterGuardControllerEnabled bool
 }
 
-// withAppLabels adds the Helm chart's node sensor app.kubernetes.io labels to l.
+// withAppLabels adds the node sensor app.kubernetes.io labels to l.
 func (n *NodeSensor) withAppLabels(l map[string]string, appName string) map[string]string {
 	maps.Copy(l, pkgcommon.AppLabels(appName, n.cfg.Request.Name, pkgcommon.FalconKernelSensor))
 	return l

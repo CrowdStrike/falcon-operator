@@ -285,6 +285,7 @@ func TestMigrationScriptFieldCoverage(t *testing.T) {
 				"containerPort",
 				"disableClusterGuardController",
 				"disabledNamespaces",
+				"domainName",
 				"failurePolicy",
 				"nodeAffinity",
 				"replicas",

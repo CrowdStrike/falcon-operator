@@ -116,7 +116,7 @@ const (
 	ClusterGuardAPIServiceName          = "api"
 	ClusterGuardAPICASecretName         = "falcon-api-ca"
 
-	// app.kubernetes.io name/component values that match the falcon-clusterguard Helm chart
+	// app.kubernetes.io name/component values
 	ClusterGuardNodeCleanupAppName     = "falcon-clusterguard-node-cleanup"
 	ClusterGuardImageAnalyzerAppName   = "falcon-clusterguard-iar"
 	ClusterGuardControllerAppComponent = "fcg-controller"

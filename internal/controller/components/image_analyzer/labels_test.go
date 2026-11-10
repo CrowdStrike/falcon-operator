@@ -9,7 +9,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// The falcon-clusterguard Helm chart puts its iarLabels on every image analyzer resource.
+// Every image analyzer resource carries the image analyzer app.kubernetes.io labels.
 func TestImageAnalyzerResourcesHaveHelmAppLabels(t *testing.T) {
 	ia := New(nil, Config{
 		BaseConfig: components.BaseConfig{

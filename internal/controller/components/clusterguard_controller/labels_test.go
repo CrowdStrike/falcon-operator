@@ -10,7 +10,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// The falcon-clusterguard Helm chart puts its cgControllerLabels on every cg-controller resource.
+// Every cg-controller resource carries the cg-controller app.kubernetes.io labels.
 func TestClusterGuardControllerResourcesHaveHelmAppLabels(t *testing.T) {
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{

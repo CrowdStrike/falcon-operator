@@ -27,7 +27,7 @@ const apiTLSValidityDays = 3650
 // is enabled, and are removed by its Cleanup when it is disabled.
 //
 // The CA private key is not kept, so a missing or mismatched secret cannot be re-signed on its own.
-// The three secrets are reused together or all regenerated from a new CA, as the Helm chart does.
+// The three secrets are reused together or all regenerated from a new CA.
 func (r *FalconClusterGuardReconciler) reconcileAPITLSSecrets(
 	ctx context.Context,
 	req ctrl.Request,
@@ -67,8 +67,13 @@ func (r *FalconClusterGuardReconciler) reconcileAPITLSSecrets(
 
 	apiSvcName := fmt.Sprintf("%s.%s.svc", pkgcommon.ClusterGuardControllerAPIServiceName, namespace)
 	serverCert, serverKey, err := tls.FCGSignCert(ca, caKey, apiTLSValidityDays, tls.FCGCertInfo{
-		CommonName:  apiSvcName,
-		DNSNames:    []string{apiSvcName, fmt.Sprintf("%s.cluster.local", apiSvcName)},
+		CommonName: apiSvcName,
+		DNSNames: []string{
+			apiSvcName,
+			fmt.Sprintf("%s.cluster.local", apiSvcName),
+			fmt.Sprintf("%s.%s", pkgcommon.ClusterGuardControllerAPIServiceName, namespace),
+			pkgcommon.ClusterGuardControllerAPIServiceName,
+		},
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 	})
 	if err != nil {
