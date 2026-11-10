@@ -234,3 +234,25 @@ func TestFCGSignCert_InvalidCAKeyPEM(t *testing.T) {
 		t.Error("expected error for invalid CA key PEM, got nil")
 	}
 }
+
+func TestFCGCheckSignedBy(t *testing.T) {
+	caPEM, caKeyPEM := mustGenerateCA(t)
+	otherCAPEM, _ := mustGenerateCA(t)
+	certPEM, _, err := FCGSignCert(caPEM, caKeyPEM, 1, FCGCertInfo{CommonName: "test"})
+	if err != nil {
+		t.Fatalf("FCGSignCert: %v", err)
+	}
+
+	if err := FCGCheckSignedBy(certPEM, caPEM); err != nil {
+		t.Errorf("cert signed by the CA: got error %v", err)
+	}
+	if err := FCGCheckSignedBy(certPEM, otherCAPEM); err == nil {
+		t.Error("cert signed by a different CA: expected error, got nil")
+	}
+	if err := FCGCheckSignedBy([]byte("not-a-pem"), caPEM); err == nil {
+		t.Error("invalid cert PEM: expected error, got nil")
+	}
+	if err := FCGCheckSignedBy(certPEM, []byte("not-a-pem")); err == nil {
+		t.Error("invalid CA PEM: expected error, got nil")
+	}
+}
