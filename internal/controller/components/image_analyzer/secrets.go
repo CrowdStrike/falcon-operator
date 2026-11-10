@@ -63,7 +63,6 @@ func (ia *ImageAnalyzer) reconcileTLSSecret(ctx context.Context) error {
 	labels := ia.withAppLabels(pkgcommon.CRLabels("secret", pkgcommon.FCGImageAnalyzerTLSSecretName, pkgcommon.FCGImageAnalyzerComponentName))
 	labels[pkgcommon.AppLabelKey] = pkgcommon.FalconImageAnalyzerAgentServiceApp
 	labels[pkgcommon.KubernetesComponentKey] = pkgcommon.FalconImageAnalyzerComponentName
-	labels[pkgcommon.KubernetesNameKey] = pkgcommon.FCGImageAnalyzerDeploymentName
 
 	secret := assets.SecretWithCustomLabels(pkgcommon.FCGImageAnalyzerTLSSecretName, namespace, secretData, corev1.SecretTypeTLS, labels)
 	return k8sutils.Create(ia.r, ia.r.GetScheme(), ctx, ia.cfg.Request, ia.r.GetLog(), ia.cfg.Owner, ia.cfg.Status, secret)

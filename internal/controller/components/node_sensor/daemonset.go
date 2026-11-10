@@ -39,7 +39,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 	namespace := n.cfg.InstallNamespace
 	nodeSpec := n.cfg.NodeSensor
 
-	dsLabels := n.withAppLabels(pkgcommon.CRLabels("daemonset", pkgcommon.ClusterGuardNodeSensorDaemonSetName, pkgcommon.ClusterGuardNodeSensorComponentName), pkgcommon.ClusterGuardComponentName)
+	dsLabels := n.withAppLabels(pkgcommon.CRLabels("daemonset", pkgcommon.ClusterGuardNodeSensorDaemonSetName, pkgcommon.ClusterGuardNodeSensorComponentName), pkgcommon.ClusterGuardNodeSensorAppName)
 	privileged := true
 	runAsUser := int64(0)
 	hostPathType := corev1.HostPathUnset
@@ -221,7 +221,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 			UpdateStrategy: updateStrategy,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: n.withAppLabels(n.dsManageAutoPilotLabels("daemonset", pkgcommon.ClusterGuardNodeSensorDaemonSetName, pkgcommon.ClusterGuardNodeSensorComponentName, n.dsAutoPilotDeployAllowlistLabel), pkgcommon.ClusterGuardComponentName),
+					Labels: n.withAppLabels(n.dsManageAutoPilotLabels("daemonset", pkgcommon.ClusterGuardNodeSensorDaemonSetName, pkgcommon.ClusterGuardNodeSensorComponentName, n.dsAutoPilotDeployAllowlistLabel), pkgcommon.ClusterGuardNodeSensorAppName),
 					Annotations: map[string]string{
 						pkgcommon.FalconContainerInjection: "disabled",
 						"checksum/config":                  pkgcommon.ConfigMapChecksum(n.configMap()),

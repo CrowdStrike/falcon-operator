@@ -38,7 +38,7 @@ func (n *NodeSensor) configMap() *corev1.ConfigMap {
 	}
 
 	cm := assets.SensorConfigMap(pkgcommon.ClusterGuardNodeSensorConfigMapName, n.cfg.InstallNamespace, pkgcommon.ClusterGuardComponentName, data)
-	n.withAppLabels(cm.Labels, pkgcommon.ClusterGuardComponentName)
+	n.withAppLabels(cm.Labels, pkgcommon.ClusterGuardNodeSensorAppName)
 	return cm
 }
 
