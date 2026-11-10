@@ -196,6 +196,16 @@ type FalconClusterGuardController struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon Cluster Guard Controller TLS Configuration",order=8
 	TLS FalconClusterGuardControllerTLS `json:"tls,omitempty"`
 
+	// For custom DNS configurations when .svc requires a domain for services.
+	// For example if service.my-namespace.svc doesn't resolve and the cluster uses
+	// service.my-namespace.svc.testing.io, you would add testing.io as the value below.
+	// When set, the admission webhook is called by URL at webhook.<installNamespace>.svc.<domainName>
+	// instead of through its Service, and that name is added to the webhook certificate.
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Domain Name",order=24
+	// +optional
+	DomainName string `json:"domainName,omitempty"`
+
 	// Configure the failure policy for the Falcon Cluster Guard Controller admission webhook.
 	// +kubebuilder:default:=Ignore
 	// +kubebuilder:validation:Enum=Ignore;Fail

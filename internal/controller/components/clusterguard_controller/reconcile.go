@@ -33,7 +33,7 @@ func New(r k8sutils.Reconciler, cfg Config) *ClusterGuardController {
 	return &ClusterGuardController{r: r, cfg: cfg}
 }
 
-// withAppLabels adds the Helm chart's cg-controller app.kubernetes.io labels to l.
+// withAppLabels adds the cg-controller app.kubernetes.io labels to l.
 func (a *ClusterGuardController) withAppLabels(l map[string]string) map[string]string {
 	maps.Copy(l, pkgcommon.AppLabels(pkgcommon.ClusterGuardComponentName, a.cfg.Request.Name, pkgcommon.ClusterGuardControllerAppComponent))
 	return l

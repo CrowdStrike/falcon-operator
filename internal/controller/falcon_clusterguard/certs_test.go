@@ -2,6 +2,9 @@ package controllers
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
+	"slices"
 	"testing"
 
 	falconv1alpha1 "github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1"
@@ -55,6 +58,24 @@ func TestReconcileAPITLSSecretsKeepsPKIConsistent(t *testing.T) {
 	}
 
 	ca := reconcile()
+
+	block, _ := pem.Decode(get(common.ClusterGuardControllerAPITLSSecretName).Data["tls.crt"])
+	if block == nil {
+		t.Fatal("failed to decode the API server tls.crt")
+	}
+	serverCert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantDNSNames := []string{
+		"api.falcon-clusterguard.svc",
+		"api.falcon-clusterguard.svc.cluster.local",
+		"api.falcon-clusterguard",
+		"api",
+	}
+	if !slices.Equal(serverCert.DNSNames, wantDNSNames) {
+		t.Errorf("API server DNSNames = %v, want %v", serverCert.DNSNames, wantDNSNames)
+	}
 
 	if got := reconcile(); string(got) != string(ca) {
 		t.Error("a consistent set of secrets was regenerated")

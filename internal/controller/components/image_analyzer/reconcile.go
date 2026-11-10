@@ -32,7 +32,7 @@ func New(r k8sutils.Reconciler, cfg Config) *ImageAnalyzer {
 	return &ImageAnalyzer{r: r, cfg: cfg}
 }
 
-// withAppLabels adds the Helm chart's image analyzer app.kubernetes.io labels to l.
+// withAppLabels adds the image analyzer app.kubernetes.io labels to l.
 func (ia *ImageAnalyzer) withAppLabels(l map[string]string) map[string]string {
 	maps.Copy(l, pkgcommon.AppLabels(pkgcommon.ClusterGuardImageAnalyzerAppName, ia.cfg.Request.Name, pkgcommon.FalconImageAnalyzerComponentName))
 	return l

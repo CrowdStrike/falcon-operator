@@ -44,7 +44,6 @@ func TestClusterGuardDeploymentReturnsDeployment(t *testing.T) {
 	if dep.Spec.Template.Spec.Containers[0].Image != imageUri {
 		t.Errorf("expected image %q, got %q", imageUri, dep.Spec.Template.Spec.Containers[0].Image)
 	}
-	// Container names and the app label match the falcon-clusterguard Helm chart.
 	var names []string
 	for _, c := range dep.Spec.Template.Spec.Containers {
 		names = append(names, c.Name)
@@ -117,6 +116,44 @@ func TestClusterGuardValidatingWebhookReturnsWebhook(t *testing.T) {
 	if len(webhook.Webhooks) != 2 {
 		t.Errorf("expected 2 webhooks, got %d", len(webhook.Webhooks))
 	}
+}
+
+func TestClusterGuardValidatingWebhookClientConfig(t *testing.T) {
+	namespace := "falcon-clusterguard"
+	port := int32(8443)
+
+	t.Run("service", func(t *testing.T) {
+		a := New(nil, Config{
+			BaseConfig:                   components.BaseConfig{InstallNamespace: namespace},
+			ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{Port: &port},
+		})
+		for _, w := range a.ValidatingWebhook(nil).Webhooks {
+			svc := w.ClientConfig.Service
+			if w.ClientConfig.URL != nil || svc == nil {
+				t.Fatalf("%s: expected a Service reference and no URL, got %+v", w.Name, w.ClientConfig)
+			}
+			if svc.Name != common.ClusterGuardControllerWebhookServiceName || svc.Namespace != namespace ||
+				*svc.Path != "/validate" || *svc.Port != port {
+				t.Errorf("%s: unexpected Service reference %+v", w.Name, svc)
+			}
+		}
+	})
+
+	t.Run("domainName", func(t *testing.T) {
+		a := New(nil, Config{
+			BaseConfig: components.BaseConfig{InstallNamespace: namespace},
+			ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{
+				Port:       &port,
+				DomainName: "testing.io",
+			},
+		})
+		want := "https://webhook.falcon-clusterguard.svc.testing.io:8443/validate"
+		for _, w := range a.ValidatingWebhook(nil).Webhooks {
+			if w.ClientConfig.Service != nil || w.ClientConfig.URL == nil || *w.ClientConfig.URL != want {
+				t.Errorf("%s: expected URL %q and no Service reference, got %+v", w.Name, want, w.ClientConfig)
+			}
+		}
+	})
 }
 
 func TestClusterGuardValidatingWebhookDeduplicatesNamespaces(t *testing.T) {

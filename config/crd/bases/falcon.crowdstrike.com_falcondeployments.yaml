@@ -1041,6 +1041,15 @@ spec:
                               type: string
                             type: array
                         type: object
+                      domainName:
+                        description: |-
+                          For custom DNS configurations when .svc requires a domain for services.
+                          For example if service.my-namespace.svc doesn't resolve and the cluster uses
+                          service.my-namespace.svc.testing.io, you would add testing.io as the value below.
+                          When set, the admission webhook is called by URL at webhook.<installNamespace>.svc.<domainName>
+                          instead of through its Service, and that name is added to the webhook certificate.
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        type: string
                       failurePolicy:
                         default: Ignore
                         description: Configure the failure policy for the Falcon Cluster

@@ -2,6 +2,7 @@ package clusterguard_controller
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"sort"
 
@@ -28,11 +29,6 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 	excludeOp := metav1.LabelSelectorOpNotIn
 	scope := arv1.AllScopes
 	webhookName := pkgcommon.ClusterGuardControllerValidatingWebhookName
-	path := "/validate"
-	port := int32(443)
-	if a.cfg.ClusterGuardControllerConfig.Port != nil {
-		port = *a.cfg.ClusterGuardControllerConfig.Port
-	}
 
 	excludedNamespaces := append(pkgcommon.DefaultDisabledNamespaces,
 		namespace,
@@ -87,16 +83,8 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 				FailurePolicy:           &failurePolicy,
 				MatchPolicy:             &matchPolicy,
 				TimeoutSeconds:          &timeoutSeconds,
-				ClientConfig: arv1.WebhookClientConfig{
-					CABundle: caBundle,
-					Service: &arv1.ServiceReference{
-						Name:      pkgcommon.ClusterGuardControllerWebhookServiceName,
-						Namespace: namespace,
-						Path:      &path,
-						Port:      &port,
-					},
-				},
-				NamespaceSelector: namespaceSelector,
+				ClientConfig:            a.webhookClientConfig(caBundle),
+				NamespaceSelector:       namespaceSelector,
 				Rules: []arv1.RuleWithOperations{
 					{
 						Operations: []arv1.OperationType{arv1.Create, arv1.Update},
@@ -116,16 +104,8 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 				FailurePolicy:           &failurePolicy,
 				MatchPolicy:             &matchPolicy,
 				TimeoutSeconds:          &timeoutSeconds,
-				ClientConfig: arv1.WebhookClientConfig{
-					CABundle: caBundle,
-					Service: &arv1.ServiceReference{
-						Name:      pkgcommon.ClusterGuardControllerWebhookServiceName,
-						Namespace: namespace,
-						Path:      &path,
-						Port:      &port,
-					},
-				},
-				NamespaceSelector: namespaceSelector,
+				ClientConfig:            a.webhookClientConfig(caBundle),
+				NamespaceSelector:       namespaceSelector,
 				Rules: []arv1.RuleWithOperations{
 					{
 						Operations: []arv1.OperationType{arv1.Create, arv1.Update},
@@ -156,6 +136,29 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 					},
 				},
 			},
+		},
+	}
+}
+
+// webhookClientConfig returns how the API server reaches the admission webhook. With spec.controller.domainName set,
+// it is called by URL at the custom domain; otherwise through the webhook Service.
+func (a *ClusterGuardController) webhookClientConfig(caBundle []byte) arv1.WebhookClientConfig {
+	path := "/validate"
+	port := int32(443)
+	if a.cfg.ClusterGuardControllerConfig.Port != nil {
+		port = *a.cfg.ClusterGuardControllerConfig.Port
+	}
+	if a.cfg.ClusterGuardControllerConfig.DomainName != "" {
+		url := fmt.Sprintf("https://%s:%d%s", a.webhookHost(), port, path)
+		return arv1.WebhookClientConfig{CABundle: caBundle, URL: &url}
+	}
+	return arv1.WebhookClientConfig{
+		CABundle: caBundle,
+		Service: &arv1.ServiceReference{
+			Name:      pkgcommon.ClusterGuardControllerWebhookServiceName,
+			Namespace: a.cfg.InstallNamespace,
+			Path:      &path,
+			Port:      &port,
 		},
 	}
 }

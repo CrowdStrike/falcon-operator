@@ -35,8 +35,8 @@ func TestSelectorsMatchControllerPods(t *testing.T) {
 	}
 }
 
-// The image analyzer finds the admission webhook Service by app=falcon-kac, matching the Helm chart and the
-// standalone FalconAdmission.
+// The image analyzer finds the admission webhook Service by app=falcon-kac, as it does with the standalone
+// FalconAdmission.
 func TestWebhookServiceHasImageAnalyzerDiscoveryLabel(t *testing.T) {
 	a := New(nil, Config{BaseConfig: components.BaseConfig{InstallNamespace: cleanupTestNamespace}})
 	svc := a.webhookService()

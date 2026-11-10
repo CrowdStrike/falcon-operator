@@ -52,8 +52,7 @@ func TestImageAnalyzerDeploymentFromConfig_Basic(t *testing.T) {
 	if dep.Spec.Template.Spec.ServiceAccountName != "fcg-iar-sa" {
 		t.Errorf("expected serviceAccountName %q, got %q", "fcg-iar-sa", dep.Spec.Template.Spec.ServiceAccountName)
 	}
-	// The container name and app label match the falcon-clusterguard Helm chart. The app label is left out of
-	// the selector, which is immutable, so existing Deployments keep matching their pods.
+	// The app label is left out of the selector, which is immutable, so existing Deployments keep matching their pods.
 	if got := dep.Spec.Template.Spec.Containers[0].Name; got != "falcon-image-analyzer" {
 		t.Errorf("expected container falcon-image-analyzer, got %q", got)
 	}
