@@ -376,7 +376,7 @@ func TestNodeSensorConfigMapName(t *testing.T) {
 	}
 }
 
-func TestNodeSensorConfigMapNameGKEUsesFixedName(t *testing.T) {
+func TestNodeSensorConfigMapNameGKEMatchesCreatedConfigMap(t *testing.T) {
 	gkeEnabled := true
 	cfg := Config{
 		BaseConfig: components.BaseConfig{
@@ -389,15 +389,16 @@ func TestNodeSensorConfigMapNameGKEUsesFixedName(t *testing.T) {
 	}
 	n := New(nil, cfg)
 	ds := n.daemonSet()
+	cmName := n.configMap().Name
 
 	found := false
 	for _, ef := range ds.Spec.Template.Spec.Containers[0].EnvFrom {
-		if ef.ConfigMapRef != nil && ef.ConfigMapRef.Name == pkgcommon.GKEAutoPilotConfigMapName {
+		if ef.ConfigMapRef != nil && ef.ConfigMapRef.Name == cmName {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("expected GKE DaemonSet to reference fixed ConfigMap %q", pkgcommon.GKEAutoPilotConfigMapName)
+		t.Errorf("expected GKE DaemonSet to reference the created ConfigMap %q", cmName)
 	}
 }
 

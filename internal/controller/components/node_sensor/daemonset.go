@@ -146,7 +146,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 					{Name: "API_SERVICE_NAME", Value: apiServiceName},
 				}, pkgcommon.OperatorMetaEnvVars()...),
 				EnvFrom: []corev1.EnvFromSource{
-					{ConfigMapRef: &corev1.ConfigMapEnvSource{LocalObjectReference: corev1.LocalObjectReference{Name: n.configMapName()}}},
+					{ConfigMapRef: &corev1.ConfigMapEnvSource{LocalObjectReference: corev1.LocalObjectReference{Name: pkgcommon.ClusterGuardNodeSensorConfigMapName}}},
 				},
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "cs-config", MountPath: pkgcommon.FalconConfigDir},
@@ -460,16 +460,6 @@ func (n *NodeSensor) dsResources() corev1.ResourceRequirements {
 		}
 	}
 	return corev1.ResourceRequirements{}
-}
-
-// configMapName returns the ConfigMap name based on GKE settings.
-// For GKE autopilot, the WorkloadAllowlist requires the exact name.
-// Otherwise, the fixed node sensor ConfigMap name is used.
-func (n *NodeSensor) configMapName() string {
-	if n.cfg.NodeSensor.GKE.Enabled != nil && *n.cfg.NodeSensor.GKE.Enabled {
-		return pkgcommon.GKEAutoPilotConfigMapName
-	}
-	return pkgcommon.ClusterGuardNodeSensorConfigMapName
 }
 
 // isInitReadOnlyRootFilesystem returns whether init container should have read-only root filesystem
