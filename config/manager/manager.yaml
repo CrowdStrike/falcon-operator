@@ -65,6 +65,9 @@ spec:
         - --leader-elect
         - --metrics-bind-address=:8443
         image: controller:latest
+        # RELEASE-CHECK: remove imagePullPolicy before release. Always is only here so the
+        # mutable pre-release FCG test tag is re-pulled; flows into both the bundle and deploy/falcon-operator.yaml.
+        imagePullPolicy: Always
         name: manager
         env:
         - name: WATCH_NAMESPACE
