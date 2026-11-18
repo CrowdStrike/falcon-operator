@@ -1,5 +1,9 @@
 # Falcon Image Analyzer
 
+> [!IMPORTANT]
+> **Announcement:** In January 2027, the Falcon sensor for Linux (DaemonSet), Kubernetes Admission Controller (KAC), and Image Assessment at Runtime (IAR) will be consolidated into Falcon Cluster Guard. Read the [Falcon Cluster Guard Announcement](../../../../../FALCON_CLUSTER_GUARD.md) to prepare your environment.
+
+
 ## About FalconImageAnalyzer Custom Resource (CR)
 Falcon Operator introduces the FalconImageAnalyzer Custom Resource (CR) to the cluster. The resource is meant to install, configure, and uninstall the Falcon Image Analyzer on the cluster.
 

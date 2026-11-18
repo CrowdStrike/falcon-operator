@@ -1,5 +1,9 @@
 # Falcon Admission Controller
 
+> [!IMPORTANT]
+> **Announcement:** In January 2027, the Falcon sensor for Linux (DaemonSet), Kubernetes Admission Controller (KAC), and Image Assessment at Runtime (IAR) will be consolidated into Falcon Cluster Guard. Read the [Falcon Cluster Guard Announcement](../../../FALCON_CLUSTER_GUARD.md) to prepare your environment.
+
+
 ## About FalconAdmission Custom Resource (CR)
 Falcon Operator introduces the FalconAdmission Custom Resource (CR) to the cluster. The resource is meant to install, configure, and uninstall the Falcon Admission Controller on the cluster.
 
