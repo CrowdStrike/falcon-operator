@@ -9,6 +9,8 @@ import (
 	"github.com/crowdstrike/falcon-operator/internal/controller/components"
 	"github.com/crowdstrike/falcon-operator/pkg/common"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/utils/ptr"
 )
 
@@ -85,6 +87,38 @@ func TestClusterGuardDeploymentWatcherPort(t *testing.T) {
 				if got == nil || got.HTTPGet == nil || got.HTTPGet.Port.IntVal != tc.want {
 					t.Errorf("expected %s probe on port %d, got %+v", probe, tc.want, got)
 				}
+			}
+		})
+	}
+}
+
+// falcon-client uses resourcesClient only when admission control is enabled, and resourcesClientNoWebhook otherwise,
+// including when admissionControlEnabled is unset.
+func TestClusterGuardDeploymentClientResources(t *testing.T) {
+	client := corev1.ResourceRequirements{Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("1Gi")}}
+	noWebhook := corev1.ResourceRequirements{Requests: corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("64Mi")}}
+	for _, tc := range []struct {
+		name             string
+		admissionControl *bool
+		want             corev1.ResourceRequirements
+	}{
+		{"unset", nil, noWebhook},
+		{"disabled", ptr.To(false), noWebhook},
+		{"enabled", ptr.To(true), client},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := New(nil, Config{ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{
+				AdmissionControlEnabled:  tc.admissionControl,
+				ResourcesClient:          &client,
+				ResourcesClientNoWebhook: &noWebhook,
+			}})
+			containers := a.Deployment().Spec.Template.Spec.Containers
+			i := slices.IndexFunc(containers, func(c corev1.Container) bool { return c.Name == "falcon-client" })
+			if i < 0 {
+				t.Fatal("expected a falcon-client container")
+			}
+			if got := containers[i].Resources; !equality.Semantic.DeepEqual(got, tc.want) {
+				t.Errorf("expected resources %v, got %v", tc.want, got)
 			}
 		})
 	}

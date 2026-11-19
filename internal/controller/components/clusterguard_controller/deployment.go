@@ -46,41 +46,54 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 
 	resourcesAC := corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("300m"),
-			corev1.ResourceMemory: resource.MustParse("512Mi"),
+			corev1.ResourceCPU:    resource.MustParse("100m"),
+			corev1.ResourceMemory: resource.MustParse("256Mi"),
 		},
 		Limits: corev1.ResourceList{
-			corev1.ResourceMemory: resource.MustParse("512Mi"),
+			corev1.ResourceMemory: resource.MustParse("256Mi"),
 		},
 	}
 	if a.cfg.ClusterGuardControllerConfig.ResourcesAC != nil {
 		resourcesAC = *a.cfg.ClusterGuardControllerConfig.ResourcesAC
 	}
 
-	resourcesClient := corev1.ResourceRequirements{
-		Requests: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("500m"),
-			corev1.ResourceMemory: resource.MustParse("256Mi"),
-		},
-		Limits: corev1.ResourceList{
-			corev1.ResourceMemory: resource.MustParse("256Mi"),
-		},
-	}
-	if a.cfg.ClusterGuardControllerConfig.ResourcesClient != nil {
-		resourcesClient = *a.cfg.ClusterGuardControllerConfig.ResourcesClient
-	}
-	if !a.cfg.ClusterGuardControllerConfig.GetAdmissionControlEnabled() && a.cfg.ClusterGuardControllerConfig.ResourcesClientNoWebhook != nil {
-		resourcesClient = *a.cfg.ClusterGuardControllerConfig.ResourcesClientNoWebhook
+	// falcon-client gets the lighter no-webhook resources whenever admission control is disabled.
+	var resourcesClient corev1.ResourceRequirements
+	if a.cfg.ClusterGuardControllerConfig.GetAdmissionControlEnabled() {
+		resourcesClient = corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("250m"),
+				corev1.ResourceMemory: resource.MustParse("384Mi"),
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("384Mi"),
+			},
+		}
+		if a.cfg.ClusterGuardControllerConfig.ResourcesClient != nil {
+			resourcesClient = *a.cfg.ClusterGuardControllerConfig.ResourcesClient
+		}
+	} else {
+		resourcesClient = corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("100m"),
+				corev1.ResourceMemory: resource.MustParse("128Mi"),
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("128Mi"),
+			},
+		}
+		if a.cfg.ClusterGuardControllerConfig.ResourcesClientNoWebhook != nil {
+			resourcesClient = *a.cfg.ClusterGuardControllerConfig.ResourcesClientNoWebhook
+		}
 	}
 
 	resourcesWatcher := corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("500m"),
-			corev1.ResourceMemory: resource.MustParse("256Mi"),
+			corev1.ResourceCPU:    resource.MustParse("250m"),
+			corev1.ResourceMemory: resource.MustParse("512Mi"),
 		},
 		Limits: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("750m"),
-			corev1.ResourceMemory: resource.MustParse("256Mi"),
+			corev1.ResourceMemory: resource.MustParse("512Mi"),
 		},
 	}
 	if a.cfg.ClusterGuardControllerConfig.ResourcesWatcher != nil {
