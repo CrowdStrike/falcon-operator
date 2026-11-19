@@ -225,8 +225,8 @@ func TestAdmissionConfigMapHasRequiredKeys(t *testing.T) {
 		}
 	}
 
-	if cm.Data["FALCON_MODE"] != "kac" {
-		t.Errorf("expected FALCON_MODE=kac, got %q", cm.Data["FALCON_MODE"])
+	if cm.Data["FALCON_MODE"] != "fcg_controller" {
+		t.Errorf("expected FALCON_MODE=fcg_controller, got %q", cm.Data["FALCON_MODE"])
 	}
 }
 
@@ -260,7 +260,7 @@ func TestAdmissionConfigMapAdmissionControlDisabled(t *testing.T) {
 	}
 }
 
-func TestAdmissionConfigMapAdmissionControlNilIsTrue(t *testing.T) {
+func TestAdmissionConfigMapAdmissionControlNilIsFalse(t *testing.T) {
 	a := New(nil, Config{
 		BaseConfig: components.BaseConfig{
 			InstallNamespace: "falcon-clusterguard",
@@ -269,8 +269,8 @@ func TestAdmissionConfigMapAdmissionControlNilIsTrue(t *testing.T) {
 	})
 	cm := a.configMap()
 
-	if cm.Data["__CS_ADMISSION_CONTROL_ENABLED"] != "true" {
-		t.Errorf("expected __CS_ADMISSION_CONTROL_ENABLED=true when nil (default enabled), got %q", cm.Data["__CS_ADMISSION_CONTROL_ENABLED"])
+	if cm.Data["__CS_ADMISSION_CONTROL_ENABLED"] != "false" {
+		t.Errorf("expected __CS_ADMISSION_CONTROL_ENABLED=false when nil (default disabled), got %q", cm.Data["__CS_ADMISSION_CONTROL_ENABLED"])
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ClusterGuardAdmissionControlEnabledDefault = true
+	ClusterGuardAdmissionControlEnabledDefault = false
 	ClusterGuardWatchEventsEnabledDefault      = true
 	ClusterGuardSnapshotsEnabledDefault        = true
 	ClusterGuardSnapshotIntervalDefault        = 22
@@ -307,6 +307,13 @@ func (s *FalconClusterGuardNodeSpec) IsEnabled() bool {
 
 func (s *FalconClusterGuardController) IsEnabled() bool {
 	return s.DisableClusterGuardController != DisableClusterGuardControllerAck
+}
+
+func (s *FalconClusterGuardController) GetAdmissionControlEnabled() bool {
+	if s.AdmissionControlEnabled == nil {
+		return ClusterGuardAdmissionControlEnabledDefault
+	}
+	return *s.AdmissionControlEnabled
 }
 
 func (s *FalconClusterGuardController) GetWatcherEnabled() bool {

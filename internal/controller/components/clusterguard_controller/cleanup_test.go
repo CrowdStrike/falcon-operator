@@ -90,6 +90,8 @@ func controlledBy(t *testing.T, c client.Client, owner client.Object) []string {
 func TestCleanup_RemovesEverythingReconcileCreated(t *testing.T) {
 	ctx := context.Background()
 	r, owner, a := newCleanupTestController(t)
+	trueVal := true
+	a.cfg.ClusterGuardControllerConfig.AdmissionControlEnabled = &trueVal
 
 	if _, err := a.Reconcile(ctx); err != nil {
 		t.Fatalf("Reconcile() error: %v", err)
@@ -156,6 +158,40 @@ func TestReconcile_ReportsDeploymentReadiness(t *testing.T) {
 	}
 	if c := reconcileCondition(); c.Status != metav1.ConditionTrue {
 		t.Errorf("after rollout: got %s/%s %q, want True", c.Status, c.Reason, c.Message)
+	}
+}
+
+// The ValidatingWebhookConfiguration exists only while admission control is enabled. The webhook Service is kept
+// either way.
+func TestReconcile_AdmissionControlTogglesWebhook(t *testing.T) {
+	ctx := context.Background()
+	r, _, a := newCleanupTestController(t)
+	webhookKey := types.NamespacedName{Name: pkgcommon.ClusterGuardControllerValidatingWebhookName}
+	serviceKey := types.NamespacedName{Name: pkgcommon.ClusterGuardControllerWebhookServiceName, Namespace: cleanupTestNamespace}
+	reconcile := func(enabled bool) {
+		t.Helper()
+		a.cfg.ClusterGuardControllerConfig.AdmissionControlEnabled = &enabled
+		if _, err := a.Reconcile(ctx); err != nil {
+			t.Fatalf("Reconcile() error: %v", err)
+		}
+		if err := r.Get(ctx, serviceKey, &corev1.Service{}); err != nil {
+			t.Errorf("admissionControlEnabled=%t: expected the webhook Service to exist: %v", enabled, err)
+		}
+	}
+
+	reconcile(false)
+	if err := r.Get(ctx, webhookKey, &arv1.ValidatingWebhookConfiguration{}); !apierrors.IsNotFound(err) {
+		t.Errorf("disabled: expected no ValidatingWebhookConfiguration, got %v", err)
+	}
+
+	reconcile(true)
+	if err := r.Get(ctx, webhookKey, &arv1.ValidatingWebhookConfiguration{}); err != nil {
+		t.Errorf("enabled: expected the ValidatingWebhookConfiguration to exist: %v", err)
+	}
+
+	reconcile(false)
+	if err := r.Get(ctx, webhookKey, &arv1.ValidatingWebhookConfiguration{}); !apierrors.IsNotFound(err) {
+		t.Errorf("disabled again: expected the ValidatingWebhookConfiguration to be deleted, got %v", err)
 	}
 }
 

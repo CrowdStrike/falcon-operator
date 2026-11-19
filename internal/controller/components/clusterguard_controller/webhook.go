@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	k8sutils "github.com/crowdstrike/falcon-operator/internal/controller/common"
+	"github.com/crowdstrike/falcon-operator/internal/controller/components"
 	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
 	arv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -207,7 +208,14 @@ func mergeNamespaceSelector(desired, existing *metav1.LabelSelector) *metav1.Lab
 }
 
 // reconcileValidatingWebhook returns true if the webhook configuration was updated, which requires a pod restart.
+// With admission control disabled, the webhook configuration is removed and the webhook Service stays.
 func (a *ClusterGuardController) reconcileValidatingWebhook(ctx context.Context, caBundle []byte) (bool, error) {
+	if !a.cfg.ClusterGuardControllerConfig.GetAdmissionControlEnabled() {
+		return false, components.DeleteOwned(ctx, a.r, a.cfg.Owner, &arv1.ValidatingWebhookConfiguration{
+			ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardControllerValidatingWebhookName},
+		})
+	}
+
 	webhook := a.ValidatingWebhook(caBundle)
 	existing := &arv1.ValidatingWebhookConfiguration{}
 	found, err := k8sutils.GetOrCreate(ctx, a.r, a.cfg.Request, a.cfg.Owner, a.cfg.Status, webhook, existing,
