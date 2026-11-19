@@ -73,6 +73,8 @@ func TestReconcileTLSSecretDNSNames(t *testing.T) {
 func TestReconcileTLSSecretRegeneratesOnDNSNameChange(t *testing.T) {
 	ctx := context.Background()
 	r, _, a := newCleanupTestController(t)
+	trueVal := true
+	a.cfg.ClusterGuardControllerConfig.AdmissionControlEnabled = &trueVal
 	stored := func() *corev1.Secret {
 		t.Helper()
 		s := &corev1.Secret{}

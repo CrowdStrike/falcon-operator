@@ -69,7 +69,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 	if a.cfg.ClusterGuardControllerConfig.ResourcesClient != nil {
 		resourcesClient = *a.cfg.ClusterGuardControllerConfig.ResourcesClient
 	}
-	if (a.cfg.ClusterGuardControllerConfig.AdmissionControlEnabled != nil && !*a.cfg.ClusterGuardControllerConfig.AdmissionControlEnabled) && a.cfg.ClusterGuardControllerConfig.ResourcesClientNoWebhook != nil {
+	if !a.cfg.ClusterGuardControllerConfig.GetAdmissionControlEnabled() && a.cfg.ClusterGuardControllerConfig.ResourcesClientNoWebhook != nil {
 		resourcesClient = *a.cfg.ClusterGuardControllerConfig.ResourcesClientNoWebhook
 	}
 

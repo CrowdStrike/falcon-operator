@@ -34,8 +34,8 @@ func (a *ClusterGuardController) configMap() *corev1.ConfigMap {
 	}
 
 	// Add admission-specific configuration
-	data["FALCON_MODE"] = "kac"
-	data["__CS_ADMISSION_CONTROL_ENABLED"] = strconv.FormatBool(cfg.AdmissionControlEnabled == nil || *cfg.AdmissionControlEnabled)
+	data["FALCON_MODE"] = "fcg_controller"
+	data["__CS_ADMISSION_CONTROL_ENABLED"] = strconv.FormatBool(cfg.GetAdmissionControlEnabled())
 	data["__CS_WATCH_EVENTS_ENABLED"] = strconv.FormatBool(cfg.GetWatcherEnabled())
 	data["__CS_VISIBILITY_CONFIGMAPS_ENABLED"] = strconv.FormatBool(cfg.GetConfigMapWatcherEnabled())
 	data["__CS_SNAPSHOTS_ENABLED"] = strconv.FormatBool(cfg.GetSnapshotsEnabled())
