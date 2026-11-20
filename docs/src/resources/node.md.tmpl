@@ -1,6 +1,8 @@
 # Falcon Node Sensor
 
 {{ template "fcgannouncement.tmpl" . }}
+> [!NOTE]
+> For new deployments, [`FalconClusterGuard`](clusterguard.md) is recommended. It deploys the node sensor, the Cluster Guard Controller, and the Image Analyzer from a single resource. `FalconNodeSensor` remains supported. Do not run a `FalconNodeSensor` alongside a `FalconClusterGuard` with the node sensor enabled, because both deploy a sensor DaemonSet to every node.
 
 ## About Falcon Cloud Workload Protection
 

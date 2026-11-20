@@ -7,6 +7,8 @@ resources:
 - bases/falcon.crowdstrike.com_falconnodesensors.yaml
 - bases/falcon.crowdstrike.com_falconimageanalyzers.yaml
 - bases/falcon.crowdstrike.com_falcondeployments.yaml
+- bases/falcon.crowdstrike.com_falconclusterguards.yaml
+- bases/falcon.crowdstrike.com_installguardowners.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:
