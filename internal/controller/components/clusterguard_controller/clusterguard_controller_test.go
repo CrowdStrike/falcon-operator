@@ -124,6 +124,28 @@ func TestClusterGuardDeploymentClientResources(t *testing.T) {
 	}
 }
 
+func TestClusterGuardDeploymentRunAsUser(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		openShift bool
+		want      *int64
+	}{
+		{"kubernetes sets a fixed non-root UID", false, ptr.To(common.ClusterGuardControllerRunAsUser)},
+		{"openshift leaves the UID to the SCC", true, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := New(nil, Config{BaseConfig: components.BaseConfig{OpenShift: tc.openShift}})
+			sc := a.Deployment().Spec.Template.Spec.SecurityContext
+			if sc == nil || sc.RunAsNonRoot == nil || !*sc.RunAsNonRoot {
+				t.Fatalf("expected runAsNonRoot=true, got %+v", sc)
+			}
+			if !equality.Semantic.DeepEqual(sc.RunAsUser, tc.want) {
+				t.Errorf("expected runAsUser %v, got %v", ptr.Deref(tc.want, -1), ptr.Deref(sc.RunAsUser, -1))
+			}
+		})
+	}
+}
+
 func TestClusterGuardValidatingWebhookReturnsWebhook(t *testing.T) {
 	namespace := "falcon-clusterguard"
 	caBundle := []byte("fake-ca")
