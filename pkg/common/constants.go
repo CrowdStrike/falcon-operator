@@ -92,6 +92,7 @@ const (
 	ClusterGuardControllerValidatingWebhookName  = "validating.falcon-kac.crowdstrike.com"
 	ClusterGuardControllerReviewLabelKey         = "falcon-kac.crowdstrike.com/admission-review"
 	ClusterGuardControllerComponentName          = "kac"
+	ClusterGuardControllerRunAsUser              = int64(1234)
 
 	// Node Sensor Module Vars
 	ClusterGuardNodeSensorDaemonSetName             = "falcon-sensor"

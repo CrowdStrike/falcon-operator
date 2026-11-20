@@ -10,8 +10,7 @@ import (
 
 const (
 	// ClusterGuardRepo is the CrowdStrike registry repository for the Cluster Guard image.
-	// Cluster Guard is temporarily published to the unified falcon-sensor repository.
-	ClusterGuardRepo = "falcon-sensor"
+	ClusterGuardRepo = "falcon-clusterguard"
 
 	defaultBuildStage = "release"
 )

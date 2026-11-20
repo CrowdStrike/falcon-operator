@@ -17,31 +17,31 @@ func TestClusterGuardImageURI(t *testing.T) {
 			name:       "us-1 release",
 			cloud:      falcon.CloudUs1,
 			buildStage: "release",
-			want:       "registry.crowdstrike.com/falcon-sensor/release/falcon-sensor",
+			want:       "registry.crowdstrike.com/falcon-clusterguard/release/falcon-clusterguard",
 		},
 		{
 			name:       "us-1 stage",
 			cloud:      falcon.CloudUs1,
 			buildStage: "stage",
-			want:       "registry.crowdstrike.com/falcon-sensor/stage/falcon-sensor",
+			want:       "registry.crowdstrike.com/falcon-clusterguard/stage/falcon-clusterguard",
 		},
 		{
 			name:       "empty build stage defaults to release",
 			cloud:      falcon.CloudEu1,
 			buildStage: "",
-			want:       "registry.crowdstrike.com/falcon-sensor/release/falcon-sensor",
+			want:       "registry.crowdstrike.com/falcon-clusterguard/release/falcon-clusterguard",
 		},
 		{
 			name:       "us-gov-1 stage",
 			cloud:      falcon.CloudUsGov1,
 			buildStage: "stage",
-			want:       "registry.laggar.gcw.crowdstrike.com/falcon-sensor/stage/falcon-sensor",
+			want:       "registry.laggar.gcw.crowdstrike.com/falcon-clusterguard/stage/falcon-clusterguard",
 		},
 		{
 			name:       "us-gov-2 release",
 			cloud:      falcon.CloudUsGov2,
 			buildStage: "release",
-			want:       "registry.us-gov-2.crowdstrike.mil/falcon-sensor/release/falcon-sensor",
+			want:       "registry.us-gov-2.crowdstrike.mil/falcon-clusterguard/release/falcon-clusterguard",
 		},
 	}
 

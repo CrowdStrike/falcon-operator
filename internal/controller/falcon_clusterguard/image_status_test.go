@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	releaseRepo = "registry.crowdstrike.com/falcon-sensor/release/falcon-sensor"
-	stageRepo   = "registry.crowdstrike.com/falcon-sensor/stage/falcon-sensor"
+	releaseRepo = "registry.crowdstrike.com/falcon-clusterguard/release/falcon-clusterguard"
+	stageRepo   = "registry.crowdstrike.com/falcon-clusterguard/stage/falcon-clusterguard"
 )
 
 func TestSyncDiscoveredImage(t *testing.T) {

@@ -109,14 +109,14 @@ func TestURI(t *testing.T) {
 			name:         "discovery takes precedence over related image",
 			cfg:          discoverable(),
 			relatedImage: "registry.example.com/fcg:4.5.6",
-			wantURI:      "registry.crowdstrike.com/falcon-sensor/release/falcon-sensor:7.40.0-1234",
+			wantURI:      "registry.crowdstrike.com/falcon-clusterguard/release/falcon-clusterguard:7.40.0-1234",
 			wantSensor:   "7.40.0-1234",
 			wantRegistry: true,
 		},
 		{
 			name:         "stage build stage discovers from the stage repository",
 			cfg:          Config{FalconAPI: credentials(), CrowdStrikeRegistry: true, BuildStage: "stage"},
-			wantURI:      "registry.crowdstrike.com/falcon-sensor/stage/falcon-sensor:7.40.0-1234",
+			wantURI:      "registry.crowdstrike.com/falcon-clusterguard/stage/falcon-clusterguard:7.40.0-1234",
 			wantSensor:   "7.40.0-1234",
 			wantRegistry: true,
 		},
@@ -224,7 +224,7 @@ func TestSetTagReturnsRegistryError(t *testing.T) {
 
 func TestRepository(t *testing.T) {
 	cases := map[string]string{
-		"registry.crowdstrike.com/falcon-sensor/release/falcon-sensor:7.40.0-1234": "registry.crowdstrike.com/falcon-sensor/release/falcon-sensor",
+		"registry.crowdstrike.com/falcon-clusterguard/release/falcon-clusterguard:7.40.0-1234": "registry.crowdstrike.com/falcon-clusterguard/release/falcon-clusterguard",
 		"localhost:5000/fcg:1.0":   "localhost:5000/fcg",
 		"localhost:5000/fcg":       "localhost:5000/fcg",
 		"registry.example.com/fcg": "registry.example.com/fcg",

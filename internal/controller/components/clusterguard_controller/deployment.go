@@ -39,6 +39,19 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 	// Replicas in the spec is ignored, as documented on the field: only one replica is currently supported.
 	singleReplica := int32(1)
 
+	podSecurityContext := &corev1.PodSecurityContext{
+		RunAsNonRoot: &runNonRoot,
+		SeccompProfile: &corev1.SeccompProfile{
+			Type: corev1.SeccompProfileTypeRuntimeDefault,
+		},
+	}
+	// The image runs as root by default, so a non-root UID is set explicitly. OpenShift's SCC assigns a non-root UID
+	// from the namespace range itself and rejects a fixed UID outside it.
+	if !a.cfg.OpenShift {
+		runAsUser := pkgcommon.ClusterGuardControllerRunAsUser
+		podSecurityContext.RunAsUser = &runAsUser
+	}
+
 	containerPort := pkgcommon.ClusterGuardControllerWebhookPort
 	if a.cfg.ClusterGuardControllerConfig.ContainerPort != nil {
 		containerPort = *a.cfg.ClusterGuardControllerConfig.ContainerPort
@@ -155,13 +168,8 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 					NodeSelector: map[string]string{
 						"kubernetes.io/os": "linux",
 					},
-					Affinity: admissionNodeAffinity(a.cfg.ClusterGuardControllerConfig.NodeAffinity),
-					SecurityContext: &corev1.PodSecurityContext{
-						RunAsNonRoot: &runNonRoot,
-						SeccompProfile: &corev1.SeccompProfile{
-							Type: corev1.SeccompProfileTypeRuntimeDefault,
-						},
-					},
+					Affinity:        admissionNodeAffinity(a.cfg.ClusterGuardControllerConfig.NodeAffinity),
+					SecurityContext: podSecurityContext,
 					TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
 						{
 							MaxSkew:           1,
