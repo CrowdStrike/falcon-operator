@@ -13955,6 +13955,14 @@ spec:
             type: string
           metadata:
             type: object
+          spec:
+            description: InstallGuardOwnerSpec is empty. InstallGuardOwner holds no
+              data.
+            type: object
+          status:
+            description: InstallGuardOwnerStatus is empty. InstallGuardOwner holds
+              no data.
+            type: object
         type: object
     served: true
     storage: true
@@ -14838,7 +14846,7 @@ spec:
           value: falcon-operator
         - name: OPERATOR_MANIFEST
           value: 1.13.0
-        image: quay.io/crowdstrike/falcon-operator:0.0.1-falcon-clusterguard-up
+        image: controller:latest
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
