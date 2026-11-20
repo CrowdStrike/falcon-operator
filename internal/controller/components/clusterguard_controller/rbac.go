@@ -10,6 +10,7 @@ import (
 	pkgcommon "github.com/crowdstrike/falcon-operator/pkg/common"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -41,11 +42,49 @@ func (a *ClusterGuardController) roleBinding() *rbacv1.RoleBinding {
 	return rb
 }
 
-// role builds the Role for the clusterguard controller.
+// role builds the Role for the clusterguard controller. It does not use assets.Role, which FalconAdmission shares,
+// because the install guard limits Secret update and delete to the install guard Secret.
 func (a *ClusterGuardController) role() *rbacv1.Role {
-	role := assets.Role(pkgcommon.ClusterGuardControllerNamespaceRoleName, a.cfg.InstallNamespace)
-	a.withAppLabels(role.Labels)
-	return role
+	name := pkgcommon.ClusterGuardControllerNamespaceRoleName
+	return &rbacv1.Role{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: rbacv1.SchemeGroupVersion.String(),
+			Kind:       "Role",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: a.cfg.InstallNamespace,
+			Labels:    a.withAppLabels(pkgcommon.CRLabels("role", name, pkgcommon.FalconAdmissionController)),
+		},
+		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{""},
+				Resources: []string{"configmaps"},
+				Verbs:     []string{"create", "get", "list", "watch", "update"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"secrets"},
+				Verbs:     []string{"create"},
+			},
+			{
+				APIGroups:     []string{""},
+				Resources:     []string{"secrets"},
+				ResourceNames: []string{pkgcommon.ClusterGuardInstallGuardSecretName},
+				Verbs:         []string{"update", "delete"},
+			},
+			{
+				APIGroups: []string{""},
+				Resources: []string{"pods"},
+				Verbs:     []string{"get", "list", "watch", "update"},
+			},
+			{
+				APIGroups: []string{"coordination.k8s.io"},
+				Resources: []string{"leases"},
+				Verbs:     []string{"create", "get", "list", "watch", "update"},
+			},
+		},
+	}
 }
 
 // reconcileServiceAccount reconciles the ServiceAccount for the clusterguard controller.

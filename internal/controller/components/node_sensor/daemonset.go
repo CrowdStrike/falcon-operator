@@ -19,6 +19,12 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
+// The install guard state ConfigMap volume, mounted only when the Cluster Guard Controller is enabled.
+const (
+	installGuardStateVolumeName = "clusterguard-state"
+	installGuardStateMountPath  = "/opt/CrowdStrike/clusterguard-state"
+)
+
 // controllerTLSVolumeMounts mounts the mTLS client certificate and API CA the sensor uses to reach the
 // Cluster Guard Controller API service. They are only added when the Cluster Guard Controller is enabled.
 var controllerTLSVolumeMounts = []corev1.VolumeMount{
@@ -40,6 +46,9 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 	nodeSpec := n.cfg.NodeSensor
 
 	dsLabels := n.withAppLabels(pkgcommon.CRLabels("daemonset", pkgcommon.ClusterGuardNodeSensorDaemonSetName, pkgcommon.ClusterGuardNodeSensorComponentName), pkgcommon.ClusterGuardNodeSensorAppName)
+	dsLabels[pkgcommon.ClusterGuardInstallGuardTargetLabelKey] = pkgcommon.ClusterGuardNodeSensorInstallGuardTargetLabelValue
+	podLabels := n.withAppLabels(n.dsManageAutoPilotLabels("daemonset", pkgcommon.ClusterGuardNodeSensorDaemonSetName, pkgcommon.ClusterGuardNodeSensorComponentName, n.dsAutoPilotDeployAllowlistLabel), pkgcommon.ClusterGuardNodeSensorAppName)
+	podLabels[pkgcommon.ClusterGuardInstallGuardTargetLabelKey] = pkgcommon.ClusterGuardNodeSensorInstallGuardTargetLabelValue
 	privileged := true
 	runAsUser := int64(0)
 	hostPathType := corev1.HostPathUnset
@@ -164,6 +173,23 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 		podSpec.Volumes = append(podSpec.Volumes, controllerTLSVolumes(&secretDefaultMode)...)
 		podSpec.InitContainers[0].VolumeMounts = append(podSpec.InitContainers[0].VolumeMounts, controllerTLSVolumeMounts...)
 		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, controllerTLSVolumeMounts...)
+
+		// The clusterguard controller's install guard state ConfigMap, written at runtime in this namespace. Optional:
+		// the sensor starts, with install guard disabled, before the controller has created it.
+		optional := true
+		podSpec.Volumes = append(podSpec.Volumes, corev1.Volume{
+			Name: installGuardStateVolumeName,
+			VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: pkgcommon.ClusterGuardInstallGuardStateConfigMapName},
+				DefaultMode:          &secretDefaultMode,
+				Optional:             &optional,
+			}},
+		})
+		podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, corev1.VolumeMount{
+			Name:      installGuardStateVolumeName,
+			MountPath: installGuardStateMountPath,
+			ReadOnly:  true,
+		})
 	}
 
 	if nodeSpec.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution != nil ||
@@ -222,7 +248,7 @@ func (n *NodeSensor) daemonSet() *appsv1.DaemonSet {
 			UpdateStrategy: updateStrategy,
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: n.withAppLabels(n.dsManageAutoPilotLabels("daemonset", pkgcommon.ClusterGuardNodeSensorDaemonSetName, pkgcommon.ClusterGuardNodeSensorComponentName, n.dsAutoPilotDeployAllowlistLabel), pkgcommon.ClusterGuardNodeSensorAppName),
+					Labels: podLabels,
 					Annotations: map[string]string{
 						pkgcommon.FalconContainerInjection: "disabled",
 						"checksum/config":                  pkgcommon.ConfigMapChecksum(n.configMap()),

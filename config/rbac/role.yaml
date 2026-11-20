@@ -180,6 +180,17 @@ rules:
   - patch
   - update
 - apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - installguardowners
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
   - gateway.networking.k8s.io
   resources:
   - gatewayclasses

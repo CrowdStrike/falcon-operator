@@ -13915,6 +13915,50 @@ spec:
     subresources:
       status: {}
 ---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: installguardowners.falcon.crowdstrike.com
+spec:
+  group: falcon.crowdstrike.com
+  names:
+    kind: InstallGuardOwner
+    listKind: InstallGuardOwnerList
+    plural: installguardowners
+    singular: installguardowner
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          InstallGuardOwner is the owner of the FCG install guard ValidatingWebhookConfiguration created by the
+          clusterguard controller when uninstall protection is enabled. Deleting it removes that webhook configuration.
+          It holds no data.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+        type: object
+    served: true
+    storage: true
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -14226,7 +14270,16 @@ rules:
   resources:
   - validatingwebhookconfigurations
   verbs:
+  - update
   - delete
+- apiGroups:
+  - falcon.crowdstrike.com
+  resourceNames:
+  - falcon-clusterguard
+  resources:
+  - installguardowners
+  verbs:
+  - get
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
@@ -14557,6 +14610,17 @@ rules:
   - patch
   - update
 - apiGroups:
+  - falcon.crowdstrike.com
+  resources:
+  - installguardowners
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
   - gateway.networking.k8s.io
   resources:
   - gatewayclasses
@@ -14774,7 +14838,7 @@ spec:
           value: falcon-operator
         - name: OPERATOR_MANIFEST
           value: 1.13.0
-        image: quay.io/crowdstrike/falcon-operator:0.0.1-falcon-clusterguard
+        image: quay.io/crowdstrike/falcon-operator:0.0.1-falcon-clusterguard-up
         imagePullPolicy: Always
         livenessProbe:
           httpGet:

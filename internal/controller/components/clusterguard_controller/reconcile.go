@@ -58,6 +58,9 @@ func (a *ClusterGuardController) Reconcile(ctx context.Context) (ctrl.Result, er
 	if err := a.reconcileResourceQuota(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
+	if err := a.reconcileInstallGuardOwner(ctx); err != nil {
+		return ctrl.Result{}, err
+	}
 	configUpdated, err := a.reconcileConfigMap(ctx)
 	if err != nil {
 		return ctrl.Result{}, err

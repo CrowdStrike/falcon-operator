@@ -313,10 +313,24 @@ func TestClusterGuardSensorDaemonSetVolumesAndMounts(t *testing.T) {
 	tests := []struct {
 		name              string
 		controllerEnabled bool
-		want              []string
+		wantVolumes       []string
+		wantInitMounts    []string
+		wantMainMounts    []string
 	}{
-		{"controller enabled", true, []string{"cs-config", "falconstore", "falcon-node-sensor-tls-certs", "falcon-api-ca"}},
-		{"controller disabled", false, []string{"cs-config", "falconstore"}},
+		{
+			name:              "controller enabled",
+			controllerEnabled: true,
+			wantVolumes:       []string{"cs-config", "falconstore", "falcon-node-sensor-tls-certs", "falcon-api-ca", "clusterguard-state"},
+			wantInitMounts:    []string{"cs-config", "falconstore", "falcon-node-sensor-tls-certs", "falcon-api-ca"},
+			wantMainMounts:    []string{"cs-config", "falconstore", "falcon-node-sensor-tls-certs", "falcon-api-ca", "clusterguard-state"},
+		},
+		{
+			name:              "controller disabled",
+			controllerEnabled: false,
+			wantVolumes:       []string{"cs-config", "falconstore"},
+			wantInitMounts:    []string{"cs-config", "falconstore"},
+			wantMainMounts:    []string{"cs-config", "falconstore"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -339,14 +353,14 @@ func TestClusterGuardSensorDaemonSetVolumesAndMounts(t *testing.T) {
 			for _, vm := range podSpec.Containers[0].VolumeMounts {
 				mainMounts = append(mainMounts, vm.Name)
 			}
-			if !slices.Equal(volumes, tt.want) {
-				t.Errorf("volumes = %v, want %v", volumes, tt.want)
+			if !slices.Equal(volumes, tt.wantVolumes) {
+				t.Errorf("volumes = %v, want %v", volumes, tt.wantVolumes)
 			}
-			if !slices.Equal(initMounts, tt.want) {
-				t.Errorf("init container volumeMounts = %v, want %v", initMounts, tt.want)
+			if !slices.Equal(initMounts, tt.wantInitMounts) {
+				t.Errorf("init container volumeMounts = %v, want %v", initMounts, tt.wantInitMounts)
 			}
-			if !slices.Equal(mainMounts, tt.want) {
-				t.Errorf("main container volumeMounts = %v, want %v", mainMounts, tt.want)
+			if !slices.Equal(mainMounts, tt.wantMainMounts) {
+				t.Errorf("main container volumeMounts = %v, want %v", mainMounts, tt.wantMainMounts)
 			}
 		})
 	}
@@ -1197,20 +1211,24 @@ func TestNodeSensorResourcesHaveHelmAppLabels(t *testing.T) {
 	ds := n.daemonSet()
 	cleanup := n.cleanupDaemonSet()
 
+	// installGuardTarget is empty where the install guard label must be absent. The cleanup DaemonSet must stay
+	// unprotected so it can run on uninstall.
+	guarded := pkgcommon.ClusterGuardNodeSensorInstallGuardTargetLabelValue
 	tests := []struct {
-		name    string
-		labels  map[string]string
-		appName string
+		name               string
+		labels             map[string]string
+		appName            string
+		installGuardTarget string
 	}{
-		{"sensor DaemonSet", ds.Labels, "falcon-sensor"},
-		{"sensor pod template", ds.Spec.Template.Labels, "falcon-sensor"},
-		{"cleanup DaemonSet", cleanup.Labels, "falcon-clusterguard-node-cleanup"},
-		{"cleanup pod template", cleanup.Spec.Template.Labels, "falcon-clusterguard-node-cleanup"},
-		{"ConfigMap", n.configMap().Labels, "falcon-sensor"},
-		{"ServiceAccount", n.serviceAccount().Labels, "falcon-sensor"},
-		{"cleanup ServiceAccount", n.cleanupServiceAccount().Labels, "falcon-sensor"},
-		{"ClusterRoleBinding", n.clusterRoleBinding().Labels, "falcon-sensor"},
-		{"proxy Service", n.proxyService().Labels, "falcon-sensor"},
+		{"sensor DaemonSet", ds.Labels, "falcon-sensor", guarded},
+		{"sensor pod template", ds.Spec.Template.Labels, "falcon-sensor", guarded},
+		{"cleanup DaemonSet", cleanup.Labels, "falcon-clusterguard-node-cleanup", ""},
+		{"cleanup pod template", cleanup.Spec.Template.Labels, "falcon-clusterguard-node-cleanup", ""},
+		{"ConfigMap", n.configMap().Labels, "falcon-sensor", ""},
+		{"ServiceAccount", n.serviceAccount().Labels, "falcon-sensor", ""},
+		{"cleanup ServiceAccount", n.cleanupServiceAccount().Labels, "falcon-sensor", ""},
+		{"ClusterRoleBinding", n.clusterRoleBinding().Labels, "falcon-sensor", ""},
+		{"proxy Service", n.proxyService().Labels, "falcon-sensor", ""},
 	}
 	for _, tt := range tests {
 		want := map[string]string{
@@ -1224,5 +1242,47 @@ func TestNodeSensorResourcesHaveHelmAppLabels(t *testing.T) {
 				t.Errorf("%s: expected %s=%q, got %q", tt.name, k, v, got)
 			}
 		}
+		if got := tt.labels[pkgcommon.ClusterGuardInstallGuardTargetLabelKey]; got != tt.installGuardTarget {
+			t.Errorf("%s: expected %s=%q, got %q", tt.name, pkgcommon.ClusterGuardInstallGuardTargetLabelKey, tt.installGuardTarget, got)
+		}
 	}
+}
+
+// The install guard state ConfigMap is written by the clusterguard controller at runtime, so the sensor must start
+// without it.
+func TestClusterGuardSensorDaemonSetInstallGuardStateVolume(t *testing.T) {
+	n := New(nil, Config{
+		BaseConfig: components.BaseConfig{
+			InstallNamespace: "falcon-clusterguard",
+			Image:            "quay.io/crowdstrike/falcon-sensor:latest",
+		},
+		ClusterGuardControllerEnabled: true,
+	})
+	podSpec := n.daemonSet().Spec.Template.Spec
+
+	var vol *corev1.Volume
+	for i := range podSpec.Volumes {
+		if podSpec.Volumes[i].Name == installGuardStateVolumeName {
+			vol = &podSpec.Volumes[i]
+		}
+	}
+	if vol == nil || vol.ConfigMap == nil {
+		t.Fatalf("expected ConfigMap volume %q, got %v", installGuardStateVolumeName, podSpec.Volumes)
+	}
+	if vol.ConfigMap.Name != pkgcommon.ClusterGuardInstallGuardStateConfigMapName {
+		t.Errorf("ConfigMap name = %q, want %q", vol.ConfigMap.Name, pkgcommon.ClusterGuardInstallGuardStateConfigMapName)
+	}
+	if vol.ConfigMap.Optional == nil || !*vol.ConfigMap.Optional {
+		t.Error("expected install guard state ConfigMap volume to be optional")
+	}
+
+	for _, vm := range podSpec.Containers[0].VolumeMounts {
+		if vm.Name == installGuardStateVolumeName {
+			if vm.MountPath != installGuardStateMountPath || !vm.ReadOnly {
+				t.Errorf("mount = %+v, want read-only at %s", vm, installGuardStateMountPath)
+			}
+			return
+		}
+	}
+	t.Errorf("main container has no %q mount", installGuardStateVolumeName)
 }

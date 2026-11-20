@@ -41,6 +41,7 @@ func TestClusterGuardControllerResourcesHaveHelmAppLabels(t *testing.T) {
 		"webhook Service":                a.webhookService().Labels,
 		"API Service":                    a.apiService().Labels,
 		"ValidatingWebhookConfiguration": a.ValidatingWebhook(nil).Labels,
+		"InstallGuardOwner":              a.installGuardOwner().Labels,
 	}
 	for obj, got := range objs {
 		for k, v := range want {
@@ -48,6 +49,10 @@ func TestClusterGuardControllerResourcesHaveHelmAppLabels(t *testing.T) {
 				t.Errorf("%s: expected label %s=%q, got %q", obj, k, v, got[k])
 			}
 		}
+	}
+
+	if got := dep.Spec.Template.Labels[common.ClusterGuardInstallGuardTargetLabelKey]; got != common.ClusterGuardControllerInstallGuardTargetLabelValue {
+		t.Errorf("Deployment pod template: expected label %s=%q, got %q", common.ClusterGuardInstallGuardTargetLabelKey, common.ClusterGuardControllerInstallGuardTargetLabelValue, got)
 	}
 
 	// Pod labels are added on top of the selector; the selector itself must stay unchanged.

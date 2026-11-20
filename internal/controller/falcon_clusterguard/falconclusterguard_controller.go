@@ -79,6 +79,7 @@ func (r *FalconClusterGuardReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		WithOptions(controller.Options{
 			RateLimiter: workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](failureBackoffBase, failureBackoffMax),
 		}).
+		Owns(&falconv1alpha1.InstallGuardOwner{}, builder.WithPredicates(labelPredicate)).
 		Complete(r)
 }
 
@@ -120,6 +121,7 @@ func (r *FalconClusterGuardReconciler) GetLog() logr.Logger {
 //+kubebuilder:rbac:groups="coordination.k8s.io",resources=leases,verbs=get;list;watch;create;update;delete
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;update
 //+kubebuilder:rbac:groups="security.openshift.io",resources=securitycontextconstraints,resourceNames=privileged,verbs=use
+//+kubebuilder:rbac:groups=falcon.crowdstrike.com,resources=installguardowners,verbs=get;list;watch;create;update;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

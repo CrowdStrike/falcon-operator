@@ -31,6 +31,9 @@ func (ia *ImageAnalyzer) deployment() *appsv1.Deployment {
 	// Metadata and pod template share one label map; the selector is separate and stays unchanged.
 	ia.withAppLabels(dep.Labels)
 	ia.withAppLabels(dep.Spec.Template.Labels)
+
+	dep.Labels[pkgcommon.ClusterGuardInstallGuardTargetLabelKey] = pkgcommon.ClusterGuardImageAnalyzerInstallGuardTargetLabelValue
+	dep.Spec.Template.Labels[pkgcommon.ClusterGuardInstallGuardTargetLabelKey] = pkgcommon.ClusterGuardImageAnalyzerInstallGuardTargetLabelValue
 	return dep
 }
 

@@ -63,7 +63,16 @@ rules:
   resources:
   - validatingwebhookconfigurations
   verbs:
+  - update
   - delete
+- apiGroups:
+  - falcon.crowdstrike.com
+  resourceNames:
+  - falcon-clusterguard
+  resources:
+  - installguardowners
+  verbs:
+  - get
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
