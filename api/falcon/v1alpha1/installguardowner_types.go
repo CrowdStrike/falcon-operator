@@ -4,6 +4,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// InstallGuardOwnerSpec is empty. InstallGuardOwner holds no data.
+type InstallGuardOwnerSpec struct{}
+
+// InstallGuardOwnerStatus is empty. InstallGuardOwner holds no data.
+type InstallGuardOwnerStatus struct{}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster
 
@@ -13,6 +19,9 @@ import (
 type InstallGuardOwner struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   InstallGuardOwnerSpec   `json:"spec,omitempty"`
+	Status InstallGuardOwnerStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

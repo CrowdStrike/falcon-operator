@@ -2896,8 +2896,10 @@ spec:
       - displayName: Type
         path: node.updateStrategy.type
       version: v1alpha1
-    - description: InstallGuardOwner is the owner of the FCG install guard ValidatingWebhookConfiguration
-        created by the clusterguard controller when uninstall protection is enabled.
+    - description: |-
+        InstallGuardOwner is the owner of the FCG install guard ValidatingWebhookConfiguration created by the
+        clusterguard controller when uninstall protection is enabled. Deleting it removes that webhook configuration.
+        It holds no data.
       displayName: Install Guard Owner
       kind: InstallGuardOwner
       name: installguardowners.falcon.crowdstrike.com

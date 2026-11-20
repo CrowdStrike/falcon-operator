@@ -39,6 +39,14 @@ spec:
             type: string
           metadata:
             type: object
+          spec:
+            description: InstallGuardOwnerSpec is empty. InstallGuardOwner holds no
+              data.
+            type: object
+          status:
+            description: InstallGuardOwnerStatus is empty. InstallGuardOwner holds
+              no data.
+            type: object
         type: object
     served: true
     storage: true
