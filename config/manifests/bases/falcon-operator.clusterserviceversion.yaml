@@ -19,6 +19,7 @@ metadata:
     features.operators.openshift.io/token-auth-azure: "false"
     features.operators.openshift.io/token-auth-gcp: "false"
     operatorframework.io/suggested-namespace: falcon-operator
+    operators.operatorframework.io/internal-objects: '["installguardowners.falcon.crowdstrike.com"]'
     repository: https://github.com/CrowdStrike/falcon-operator
     support: Community Only
   labels:
@@ -2894,6 +2895,12 @@ spec:
         path: node.serviceAccount.annotations
       - displayName: Type
         path: node.updateStrategy.type
+      version: v1alpha1
+    - description: InstallGuardOwner is the owner of the FCG install guard ValidatingWebhookConfiguration
+        created by the clusterguard controller when uninstall protection is enabled.
+      displayName: Install Guard Owner
+      kind: InstallGuardOwner
+      name: installguardowners.falcon.crowdstrike.com
       version: v1alpha1
   description: |-
     The CrowdStrike Falcon Operator installs CrowdStrike Falcon custom resources on a Kubernetes cluster.

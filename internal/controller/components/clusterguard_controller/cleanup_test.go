@@ -68,6 +68,7 @@ func controlledBy(t *testing.T, c client.Client, owner client.Object) []string {
 		&arv1.ValidatingWebhookConfigurationList{}, &appsv1.DeploymentList{}, &corev1.ServiceList{},
 		&corev1.SecretList{}, &corev1.ConfigMapList{}, &corev1.ResourceQuotaList{}, &rbacv1.RoleBindingList{},
 		&rbacv1.RoleList{}, &rbacv1.ClusterRoleBindingList{}, &corev1.ServiceAccountList{},
+		&falconv1alpha1.InstallGuardOwnerList{},
 	}
 	var names []string
 	for _, l := range lists {
@@ -123,6 +124,32 @@ func TestCleanup_RemovesEverythingReconcileCreated(t *testing.T) {
 	}
 	if c := meta.FindStatusCondition(persisted.Status.Conditions, falconv1alpha1.ConditionClusterGuardControllerReady); c != nil {
 		t.Errorf("expected %s condition to be removed, got %v", falconv1alpha1.ConditionClusterGuardControllerReady, c)
+	}
+}
+
+// The clusterguard controller owner-refs the install guard VWC to the InstallGuardOwner, so Cleanup must remove
+// it for the VWC to be garbage-collected.
+func TestReconcile_ManagesInstallGuardOwner(t *testing.T) {
+	ctx := context.Background()
+	r, owner, a := newCleanupTestController(t)
+	key := types.NamespacedName{Name: pkgcommon.ClusterGuardInstallGuardOwnerName}
+
+	if _, err := a.Reconcile(ctx); err != nil {
+		t.Fatalf("Reconcile() error: %v", err)
+	}
+	igo := &falconv1alpha1.InstallGuardOwner{}
+	if err := r.Get(ctx, key, igo); err != nil {
+		t.Fatalf("expected InstallGuardOwner %q: %v", key.Name, err)
+	}
+	if !metav1.IsControlledBy(igo, owner) {
+		t.Errorf("expected InstallGuardOwner to be controlled by the FalconClusterGuard, got %v", igo.OwnerReferences)
+	}
+
+	if err := a.Cleanup(ctx); err != nil {
+		t.Fatalf("Cleanup() error: %v", err)
+	}
+	if err := r.Get(ctx, key, &falconv1alpha1.InstallGuardOwner{}); !apierrors.IsNotFound(err) {
+		t.Errorf("expected InstallGuardOwner to be deleted, got %v", err)
 	}
 }
 

@@ -20,8 +20,10 @@ import (
 func (a *ClusterGuardController) Cleanup(ctx context.Context) error {
 	ns := a.cfg.InstallNamespace
 	if err := components.DeleteOwned(ctx, a.r, a.cfg.Owner,
-		// Remove the webhook first so admission requests are not sent to a backend that is going away.
+		// Remove the webhooks first so admission requests are not sent to a backend that is going away. Deleting the
+		// InstallGuardOwner garbage-collects the install guard VWC that the clusterguard controller created.
 		&arv1.ValidatingWebhookConfiguration{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardControllerValidatingWebhookName}},
+		&falconv1alpha1.InstallGuardOwner{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardInstallGuardOwnerName}},
 		&appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardControllerDeploymentName, Namespace: ns}},
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardControllerWebhookServiceName, Namespace: ns}},
 		&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardControllerAPIServiceName, Namespace: ns}},

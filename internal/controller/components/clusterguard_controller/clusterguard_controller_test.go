@@ -502,6 +502,37 @@ func TestAdmissionRoleBindingWiring(t *testing.T) {
 	}
 }
 
+// The clusterguard controller may create any Secret in its namespace, but update or delete only the install guard
+// Secret.
+func TestAdmissionRoleSecretRules(t *testing.T) {
+	a := New(nil, Config{BaseConfig: components.BaseConfig{InstallNamespace: "test-ns"}})
+	role := a.role()
+
+	if role.Namespace != "test-ns" {
+		t.Errorf("expected namespace %q, got %q", "test-ns", role.Namespace)
+	}
+	var unrestricted, named []string
+	for _, rule := range role.Rules {
+		if !slices.Contains(rule.Resources, "secrets") {
+			continue
+		}
+		if len(rule.ResourceNames) == 0 {
+			unrestricted = append(unrestricted, rule.Verbs...)
+			continue
+		}
+		if !slices.Equal(rule.ResourceNames, []string{common.ClusterGuardInstallGuardSecretName}) {
+			t.Errorf("unexpected secrets resourceNames %v", rule.ResourceNames)
+		}
+		named = append(named, rule.Verbs...)
+	}
+	if want := []string{"create"}; !slices.Equal(unrestricted, want) {
+		t.Errorf("unrestricted secrets verbs = %v, want %v", unrestricted, want)
+	}
+	if want := []string{"update", "delete"}; !slices.Equal(named, want) {
+		t.Errorf("install guard Secret verbs = %v, want %v", named, want)
+	}
+}
+
 // WebhookService builder tests
 
 func TestAdmissionWebhookServiceSelectorUsesClusterGuardApp(t *testing.T) {

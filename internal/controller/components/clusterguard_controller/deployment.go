@@ -130,6 +130,9 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 	maps.Copy(crLabels, selectorLabels)
 	a.withAppLabels(crLabels)
 
+	podLabels := maps.Clone(crLabels)
+	podLabels[pkgcommon.ClusterGuardInstallGuardTargetLabelKey] = pkgcommon.ClusterGuardControllerInstallGuardTargetLabelValue
+
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: appsv1.SchemeGroupVersion.String(),
@@ -154,7 +157,7 @@ func (a *ClusterGuardController) Deployment() *appsv1.Deployment {
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: crLabels,
+					Labels: podLabels,
 					Annotations: map[string]string{
 						pkgcommon.FalconContainerInjection: "disabled",
 					},

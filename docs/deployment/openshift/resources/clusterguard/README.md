@@ -373,6 +373,22 @@ imagePullSecrets:
   - name: my-pull-secret
 ```
 
+### Uninstall Protection
+
+When uninstall protection is enabled in the Falcon console, the Cluster Guard Controller protects the Falcon workloads in its namespace against deletion and modification. It selects them by the label `crowdstrike.com/install-guard-target`:
+
+| Workload | Label value | Where |
+|---|---|---|
+| Node sensor DaemonSet | `node-sensor` | DaemonSet metadata and pod template |
+| Cluster Guard Controller Deployment | `fcg-controller` | pod template |
+| Image Analyzer Deployment | `iar` | Deployment metadata and pod template |
+
+The operator sets these labels. Do not remove them from these workloads or add them to other workloads: a workload without its label is not protected.
+
+While protection is active, changes to these workloads (image, command, environment, volumes, scheduling, labels, update strategy, reduced resources) and their deletion are denied. `oc rollout restart`, resource increases and scaling the controller or the Image Analyzer Deployment to a non-zero replica count are allowed. Controller and Image Analyzer pods can still be deleted; their Deployment replaces them. This also applies to the operator: before you upgrade the sensor, change the FalconClusterGuard resource in a way that updates these workloads, or uninstall Falcon Cluster Guard, disable uninstall protection or use a maintenance token.
+
+The controller creates the install guard ValidatingWebhookConfiguration `install-guard.falcon-clusterguard.crowdstrike.com` itself and sets the cluster-scoped `InstallGuardOwner` resource `falcon-clusterguard` as its owner. The operator creates the `InstallGuardOwner` and deletes it on uninstall, which removes the webhook configuration.
+
 ### Install Steps
 To install Falcon Cluster Guard, run the following command to install the FalconClusterGuard CR:
 ```sh

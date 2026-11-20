@@ -44,6 +44,12 @@ func TestImageAnalyzerResourcesHaveHelmAppLabels(t *testing.T) {
 		}
 	}
 
+	for obj, got := range map[string]map[string]string{"Deployment": dep.Labels, "Deployment pod template": dep.Spec.Template.Labels} {
+		if v := got[pkgcommon.ClusterGuardInstallGuardTargetLabelKey]; v != pkgcommon.ClusterGuardImageAnalyzerInstallGuardTargetLabelValue {
+			t.Errorf("%s: expected label %s=%q, got %q", obj, pkgcommon.ClusterGuardInstallGuardTargetLabelKey, pkgcommon.ClusterGuardImageAnalyzerInstallGuardTargetLabelValue, v)
+		}
+	}
+
 	if _, ok := dep.Spec.Selector.MatchLabels[pkgcommon.KubernetesInstanceKey]; ok {
 		t.Errorf("Deployment selector must not include %s: %v", pkgcommon.KubernetesInstanceKey, dep.Spec.Selector.MatchLabels)
 	}

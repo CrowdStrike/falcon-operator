@@ -68,4 +68,11 @@ resources:
   kind: FalconClusterGuard
   path: github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+  domain: crowdstrike.com
+  group: falcon
+  kind: InstallGuardOwner
+  path: github.com/crowdstrike/falcon-operator/api/falcon/v1alpha1
+  version: v1alpha1
 version: "3"

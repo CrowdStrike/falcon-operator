@@ -93,6 +93,17 @@ const (
 	ClusterGuardControllerReviewLabelKey         = "falcon-kac.crowdstrike.com/admission-review"
 	ClusterGuardControllerComponentName          = "kac"
 	ClusterGuardControllerRunAsUser              = int64(1234)
+	// The clusterguard controller creates the install guard ValidatingWebhookConfiguration and its state Secret and
+	// ConfigMap at runtime while uninstall protection is enabled. The VWC is owned by the InstallGuardOwner, which the
+	// controller looks up by name.
+	ClusterGuardInstallGuardOwnerName          = "falcon-clusterguard"
+	ClusterGuardInstallGuardSecretName         = "falcon-fcg-install-guard"
+	ClusterGuardInstallGuardStateConfigMapName = "falcon-fcg-install-guard-state"
+	// Label the install guard webhook selects the workloads it protects by, with one value per workload.
+	ClusterGuardInstallGuardTargetLabelKey                = "crowdstrike.com/install-guard-target"
+	ClusterGuardControllerInstallGuardTargetLabelValue    = "fcg-controller"
+	ClusterGuardNodeSensorInstallGuardTargetLabelValue    = "node-sensor"
+	ClusterGuardImageAnalyzerInstallGuardTargetLabelValue = "iar"
 
 	// Node Sensor Module Vars
 	ClusterGuardNodeSensorDaemonSetName             = "falcon-sensor"
