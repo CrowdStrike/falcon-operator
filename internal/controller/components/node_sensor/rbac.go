@@ -23,6 +23,7 @@ func (n *NodeSensor) serviceAccount() *corev1.ServiceAccount {
 
 // clusterRoleBinding builds the ClusterRoleBinding for the node sensor.
 // The name is a fixed cluster-wide constant — see serviceAccount() for rationale.
+// The cleanup ServiceAccount is bound too: the cleanup DaemonSet is privileged and needs the same SCC on OpenShift.
 func (n *NodeSensor) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	crb := assets.ClusterRoleBinding(
 		pkgcommon.ClusterGuardNodeSensorClusterRoleBindingName,
@@ -32,6 +33,11 @@ func (n *NodeSensor) clusterRoleBinding() *rbacv1.ClusterRoleBinding {
 		pkgcommon.ClusterGuardComponentName,
 		[]rbacv1.Subject{},
 	)
+	crb.Subjects = append(crb.Subjects, rbacv1.Subject{
+		Kind:      rbacv1.ServiceAccountKind,
+		Name:      pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName,
+		Namespace: n.cfg.InstallNamespace,
+	})
 	n.withAppLabels(crb.Labels, pkgcommon.ClusterGuardNodeSensorAppName)
 	return crb
 }

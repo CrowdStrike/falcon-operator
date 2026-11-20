@@ -582,7 +582,7 @@ func TestNodeSensorServiceAccountWiring(t *testing.T) {
 // ClusterRoleBinding builder tests
 
 // assets.ClusterRoleBinding is covered in the assets package; this only checks the
-// role, ServiceAccount and namespace the node sensor passes in.
+// role, ServiceAccounts and namespace the node sensor passes in.
 func TestNodeSensorClusterRoleBindingWiring(t *testing.T) {
 	cfg := Config{
 		BaseConfig: components.BaseConfig{
@@ -595,15 +595,15 @@ func TestNodeSensorClusterRoleBindingWiring(t *testing.T) {
 	if crb.RoleRef.Name != pkgcommon.ClusterGuardNodeSensorClusterRoleName {
 		t.Errorf("expected RoleRef.Name=%q, got %q", pkgcommon.ClusterGuardNodeSensorClusterRoleName, crb.RoleRef.Name)
 	}
-	if len(crb.Subjects) != 1 {
-		t.Fatalf("expected 1 subject, got %d", len(crb.Subjects))
+	wantSubjects := []string{pkgcommon.ClusterGuardNodeSensorServiceAccountName, pkgcommon.ClusterGuardNodeSensorCleanupServiceAccountName}
+	if len(crb.Subjects) != len(wantSubjects) {
+		t.Fatalf("expected %d subjects, got %d", len(wantSubjects), len(crb.Subjects))
 	}
-	subj := crb.Subjects[0]
-	if subj.Name != pkgcommon.ClusterGuardNodeSensorServiceAccountName {
-		t.Errorf("expected subject Name=%q, got %q", pkgcommon.ClusterGuardNodeSensorServiceAccountName, subj.Name)
-	}
-	if subj.Namespace != "test-ns" {
-		t.Errorf("expected subject Namespace=%q, got %q", "test-ns", subj.Namespace)
+	for i, want := range wantSubjects {
+		subj := crb.Subjects[i]
+		if subj.Kind != "ServiceAccount" || subj.Name != want || subj.Namespace != "test-ns" {
+			t.Errorf("subject %d: expected ServiceAccount test-ns/%s, got %s %s/%s", i, want, subj.Kind, subj.Namespace, subj.Name)
+		}
 	}
 }
 
