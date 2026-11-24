@@ -186,7 +186,8 @@ func TestCleanup_RunsNodeCleanupBeforeDeleting(t *testing.T) {
 }
 
 // startNodeCleanup reconciles the node sensor, then runs the first Cleanup pass, which deletes the sensor DaemonSet and
-// creates the cleanup DaemonSet. It returns the cleanup DaemonSet with its status set to schedule on nodes nodes.
+// creates the cleanup DaemonSet. It returns the cleanup DaemonSet with its status set as the DaemonSet controller would
+// once it has synced it and scheduled it on nodes nodes.
 func startNodeCleanup(t *testing.T, r *fakeReconciler, n *NodeSensor, nodes int32) *appsv1.DaemonSet {
 	t.Helper()
 	ctx := context.Background()
@@ -204,6 +205,8 @@ func startNodeCleanup(t *testing.T, r *fakeReconciler, n *NodeSensor, nodes int3
 	if err := r.Get(ctx, client.ObjectKeyFromObject(n.cleanupDaemonSetRef()), cleanupDS); err != nil {
 		t.Fatal(err)
 	}
+	// The fake client leaves Generation at 0, so any positive ObservedGeneration counts as synced.
+	cleanupDS.Status.ObservedGeneration = max(cleanupDS.Generation, 1)
 	cleanupDS.Status.DesiredNumberScheduled = nodes
 	if err := r.Status().Update(ctx, cleanupDS); err != nil {
 		t.Fatal(err)
@@ -262,18 +265,126 @@ func TestCleanup_ProceedsWhenCleanupPodsFail(t *testing.T) {
 	}
 }
 
+// ageCleanupDaemonSet backdates the creation of the cleanup DaemonSet by age.
+func ageCleanupDaemonSet(t *testing.T, r *fakeReconciler, cleanupDS *appsv1.DaemonSet, age time.Duration) {
+	t.Helper()
+	cleanupDS.CreationTimestamp = metav1.NewTime(time.Now().Add(-age))
+	if err := r.Update(context.Background(), cleanupDS); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// initializedPod returns a running cleanup pod whose init container finished age ago.
+func initializedPod(name string, age time.Duration) *corev1.Pod {
+	pod := cleanupPod(name, corev1.PodRunning, "")
+	pod.Status.Conditions = []corev1.PodCondition{{
+		Type: corev1.PodInitialized, Status: corev1.ConditionTrue, LastTransitionTime: metav1.NewTime(time.Now().Add(-age)),
+	}}
+	return pod
+}
+
 func TestCleanup_ProceedsAfterCleanupTimeout(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		spec    *metav1.Duration
+		timeout time.Duration
+		want    string
+	}{
+		{name: "default", timeout: falconv1alpha1.ClusterGuardNodeCleanupTimeoutDefault, want: "5m0s"},
+		{name: "from spec", spec: &metav1.Duration{Duration: 30 * time.Second}, timeout: 30 * time.Second, want: "30s"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			r, owner, n := newCleanupTestSensor(t, falconv1alpha1.FalconClusterGuardNodeSpec{CleanupTimeout: tc.spec})
+			cleanupDS := startNodeCleanup(t, r, n, 2)
+			// One node never finishes, for example because its cleanup pod cannot be scheduled.
+			if err := r.Create(ctx, cleanupPod("pending", corev1.PodPending, "")); err != nil {
+				t.Fatal(err)
+			}
+
+			ageCleanupDaemonSet(t, r, cleanupDS, tc.timeout/2)
+			if result, err := n.Cleanup(ctx); err != nil || result.RequeueAfter == 0 {
+				t.Fatalf("Cleanup() = %v, %v; want a requeue before the cleanup timeout", result, err)
+			}
+			c := meta.FindStatusCondition(getPersistedOwner(t, r, owner).Status.Conditions, falconv1alpha1.ConditionNodeSensorReady)
+			if want := "Running node cleanup: 0 of 2 nodes finished, waiting up to " + tc.want + " for the next node"; c == nil || c.Reason != falconv1alpha1.ReasonProgressing || c.Message != want {
+				t.Errorf("%s condition = %v, want Progressing %q", falconv1alpha1.ConditionNodeSensorReady, c, want)
+			}
+
+			ageCleanupDaemonSet(t, r, cleanupDS, tc.timeout+time.Second)
+			if result, err := n.Cleanup(ctx); err != nil || result.RequeueAfter > 0 {
+				t.Fatalf("Cleanup() = %v, %v; want it to finish once the cleanup timeout has passed", result, err)
+			}
+			if left := controlledBy(t, r, owner); len(left) != 0 {
+				t.Errorf("Cleanup left resources behind: %v", left)
+			}
+		})
+	}
+}
+
+// TestCleanup_ProgressRestartsCleanupTimeout covers large clusters, where node cleanup can take longer than
+// cleanupTimeout in total but must not be cut short while nodes are still finishing.
+func TestCleanup_ProgressRestartsCleanupTimeout(t *testing.T) {
 	ctx := context.Background()
 	r, owner, n := newCleanupTestSensor(t, falconv1alpha1.FalconClusterGuardNodeSpec{})
-	// No cleanup pods are ever created, as when the namespace's pod security admission rejects them.
-	cleanupDS := startNodeCleanup(t, r, n, 2)
+	cleanupDS := startNodeCleanup(t, r, n, 3)
+	ageCleanupDaemonSet(t, r, cleanupDS, 3*falconv1alpha1.ClusterGuardNodeCleanupTimeoutDefault)
+	for _, pod := range []*corev1.Pod{
+		initializedPod("early", 2*falconv1alpha1.ClusterGuardNodeCleanupTimeoutDefault),
+		initializedPod("recent", time.Minute),
+		cleanupPod("pending", corev1.PodPending, ""),
+	} {
+		if err := r.Create(ctx, pod); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if result, err := n.Cleanup(ctx); err != nil || result.RequeueAfter == 0 {
+		t.Fatalf("Cleanup() = %v, %v; want a requeue while the last node finished within the cleanup timeout", result, err)
+	}
 
-	cleanupDS.CreationTimestamp = metav1.NewTime(time.Now().Add(-cleanupTimeout - time.Minute))
-	if err := r.Update(ctx, cleanupDS); err != nil {
+	pod := &corev1.Pod{}
+	if err := r.Get(ctx, types.NamespacedName{Name: "recent", Namespace: cleanupTestNamespace}, pod); err != nil {
+		t.Fatal(err)
+	}
+	pod.Status = initializedPod("recent", falconv1alpha1.ClusterGuardNodeCleanupTimeoutDefault+time.Minute).Status
+	if err := r.Status().Update(ctx, pod); err != nil {
 		t.Fatal(err)
 	}
 	if result, err := n.Cleanup(ctx); err != nil || result.RequeueAfter > 0 {
+		t.Fatalf("Cleanup() = %v, %v; want it to finish once no node has finished within the cleanup timeout", result, err)
+	}
+	if left := controlledBy(t, r, owner); len(left) != 0 {
+		t.Errorf("Cleanup left resources behind: %v", left)
+	}
+}
+
+func TestCleanup_WaitsUntilCleanupDaemonSetIsSynced(t *testing.T) {
+	ctx := context.Background()
+	r, _, n := newCleanupTestSensor(t, falconv1alpha1.FalconClusterGuardNodeSpec{})
+	cleanupDS := startNodeCleanup(t, r, n, 0)
+	cleanupDS.Status.ObservedGeneration = 0
+	if err := r.Status().Update(ctx, cleanupDS); err != nil {
+		t.Fatal(err)
+	}
+
+	ageCleanupDaemonSet(t, r, cleanupDS, time.Minute)
+	if result, err := n.Cleanup(ctx); err != nil || result.RequeueAfter == 0 {
+		t.Fatalf("Cleanup() = %v, %v; want a requeue until the DaemonSet controller has synced the cleanup DaemonSet", result, err)
+	}
+
+	ageCleanupDaemonSet(t, r, cleanupDS, falconv1alpha1.ClusterGuardNodeCleanupTimeoutDefault+time.Minute)
+	if result, err := n.Cleanup(ctx); err != nil || result.RequeueAfter > 0 {
 		t.Fatalf("Cleanup() = %v, %v; want it to finish once the cleanup timeout has passed", result, err)
+	}
+}
+
+func TestCleanup_FinishesWhenNoNodesNeedCleanup(t *testing.T) {
+	ctx := context.Background()
+	r, owner, n := newCleanupTestSensor(t, falconv1alpha1.FalconClusterGuardNodeSpec{})
+	startNodeCleanup(t, r, n, 0)
+
+	if result, err := n.Cleanup(ctx); err != nil || result.RequeueAfter > 0 {
+		t.Fatalf("Cleanup() = %v, %v; want it to finish at once when the cleanup DaemonSet matches no nodes", result, err)
 	}
 	if left := controlledBy(t, r, owner); len(left) != 0 {
 		t.Errorf("Cleanup left resources behind: %v", left)

@@ -1410,6 +1410,18 @@ spec:
                     - kernel
                     - bpf
                     type: string
+                  cleanupTimeout:
+                    default: 5m
+                    description: |-
+                      How long node cleanup waits without any node finishing before deletion proceeds without the remaining nodes.
+                      The wait restarts whenever another node finishes, so large clusters that are still making progress are not cut
+                      short. Nodes that have not finished keep /opt/CrowdStrike. Shortening it on a FalconClusterGuard
+                      being deleted ends a stalled node cleanup on the next pass. Default is 5m.
+                    format: duration
+                    type: string
+                    x-kubernetes-validations:
+                    - message: cleanupTimeout must be greater than 0
+                      rule: duration(self) > duration('0s')
                   clusterName:
                     description: When running on an unmanaged K8S cluster, set a cluster
                       name. When running on managed, K8S cluster name is resolved

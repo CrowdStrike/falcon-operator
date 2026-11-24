@@ -99,10 +99,6 @@ func (n *NodeSensor) proxyServiceRef() *corev1.Service {
 	return &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: pkgcommon.ClusterGuardProxyServiceName, Namespace: n.cfg.InstallNamespace}}
 }
 
-// cleanupTimeout bounds how long node cleanup waits for cleanup pods that neither finish nor report a start
-// failure, for example when the DaemonSet controller cannot create them. Deletion then proceeds without them.
-const cleanupTimeout = 5 * time.Minute
-
 // Cleanup removes the node sensor when the component is disabled or the FalconClusterGuard is being deleted.
 // If the sensor DaemonSet (or an in-progress cleanup DaemonSet) exists, node cleanup runs first and
 // Cleanup requeues until it finishes. It is a no-op once the resources are gone.
@@ -192,8 +188,10 @@ func (n *NodeSensor) useImageOf(ctx context.Context, ds *appsv1.DaemonSet) error
 
 // finalize deletes the sensor DaemonSet whatever its state, then runs the cleanup DaemonSet. A cleanup pod counts as
 // finished once it is running (its init container has removed /opt/CrowdStrike) or once it fails to start, for
-// example with ErrImageNeverPull, so a cleanup that cannot run never blocks deletion. Safe to call on every
-// reconcile — delete and DaemonSet creation are idempotent.
+// example with ErrImageNeverPull, so a cleanup that cannot run never blocks deletion. Node cleanup also ends when no
+// node needs it, or once no node has finished for nodeSensor.cleanupTimeout. Progress is reported in the
+// NodeSensorReady condition. Safe to call on every reconcile — delete and DaemonSet creation are
+// idempotent.
 func (n *NodeSensor) finalize(ctx context.Context) (bool, error) {
 	log := n.r.GetLog()
 
@@ -206,6 +204,11 @@ func (n *NodeSensor) finalize(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	if err := n.reconcileCleanupDaemonSet(ctx); err != nil {
+		// Without either DaemonSet, the next pass has nothing to run node cleanup from and skips it.
+		if found, getErr := components.GetOwned(ctx, n.r, n.cfg.Owner, n.cleanupDaemonSetRef()); getErr == nil && !found {
+			log.Error(err, "Unable to create the cleanup DaemonSet, so node cleanup will be skipped and /opt/CrowdStrike "+
+				"will not be removed from the nodes. See the troubleshooting section of the node sensor documentation.")
+		}
 		return false, err
 	}
 
@@ -230,32 +233,55 @@ func (n *NodeSensor) finalize(ctx context.Context) (bool, error) {
 		}
 	}
 
+	timeout := n.cfg.NodeSensor.GetCleanupTimeout()
+	// The wait is measured from the last node that finished, so a cleanup that is still making progress is not cut short.
+	lastProgress := daemonset.CreationTimestamp.Time
 	var finished int32
 	var failedNodes []string
 	for _, pod := range pods.Items {
 		switch pod.Status.Phase {
 		case corev1.PodRunning, corev1.PodSucceeded:
-			finished++
 		case corev1.PodFailed:
-			finished++
 			failedNodes = append(failedNodes, fmt.Sprintf("%s: pod %s failed", pod.Spec.NodeName, pod.Name))
 		default:
-			if failure := k8sutils.PodStartFailure(&pod); failure != "" {
-				finished++
-				failedNodes = append(failedNodes, fmt.Sprintf("%s: pod %s %s", pod.Spec.NodeName, pod.Name, failure))
+			failure := k8sutils.PodStartFailure(&pod)
+			if failure == "" {
+				continue
 			}
+			failedNodes = append(failedNodes, fmt.Sprintf("%s: pod %s %s", pod.Spec.NodeName, pod.Name, failure))
+		}
+		finished++
+		if t := cleanupFinishedAt(&pod); t.After(lastProgress) {
+			lastProgress = t
 		}
 	}
 	slices.Sort(failedNodes)
 
-	nodeCount := daemonset.Status.DesiredNumberScheduled
-	if nodeCount == 0 || finished < nodeCount {
-		if daemonset.CreationTimestamp.IsZero() || time.Since(daemonset.CreationTimestamp.Time) < cleanupTimeout {
-			log.Info("Waiting for cleanup pods", "finished", finished, "nodes", nodeCount, "failed", failedNodes)
-			return false, nil
-		}
-		log.Info("Timed out waiting for cleanup pods, proceeding with deletion", "timeout", cleanupTimeout,
-			"finished", finished, "nodes", nodeCount)
+	var idle time.Duration
+	if !lastProgress.IsZero() {
+		idle = time.Since(lastProgress)
+	}
+	st := daemonset.Status
+	nodeCount := st.DesiredNumberScheduled
+	// Until the DaemonSet controller has synced the cleanup DaemonSet, its status says nothing about the pods.
+	synced := st.ObservedGeneration > 0 && st.ObservedGeneration >= daemonset.Generation
+	switch {
+	case !synced && idle < timeout:
+		n.reportCleanupProgress(ctx, "waiting for the cleanup DaemonSet to start")
+		log.Info("Waiting for the cleanup DaemonSet to start")
+		return false, nil
+	case !synced:
+		log.Info("Timed out waiting for the cleanup DaemonSet to start, proceeding with deletion", "cleanupTimeout", timeout)
+	case nodeCount == 0:
+		log.Info("No nodes match the cleanup DaemonSet, so there is nothing to clean up")
+	case finished < nodeCount && idle < timeout:
+		n.reportCleanupProgress(ctx, fmt.Sprintf("%d of %d nodes finished, waiting up to %s for the next node", finished, nodeCount, timeout))
+		log.Info("Waiting for cleanup pods", "finished", finished, "nodes", nodeCount, "failed", failedNodes)
+		return false, nil
+	case finished < nodeCount:
+		log.Info("No node finished cleanup within cleanupTimeout, proceeding with deletion. /opt/CrowdStrike was not removed "+
+			"from the remaining nodes. See the troubleshooting section of the node sensor documentation for more information.",
+			"cleanupTimeout", timeout, "finished", finished, "nodes", nodeCount)
 	}
 	if len(failedNodes) > 0 {
 		log.Info("Some cleanup pods failed to start, so /opt/CrowdStrike may not have been removed from their nodes. "+
@@ -268,4 +294,30 @@ func (n *NodeSensor) finalize(ctx context.Context) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// cleanupFinishedAt returns when a finished cleanup pod made progress: when its init container removed
+// /opt/CrowdStrike, or, for a pod that never got that far, when it was created. Container restart times are left out so
+// that a crash-looping pod does not keep restarting the wait.
+func cleanupFinishedAt(pod *corev1.Pod) time.Time {
+	for _, c := range pod.Status.Conditions {
+		if c.Type == corev1.PodInitialized && c.Status == corev1.ConditionTrue {
+			return c.LastTransitionTime.Time
+		}
+	}
+	return pod.CreationTimestamp.Time
+}
+
+// reportCleanupProgress sets the NodeSensorReady condition to show why deletion is waiting on node cleanup. A failed
+// status update is only logged, so it cannot hold up deletion.
+func (n *NodeSensor) reportCleanupProgress(ctx context.Context, progress string) {
+	if err := k8sutils.ConditionsSet(n.r, ctx, n.cfg.Request, n.r.GetLog(), n.cfg.Owner, n.cfg.Status, metav1.Condition{
+		Type:               falconv1alpha1.ConditionNodeSensorReady,
+		Status:             metav1.ConditionFalse,
+		Reason:             falconv1alpha1.ReasonProgressing,
+		Message:            "Running node cleanup: " + progress,
+		ObservedGeneration: n.cfg.Owner.GetGeneration(),
+	}); err != nil {
+		n.r.GetLog().V(1).Info("Unable to report node cleanup progress", "error", err.Error())
+	}
 }

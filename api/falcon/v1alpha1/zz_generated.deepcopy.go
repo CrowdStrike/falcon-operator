@@ -1180,6 +1180,11 @@ func (in *FalconClusterGuardNodeSpec) DeepCopyInto(out *FalconClusterGuardNodeSp
 		*out = new(bool)
 		**out = **in
 	}
+	if in.CleanupTimeout != nil {
+		in, out := &in.CleanupTimeout, &out.CleanupTimeout
+		*out = new(v1.Duration)
+		**out = **in
+	}
 	out.SensorResources = in.SensorResources
 	in.GKE.DeepCopyInto(&out.GKE)
 	in.PriorityClass.DeepCopyInto(&out.PriorityClass)

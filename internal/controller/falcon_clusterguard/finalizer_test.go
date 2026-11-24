@@ -10,12 +10,14 @@ import (
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -133,5 +135,51 @@ func TestReconcile_DeletionRunsNodeCleanupWithoutSetup(t *testing.T) {
 	}
 	if err := c.Get(ctx, types.NamespacedName{Name: "falcon-sensor-cleanup", Namespace: namespace}, &appsv1.DaemonSet{}); err != nil {
 		t.Errorf("expected the cleanup DaemonSet to be created: %v", err)
+	}
+}
+
+// TestReconcile_DisableCleanupUnblocksDeletion checks the documented way out of a deletion that waits on node cleanup:
+// setting nodeSensor.disableCleanup on the FalconClusterGuard being deleted removes the finalizer on the next pass.
+func TestReconcile_DisableCleanupUnblocksDeletion(t *testing.T) {
+	ctx := context.Background()
+	scheme := runtime.NewScheme()
+	_ = clientgoscheme.AddToScheme(scheme)
+	_ = falconv1alpha1.AddToScheme(scheme)
+	const namespace = "falcon-clusterguard"
+
+	fcg := &falconv1alpha1.FalconClusterGuard{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-fcg", UID: "uid-test-fcg", Finalizers: []string{common.FalconFinalizer},
+			DeletionTimestamp: ptr.To(metav1.Now())},
+		Spec: falconv1alpha1.FalconClusterGuardSpec{InstallNamespace: namespace},
+	}
+	cleanup := &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "falcon-sensor-cleanup", Namespace: namespace, OwnerReferences: []metav1.OwnerReference{{
+			APIVersion: falconv1alpha1.GroupVersion.String(), Kind: "FalconClusterGuard", Name: fcg.Name, UID: fcg.UID, Controller: ptr.To(true),
+		}}},
+		Status: appsv1.DaemonSetStatus{ObservedGeneration: 1, DesiredNumberScheduled: 3},
+	}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(fcg, cleanup).WithStatusSubresource(fcg).Build()
+	r := &FalconClusterGuardReconciler{Client: c, Reader: c, RuntimeScheme: scheme}
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: fcg.Name}}
+
+	if result, err := r.Reconcile(ctx, req); err != nil || result.RequeueAfter == 0 {
+		t.Fatalf("Reconcile() = %v, %v; want a requeue while node cleanup is running", result, err)
+	}
+
+	if err := c.Get(ctx, req.NamespacedName, fcg); err != nil {
+		t.Fatal(err)
+	}
+	fcg.Spec.NodeSensor.NodeCleanup = ptr.To(true)
+	if err := c.Update(ctx, fcg); err != nil {
+		t.Fatal(err)
+	}
+	if result, err := r.Reconcile(ctx, req); err != nil || result.RequeueAfter > 0 {
+		t.Fatalf("Reconcile() = %v, %v; want deletion to finish once disableCleanup is set", result, err)
+	}
+	if err := c.Get(ctx, req.NamespacedName, &falconv1alpha1.FalconClusterGuard{}); !apierrors.IsNotFound(err) {
+		t.Errorf("expected the FalconClusterGuard to be deleted once its finalizer is removed, got %v", err)
+	}
+	if err := c.Get(ctx, client.ObjectKeyFromObject(cleanup), &appsv1.DaemonSet{}); !apierrors.IsNotFound(err) {
+		t.Errorf("expected the cleanup DaemonSet to be deleted, got %v", err)
 	}
 }

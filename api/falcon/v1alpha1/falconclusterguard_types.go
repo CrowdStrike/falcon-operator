@@ -16,6 +16,7 @@ const (
 	ClusterGuardSnapshotsEnabledDefault        = true
 	ClusterGuardSnapshotIntervalDefault        = 22
 	ClusterGuardWatcherPortDefault             = int32(4080)
+	ClusterGuardNodeCleanupTimeoutDefault      = 5 * time.Minute
 
 	DisableClusterGuardControllerAck = "I understand this disables K8s metadata collection and degrades node sensor visibility"
 )
@@ -109,6 +110,17 @@ type FalconClusterGuardNodeSpec struct {
 	// +kubebuilder:default=false
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,order=8
 	NodeCleanup *bool `json:"disableCleanup,omitempty"`
+
+	// How long node cleanup waits without any node finishing before deletion proceeds without the remaining nodes.
+	// The wait restarts whenever another node finishes, so large clusters that are still making progress are not cut
+	// short. Nodes that have not finished keep /opt/CrowdStrike. Shortening it on a FalconClusterGuard
+	// being deleted ends a stalled node cleanup on the next pass. Default is 5m.
+	// +kubebuilder:default:="5m"
+	// +kubebuilder:validation:Type:=string
+	// +kubebuilder:validation:Format:=duration
+	// +kubebuilder:validation:XValidation:rule="duration(self) > duration('0s')",message="cleanupTimeout must be greater than 0"
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Node Cleanup Timeout",order=8
+	CleanupTimeout *metav1.Duration `json:"cleanupTimeout,omitempty"`
 
 	// Configure resource requests and limits for the DaemonSet Sensor. Only applies when using the eBPF backend.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Falcon eBPF Sensor Resources",order=9
@@ -303,6 +315,14 @@ type FalconClusterGuardController struct {
 
 func (s *FalconClusterGuardNodeSpec) IsEnabled() bool {
 	return s.Enabled == nil || *s.Enabled
+}
+
+// GetCleanupTimeout returns how long node cleanup waits without any node finishing.
+func (s *FalconClusterGuardNodeSpec) GetCleanupTimeout() time.Duration {
+	if s.CleanupTimeout == nil {
+		return ClusterGuardNodeCleanupTimeoutDefault
+	}
+	return s.CleanupTimeout.Duration
 }
 
 func (s *FalconClusterGuardController) IsEnabled() bool {

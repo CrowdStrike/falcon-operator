@@ -259,6 +259,7 @@ func TestMigrationScriptFieldCoverage(t *testing.T) {
 			fields: []string{
 				"advanced",
 				"backend",
+				"cleanupTimeout",
 				"clusterName",
 				"disableCleanup",
 				"dnsConfig",

@@ -165,6 +165,7 @@ These settings are for internal CrowdStrike testing only.
 | nodeSensor.terminationGracePeriod           | (optional) Kills pod after a specified amount of time (in seconds). Default is 60 seconds.                                                                                                       |
 | nodeSensor.serviceAccount.annotations      | (optional) Annotations that should be added to the node sensor Service Account (e.g. for IAM role association)                                                                                   |
 | nodeSensor.disableCleanup                   | (optional) Disables the cleanup of `/opt/CrowdStrike` on nodes when the resource is deleted or the node sensor is disabled.                                                                      |
+| nodeSensor.cleanupTimeout                   | (optional) How long node cleanup waits without any node finishing before it proceeds without the remaining nodes, as a duration such as `10m`. The wait restarts each time a node finishes. Must be greater than `0`. Default is `5m`. |
 | nodeSensor.resources.limits.cpu             | (optional) CPU limit for the sensor DaemonSet. Minimum: `250m`. Only applies when using the eBPF backend.                                                                                        |
 | nodeSensor.resources.limits.memory          | (optional) Memory limit for the sensor DaemonSet. Minimum: `500Mi`. Only applies when using the eBPF backend.                                                                                    |
 | nodeSensor.resources.limits.ephemeral-storage | (optional) Ephemeral storage limit for the sensor DaemonSet. Only applies when using the eBPF backend.                                                                                         |
@@ -364,7 +365,7 @@ To uninstall Falcon Cluster Guard simply remove the FalconClusterGuard resource.
 ```
 
 > [!NOTE]
-> During uninstallation, the operator deletes the node sensor DaemonSet and then runs a cleanup DaemonSet to remove `/opt/CrowdStrike` from each node. Uninstallation does not wait on cleanup pods that fail to start (for example `ErrImageNeverPull`, `ImagePullBackOff`, or `CrashLoopBackOff`), and it proceeds after 5 minutes if cleanup pods have still not finished; the operator logs the affected nodes. On those nodes, manually remove the `/opt/CrowdStrike` directory to prevent stale Agent IDs from being reused on reinstallation.
+> During uninstallation, the operator deletes the node sensor DaemonSet and then runs a cleanup DaemonSet to remove `/opt/CrowdStrike` from each node. A node counts as finished once its cleanup pod is running or has failed to start (for example `ErrImageNeverPull`, `ImagePullBackOff`, or `CrashLoopBackOff`). Uninstallation proceeds without the remaining nodes once no node has finished for `nodeSensor.cleanupTimeout` (default `5m`). The wait restarts each time a node finishes, so large clusters are not cut short while cleanup is still making progress. Cleanup pods that are never created, for example because a security context constraint, pod security admission, or a policy engine rejects privileged pods, delay uninstallation by the full `cleanupTimeout`. The operator logs the nodes whose cleanup pods failed and, when it stops waiting, how many nodes finished. To see which nodes have not been cleaned up while uninstallation is waiting, run `{{ .KubeCmd }} get pods -n <installNamespace> -l app=falcon-sensor-cleanup -o wide`: a node with no cleanup pod, or one that is not `Running`, still has `/opt/CrowdStrike`. On those nodes, manually remove the `/opt/CrowdStrike` directory to prevent stale Agent IDs from being reused on reinstallation. See [Troubleshooting](#troubleshooting) to end a node cleanup early.
 
 ### Sensor upgrades
 
@@ -409,6 +410,25 @@ To upgrade the sensor version, simply add and/or update the `version` field in t
 - Each enabled component reports its readiness as a status condition on the FalconClusterGuard resource (`ClusterGuardControllerReady` for the Cluster Guard Controller, `NodeSensorReady`, and `ImageAnalyzerReady`). The condition is removed when its component is disabled. A condition is `True` only once the component's Deployment or DaemonSet has rolled out and its pods are available. Until then it is `False` with reason `Progressing`, or `Failed` when a pod is stuck (for example `ImagePullBackOff` or `CrashLoopBackOff`), and the message names the pod and container at fault. The `Success` condition stays `False` until every enabled component is ready:
   ```sh
   {{ .KubeCmd }} get falconclusterguard -o jsonpath='{range .items[].status.conditions[*]}{.type}={.status} {.reason}: {.message}{"\n"}{end}'
+  ```
+
+  When the node sensor DaemonSet has no pods, the API server may be rejecting them, for example because a security context constraint, pod security admission, or a policy engine denies privileged pods. The DaemonSet's `FailedCreate` events show the reason:
+  ```sh
+  {{ .KubeCmd }} describe daemonset falcon-sensor -n <installNamespace>
+  ```
+
+- While a FalconClusterGuard resource is being deleted, `NodeSensorReady` reports the progress of node cleanup, for example `Running node cleanup: 2 of 3 nodes finished, waiting up to 5m0s for the next node`. The resource is removed once node cleanup ends (see the note under [Uninstall Steps](#uninstall-steps)). For the same reasons, `{{ .KubeCmd }} describe daemonset falcon-sensor-cleanup -n <installNamespace>` shows why cleanup pods are not being created. To end a stalled node cleanup on the next pass, shorten `cleanupTimeout` on the resource being deleted; nodes that have not finished keep `/opt/CrowdStrike`:
+  ```sh
+  {{ .KubeCmd }} patch falconclusterguard <name> --type merge -p '{"spec":{"nodeSensor":{"cleanupTimeout":"1s"}}}'
+  ```
+  To skip the rest of node cleanup instead, set `disableCleanup`. The cleanup DaemonSet is deleted and `/opt/CrowdStrike` is left on every node that has not finished:
+  ```sh
+  {{ .KubeCmd }} patch falconclusterguard <name> --type merge -p '{"spec":{"nodeSensor":{"disableCleanup":true}}}'
+  ```
+  While a FalconDeployment that manages the FalconClusterGuard still exists, it may revert changes made to the FalconClusterGuard. In that case, set either field under `spec.falconClusterGuard.nodeSensor` of the FalconDeployment instead.
+
+  If the operator is not running, the deletion cannot finish until its finalizer is removed. Removing it skips node cleanup and leaves the cleanup DaemonSet, if any, to be garbage collected:
+  {{ .KubeCmd }} patch falconclusterguard <name> --type json -p '[{"op":"remove","path":"/metadata/finalizers"}]'
   ```
 
 - To review the currently deployed version of the operator:
