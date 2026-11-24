@@ -463,7 +463,7 @@ func (r *FalconAdmissionReconciler) reconcileService(ctx context.Context, req ct
 
 func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission, cabundle []byte) (bool, error) {
 	existingWebhook := &arv1.ValidatingWebhookConfiguration{}
-	disabledNamespaces := append(common.DefaultDisabledNamespaces, falconAdmission.Spec.AdmissionConfig.DisabledNamespaces.Namespaces...)
+	disabledNamespaces := admissionDisabledNamespaces(falconAdmission)
 	failPolicy := arv1.Ignore
 	port := int32(443)
 
@@ -890,4 +890,18 @@ func (r *FalconAdmissionReconciler) injectFalconSecretData(ctx context.Context, 
 	logger.Info("injecting Falcon secret data into Spec.Falcon and Spec.FalconAPI - sensitive manifest values will be overwritten with values in k8s secret")
 
 	return k8sutils.InjectFalconSecretData(ctx, r, falconAdmission)
+}
+
+// admissionDisabledNamespaces returns the namespaces the validating webhook always
+// ignores: the FalconAdmission's own install namespace, the default Kubernetes and
+// Falcon namespaces, and any user-configured namespaces. This matches the
+// falcon-kac Helm chart defaults.
+func admissionDisabledNamespaces(falconAdmission *falconv1alpha1.FalconAdmission) []string {
+	namespaces := []string{}
+	if falconAdmission.Spec.InstallNamespace != "" {
+		namespaces = append(namespaces, falconAdmission.Spec.InstallNamespace)
+	}
+	namespaces = append(namespaces, common.DefaultDisabledNamespaces...)
+
+	return append(namespaces, falconAdmission.Spec.AdmissionConfig.DisabledNamespaces.Namespaces...)
 }
