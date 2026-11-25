@@ -17,3 +17,7 @@ spec:
     cloud_region: autodiscover
   deployNodeSensor: false
   deployContainerSensor: true
+  deployClusterGuard: true
+  falconClusterGuard:
+    nodeSensor:
+      enabled: false

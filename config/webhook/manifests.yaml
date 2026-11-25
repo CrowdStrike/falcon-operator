@@ -1,0 +1,26 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-falcon-crowdstrike-com-v1alpha1-falconclusterguard
+  failurePolicy: Ignore
+  name: vfalconclusterguard.kb.io
+  rules:
+  - apiGroups:
+    - falcon.crowdstrike.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - falconclusterguards
+  sideEffects: None
