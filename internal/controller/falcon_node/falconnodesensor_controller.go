@@ -340,6 +340,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		affUpdate := updateDaemonSetAffinity(dsUpdate, nodesensor, logger)
 		volumeUpdates := updateDaemonSetVolumes(dsUpdate, dsTarget, logger)
 		pc := updateDaemonSetPriorityClass(dsUpdate, dsTarget, logger)
+		allowlistUpdate := updateDaemonSetAllowlistLabel(dsUpdate, dsTarget, logger)
 		tolsUpdate, err := r.updateDaemonSetTolerations(ctx, dsUpdate, nodesensor, logger)
 		pullSecretUpdate := r.updateImagePullSecrets(dsUpdate, dsTarget, logger)
 		if err != nil {
@@ -348,7 +349,7 @@ func (r *FalconNodeSensorReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 		// Update the daemonset and re-spin pods with changes
 		if containerUpdates || containerEnvUpdates || tolsUpdate || affUpdate ||
-			volumeUpdates || pc || pullSecretUpdate || updated {
+			volumeUpdates || pc || allowlistUpdate || pullSecretUpdate || updated {
 			err = r.Update(ctx, dsUpdate)
 			if err != nil {
 				err = r.conditionsUpdate(falconv1alpha1.ConditionDaemonSetReady,
@@ -708,6 +709,26 @@ func updateDaemonSetPriorityClass(ds, origDS *appsv1.DaemonSet, logger logr.Logg
 	}
 
 	return priorityClassUpdates
+}
+
+func updateDaemonSetAllowlistLabel(ds, origDS *appsv1.DaemonSet, logger logr.Logger) bool {
+	existingValue, existingOk := ds.Spec.Template.Labels[common.GKEAutoPilotAllowListLabelKey]
+	specValue, specOk := origDS.Spec.Template.Labels[common.GKEAutoPilotAllowListLabelKey]
+	if existingOk == specOk && existingValue == specValue {
+		return false
+	}
+
+	logger.V(1).Info("Updating FalconNodeSensor DaemonSet GKE Autopilot allowlist label", "Current Allowlist", existingValue, "Desired Allowlist", specValue)
+	if !specOk {
+		delete(ds.Spec.Template.Labels, common.GKEAutoPilotAllowListLabelKey)
+		return true
+	}
+
+	if ds.Spec.Template.Labels == nil {
+		ds.Spec.Template.Labels = map[string]string{}
+	}
+	ds.Spec.Template.Labels[common.GKEAutoPilotAllowListLabelKey] = specValue
+	return true
 }
 
 // reconcileDaemonSetContainers handles all init-container and container updates except container envs.
