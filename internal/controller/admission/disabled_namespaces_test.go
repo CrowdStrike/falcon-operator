@@ -12,6 +12,7 @@ func TestAdmissionDisabledNamespaces(t *testing.T) {
 		name             string
 		installNamespace string
 		userNamespaces   []string
+		additional       []string
 		want             []string
 	}{
 		{
@@ -25,6 +26,19 @@ func TestAdmissionDisabledNamespaces(t *testing.T) {
 			userNamespaces:   []string{"team-a"},
 			want:             []string{"my-kac", "kube-system", "kube-public", "falcon-system", "falcon-kubernetes-protection", "team-a"},
 		},
+		{
+			name:             "running falcon namespaces include install namespace",
+			installNamespace: "falcon-kac",
+			additional:       []string{"falcon-kac", "falcon-system"},
+			want:             []string{"falcon-kac", "kube-system", "kube-public", "falcon-system", "falcon-kubernetes-protection"},
+		},
+		{
+			name:             "user namespaces overlap defaults and additional namespaces",
+			installNamespace: "falcon-kac",
+			userNamespaces:   []string{"kube-system", "team-a", "falcon-kac"},
+			additional:       []string{"openshift-etcd", "team-a"},
+			want:             []string{"falcon-kac", "kube-system", "kube-public", "falcon-system", "falcon-kubernetes-protection", "team-a", "openshift-etcd"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -33,7 +47,7 @@ func TestAdmissionDisabledNamespaces(t *testing.T) {
 			falconAdmission.Spec.InstallNamespace = tt.installNamespace
 			falconAdmission.Spec.AdmissionConfig.DisabledNamespaces.Namespaces = tt.userNamespaces
 
-			assert.Equal(t, tt.want, admissionDisabledNamespaces(falconAdmission))
+			assert.Equal(t, tt.want, admissionDisabledNamespaces(falconAdmission, tt.additional...))
 		})
 	}
 }

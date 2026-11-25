@@ -463,9 +463,9 @@ func (r *FalconAdmissionReconciler) reconcileService(ctx context.Context, req ct
 
 func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx context.Context, req ctrl.Request, log logr.Logger, falconAdmission *falconv1alpha1.FalconAdmission, cabundle []byte) (bool, error) {
 	existingWebhook := &arv1.ValidatingWebhookConfiguration{}
-	disabledNamespaces := admissionDisabledNamespaces(falconAdmission)
 	failPolicy := arv1.Ignore
 	port := int32(443)
+	disabledNamespaces := []string{}
 
 	if r.OpenShift {
 		ocpNS, err := k8sutils.GetOpenShiftNamespaceNamesSort(ctx, r.Reader)
@@ -481,6 +481,7 @@ func (r *FalconAdmissionReconciler) reconcileAdmissionValidatingWebHook(ctx cont
 	}
 
 	disabledNamespaces = append(disabledNamespaces, falconNS...)
+	disabledNamespaces = admissionDisabledNamespaces(falconAdmission, disabledNamespaces...)
 
 	if falconAdmission.Spec.AdmissionConfig.FailurePolicy != "" {
 		failPolicy = falconAdmission.Spec.AdmissionConfig.FailurePolicy
@@ -892,16 +893,26 @@ func (r *FalconAdmissionReconciler) injectFalconSecretData(ctx context.Context, 
 	return k8sutils.InjectFalconSecretData(ctx, r, falconAdmission)
 }
 
-// admissionDisabledNamespaces returns the namespaces the validating webhook always
-// ignores: the FalconAdmission's own install namespace, the default Kubernetes and
-// Falcon namespaces, and any user-configured namespaces. This matches the
-// falcon-kac Helm chart defaults.
-func admissionDisabledNamespaces(falconAdmission *falconv1alpha1.FalconAdmission) []string {
-	namespaces := []string{}
+// admissionDisabledNamespaces returns the de-duplicated list of namespaces the
+// validating webhook ignores.
+func admissionDisabledNamespaces(falconAdmission *falconv1alpha1.FalconAdmission, additional ...string) []string {
+	disabledNamespaces := []string{}
 	if falconAdmission.Spec.InstallNamespace != "" {
-		namespaces = append(namespaces, falconAdmission.Spec.InstallNamespace)
+		disabledNamespaces = append(disabledNamespaces, falconAdmission.Spec.InstallNamespace)
 	}
-	namespaces = append(namespaces, common.DefaultDisabledNamespaces...)
+	disabledNamespaces = append(disabledNamespaces, common.DefaultDisabledNamespaces...)
+	disabledNamespaces = append(disabledNamespaces, falconAdmission.Spec.AdmissionConfig.DisabledNamespaces.Namespaces...)
+	disabledNamespaces = append(disabledNamespaces, additional...)
 
-	return append(namespaces, falconAdmission.Spec.AdmissionConfig.DisabledNamespaces.Namespaces...)
+	unique := make([]string, 0, len(disabledNamespaces))
+	seen := make(map[string]struct{}, len(disabledNamespaces))
+	for _, ns := range disabledNamespaces {
+		if _, ok := seen[ns]; ok {
+			continue
+		}
+		seen[ns] = struct{}{}
+		unique = append(unique, ns)
+	}
+
+	return unique
 }
