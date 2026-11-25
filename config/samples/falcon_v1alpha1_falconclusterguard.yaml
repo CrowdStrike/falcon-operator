@@ -1,0 +1,23 @@
+apiVersion: falcon.crowdstrike.com/v1alpha1
+kind: FalconClusterGuard
+metadata:
+  labels:
+    crowdstrike.com/component: sample
+    crowdstrike.com/created-by: falcon-operator
+    crowdstrike.com/instance: falcon-clusterguard
+    crowdstrike.com/managed-by: kustomize
+    crowdstrike.com/name: falconclusterguard
+    crowdstrike.com/part-of: Falcon
+    crowdstrike.com/provider: crowdstrike
+  name: falcon-clusterguard
+spec:
+  falcon_api:
+    client_id: PLEASE_FILL_IN
+    client_secret: PLEASE_FILL_IN
+    cloud_region: autodiscover
+  registry:
+    type: crowdstrike
+  falcon:
+    trace: none
+    tags:
+      - clusterguard
