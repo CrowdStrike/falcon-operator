@@ -11,7 +11,7 @@ var (
 	OrigDSConfVersion         = "0"
 	FalconOperatorNamespace   = "falcon-operator"
 	FalconInjectorCommand     = []string{"injector"}
-	DefaultDisabledNamespaces = []string{"kube-system", "kube-public"}
+	DefaultDisabledNamespaces = []string{"kube-system", "kube-public", "falcon-system", "falcon-kubernetes-protection"}
 )
 
 func init() {
