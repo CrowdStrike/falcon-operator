@@ -12,6 +12,7 @@ import (
 
 const (
 	ClusterGuardAdmissionControlEnabledDefault = false
+	ClusterGuardAdmissionControlTimeoutDefault = int32(10)
 	ClusterGuardWatchEventsEnabledDefault      = true
 	ClusterGuardSnapshotsEnabledDefault        = true
 	ClusterGuardSnapshotIntervalDefault        = 22
@@ -250,6 +251,15 @@ type FalconClusterGuardController struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable Admission Control",order=18
 	AdmissionControlEnabled *bool `json:"admissionControlEnabled,omitempty"`
 
+	// How long, in seconds, the API server waits for the admission webhook before applying failurePolicy. Every
+	// admission webhook entry uses the same value. With failurePolicy Fail, a longer timeout makes resource creation wait
+	// longer when the webhook is slow to respond.
+	// +kubebuilder:default:=10
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=30
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Admission Webhook Timeout Seconds",order=18,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	AdmissionControlTimeoutSeconds *int32 `json:"admissionControlTimeoutSeconds,omitempty"`
+
 	// Determines if the Cluster Guard Controller watches for configMap events.
 	// +kubebuilder:default:=true
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Enable ConfigMap Event Watcher",order=17
@@ -334,6 +344,13 @@ func (s *FalconClusterGuardController) GetAdmissionControlEnabled() bool {
 		return ClusterGuardAdmissionControlEnabledDefault
 	}
 	return *s.AdmissionControlEnabled
+}
+
+func (s *FalconClusterGuardController) GetAdmissionControlTimeoutSeconds() int32 {
+	if s.AdmissionControlTimeoutSeconds == nil {
+		return ClusterGuardAdmissionControlTimeoutDefault
+	}
+	return *s.AdmissionControlTimeoutSeconds
 }
 
 func (s *FalconClusterGuardController) GetWatcherEnabled() bool {

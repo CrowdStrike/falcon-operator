@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -192,6 +193,41 @@ func TestReconcile_AdmissionControlTogglesWebhook(t *testing.T) {
 	reconcile(false)
 	if err := r.Get(ctx, webhookKey, &arv1.ValidatingWebhookConfiguration{}); !apierrors.IsNotFound(err) {
 		t.Errorf("disabled again: expected the ValidatingWebhookConfiguration to be deleted, got %v", err)
+	}
+}
+
+// Changing admissionControlTimeoutSeconds updates every entry of an existing ValidatingWebhookConfiguration and reports
+// the update, so the controller pods are restarted.
+func TestReconcileValidatingWebhook_UpdatesTimeoutSeconds(t *testing.T) {
+	ctx := context.Background()
+	r, _, a := newCleanupTestController(t)
+	enabled := true
+	a.cfg.ClusterGuardControllerConfig.AdmissionControlEnabled = &enabled
+	if _, err := a.reconcileValidatingWebhook(ctx, nil); err != nil {
+		t.Fatalf("reconcileValidatingWebhook() error: %v", err)
+	}
+
+	timeout := int32(25)
+	a.cfg.ClusterGuardControllerConfig.AdmissionControlTimeoutSeconds = &timeout
+	updated, err := a.reconcileValidatingWebhook(ctx, nil)
+	if err != nil {
+		t.Fatalf("reconcileValidatingWebhook() error: %v", err)
+	}
+	if !updated {
+		t.Error("expected a timeoutSeconds change to report the webhook as updated")
+	}
+	webhook := &arv1.ValidatingWebhookConfiguration{}
+	if err := r.Get(ctx, types.NamespacedName{Name: pkgcommon.ClusterGuardControllerValidatingWebhookName}, webhook); err != nil {
+		t.Fatal(err)
+	}
+	for _, w := range webhook.Webhooks {
+		if got := ptr.Deref(w.TimeoutSeconds, 0); got != timeout {
+			t.Errorf("%s: expected timeoutSeconds %d, got %d", w.Name, timeout, got)
+		}
+	}
+
+	if updated, err := a.reconcileValidatingWebhook(ctx, nil); err != nil || updated {
+		t.Errorf("reconcileValidatingWebhook() = %t, %v; want no update once the timeout matches", updated, err)
 	}
 }
 

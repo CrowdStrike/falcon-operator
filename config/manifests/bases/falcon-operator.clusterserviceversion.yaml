@@ -596,6 +596,13 @@ spec:
         displayName: Billing
         path: falcon.billing
       - description: |-
+          How long node cleanup waits without any node finishing before deletion proceeds without the remaining nodes.
+          The wait restarts whenever another node finishes, so large clusters that are still making progress are not cut
+          short. Nodes that have not finished keep /opt/CrowdStrike. Shortening it on a FalconClusterGuard
+          being deleted ends a stalled node cleanup on the next pass. Default is 5m.
+        displayName: Node Cleanup Timeout
+        path: nodeSensor.cleanupTimeout
+      - description: |-
           Disables the cleanup of the sensor through DaemonSet on the nodes.
           Disabling might have unintended consequences for certain operations such as sensor downgrading.
         displayName: Node Cleanup
@@ -667,6 +674,14 @@ spec:
           is enabled.
         displayName: Enable Admission Control
         path: controller.admissionControlEnabled
+      - description: |-
+          How long, in seconds, the API server waits for the admission webhook before applying failurePolicy. Every
+          admission webhook entry uses the same value. With failurePolicy Fail, a longer timeout makes resource creation wait
+          longer when the webhook is slow to respond.
+        displayName: Admission Webhook Timeout Seconds
+        path: controller.admissionControlTimeoutSeconds
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
       - displayName: Falcon Cluster Guard Controller Watcher Resources
         path: controller.resourcesWatcher
         x-descriptors:
@@ -2043,6 +2058,13 @@ spec:
         displayName: Billing
         path: falconClusterGuard.falcon.billing
       - description: |-
+          How long node cleanup waits without any node finishing before deletion proceeds without the remaining nodes.
+          The wait restarts whenever another node finishes, so large clusters that are still making progress are not cut
+          short. Nodes that have not finished keep /opt/CrowdStrike. Shortening it on a FalconClusterGuard
+          being deleted ends a stalled node cleanup on the next pass. Default is 5m.
+        displayName: Node Cleanup Timeout
+        path: falconClusterGuard.nodeSensor.cleanupTimeout
+      - description: |-
           Disables the cleanup of the sensor through DaemonSet on the nodes.
           Disabling might have unintended consequences for certain operations such as sensor downgrading.
         displayName: Node Cleanup
@@ -2265,6 +2287,14 @@ spec:
           is enabled.
         displayName: Enable Admission Control
         path: falconClusterGuard.controller.admissionControlEnabled
+      - description: |-
+          How long, in seconds, the API server waits for the admission webhook before applying failurePolicy. Every
+          admission webhook entry uses the same value. With failurePolicy Fail, a longer timeout makes resource creation wait
+          longer when the webhook is slow to respond.
+        displayName: Admission Webhook Timeout Seconds
+        path: falconClusterGuard.controller.admissionControlTimeoutSeconds
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
       - displayName: Falcon Cluster Guard Controller Watcher Resources
         path: falconClusterGuard.controller.resourcesWatcher
         x-descriptors:

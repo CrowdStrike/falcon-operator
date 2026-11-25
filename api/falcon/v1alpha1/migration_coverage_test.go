@@ -281,6 +281,7 @@ func TestMigrationScriptFieldCoverage(t *testing.T) {
 			typ:  reflect.TypeFor[falconv1alpha1.FalconClusterGuardController](),
 			fields: []string{
 				"admissionControlEnabled",
+				"admissionControlTimeoutSeconds",
 				"clusterName",
 				"configMapWatcherEnabled",
 				"containerPort",

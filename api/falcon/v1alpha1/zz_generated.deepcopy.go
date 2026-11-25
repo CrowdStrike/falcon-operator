@@ -806,6 +806,11 @@ func (in *FalconClusterGuardController) DeepCopyInto(out *FalconClusterGuardCont
 		*out = new(bool)
 		**out = **in
 	}
+	if in.AdmissionControlTimeoutSeconds != nil {
+		in, out := &in.AdmissionControlTimeoutSeconds, &out.AdmissionControlTimeoutSeconds
+		*out = new(int32)
+		**out = **in
+	}
 	if in.ConfigMapWatcherEnabled != nil {
 		in, out := &in.ConfigMapWatcherEnabled, &out.ConfigMapWatcherEnabled
 		*out = new(bool)

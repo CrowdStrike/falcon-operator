@@ -212,6 +212,29 @@ func TestClusterGuardValidatingWebhookClientConfig(t *testing.T) {
 	})
 }
 
+// KAC reads the timeout from the first webhook entry and applies it to every review, so all entries must match.
+func TestClusterGuardValidatingWebhookTimeoutSeconds(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		timeout *int32
+		want    int32
+	}{
+		{"default", nil, falconv1alpha1.ClusterGuardAdmissionControlTimeoutDefault},
+		{"from spec", ptr.To(int32(25)), 25},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := New(nil, Config{ClusterGuardControllerConfig: falconv1alpha1.FalconClusterGuardController{
+				AdmissionControlTimeoutSeconds: tc.timeout,
+			}})
+			for _, w := range a.ValidatingWebhook(nil).Webhooks {
+				if got := ptr.Deref(w.TimeoutSeconds, 0); got != tc.want {
+					t.Errorf("%s: expected timeoutSeconds %d, got %d", w.Name, tc.want, got)
+				}
+			}
+		})
+	}
+}
+
 func TestClusterGuardValidatingWebhookDeduplicatesNamespaces(t *testing.T) {
 	namespace := "falcon-clusterguard"
 	caBundle := []byte("fake-ca")

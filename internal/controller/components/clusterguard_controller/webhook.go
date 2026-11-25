@@ -26,7 +26,7 @@ func (a *ClusterGuardController) ValidatingWebhook(caBundle []byte) *arv1.Valida
 	}
 	matchPolicy := arv1.Equivalent
 	sideEffects := arv1.SideEffectClassNone
-	timeoutSeconds := int32(10)
+	timeoutSeconds := a.cfg.ClusterGuardControllerConfig.GetAdmissionControlTimeoutSeconds()
 	excludeOp := metav1.LabelSelectorOpNotIn
 	scope := arv1.AllScopes
 	webhookName := pkgcommon.ClusterGuardControllerValidatingWebhookName
@@ -231,6 +231,12 @@ func (a *ClusterGuardController) reconcileValidatingWebhook(ctx context.Context,
 			a.r.GetLog().V(1).Info("Updating FalconClusterGuard ValidatingWebhookConfiguration: FailurePolicy changed",
 				"old", existing.Webhooks[0].FailurePolicy,
 				"new", webhook.Webhooks[0].FailurePolicy)
+			needsUpdate = true
+		}
+		if !reflect.DeepEqual(webhook.Webhooks[0].TimeoutSeconds, existing.Webhooks[0].TimeoutSeconds) {
+			a.r.GetLog().V(1).Info("Updating FalconClusterGuard ValidatingWebhookConfiguration: TimeoutSeconds changed",
+				"old", existing.Webhooks[0].TimeoutSeconds,
+				"new", webhook.Webhooks[0].TimeoutSeconds)
 			needsUpdate = true
 		}
 		if !reflect.DeepEqual(webhook.Webhooks[0].ClientConfig, existing.Webhooks[0].ClientConfig) {

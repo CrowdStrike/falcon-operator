@@ -1002,6 +1002,16 @@ spec:
                         description: Determines if the Cluster Guard Controller admission
                           webhook is enabled.
                         type: boolean
+                      admissionControlTimeoutSeconds:
+                        default: 10
+                        description: |-
+                          How long, in seconds, the API server waits for the admission webhook before applying failurePolicy. Every
+                          admission webhook entry uses the same value. With failurePolicy Fail, a longer timeout makes resource creation wait
+                          longer when the webhook is slow to respond.
+                        format: int32
+                        maximum: 30
+                        minimum: 1
+                        type: integer
                       clusterName:
                         description: Cluster Name if Falcon Cluster Guard cannot discover
                           the cluster name. This will be overwritten if Falcon Cluster
